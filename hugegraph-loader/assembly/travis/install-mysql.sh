@@ -32,7 +32,7 @@ docker run -p 3306:3306 --name "$1" -e MYSQL_ROOT_PASSWORD="$2" -d mysql:5.7
 
 
 # Old Version
-#MYSQL_DOWNLOAD_ADDRESS="http://dev.MySQL.com/get/Downloads"
+#MYSQL_DOWNLOAD_ADDRESS="https://dev.mysql.com/get/Downloads"
 #MYSQL_VERSION="MySQL-5.7"
 #MYSQL_PACKAGE="mysql-5.7.11-Linux-glibc2.5-x86_64"
 #MYSQL_TAR="${MYSQL_PACKAGE}.tar.gz"

@@ -17,7 +17,7 @@
 #
 set -ev
 
-sudo wget http://archive.apache.org/dist/hadoop/common/hadoop-2.8.5/hadoop-2.8.5.tar.gz
+sudo wget https://archive.apache.org/dist/hadoop/common/hadoop-2.8.5/hadoop-2.8.5.tar.gz
 
 sudo tar -zxf hadoop-2.8.5.tar.gz -C /usr/local
 cd /usr/local
