@@ -134,7 +134,7 @@ hugegraph-loader, hugegraph-tools, hugegraph-hubble, hugegraph-spark-connector
 
 ### Hubble (Web UI on port 8088)
 ```bash
-cd hugegraph-hubble/apache-hugegraph-hubble-incubating-*/bin
+cd hugegraph-hubble/apache-hugegraph-hubble-*/bin
 ./start-hubble.sh      # Background
 ./start-hubble.sh -f   # Foreground
 ./stop-hubble.sh       # Stop
@@ -142,7 +142,7 @@ cd hugegraph-hubble/apache-hugegraph-hubble-incubating-*/bin
 
 ### Loader
 ```bash
-cd hugegraph-loader/apache-hugegraph-loader-incubating-*
+cd hugegraph-loader/apache-hugegraph-loader-*
 ./bin/hugegraph-loader.sh [options]
 ```
 
