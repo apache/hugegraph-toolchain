@@ -23,12 +23,20 @@ TRAVIS_DIR=$(dirname $0)
 CONF=hugegraph-test/src/main/resources/hugegraph.properties
 MYSQL_USERNAME=root
 
-# Set MySQL configurations
+DB_NAME="${1:-mysql}"
+DB_PASS="${2:-root}"
 
+# Skip if MySQL is already running (e.g., provided by GitHub Actions service)
+if docker ps | grep -q "mysql:5.7"; then
+    echo "MySQL 5.7 container is already running, skipping setup."
+    exit 0
+fi
+
+# Set MySQL configurations
 
 # Keep for upgrade in future
 docker pull mysql:5.7
-docker run -p 3306:3306 --name "$1" -e MYSQL_ROOT_PASSWORD="$2" -d mysql:5.7
+docker run -p 3306:3306 --name "${DB_NAME}" -e MYSQL_ROOT_PASSWORD="${DB_PASS}" -d mysql:5.7
 
 
 # Old Version
