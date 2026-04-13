@@ -230,6 +230,9 @@ export class DataImportRootStore {
     this.requestStatus.uploadFiles = 'pending';
     const formData = new FormData();
     formData.append('file', fileChunkList.chunk);
+    const fileSize =
+      this.fileUploadTasks.find(({ name }) => name === fileName)?.size ??
+      fileChunkList.chunk.size;
 
     if (this.currentId === null || this.currentJobId === null) {
       return;
@@ -238,7 +241,7 @@ export class DataImportRootStore {
     try {
       const result: AxiosResponse<responseData<FileUploadResult>> = yield axios
         .post<responseData<FileUploadResult>>(
-          `${baseUrl}/${this.currentId}/job-manager/${this.currentJobId}/upload-file?total=${fileChunkTotal}&index=${fileChunkList.chunkIndex}&name=${fileName}&token=${this.fileHashes[fileName]}`,
+          `${baseUrl}/${this.currentId}/job-manager/${this.currentJobId}/upload-file?total=${fileChunkTotal}&index=${fileChunkList.chunkIndex}&name=${fileName}&size=${fileSize}&token=${this.fileHashes[fileName]}`,
           formData,
           {
             headers: {

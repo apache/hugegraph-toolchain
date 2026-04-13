@@ -35,6 +35,7 @@ import { CancellablePromise } from 'mobx/lib/api/flow';
 
 import { DataImportRootStoreContext } from '../../../../stores';
 import { useInitDataImport } from '../../../../hooks';
+import { isCurrentJobUploadSizeExceeded } from '../../../../utils/dataImportUpload';
 
 import type { FileUploadResult } from '../../../../stores/types/GraphManagementStore/dataImportStore';
 
@@ -207,11 +208,13 @@ export const FileDropZone: React.FC = observer(() => {
       });
     }
 
-    const totalSize = filteredFiles
-      .map(({ size }) => size)
-      .reduce((prev, curr) => prev + curr, 0);
-
-    if (totalSize / GB > 10) {
+    if (
+      isCurrentJobUploadSizeExceeded(
+        dataMapStore.fileMapInfos,
+        dataImportRootStore.fileUploadTasks,
+        filteredFiles
+      )
+    ) {
       Message.error({
         content: `${t('upload-files.over-all-size-limit')}`,
         size: 'medium',

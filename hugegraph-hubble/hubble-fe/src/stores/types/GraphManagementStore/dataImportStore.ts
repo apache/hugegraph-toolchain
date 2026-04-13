@@ -148,6 +148,7 @@ export interface FileMapInfo {
   name: string;
   total_lines: number;
   total_size: string;
+  total_size_bytes: number;
   file_setting: FileConfig;
   file_status: string;
   vertex_mappings: VertexMap[];

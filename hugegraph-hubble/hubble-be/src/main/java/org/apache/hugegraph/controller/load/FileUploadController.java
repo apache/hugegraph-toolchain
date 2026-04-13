@@ -96,13 +96,14 @@ public class FileUploadController {
                                    @PathVariable("jobId") int jobId,
                                    @RequestParam("file") MultipartFile file,
                                    @RequestParam("name") String fileName,
+                                   @RequestParam("size") long fileSize,
                                    @RequestParam("token") String token,
                                    @RequestParam("total") int total,
                                    @RequestParam("index") int index) {
         this.checkTotalAndIndexValid(total, index);
         this.checkFileNameMatchToken(fileName, token);
         JobManager jobEntity = this.jobService.get(jobId);
-        this.checkFileValid(connId, jobId, jobEntity, file, fileName);
+        this.checkFileValid(connId, jobId, jobEntity, file, fileName, fileSize);
         if (jobEntity.getJobStatus() == JobStatus.DEFAULT) {
             jobEntity.setJobStatus(JobStatus.UPLOADING);
             this.jobService.update(jobEntity);
@@ -244,7 +245,8 @@ public class FileUploadController {
     }
 
     private void checkFileValid(int connId, int jobId, JobManager jobEntity,
-                                MultipartFile file, String fileName) {
+                                MultipartFile file, String fileName,
+                                long sourceFileSize) {
         Ex.check(jobEntity != null, "job-manager.not-exist.id", jobId);
         Ex.check(jobEntity.getJobStatus() == JobStatus.DEFAULT ||
                  jobEntity.getJobStatus() == JobStatus.UPLOADING ||
@@ -262,10 +264,11 @@ public class FileUploadController {
         Ex.check(formatWhiteList.contains(format),
                  "load.upload.file.format.unsupported");
 
-        long fileSize = file.getSize();
+        Ex.check(sourceFileSize > 0L,
+                 "load.upload.file.cannot-be-empty");
         long singleFileSizeLimit = this.config.get(
                 HubbleOptions.UPLOAD_SINGLE_FILE_SIZE_LIMIT);
-        Ex.check(fileSize <= singleFileSizeLimit,
+        Ex.check(sourceFileSize <= singleFileSizeLimit,
                  "load.upload.file.exceed-single-size",
                  FileUtils.byteCountToDisplaySize(singleFileSizeLimit));
 
@@ -277,12 +280,9 @@ public class FileUploadController {
 
         long totalFileSizeLimit = this.config.get(
                 HubbleOptions.UPLOAD_TOTAL_FILE_SIZE_LIMIT);
-        List<FileMapping> fileMappings = this.service.listAll();
-        long currentTotalSize = fileMappings.stream()
-                                            .map(FileMapping::getTotalSize)
-                                            .reduce(0L, (Long::sum));
-        Ex.check(fileSize + currentTotalSize <= totalFileSizeLimit,
-                 "load.upload.file.exceed-single-size",
+        long currentJobSize = jobEntity.getJobSize();
+        Ex.check(sourceFileSize + currentJobSize <= totalFileSizeLimit,
+                 "load.upload.file.exceed-total-size",
                  FileUtils.byteCountToDisplaySize(totalFileSizeLimit));
     }
 

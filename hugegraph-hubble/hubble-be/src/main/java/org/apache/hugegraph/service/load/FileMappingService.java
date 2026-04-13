@@ -105,6 +105,12 @@ public class FileMappingService {
         return this.mapper.selectList(null);
     }
 
+    public List<FileMapping> listByJob(int jobId) {
+        QueryWrapper<FileMapping> query = Wrappers.query();
+        query.eq("job_id", jobId);
+        return this.mapper.selectList(query);
+    }
+
     public IPage<FileMapping> list(int connId, int jobId, int pageNo, int pageSize) {
         QueryWrapper<FileMapping> query = Wrappers.query();
         query.eq("conn_id", connId);
