@@ -27,8 +27,8 @@ DB_NAME="${1:-mysql}"
 DB_PASS="${2:-root}"
 
 # Skip if MySQL is already running (e.g., provided by GitHub Actions service)
-if docker ps | grep -q "mysql:5.7"; then
-    echo "MySQL 5.7 container is already running, skipping setup."
+if docker ps --format '{{.Names}}' | grep -qx "${DB_NAME}"; then
+    echo "MySQL container ${DB_NAME} is already running, skipping setup."
     exit 0
 fi
 

@@ -26,12 +26,12 @@ jobs:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-loader/assembly/travis
       STATIC_DIR: hugegraph-loader/assembly/static
-      # TODO: replace it with the (latest - n) commit id (n >= 15)
-      # hugegraph commit date: 2025-10-30
-      COMMIT_ID: 5b3d295
+      # replace it with the (latest - n) commit id (n >= 15)
+      COMMIT_ID: ${{ steps.get-commit-id.outputs.commit_id }}
       DB_USER: root
       DB_PASS: root
       DB_DATABASE: load_test
+      HADOOP_VERSION: 3.3.6
     strategy:
       matrix:
         JAVA_VERSION: ['11']
@@ -43,12 +43,35 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
+      hdfs:
+        image: apache/hadoop:3.3.6
+        ports:
+          - 9000:9000
+          - 9870:9870
+        env:
+          HADOOP_HOME: /opt/hadoop
+          HDFS_NAMENODE_USER: root
+          HDFS_DATANODE_USER: root
+        options: >-
+          --entrypoint /bin/bash
+          -c "/opt/hadoop/bin/hdfs namenode -format && /opt/hadoop/sbin/start-dfs.sh && tail -f /dev/null"
+          --health-cmd="curl -f http://localhost:9870"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - name: Fetch Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 0
+
+      - name: Get latest 15 commit id from master
+        id: get-commit-id
+        run: |
+          git fetch origin master
+          COMMIT_ID=$(git log --format="%h" origin/master -n 15 | head -n 1)
+          echo "commit_id=$COMMIT_ID" >> $GITHUB_OUTPUT
 
       - name: Install JDK 11
         uses: actions/setup-java@v4
@@ -62,12 +85,6 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-
-      - name: Cache Hadoop
-        uses: actions/cache@v4
-        with:
-          path: ~/hadoop-2.8.5.tar.gz
-          key: ${{ runner.os }}-hadoop-2.8.5
 
       - name: Cache HugeGraph Server
         uses: actions/cache@v4
@@ -87,7 +104,6 @@ jobs:
 
       - name: Prepare env and service
         run: |
-          $TRAVIS_DIR/install-hadoop.sh
           $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
 
       - name: Run test

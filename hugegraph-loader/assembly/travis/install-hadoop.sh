@@ -17,7 +17,7 @@
 #
 set -ev
 
-HADOOP_VERSION="2.8.5"
+HADOOP_VERSION="3.3.0"
 HADOOP_TARBALL="hadoop-${HADOOP_VERSION}.tar.gz"
 HADOOP_HOME="/usr/local/hadoop"
 HADOOP_TARBALL_PATH="${HOME}/${HADOOP_TARBALL}"
@@ -47,7 +47,15 @@ if [[ -n "${GITHUB_ENV:-}" ]]; then
     echo "PATH=${PATH}:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin" >> "${GITHUB_ENV}"
 fi
 
-echo "export HADOOP_HOME=${HADOOP_HOME}" >> ~/.bashrc
+if ! grep -qxF "export HADOOP_HOME=${HADOOP_HOME}" ~/.bashrc; then
+    echo "export HADOOP_HOME=${HADOOP_HOME}" >> ~/.bashrc
+fi
+if ! grep -qxF "export HADOOP_COMMON_LIB_NATIVE_DIR=${HADOOP_HOME}/lib/native" ~/.bashrc; then
+    echo "export HADOOP_COMMON_LIB_NATIVE_DIR=${HADOOP_HOME}/lib/native" >> ~/.bashrc
+fi
+if ! grep -qxF "export PATH=\$PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin" ~/.bashrc; then
+    echo "export PATH=\$PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin" >> ~/.bashrc
+fi
 echo "export HADOOP_COMMON_LIB_NATIVE_DIR=${HADOOP_HOME}/lib/native" >> ~/.bashrc
 echo "export PATH=\$PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin" >> ~/.bashrc
 
