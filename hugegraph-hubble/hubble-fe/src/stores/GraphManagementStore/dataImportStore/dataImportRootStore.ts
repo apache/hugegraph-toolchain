@@ -79,6 +79,20 @@ export class DataImportRootStore {
     return this.fileUploadTasks.filter(({ status }) => status !== 'success');
   }
 
+  findFileUploadTask(fileName: string) {
+    return this.fileUploadTasks.find(({ name }) => name === fileName);
+  }
+
+  getRequiredFileUploadTask(fileName: string) {
+    const fileUploadTask = this.findFileUploadTask(fileName);
+
+    if (isUndefined(fileUploadTask)) {
+      throw new Error(`Upload task '${fileName}' not found`);
+    }
+
+    return fileUploadTask;
+  }
+
   @action
   setCurrentId(id: number) {
     this.currentId = id;
@@ -134,9 +148,7 @@ export class DataImportRootStore {
     value: FileUploadTask[T],
     fileName: string
   ) {
-    const fileUploadTask = this.fileUploadTasks.find(
-      ({ name }) => name === fileName
-    )!;
+    const fileUploadTask = this.findFileUploadTask(fileName);
 
     // users may click back button in browser
     if (!isUndefined(fileUploadTask)) {
@@ -230,15 +242,13 @@ export class DataImportRootStore {
     this.requestStatus.uploadFiles = 'pending';
     const formData = new FormData();
     formData.append('file', fileChunkList.chunk);
-    const fileSize =
-      this.fileUploadTasks.find(({ name }) => name === fileName)?.size ??
-      fileChunkList.chunk.size;
 
     if (this.currentId === null || this.currentJobId === null) {
       return;
     }
 
     try {
+      const fileSize = this.getRequiredFileUploadTask(fileName).size;
       const result: AxiosResponse<responseData<FileUploadResult>> = yield axios
         .post<responseData<FileUploadResult>>(
           `${baseUrl}/${this.currentId}/job-manager/${this.currentJobId}/upload-file?total=${fileChunkTotal}&index=${fileChunkList.chunkIndex}&name=${fileName}&size=${fileSize}&token=${this.fileHashes[fileName]}`,
