@@ -104,24 +104,7 @@ public class JobManagerController {
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable("id") int id) {
-        JobManager job = this.service.get(id);
-        if (job == null) {
-            throw new ExternalException("job.manager.not-exist.id", id);
-        }
-        List<LoadTask> loadTasks = this.taskService.taskListByJob(id);
-        for (LoadTask loadTask : loadTasks) {
-            if (loadTask.getStatus().inRunning() ||
-                loadTask.getStatus() == LoadStatus.PAUSED) {
-                this.taskService.stop(loadTask.getId());
-            }
-            this.taskService.remove(loadTask.getId());
-        }
-        List<FileMapping> mappings = this.fmService.listByJob(id);
-        for (FileMapping mapping : mappings) {
-            this.fmService.deleteDiskFile(mapping);
-            this.fmService.remove(mapping.getId());
-        }
-        this.service.remove(id);
+        this.service.deleteJob(id);
     }
 
     @GetMapping("{id}")
