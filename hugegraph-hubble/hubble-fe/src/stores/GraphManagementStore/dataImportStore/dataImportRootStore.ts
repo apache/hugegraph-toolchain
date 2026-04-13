@@ -38,7 +38,7 @@ import {
   EdgeType,
   EdgeTypeListResponse
 } from '../../types/GraphManagementStore/metadataConfigsStore';
-import { checkIfLocalNetworkOffline } from '../../utils';
+import { checkIfLocalNetworkOffline, getErrorMessage } from '../../utils';
 
 const MAX_CONCURRENT_UPLOAD = 5;
 
@@ -218,9 +218,10 @@ export class DataImportRootStore {
       this.fileHashes = { ...this.fileHashes, ...result.data.data };
       this.requestStatus.fetchFilehashes = 'success';
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.requestStatus.fetchFilehashes = 'failed';
-      this.errorInfo.fetchFilehashes.message = error.message;
-      console.error(error.message);
+      this.errorInfo.fetchFilehashes.message = errorMessage;
+      console.error(errorMessage);
     }
   });
 
@@ -270,9 +271,10 @@ export class DataImportRootStore {
       this.requestStatus.uploadFiles = 'success';
       return result.data.data;
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.requestStatus.uploadFiles = 'failed';
-      this.errorInfo.uploadFiles.message = error.message;
-      console.error(error.message);
+      this.errorInfo.uploadFiles.message = errorMessage;
+      console.error(errorMessage);
     }
   });
 
@@ -296,9 +298,10 @@ export class DataImportRootStore {
 
       this.requestStatus.deleteFiles = 'success';
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.requestStatus.deleteFiles = 'failed';
-      this.errorInfo.deleteFiles.message = error.message;
-      console.error(error.message);
+      this.errorInfo.deleteFiles.message = errorMessage;
+      console.error(errorMessage);
     }
   });
 
@@ -321,9 +324,10 @@ export class DataImportRootStore {
 
       this.requestStatus.sendUploadCompleteSignal = 'success';
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.requestStatus.sendUploadCompleteSignal = 'failed';
-      this.errorInfo.sendUploadCompleteSignal.message = error.message;
-      console.error(error.message);
+      this.errorInfo.sendUploadCompleteSignal.message = errorMessage;
+      console.error(errorMessage);
     }
   });
 
@@ -346,9 +350,10 @@ export class DataImportRootStore {
 
       this.requestStatus.sendMappingCompleteSignal = 'success';
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.requestStatus.sendMappingCompleteSignal = 'failed';
-      this.errorInfo.sendMappingCompleteSignal.message = error.message;
-      console.error(error.message);
+      this.errorInfo.sendMappingCompleteSignal.message = errorMessage;
+      console.error(errorMessage);
     }
   });
 
@@ -379,8 +384,9 @@ export class DataImportRootStore {
       this.vertexTypes = result.data.data.records;
       this.requestStatus.fetchVertexTypeList = 'success';
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.requestStatus.fetchVertexTypeList = 'failed';
-      this.errorInfo.fetchVertexTypeList.message = error.message;
+      this.errorInfo.fetchVertexTypeList.message = errorMessage;
     }
   });
 
@@ -411,8 +417,9 @@ export class DataImportRootStore {
       this.edgeTypes = result.data.data.records;
       this.requestStatus.fetchEdgeTypeList = 'success';
     } catch (error) {
+      const errorMessage = getErrorMessage(error);
       this.requestStatus.fetchEdgeTypeList = 'failed';
-      this.errorInfo.fetchEdgeTypeList.message = error.message;
+      this.errorInfo.fetchEdgeTypeList.message = errorMessage;
     }
   });
 }

@@ -52,10 +52,44 @@ export const edgeWidthMapping: Record<string, number> = {
 
 /* functions */
 
-export function checkIfLocalNetworkOffline(error: any) {
-  if (error.request) {
-    throw new Error(i18next.t('addition.store.network-error'));
+export function getErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
   }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error
+  ) {
+    const errorWithMessage = error as { message?: unknown };
+
+    if (typeof errorWithMessage.message === 'string') {
+      return errorWithMessage.message;
+    }
+  }
+
+  return String(error);
+}
+
+export function checkIfLocalNetworkOffline(error: unknown) {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'request' in error
+  ) {
+    const errorWithRequest = error as { request?: unknown };
+
+    if (!isUndefined(errorWithRequest.request)) {
+      throw new Error(i18next.t('addition.store.network-error'));
+    }
+  }
+
+  throw error;
 }
 
 export function mapMetadataProperties(
