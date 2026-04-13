@@ -26,10 +26,12 @@ jobs:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-loader/assembly/travis
       STATIC_DIR: hugegraph-loader/assembly/static
+      # TODO: replace it with the (latest - n) commit id (n >= 15)
+      # hugegraph commit date: 2025-10-30
+      COMMIT_ID: 5b3d295
       DB_USER: root
       DB_PASS: root
       DB_DATABASE: load_test
-      HADOOP_VERSION: 3.3.6
     strategy:
       matrix:
         JAVA_VERSION: ['11']
@@ -46,14 +48,7 @@ jobs:
       - name: Fetch Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - name: Get latest 15 commit id from master
-        id: get-commit-id
-        run: |
-          git fetch origin master
-          COMMIT_ID=$(git log --format="%h" origin/master -n 15 | head -n 1)
-          echo "commit_id=$COMMIT_ID" >> $GITHUB_OUTPUT
+          fetch-depth: 2
 
       - name: Install JDK 11
         uses: actions/setup-java@v4
@@ -77,8 +72,8 @@ jobs:
       - name: Cache HugeGraph Server
         uses: actions/cache@v4
         with:
-          path: ~/hugegraph-cache-${{ steps.get-commit-id.outputs.commit_id }}
-          key: ${{ runner.os }}-hugegraph-server-${{ steps.get-commit-id.outputs.commit_id }}
+          path: ~/hugegraph-cache-${{ env.COMMIT_ID }}
+          key: ${{ runner.os }}-hugegraph-server-${{ env.COMMIT_ID }}
 
       - name: use staged maven repo settings
         if: ${{ env.USE_STAGE == 'true' }}
@@ -93,7 +88,7 @@ jobs:
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-hadoop.sh
-          $TRAVIS_DIR/install-hugegraph-from-source.sh ${{ steps.get-commit-id.outputs.commit_id }}
+          $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
 
       - name: Run test
         run: |
