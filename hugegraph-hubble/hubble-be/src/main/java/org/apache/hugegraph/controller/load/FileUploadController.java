@@ -96,14 +96,19 @@ public class FileUploadController {
                                    @PathVariable("jobId") int jobId,
                                    @RequestParam("file") MultipartFile file,
                                    @RequestParam("name") String fileName,
-                                   @RequestParam("size") long fileSize,
+                                   @RequestParam(value = "size",
+                                                 required = false)
+                                   Long fileSize,
                                    @RequestParam("token") String token,
                                    @RequestParam("total") int total,
                                    @RequestParam("index") int index) {
         this.checkTotalAndIndexValid(total, index);
         this.checkFileNameMatchToken(fileName, token);
         JobManager jobEntity = this.jobService.get(jobId);
-        this.checkFileValid(connId, jobId, jobEntity, file, fileName, fileSize);
+        Long sourceFileSize = this.resolveSourceFileSize(file, fileSize,
+                                                         total, index);
+        this.checkFileValid(connId, jobId, jobEntity, file, fileName,
+                            sourceFileSize);
         if (jobEntity.getJobStatus() == JobStatus.DEFAULT) {
             jobEntity.setJobStatus(JobStatus.UPLOADING);
             this.jobService.update(jobEntity);
@@ -246,7 +251,7 @@ public class FileUploadController {
 
     private void checkFileValid(int connId, int jobId, JobManager jobEntity,
                                 MultipartFile file, String fileName,
-                                long sourceFileSize) {
+                                Long sourceFileSize) {
         Ex.check(jobEntity != null, "job-manager.not-exist.id", jobId);
         Ex.check(jobEntity.getJobStatus() == JobStatus.DEFAULT ||
                  jobEntity.getJobStatus() == JobStatus.UPLOADING ||
@@ -264,26 +269,51 @@ public class FileUploadController {
         Ex.check(formatWhiteList.contains(format),
                  "load.upload.file.format.unsupported");
 
-        Ex.check(sourceFileSize > 0L,
-                 "load.upload.file.cannot-be-empty");
-        long singleFileSizeLimit = this.config.get(
-                HubbleOptions.UPLOAD_SINGLE_FILE_SIZE_LIMIT);
-        Ex.check(sourceFileSize <= singleFileSizeLimit,
-                 "load.upload.file.exceed-single-size",
-                 FileUtils.byteCountToDisplaySize(singleFileSizeLimit));
+        if (sourceFileSize != null) {
+            Ex.check(sourceFileSize > 0L,
+                     "load.upload.file.cannot-be-empty");
+            long singleFileSizeLimit = this.config.get(
+                    HubbleOptions.UPLOAD_SINGLE_FILE_SIZE_LIMIT);
+            Ex.check(sourceFileSize <= singleFileSizeLimit,
+                     "load.upload.file.exceed-single-size",
+                     FileUtils.byteCountToDisplaySize(singleFileSizeLimit));
+
+            long totalFileSizeLimit = this.config.get(
+                    HubbleOptions.UPLOAD_TOTAL_FILE_SIZE_LIMIT);
+            long currentJobSize = jobEntity.getJobSize();
+            Ex.check(sourceFileSize + currentJobSize <= totalFileSizeLimit,
+                     "load.upload.file.exceed-total-size",
+                     FileUtils.byteCountToDisplaySize(totalFileSizeLimit));
+        }
 
         // Check is there a file with the same name
         FileMapping oldMapping = this.service.get(connId, jobId, fileName);
         Ex.check(oldMapping == null ||
                  oldMapping.getFileStatus() == FileMappingStatus.UPLOADING,
                  "load.upload.file.existed", fileName);
+    }
 
-        long totalFileSizeLimit = this.config.get(
-                HubbleOptions.UPLOAD_TOTAL_FILE_SIZE_LIMIT);
-        long currentJobSize = jobEntity.getJobSize();
-        Ex.check(sourceFileSize + currentJobSize <= totalFileSizeLimit,
-                 "load.upload.file.exceed-total-size",
-                 FileUtils.byteCountToDisplaySize(totalFileSizeLimit));
+    private Long resolveSourceFileSize(MultipartFile file, Long fileSize,
+                                       int total, int index) {
+        if (fileSize != null) {
+            return fileSize;
+        }
+        if (total == 1) {
+            return file.getSize();
+        }
+        if (index == 0) {
+            return this.estimateChunkedFileSizeUpperBound(file.getSize(),
+                                                          total);
+        }
+        return null;
+    }
+
+    private long estimateChunkedFileSizeUpperBound(long chunkSize, int total) {
+        try {
+            return Math.multiplyExact(chunkSize, (long) total);
+        } catch (ArithmeticException ignored) {
+            return Long.MAX_VALUE;
+        }
     }
 
     private String generateFilePath(int connId, int jobId, String fileName) {
