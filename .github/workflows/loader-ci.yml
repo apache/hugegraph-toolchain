@@ -26,8 +26,6 @@ jobs:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-loader/assembly/travis
       STATIC_DIR: hugegraph-loader/assembly/static
-      # replace it with the (latest - n) commit id (n >= 15)
-      COMMIT_ID: ${{ steps.get-commit-id.outputs.commit_id }}
       DB_USER: root
       DB_PASS: root
       DB_DATABASE: load_test
@@ -43,22 +41,6 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
-      hdfs:
-        image: apache/hadoop:3.3.6
-        ports:
-          - 9000:9000
-          - 9870:9870
-        env:
-          HADOOP_HOME: /opt/hadoop
-          HDFS_NAMENODE_USER: root
-          HDFS_DATANODE_USER: root
-        options: >-
-          --entrypoint /bin/bash
-          -c "/opt/hadoop/bin/hdfs namenode -format && /opt/hadoop/sbin/start-dfs.sh && tail -f /dev/null"
-          --health-cmd="curl -f http://localhost:9870"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - name: Fetch Code
@@ -86,11 +68,17 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Cache Hadoop
+        uses: actions/cache@v4
+        with:
+          path: ~/hadoop-3.3.6.tar.gz
+          key: ${{ runner.os }}-hadoop-3.3.6
+
       - name: Cache HugeGraph Server
         uses: actions/cache@v4
         with:
-          path: ~/hugegraph-cache-${{ env.COMMIT_ID }}
-          key: ${{ runner.os }}-hugegraph-server-${{ env.COMMIT_ID }}
+          path: ~/hugegraph-cache-${{ steps.get-commit-id.outputs.commit_id }}
+          key: ${{ runner.os }}-hugegraph-server-${{ steps.get-commit-id.outputs.commit_id }}
 
       - name: use staged maven repo settings
         if: ${{ env.USE_STAGE == 'true' }}
@@ -104,7 +92,8 @@ jobs:
 
       - name: Prepare env and service
         run: |
-          $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
+          $TRAVIS_DIR/install-hadoop.sh
+          $TRAVIS_DIR/install-hugegraph-from-source.sh ${{ steps.get-commit-id.outputs.commit_id }}
 
       - name: Run test
         run: |
