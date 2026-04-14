@@ -157,9 +157,6 @@ public class JobManagerService {
         }
 
         List<FileMapping> mappings = this.fileMappingService.listByJob(id);
-        for (FileMapping mapping : mappings) {
-            this.fileMappingService.remove(mapping.getId());
-        }
         this.remove(id);
         this.deleteDiskFilesAfterCommit(mappings);
     }
@@ -185,13 +182,6 @@ public class JobManagerService {
     }
 
     private void deleteDiskFiles(List<FileMapping> mappings) {
-        for (FileMapping mapping : mappings) {
-            try {
-                this.fileMappingService.deleteDiskFile(mapping);
-            } catch (RuntimeException e) {
-                log.warn("Failed to delete disk file for mapping {} at {}",
-                         mapping.getId(), mapping.getPath(), e);
-            }
-        }
+        this.fileMappingService.cleanupMappings(mappings);
     }
 }

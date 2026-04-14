@@ -28,14 +28,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -45,8 +50,10 @@ import org.apache.hugegraph.entity.enums.FileMappingStatus;
 import org.apache.hugegraph.entity.load.FileMapping;
 import org.apache.hugegraph.entity.load.FileSetting;
 import org.apache.hugegraph.entity.load.FileUploadResult;
+import org.apache.hugegraph.entity.load.JobManager;
 import org.apache.hugegraph.exception.InternalException;
 import org.apache.hugegraph.mapper.load.FileMappingMapper;
+import org.apache.hugegraph.mapper.load.JobManagerMapper;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.util.Ex;
 import org.apache.hugegraph.util.HubbleUtil;
@@ -78,6 +85,8 @@ public class FileMappingService {
     private HugeConfig config;
     @Autowired
     private FileMappingMapper mapper;
+    @Autowired
+    private JobManagerMapper jobManagerMapper;
 
     private final Map<String, ReadWriteLock> uploadingTokenLocks;
 
@@ -313,27 +322,28 @@ public class FileMappingService {
     public void deleteDiskFile(FileMapping mapping) {
         File file = new File(mapping.getPath());
         if (file.isDirectory()) {
-            log.info("Prepare to delete directory {}", file);
-            try {
-                FileUtils.forceDelete(file);
-            } catch (IOException e) {
-                throw new InternalException("Failed to delete directory " +
-                                            "corresponded to the file id %s, " +
-                                            "please delete it manually",
-                                            e, mapping.getId());
-            }
+            this.deletePathIfExists(file, mapping.getId());
         } else {
             File parentDir = file.getParentFile();
-            log.info("Prepare to delete directory {}", parentDir);
-            try {
-                FileUtils.forceDelete(parentDir);
-            } catch (IOException e) {
-                throw new InternalException("Failed to delete parent directory " +
-                                            "corresponded to the file id %s, " +
-                                            "please delete it manually",
-                                            e, mapping.getId());
+            if (parentDir == null) {
+                log.info("Skip deleting file mapping {} because {} has no " +
+                         "parent directory", mapping.getId(), mapping.getPath());
+                return;
             }
+            this.deletePathIfExists(parentDir, mapping.getId());
         }
+    }
+
+    public void cleanupMappings(List<FileMapping> mappings) {
+        for (FileMapping mapping : mappings) {
+            this.tryCleanupMapping(mapping);
+        }
+    }
+
+    @Async
+    @Scheduled(fixedRate = 10 * 60 * 1000)
+    public void deleteOrphanedJobFiles() {
+        this.cleanupMappings(this.listOrphanedJobFiles());
     }
 
     @Async
@@ -368,5 +378,72 @@ public class FileMappingService {
                 });
             }
         }
+    }
+
+    private void deletePathIfExists(File path, int mappingId) {
+        if (!path.exists()) {
+            log.info("Skip deleting path {} for mapping {} because it no " +
+                     "longer exists", path, mappingId);
+            return;
+        }
+
+        log.info("Prepare to delete directory {}", path);
+        try {
+            FileUtils.forceDelete(path);
+        } catch (IOException e) {
+            throw new InternalException("Failed to delete directory " +
+                                        "corresponded to the file id %s, " +
+                                        "please delete it manually",
+                                        e, mappingId);
+        }
+    }
+
+    private List<FileMapping> listOrphanedJobFiles() {
+        List<FileMapping> mappings = this.mapper.selectList(null);
+        if (mappings.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        Set<Integer> jobIds = mappings.stream()
+                                      .map(FileMapping::getJobId)
+                                      .filter(jobId -> jobId != null)
+                                      .collect(Collectors.toSet());
+        if (jobIds.isEmpty()) {
+            return new ArrayList<>(mappings);
+        }
+
+        List<JobManager> jobs = this.jobManagerMapper.selectBatchIds(jobIds);
+        Set<Integer> existingJobIds = jobs.stream()
+                                          .map(JobManager::getId)
+                                          .collect(Collectors.toCollection(
+                                                  HashSet::new));
+        return mappings.stream()
+                       .filter(mapping -> mapping.getJobId() == null ||
+                                          !existingJobIds.contains(
+                                                  mapping.getJobId()))
+                       .collect(Collectors.toList());
+    }
+
+    private void tryCleanupMapping(FileMapping mapping) {
+        try {
+            this.deleteDiskFile(mapping);
+            this.removeCleanupRecord(mapping.getId());
+        } catch (RuntimeException e) {
+            log.warn("Failed to cleanup disk file for mapping {} at {}",
+                     mapping.getId(), mapping.getPath(), e);
+        }
+    }
+
+    private void removeCleanupRecord(int mappingId) {
+        int deleted = this.mapper.deleteById(mappingId);
+        if (deleted == 1) {
+            return;
+        }
+        if (deleted == 0) {
+            log.info("Skip removing file mapping {} because it no longer " +
+                     "exists", mappingId);
+            return;
+        }
+        throw new InternalException("entity.delete.failed", mappingId);
     }
 }
