@@ -56,13 +56,11 @@ fi
 if ! grep -qxF "export PATH=\$PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin" ~/.bashrc; then
     echo "export PATH=\$PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin" >> ~/.bashrc
 fi
-echo "export HADOOP_COMMON_LIB_NATIVE_DIR=${HADOOP_HOME}/lib/native" >> ~/.bashrc
-echo "export PATH=\$PATH:${HADOOP_HOME}/bin:${HADOOP_HOME}/sbin" >> ~/.bashrc
 
 source ~/.bashrc
 
 if [[ ! -f etc/hadoop/core-site.xml ]] || ! grep -q "hdfs://localhost:8020" etc/hadoop/core-site.xml; then
-    tee etc/hadoop/core-site.xml <<EOF
+    sudo tee etc/hadoop/core-site.xml > /dev/null <<EOF
 <configuration>
     <property>
         <name>fs.defaultFS</name>
@@ -73,7 +71,7 @@ EOF
 fi
 
 if [[ ! -f etc/hadoop/hdfs-site.xml ]] || ! grep -q "/opt/hdfs/name" etc/hadoop/hdfs-site.xml; then
-    tee etc/hadoop/hdfs-site.xml <<EOF
+    sudo tee etc/hadoop/hdfs-site.xml > /dev/null <<EOF
 <configuration>
     <property>
         <name>dfs.namenode.name.dir</name>
