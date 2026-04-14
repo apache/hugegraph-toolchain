@@ -83,6 +83,7 @@ public class FileUploadController {
                  "load.upload.file.duplicate-name");
         Map<String, String> tokens = new HashMap<>();
         for (String fileName : fileNames) {
+            this.checkFileNameValid(fileName);
             String token = this.service.generateFileToken(fileName);
             Ex.check(!this.uploadingTokenLocks().containsKey(token),
                      "load.upload.file.token.existed");
@@ -104,6 +105,7 @@ public class FileUploadController {
                                    @RequestParam("total") int total,
                                    @RequestParam("index") int index) {
         this.checkTotalAndIndexValid(total, index);
+        this.checkFileNameValid(fileName);
         this.checkFileNameMatchToken(fileName, token);
         JobManager jobEntity = this.jobService.get(jobId);
         Long sourceFileSize = this.resolveSourceFileSize(file, fileSize,
@@ -158,10 +160,11 @@ public class FileUploadController {
                     this.service.update(mapping);
                     return result;
                 }
-                long actualFileSize = this.resolveUploadedFileSize(
-                        mapping.getPath());
                 JobManager currentJob = this.jobService.get(jobId);
+                long actualFileSize;
                 try {
+                    actualFileSize = this.resolveUploadedFileSize(
+                            mapping.getPath());
                     Ex.check(currentJob != null, "job-manager.not-exist.id",
                              jobId);
                     long reservedUploadingSize =
@@ -204,6 +207,7 @@ public class FileUploadController {
                           @PathVariable("jobId") int jobId,
                           @RequestParam("name") String fileName,
                           @RequestParam("token") String token) {
+        this.checkFileNameValid(fileName);
         JobManager jobEntity = this.jobService.get(jobId);
         Ex.check(jobEntity != null, "job-manager.not-exist.id", jobId);
         Ex.check(jobEntity.getJobStatus() == JobStatus.UPLOADING ||
@@ -264,6 +268,15 @@ public class FileUploadController {
         String md5Prefix = HubbleUtil.md5(fileName);
         Ex.check(StringUtils.isNotEmpty(token) && token.startsWith(md5Prefix),
                  "load.upload.file.name-token.unmatch");
+    }
+
+    private void checkFileNameValid(String fileName) {
+        Ex.check(StringUtils.isNotBlank(fileName) &&
+                 fileName.equals(FilenameUtils.getName(fileName)) &&
+                 !fileName.contains("/") &&
+                 !fileName.contains("\\") &&
+                 !fileName.contains(".."),
+                 "load.upload.file.name.invalid");
     }
 
     private void checkFileValid(int jobId, JobManager jobEntity,
@@ -359,7 +372,7 @@ public class FileUploadController {
     }
 
     private long resolveUploadedFileSize(String filePath) {
-        File uploadedFile = new File(filePath);
+        File uploadedFile = this.service.requirePathUnderUploadRoot(filePath);
         if (!uploadedFile.exists() || !uploadedFile.isFile()) {
             throw new InternalException("The uploaded file '%s' is not ready " +
                                         "for quota validation",
