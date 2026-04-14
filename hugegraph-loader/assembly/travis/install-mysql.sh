@@ -35,8 +35,8 @@ fi
 # Set MySQL configurations
 
 # Keep for upgrade in future
-docker pull mysql:5.7
-docker run -p 3306:3306 --name "${DB_NAME}" -e MYSQL_ROOT_PASSWORD="${DB_PASS}" -d mysql:5.7
+docker pull mysql:8.0
+docker run -p 3306:3306 --name "${DB_NAME}" -e MYSQL_ROOT_PASSWORD="${DB_PASS}" -d mysql:8.0
 
 
 # Old Version

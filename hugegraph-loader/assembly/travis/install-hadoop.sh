@@ -33,6 +33,7 @@ if [[ ! -d "${HADOOP_HOME}" ]]; then
     sudo tar -zxf "${HADOOP_TARBALL_PATH}" -C /usr/local
     cd /usr/local
     sudo mv "hadoop-${HADOOP_VERSION}" hadoop
+    sudo chown -R "$(whoami):$(whoami)" "${HADOOP_HOME}"
 else
     echo "Hadoop already installed at ${HADOOP_HOME}, skipping download and extraction."
 fi
