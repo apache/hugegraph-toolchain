@@ -305,7 +305,8 @@ public enum JDBCVendor {
                   .setParameter("characterEncoding", Constants.CHARSET.name())
                   .setParameter("rewriteBatchedStatements", "true")
                   .setParameter("useServerPrepStmts", "false")
-                  .setParameter("autoReconnect", "true");
+                  .setParameter("autoReconnect", "true")
+                  .setParameter("allowPublicKeyRetrieval", "true");
         return JDBC_PREFIX + uriBuilder;
     }
 
