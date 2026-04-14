@@ -17,6 +17,7 @@
 #
 set -ev
 
+# Upgrade stable version to 3.3.6
 HADOOP_VERSION="3.3.6"
 HADOOP_TARBALL="hadoop-${HADOOP_VERSION}.tar.gz"
 HADOOP_HOME="/usr/local/hadoop"

@@ -15,6 +15,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
+# NOTE: This script is NO LONGER actively used in CI.
+# It has been replaced by the MySQL service container in:
+#   .github/workflows/loader-ci.yml
+# Kept temporarily as a backup / for legacy Travis compatibility only.
 set -ev
 
 TRAVIS_DIR=$(dirname $0)
