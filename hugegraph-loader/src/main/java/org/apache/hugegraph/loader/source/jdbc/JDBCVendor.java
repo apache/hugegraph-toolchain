@@ -54,6 +54,11 @@ public enum JDBCVendor {
         }
 
         @Override
+        public String buildUrl(JDBCSource source) {
+            return super.buildUrl(source) + "&allowPublicKeyRetrieval=true";
+        }
+
+        @Override
         public String buildGetHeaderSql(JDBCSource source) {
             return String.format("SELECT COLUMN_NAME " +
                                  "FROM INFORMATION_SCHEMA.COLUMNS " +
@@ -305,8 +310,7 @@ public enum JDBCVendor {
                   .setParameter("characterEncoding", Constants.CHARSET.name())
                   .setParameter("rewriteBatchedStatements", "true")
                   .setParameter("useServerPrepStmts", "false")
-                  .setParameter("autoReconnect", "true")
-                  .setParameter("allowPublicKeyRetrieval", "true");
+                  .setParameter("autoReconnect", "true");
         return JDBC_PREFIX + uriBuilder;
     }
 

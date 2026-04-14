@@ -31,8 +31,8 @@ DB_NAME="${1:-mysql}"
 DB_PASS="${2:-root}"
 
 # Skip if MySQL is already running (e.g., provided by GitHub Actions service)
-if docker ps --format '{{.Names}}' | grep -qx "${DB_NAME}"; then
-    echo "MySQL container ${DB_NAME} is already running, skipping setup."
+if (echo >/dev/tcp/localhost/3306) >/dev/null 2>&1; then
+    echo "MySQL is already reachable on port 3306, skipping setup."
     exit 0
 fi
 
