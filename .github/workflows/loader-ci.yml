@@ -35,6 +35,14 @@ jobs:
     strategy:
       matrix:
         JAVA_VERSION: ['11']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 3306:3306
+        options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3
 
     steps:
       - name: Fetch Code
@@ -55,6 +63,18 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Cache Hadoop
+        uses: actions/cache@v4
+        with:
+          path: ~/hadoop-3.3.6.tar.gz
+          key: ${{ runner.os }}-hadoop-3.3.6
+
+      - name: Cache HugeGraph Server
+        uses: actions/cache@v4
+        with:
+          path: ~/hugegraph-cache-${{ env.COMMIT_ID }}
+          key: ${{ runner.os }}-hugegraph-server-${{ env.COMMIT_ID }}
+
       - name: use staged maven repo settings
         if: ${{ env.USE_STAGE == 'true' }}
         run: |
@@ -68,7 +88,6 @@ jobs:
       - name: Prepare env and service
         run: |
           $TRAVIS_DIR/install-hadoop.sh
-          $TRAVIS_DIR/install-mysql.sh ${{ env.DB_DATABASE }} ${{ env.DB_PASS }}
           $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
 
       - name: Run test

@@ -23,21 +23,32 @@ fi
 
 COMMIT_ID=$1
 HUGEGRAPH_GIT_URL="https://github.com/apache/hugegraph.git"
+CACHE_DIR="${HOME}/hugegraph-cache-${COMMIT_ID}"
 
-git clone --depth 150 ${HUGEGRAPH_GIT_URL} hugegraph
-cd hugegraph
-git checkout "${COMMIT_ID}"
-mvn package -DskipTests -Dmaven.javadoc.skip=true -ntp
-# TODO: lack incubator after apache package release (update it later)
-cd hugegraph-server
-mv apache-hugegraph-*.tar.gz ../../
-cd ../../
-rm -rf hugegraph
+mkdir -p "${CACHE_DIR}"
+
+CACHED_TARBALL=$(find "${CACHE_DIR}" -maxdepth 1 -name "apache-hugegraph-*.tar.gz" -print -quit)
+
+if [[ -f "${CACHED_TARBALL}" ]]; then
+    echo "Found cached HugeGraph server tarball, skipping build."
+    cp "${CACHED_TARBALL}" ./
+else
+    echo "Building HugeGraph server from source (commit ${COMMIT_ID})..."
+    git clone --depth 150 ${HUGEGRAPH_GIT_URL} hugegraph
+    cd hugegraph
+    git checkout "${COMMIT_ID}"
+    mvn package -DskipTests -Dmaven.javadoc.skip=true -ntp
+    cd hugegraph-server
+    mv apache-hugegraph-*.tar.gz ../../
+    cd ../../
+    rm -rf hugegraph
+    cp apache-hugegraph-*.tar.gz "${CACHE_DIR}"/
+fi
+
 tar zxf apache-hugegraph-*.tar.gz
 
 HTTPS_SERVER_DIR="hugegraph_https"
 mkdir ${HTTPS_SERVER_DIR}
-# TODO: lack incubator after apache package release (update it later)
 cp -r apache-hugegraph-*/. ${HTTPS_SERVER_DIR}
 cd "$(find apache-hugegraph-* | head -1)"
 # start HugeGraphServer with http protocol

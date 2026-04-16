@@ -30,8 +30,8 @@ Go get github. com/go huggraph
 ```Go
 package main
 
-import "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go"
-import "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/hgtransport"
+import "github.com/apache/hugegraph-toolchain/hugegraph-client-go"
+import "github.com/apache/hugegraph-toolchain/hugegraph-client-go/hgtransport"
 
 func main() {
 

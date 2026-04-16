@@ -22,11 +22,11 @@ if [[ $# -ne 1 ]]; then
 fi
 
 VERSION=$1
-HUGEGRAPH_LINK="https://downloads.apache.org/incubator/hugegraph/${VERSION}/apache-hugegraph-incubating-${VERSION}.tar.gz"
+HUGEGRAPH_LINK="https://downloads.apache.org/hugegraph/${VERSION}/apache-hugegraph-${VERSION}.tar.gz"
 
 wget "${HUGEGRAPH_LINK}" -q --show-progress || exit 1
-tar zxvf apache-hugegraph-incubating-${VERSION}.tar.gz
-cd apache-hugegraph-incubating-${VERSION}
+tar zxvf apache-hugegraph-${VERSION}.tar.gz
+cd apache-hugegraph-${VERSION}
 
 ## start HugeGraphServer with http protocol
 bin/init-store.sh

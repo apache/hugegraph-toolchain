@@ -29,12 +29,12 @@
     <artifactId>hugegraph-tools</artifactId>
     <packaging>jar</packaging>
 
-    <url>https://github.com/apache/incubator-hugegraph-toolchain/tree/master/hugegraph-tools</url>
+    <url>https://github.com/apache/hugegraph-toolchain/tree/master/hugegraph-tools</url>
     <name>${project.artifactId}</name>
 
     <properties>
         <release.name>${project.artifactId}</release.name>
-        <final.name>apache-${release.name}-incubating-${project.version}</final.name>
+        <final.name>apache-${release.name}-${project.version}</final.name>
         <assembly.dir>${project.basedir}/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <shell-executable>bash</shell-executable>

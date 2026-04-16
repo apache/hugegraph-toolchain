@@ -28,7 +28,6 @@ git clone --depth 150 ${HUGEGRAPH_GIT_URL} hugegraph
 cd hugegraph
 git checkout "${COMMIT_ID}"
 mvn package -DskipTests -Dmaven.javadoc.skip=true -ntp
-# TODO: lack incubator after apache package release (update it later)
 cd hugegraph-server
 mv apache-hugegraph-*.tar.gz ../../
 cd ../../
@@ -37,7 +36,6 @@ tar zxf apache-hugegraph-*.tar.gz
 
 HTTPS_SERVER_DIR="hugegraph_https"
 mkdir ${HTTPS_SERVER_DIR}
-# TODO: lack incubator after apache package release (update it later)
 cp -r apache-hugegraph-*/. ${HTTPS_SERVER_DIR}
 cd "$(find apache-hugegraph-* | head -1)"
 # start HugeGraphServer with http protocol

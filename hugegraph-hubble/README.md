@@ -1,8 +1,8 @@
 # Apache HugeGraph-Hubble
 
 [![License](https://img.shields.io/badge/license-Apache%202-0E78BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![hugegraph-hubble-ci](https://github.com/apache/incubator-hugegraph-toolchain/actions/workflows/hubble-ci.yml/badge.svg?branch=master)](https://github.com/apache/incubator-hugegraph-toolchain/actions/workflows/hubble-ci.yml)
-[![CodeQL](https://github.com/apache/incubator-hugegraph-toolchain/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/apache/incubator-hugegraph-toolchain/actions/workflows/codeql-analysis.yml)
+[![hugegraph-hubble-ci](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml/badge.svg?branch=master)](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml)
+[![CodeQL](https://github.com/apache/hugegraph-toolchain/actions/workflows/codeql-analysis.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/codeql-analysis.yml)
 
 hugegraph-hubble is a graph management and analysis platform that provides features:
 graph data load, schema management, graph relationship analysis, and graphical display.
@@ -29,9 +29,9 @@ And you can find more details in the [doc](https://hugegraph.apache.org/docs/qui
 `hubble` is in the `toolchain` project. First, download the binary tar tarball
 
 ```bash
-wget https://downloads.apache.org/incubator/hugegraph/{version}/apache-hugegraph-toolchain-incubating-{version}.tar.gz
-tar -xvf apache-hugegraph-toolchain-incubating-{version}.tar.gz 
-cd apache-hugegraph-toolchain-incubating-{version}.tar.gz/apache-hugegraph-hubble-incubating-{version}
+wget https://downloads.apache.org/hugegraph/{version}/apache-hugegraph-toolchain-{version}.tar.gz
+tar -xvf apache-hugegraph-toolchain-{version}.tar.gz
+cd apache-hugegraph-toolchain-{version}/apache-hugegraph-hubble-{version}
 ```
 
 Run `hubble`:
@@ -74,12 +74,12 @@ git clone https://github.com/apache/hugegraph-toolchain.git
 Compile `hubble`. It depends on the loader and client, so you need to build these dependencies in advance during the compilation process (you can skip this step later).
 
 ```bash
-cd incubator-hugegraph-toolchain
+cd hugegraph-toolchain
 sudo pip install -r hugegraph-hubble/hubble-dist/assembly/travis/requirements.txt
 mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
 cd hugegraph-hubble
 mvn -e compile package -Dmaven.javadoc.skip=true -Dmaven.test.skip=true -ntp
-cd apache-hugegraph-hubble-incubating*
+cd apache-hugegraph-hubble-*
 ```
 
 Run `hubble`

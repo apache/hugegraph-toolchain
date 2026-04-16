@@ -19,10 +19,10 @@ package vertexlabel_test
 
 import (
     "fmt"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/api/v1/propertykey"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/api/v1/vertexlabel"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/internal/model"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go/api/v1/propertykey"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go/api/v1/vertexlabel"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go/internal/model"
     "math/rand"
     "testing"
     "time"

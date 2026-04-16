@@ -25,12 +25,10 @@ VERSION=$1
 HUGEGRAPH_LINK="https://github.com/hugegraph/hugegraph/releases/download/v${VERSION}/hugegraph-${VERSION}.tar.gz"
 
 wget "${HUGEGRAPH_LINK}" || exit 1
-# TODO: lack incubator after apache package release (update it later)
 tar zxvf hugegraph-${VERSION}.tar.gz
 
 HTTPS_SERVER_DIR="hugegraph_https"
 mkdir ${HTTPS_SERVER_DIR}
-# TODO: lack incubator after apache package release (update it later)
 cp -r hugegraph-${VERSION}/. ${HTTPS_SERVER_DIR}
 cd hugegraph-${VERSION}
 

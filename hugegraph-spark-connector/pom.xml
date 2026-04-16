@@ -49,7 +49,7 @@
         <assembly.dir>${project.basedir}/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <release.name>${project.artifactId}</release.name>
-        <final.name>apache-${release.name}-incubating-${project.version}</final.name>
+        <final.name>apache-${release.name}-${project.version}</final.name>
     </properties>
 
     <dependencies>

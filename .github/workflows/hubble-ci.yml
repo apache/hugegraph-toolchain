@@ -83,7 +83,7 @@ jobs:
           python -m pip install -r ${TRAVIS_DIR}/requirements.txt
           cd hugegraph-hubble
           mvn package -Dmaven.test.skip=true
-          cd apache-hugegraph-hubble-incubating*
+          cd apache-hugegraph-hubble-*
           cd bin
           ./start-hubble.sh -d
           ./stop-hubble.sh

@@ -30,7 +30,7 @@ And you can find more details in the [doc](https://hugegraph.apache.org/docs/qui
 Download the latest version of the HugeGraph-Toolchain release package:
 
 ``` bash
-wget https://downloads.apache.org/incubator/hugegraph/{version}/apache-hugegraph-toolchain-incubating-{version}.tar.gz
+wget https://downloads.apache.org/hugegraph/{version}/apache-hugegraph-toolchain-{version}.tar.gz
 tar zxf *hugegraph*.tar.gz
 ```
 
@@ -43,7 +43,7 @@ Clone the latest version of HugeGraph-Loader source package:
 git clone https://github.com/apache/hugegraph-toolchain.git
 
 # 2. get from direct  (e.g. here is 1.0.0, please choose the latest version)
-wget https://downloads.apache.org/incubator/hugegraph/{version}/apache-hugegraph-toolchain-incubating-{version}-src.tar.gz
+wget https://downloads.apache.org/hugegraph/{version}/apache-hugegraph-toolchain-{version}-src.tar.gz
 ```
 
 Due to the license limitation of the `Oracle OJDBC`, you need to manually install ojdbc to the local maven repository. Visit the [Oracle jdbc downloads page](https://www.oracle.com/database/technologies/appdev/jdbc-drivers-archive.html). Select Oracle Database 12c Release 2 (12.2.0.1) drivers, as shown in the following figure.
@@ -90,15 +90,15 @@ The example `docker-compose.yml` is [here](./docker/example/docker-compose.yml).
 Download and unzip the compiled archive
 
 ```bash
-wget https://downloads.apache.org/incubator/hugegraph/{version}/apache-hugegraph-toolchain-incubating-{version}.tar.gz
+wget https://downloads.apache.org/hugegraph/{version}/apache-hugegraph-toolchain-{version}.tar.gz
 tar zxf *hugegraph*.tar.gz
 ```
 
 Then, load data with example file:
 
 ```bash
-cd apache-hugegraph-toolchain-incubating-{version}
-cd apache-hugegraph-loader-incubating-{version}
+cd apache-hugegraph-toolchain-{version}
+cd apache-hugegraph-loader-{version}
 sh bin/hugegraph-loader.sh -g hugegraph -f example/file/struct.json -s example/file/schema.groovy
 ```
 

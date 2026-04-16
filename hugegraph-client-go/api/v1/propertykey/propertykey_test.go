@@ -19,9 +19,9 @@ package propertykey_test
 
 import (
     "fmt"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/api/v1/propertykey"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/internal/model"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go/api/v1/propertykey"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go/internal/model"
     "log"
     "math/rand"
     "testing"

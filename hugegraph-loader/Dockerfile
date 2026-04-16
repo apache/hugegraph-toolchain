@@ -32,7 +32,7 @@ RUN set -x \
 
 FROM eclipse-temurin:11-jre-jammy
 
-COPY --from=build /pkg/hugegraph-loader/apache-hugegraph-loader-incubating-*/ /loader
+COPY --from=build /pkg/hugegraph-loader/apache-hugegraph-loader-*/ /loader
 WORKDIR /loader/
 
 RUN set -x \

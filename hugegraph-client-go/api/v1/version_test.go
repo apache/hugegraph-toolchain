@@ -20,7 +20,7 @@ package v1_test
 import (
     "testing"
 
-    hugegraph "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go"
+    hugegraph "github.com/apache/hugegraph-toolchain/hugegraph-client-go"
 )
 
 func TestVersionRequest_Do(t *testing.T) {

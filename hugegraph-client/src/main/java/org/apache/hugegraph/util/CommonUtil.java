@@ -26,7 +26,7 @@ import org.apache.commons.io.FileUtils;
 
 public final class CommonUtil {
 
-    public static final String PREFIX = "https://github.com/apache/incubator-hugegraph-doc/" +
+    public static final String PREFIX = "https://github.com/apache/hugegraph-doc/" +
                                         "raw/binary/dist/toolchain/";
 
     public static void checkMapClass(Object object, Class<?> kClass,

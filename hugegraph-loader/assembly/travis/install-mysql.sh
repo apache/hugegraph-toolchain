@@ -15,6 +15,10 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
+# NOTE: This script is NO LONGER actively used in CI.
+# It has been replaced by the MySQL service container in:
+#   .github/workflows/loader-ci.yml
+# Kept temporarily as a backup / for legacy Travis compatibility only.
 set -ev
 
 TRAVIS_DIR=$(dirname $0)
@@ -23,16 +27,24 @@ TRAVIS_DIR=$(dirname $0)
 CONF=hugegraph-test/src/main/resources/hugegraph.properties
 MYSQL_USERNAME=root
 
+DB_NAME="${1:-mysql}"
+DB_PASS="${2:-root}"
+
+# Skip if MySQL is already running (e.g., provided by GitHub Actions service)
+if (echo >/dev/tcp/localhost/3306) >/dev/null 2>&1; then
+    echo "MySQL is already reachable on port 3306, skipping setup."
+    exit 0
+fi
+
 # Set MySQL configurations
 
-
 # Keep for upgrade in future
-docker pull mysql:5.7
-docker run -p 3306:3306 --name "$1" -e MYSQL_ROOT_PASSWORD="$2" -d mysql:5.7
+docker pull mysql:8.0
+docker run -p 3306:3306 --name "${DB_NAME}" -e MYSQL_ROOT_PASSWORD="${DB_PASS}" -d mysql:8.0
 
 
 # Old Version
-#MYSQL_DOWNLOAD_ADDRESS="http://dev.MySQL.com/get/Downloads"
+#MYSQL_DOWNLOAD_ADDRESS="https://dev.mysql.com/get/Downloads"
 #MYSQL_VERSION="MySQL-5.7"
 #MYSQL_PACKAGE="mysql-5.7.11-Linux-glibc2.5-x86_64"
 #MYSQL_TAR="${MYSQL_PACKAGE}.tar.gz"
