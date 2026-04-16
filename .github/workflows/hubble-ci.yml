@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-      - /^release-.*$/
+      - release-*
     paths:
       - hugegraph-hubble/**
       - hugegraph-dist/**
@@ -21,88 +21,34 @@ on:
       - .github/workflows/**
       - pom.xml
 
-env:
-  TRAVIS_DIR: hugegraph-hubble/hubble-dist/assembly/travis
-  # TODO: replace it with the (latest - n) commit id (n >= 15)
-  # FIXME: hugegraph commit date: 2025-10-30
-  COMMIT_ID: 8c1ee71 # 5b3d295
-
 jobs:
   hubble-ci:
-    runs-on: ubuntu-latest
-    env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
-      STATIC_DIR: hugegraph-hubble/hubble-dist/assembly/static
-    strategy:
-      matrix:
-        JAVA_VERSION: ['11']
-        python-version: ["3.11"]
+    uses: hugegraph/actions/.github/workflows/_toolchain_java_ci_reusable.yml@master
+    with:
+      java_version: '11'
+      python_version: '3.11'
+      use_stage: true
+      settings_path: .github/configs/settings.xml
+      compile_command: |
+        mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
+        cd hugegraph-hubble && ls *
+        mvn -e compile -Dmaven.javadoc.skip=true -ntp
+      prepare_command: |
+        TRAVIS_DIR=hugegraph-hubble/hubble-dist/assembly/travis
 
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Install JDK 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ matrix.JAVA_VERSION }}
-          distribution: 'adopt'
-
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: 'pip'
-
-      # we also should cache python & yarn & downloads to avoid useless work
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-maven-
-
-      - name: use staged maven repo settings
-        if: ${{ env.USE_STAGE == 'true' }}
-        run: |
-          cp $HOME/.m2/settings.xml /tmp/settings.xml
-          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
-
-      - name: Compile
-        run: |
-          mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
-          cd hugegraph-hubble && ls *
-          mvn -e compile -Dmaven.javadoc.skip=true -ntp
-
-      - name: Prepare env and service
-        run: |
-          
-          python -m pip install -r ${TRAVIS_DIR}/requirements.txt
-          cd hugegraph-hubble
-          mvn package -Dmaven.test.skip=true
-          cd apache-hugegraph-hubble-*
-          cd bin
-          ./start-hubble.sh -d
-          ./stop-hubble.sh
-          cd ../../../
-          pwd
-          $TRAVIS_DIR/install-hugegraph.sh $COMMIT_ID
-
-      - name: Unit test
-        run: mvn test -P unit-test -pl hugegraph-hubble/hubble-be -ntp
-
-      - name: API test
-        env:
-          CI: false
-        run: |
-          cd hugegraph-hubble && ls
-          hubble-dist/assembly/travis/run-api-test.sh
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: target/site/jacoco/*.xml
+        python -m pip install -r "$TRAVIS_DIR"/requirements.txt
+        cd hugegraph-hubble
+        mvn package -Dmaven.test.skip=true
+        cd apache-hugegraph-hubble-*
+        cd bin
+        ./start-hubble.sh -d
+        ./stop-hubble.sh
+        cd ../../../
+        pwd
+        "$TRAVIS_DIR"/install-hugegraph.sh 8c1ee71
+      test_command: |
+        mvn test -P unit-test -pl hugegraph-hubble/hubble-be -ntp
+        cd hugegraph-hubble && ls
+        CI=false hubble-dist/assembly/travis/run-api-test.sh
+      codecov_file: target/site/jacoco/*.xml
+    secrets: inherit

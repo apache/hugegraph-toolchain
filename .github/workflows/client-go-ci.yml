@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - /^release-.*$/
+      - release-*
     paths:
       - hugegraph-client-go/**
       - hugegraph-dist/**
@@ -19,56 +19,20 @@ on:
 
 jobs:
   client-go-ci:
-    runs-on: ubuntu-latest
-    env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
-      TRAVIS_DIR: hugegraph-client/assembly/travis
-      # TODO: replace it with the (latest - n) commit id (n >= 15)
-      # FIXME: hugegraph commit date: 2025-10-30
-      COMMIT_ID: 8c1ee71 # 5b3d295
-    strategy:
-      fail-fast: false
-      matrix:
-        JAVA_VERSION: ['11']
-
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Install JDK 11
-        uses: actions/setup-java@v3
-        with:
-          java-version: ${{ matrix.JAVA_VERSION }}
-          distribution: 'zulu'
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Use staged maven repo
-        if: ${{ env.USE_STAGE == 'true' }}
-        run: |
-          cp $HOME/.m2/settings.xml /tmp/settings.xml
-          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
-
-      - name: Prepare env and service
-        run: |
-          $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
-
-      - name: Init Go env
-        uses: actions/setup-go@v2.1.3
-        with: {go-version: '1.x'}
-
-      - name: Go test
-        run: |
-          go version  
-          sudo swapoff -a
-          sudo sysctl -w vm.swappiness=1
-          sudo sysctl -w fs.file-max=262144
-          sudo sysctl -w vm.max_map_count=262144
-          cd hugegraph-client-go && make test
+    uses: hugegraph/actions/.github/workflows/_toolchain_go_ci_reusable.yml@master
+    with:
+      java_version: '11'
+      go_version: '1.x'
+      use_stage: true
+      settings_path: .github/configs/settings.xml
+      prepare_command: |
+        TRAVIS_DIR=hugegraph-client/assembly/travis
+        "$TRAVIS_DIR"/install-hugegraph-from-source.sh 8c1ee71
+      test_command: |
+        go version
+        sudo swapoff -a
+        sudo sysctl -w vm.swappiness=1
+        sudo sysctl -w fs.file-max=262144
+        sudo sysctl -w vm.max_map_count=262144
+        cd hugegraph-client-go && make test
+    secrets: inherit

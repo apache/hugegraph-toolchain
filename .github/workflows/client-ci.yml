@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-      - /^release-.*$/
+      - release-*
     paths:
       - hugegraph-client/**
       - hugegraph-dist/**
@@ -20,72 +20,22 @@ on:
 
 jobs:
   client-ci:
-    runs-on: ubuntu-latest
-    env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
-      TRAVIS_DIR: hugegraph-client/assembly/travis
-      # TODO: replace it with the (latest - n) commit id (n >= 15)
-      # hugegraph commit date: 2025-11-4
-      COMMIT_ID: b7998c1
-    strategy:
-      fail-fast: false
-      matrix:
-        # released pd package is compiled in version 55.0, which requires java 11 to use
-        JAVA_VERSION: [ '11' ]
-
-    steps:
-      - name: Fetch code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      # TODO: do we need it? (need test)
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-maven-
-
-      - name: Install JDK 11 for graph server
-        uses: actions/setup-java@v4
-        with:
-          java-version: '11'
-          distribution: 'zulu'
-          cache: 'maven'
-
-      - name: Prepare env and service
-        run: |
-          # TODO(@Thespica): test both servers of supporting gs and not supporting gs
-          #                  when the server supports gs
-          $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
-
-      - name: Install Java ${{ matrix.JAVA_VERSION }} for client
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ matrix.JAVA_VERSION }}
-          distribution: 'zulu'
-          cache: 'maven'
-
-      - name: Use staged maven repo
-        if: ${{ env.USE_STAGE == 'true' }}
-        run: |
-          cp $HOME/.m2/settings.xml /tmp/settings.xml
-          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
-
-      - name: Compile
-        run: |
-          mvn -e compile -pl hugegraph-client -Dmaven.javadoc.skip=true -ntp
-
-      - name: Run test
-        run: |
-          cd hugegraph-client && ls *
-          mvn test -Dtest=UnitTestSuite -ntp
-          mvn test -Dtest=ApiTestSuite
-          mvn test -Dtest=FuncTestSuite
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: target/jacoco.xml
+    uses: hugegraph/actions/.github/workflows/_toolchain_java_ci_reusable.yml@master
+    with:
+      java_version: '11'
+      use_stage: true
+      settings_path: .github/configs/settings.xml
+      compile_command: |
+        mvn -e compile -pl hugegraph-client -Dmaven.javadoc.skip=true -ntp
+      prepare_command: |
+        TRAVIS_DIR=hugegraph-client/assembly/travis
+        # TODO(@Thespica): test both servers of supporting gs and not supporting gs
+        #                  when the server supports gs
+        "$TRAVIS_DIR"/install-hugegraph-from-source.sh b7998c1
+      test_command: |
+        cd hugegraph-client && ls *
+        mvn test -Dtest=UnitTestSuite -ntp
+        mvn test -Dtest=ApiTestSuite
+        mvn test -Dtest=FuncTestSuite
+      codecov_file: target/jacoco.xml
+    secrets: inherit

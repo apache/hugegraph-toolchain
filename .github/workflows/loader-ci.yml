@@ -5,7 +5,7 @@ on:
   push:
     branches:
       - master
-      - /^release-.*$/
+      - release-*
     paths:
       - hugegraph-loader/**
       - hugegraph-dist/**
@@ -21,67 +21,24 @@ on:
 
 jobs:
   loader-ci:
-    runs-on: ubuntu-latest
-    env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
-      TRAVIS_DIR: hugegraph-loader/assembly/travis
-      STATIC_DIR: hugegraph-loader/assembly/static
-      # TODO: replace it with the (latest - n) commit id (n >= 15)
-      # hugegraph commit date: 2025-10-30
-      COMMIT_ID: 5b3d295
-      DB_USER: root
-      DB_PASS: root
-      DB_DATABASE: load_test
-    strategy:
-      matrix:
-        JAVA_VERSION: ['11']
-
-    steps:
-      - name: Fetch Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
-
-      - name: Install JDK 11
-        uses: actions/setup-java@v4
-        with:
-          java-version: ${{ matrix.JAVA_VERSION }}
-          distribution: 'adopt'
-
-      - name: Cache Maven packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: use staged maven repo settings
-        if: ${{ env.USE_STAGE == 'true' }}
-        run: |
-          cp $HOME/.m2/settings.xml /tmp/settings.xml
-          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
-
-      - name: Compile
-        run: |
-          mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
-
-      - name: Prepare env and service
-        run: |
-          $TRAVIS_DIR/install-hadoop.sh
-          $TRAVIS_DIR/install-mysql.sh ${{ env.DB_DATABASE }} ${{ env.DB_PASS }}
-          $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
-
-      - name: Run test
-        run: |
-          cd hugegraph-loader && ls
-          mvn test -P unit -ntp
-          mvn test -P file
-          mvn test -P hdfs
-          mvn test -P jdbc
-          mvn test -P kafka
-
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: target/jacoco.xml
+    uses: hugegraph/actions/.github/workflows/_toolchain_java_ci_reusable.yml@master
+    with:
+      java_version: '11'
+      use_stage: true
+      settings_path: .github/configs/settings.xml
+      compile_command: |
+        mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
+      prepare_command: |
+        TRAVIS_DIR=hugegraph-loader/assembly/travis
+        "$TRAVIS_DIR"/install-hadoop.sh
+        "$TRAVIS_DIR"/install-mysql.sh load_test root
+        "$TRAVIS_DIR"/install-hugegraph-from-source.sh 5b3d295
+      test_command: |
+        cd hugegraph-loader && ls
+        mvn test -P unit -ntp
+        mvn test -P file
+        mvn test -P hdfs
+        mvn test -P jdbc
+        mvn test -P kafka
+      codecov_file: target/jacoco.xml
+    secrets: inherit
