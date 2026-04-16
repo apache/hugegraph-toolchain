@@ -155,10 +155,10 @@ public class User extends AuthElement {
 
         // Mapping of: graphSpace -> graph -> permission -> resourceType -> resources
         @JsonProperty("roles")
-        private Map<String, Map<String, Map<HugePermission, Map<String, 
+        private Map<String, Map<String, Map<HugePermission, Map<String,
                 List<HugeResource>>>>> roles;
 
-        public Map<String, Map<String, Map<HugePermission, Map<String, 
+        public Map<String, Map<String, Map<HugePermission, Map<String,
                 List<HugeResource>>>>> roles() {
             return Collections.unmodifiableMap(this.roles);
         }
