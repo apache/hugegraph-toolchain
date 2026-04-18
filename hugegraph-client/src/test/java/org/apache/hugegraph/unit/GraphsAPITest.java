@@ -24,7 +24,6 @@ import org.apache.hugegraph.client.RestClient;
 import org.apache.hugegraph.rest.RestHeaders;
 import org.apache.hugegraph.rest.RestResult;
 import org.apache.hugegraph.testutil.Assert;
-import org.apache.hugegraph.util.VersionUtil;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
