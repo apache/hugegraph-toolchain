@@ -25,57 +25,54 @@ import org.junit.Test;
 public class HugeClientBuilderTest {
 
     @Test
-    public void testBuilderWithSkipRequiredChecks() {
-        // Constructor should NOT throw when skipRequiredChecks=true, even with null graph/url.
-        // No build() call here to avoid triggering HTTP (no server available in unit tests).
-        HugeClientBuilder builder = new HugeClientBuilder(
-                "http://127.0.0.1:8080", "DEFAULT", null, true);
+    public void testConstructorAcceptsNullUrlAndGraph() {
+        HugeClientBuilder builder = new HugeClientBuilder(null, "DEFAULT", null);
         Assert.assertNotNull(builder);
-        // Also verify null url is accepted when skipRequiredChecks=true
-        HugeClientBuilder builder2 = new HugeClientBuilder(
-                null, "DEFAULT", "hugegraph", true);
-        Assert.assertNotNull(builder2);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testConstructorCheckWithoutSkip() {
-        // Constructor should throw when graph is null and skipRequiredChecks=false
-        new HugeClientBuilder("http://127.0.0.1:8080", "DEFAULT", null, false);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testBuildCheckWithoutSkip_nullGraph() {
-        // Construct with valid params, null out graph afterwards to test build() check path
-        HugeClientBuilder builder = new HugeClientBuilder(
-                "http://127.0.0.1:8080", "DEFAULT", "hugegraph", false);
-        builder.configGraph(null);
-        builder.build();
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testBuildCheckWithoutSkip_nullUrl() {
-        // Construct with valid params, null out url afterwards to test build() check path
-        HugeClientBuilder builder = new HugeClientBuilder(
-                "http://127.0.0.1:8080", "DEFAULT", "hugegraph", false);
-        builder.configUrl(null);
-        builder.build();
     }
 
     @Test
-    public void testHugeClientBuilderMethod() {
-        // HugeClient.builder factory should NOT throw when skipRequiredChecks=true.
-        // No build() call here to avoid triggering HTTP (no server available in unit tests).
-        HugeClientBuilder builder = HugeClient.builder(
-                "http://127.0.0.1:8080", "DEFAULT", null, true);
-        Assert.assertNotNull(builder);
+    public void testGraphRequiredFalseSkipsBuildValidation() {
+        // graphRequired(false) must skip IllegalArgumentException — only connection-level
+        // failure is expected since no server is available in unit tests
+        try {
+            HugeClient.builder(null, "DEFAULT", null).graphRequired(false).build();
+            Assert.fail("Expected connection-level exception");
+        } catch (IllegalArgumentException e) {
+            Assert.fail("Should not throw IllegalArgumentException — validation must be skipped");
+        } catch (Exception e) {
+            // Expected: validation was skipped, failed at HTTP connection as intended
+        }
     }
 
     @Test(expected = IllegalArgumentException.class)
-    public void testHugeClientBuilderMethodWithoutSkip() {
-        // build() should throw when graph is null and skipRequiredChecks defaults to false
-        HugeClientBuilder builder = HugeClient.builder(
-                "http://127.0.0.1:8080", "DEFAULT", "hugegraph");
-        builder.configGraph(null);
-        builder.build();
+    public void testBuildFailsWithNullUrl() {
+        HugeClient.builder(null, "DEFAULT", "hugegraph").build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildFailsWithNullGraph() {
+        HugeClient.builder("http://127.0.0.1:8080", "DEFAULT", null).build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildFailsWithEmptyUrl() {
+        HugeClient.builder("", "DEFAULT", "hugegraph").build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildFailsWithEmptyGraph() {
+        HugeClient.builder("http://127.0.0.1:8080", "DEFAULT", "").build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildFailsAfterConfigGraphNull() {
+        HugeClient.builder("http://127.0.0.1:8080", "DEFAULT", "hugegraph")
+                  .configGraph(null).build();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testBuildFailsAfterConfigUrlNull() {
+        HugeClient.builder("http://127.0.0.1:8080", "DEFAULT", "hugegraph")
+                  .configUrl(null).build();
     }
 }

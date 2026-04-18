@@ -50,26 +50,9 @@ public class HugeClientBuilder {
     /** Set them null by default to keep compatibility with 'timeout' */
     private Integer connectTimeout;
     private Integer readTimeout;
-    private final boolean skipRequiredChecks;
+    private boolean graphRequired = true;
 
     public HugeClientBuilder(String url, String graphSpace, String graph) {
-        this(url, graphSpace, graph, false);
-    }
-
-    public HugeClientBuilder(String url, String graphSpace, String graph,
-                             boolean skipRequiredChecks) {
-        this.skipRequiredChecks = skipRequiredChecks;
-
-        if (!skipRequiredChecks) {
-            E.checkArgument(url != null && !url.isEmpty(),
-                            "Expect a string value as the url parameter " +
-                            "argument, but got: %s", url);
-            E.checkArgument(graph != null && !graph.isEmpty(),
-                            "Expect a string value as the graph name " +
-                            "parameter argument, but got: %s",
-                            graph);
-        }
-
         this.url = url;
         this.graphSpace = graphSpace;
         this.graph = graph;
@@ -89,11 +72,20 @@ public class HugeClientBuilder {
     }
 
     public HugeClient build() {
-        if (!this.skipRequiredChecks) {
-            E.checkArgument(this.url != null, "The url parameter can't be null");
-            E.checkArgument(this.graph != null, "The graph parameter can't be null");
+        if (this.graphRequired) {
+            E.checkArgument(this.url != null && !this.url.isEmpty(),
+                            "Expect a string value as the url parameter argument, but got: %s",
+                            this.url);
+            E.checkArgument(this.graph != null && !this.graph.isEmpty(),
+                            "Expect a string value as the graph name parameter argument, but got: %s",
+                            this.graph);
         }
         return new HugeClient(this);
+    }
+
+    public HugeClientBuilder graphRequired(boolean graphRequired) {
+        this.graphRequired = graphRequired;
+        return this;
     }
 
     public HugeClientBuilder configGraphSpace(String graphSpace) {
