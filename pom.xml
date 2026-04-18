@@ -99,8 +99,7 @@
 
     <properties>
         <revision>1.7.0</revision>
-        <!-- TODO: upgrade common later -->
-        <hugegraph.common.version>1.5.0</hugegraph.common.version>
+        <hugegraph.common.version>1.7.0</hugegraph.common.version>
         <release.name>${project.artifactId}</release.name>
         <final.name>apache-${release.name}-${project.version}</final.name>
         <assembly.dir>${project.basedir}/assembly</assembly.dir>

@@ -74,7 +74,8 @@ public class GraphsAPI extends API {
     @SuppressWarnings("unchecked")
     public Map<String, String> create(String name, String cloneGraphName, String configText) {
         this.client.checkApiVersion("0.67", "dynamic graph add");
-        RestHeaders headers = new RestHeaders().add(RestHeaders.CONTENT_TYPE, "application/json");
+        RestHeaders headers = new RestHeaders().add(RestHeaders.CONTENT_TYPE,
+                                                    RestHeaders.APPLICATION_JSON);
         Map<String, Object> params = null;
         if (StringUtils.isNotEmpty(cloneGraphName)) {
             params = ImmutableMap.of("clone_graph_name", cloneGraphName);

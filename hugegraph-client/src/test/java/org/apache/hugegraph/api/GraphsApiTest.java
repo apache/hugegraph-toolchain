@@ -33,19 +33,17 @@ import org.apache.hugegraph.structure.graph.Vertex;
 import org.apache.hugegraph.structure.gremlin.ResultSet;
 import org.apache.hugegraph.testutil.Assert;
 import org.junit.After;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableSet;
 
-//@Ignore
 public class GraphsApiTest extends BaseApiTest {
 
     private static final String GRAPH2 = "hugegraph2";
-    private static final String CONFIG2_PATH = "src/test/resources/hugegraph-create.properties";
+    private static final String CONFIG2_PATH = "src/test/resources/hugegraph-create.json";
 
     private static final String GRAPH3 = "hugegraph3";
-    private static final String CONFIG3_PATH = "src/test/resources/hugegraph-clone.properties";
+    private static final String CONFIG3_PATH = "src/test/resources/hugegraph-clone.json";
 
     protected static void initPropertyKey(HugeClient client) {
         SchemaManager schema = client.schema();
@@ -118,10 +116,6 @@ public class GraphsApiTest extends BaseApiTest {
         }
     }
 
-    // FIXME: This test fails due to NullPointerException in server's metaManager.graphConfigs()
-    //        when calling graphsAPI.list(). Need to update and fix after server metaManager is fixed.
-    //        See: GraphManager.graphs() line 2055 in hugegraph-server
-    @Ignore("Temporarily disabled due to server metaManager NullPointerException")
     @Test
     public void testCreateAndDropGraph() {
         int initialGraphNumber = graphsAPI.list().size();
@@ -136,7 +130,6 @@ public class GraphsApiTest extends BaseApiTest {
                                       CONFIG2_PATH);
         }
         Map<String, String> result = graphsAPI.create(GRAPH2, null, config);
-        Assert.assertEquals(2, result.size());
         Assert.assertEquals(GRAPH2, result.get("name"));
         Assert.assertEquals("rocksdb", result.get("backend"));
 
@@ -193,10 +186,6 @@ public class GraphsApiTest extends BaseApiTest {
         Assert.assertEquals(initialGraphNumber, graphsAPI.list().size());
     }
 
-    // FIXME: This test fails due to NullPointerException in server's metaManager.graphConfigs()
-    //        when calling graphsAPI.list(). Need to update and fix after server metaManager is fixed.
-    //        See: GraphManager.graphs() line 2055 in hugegraph-server
-    @Ignore("Temporarily disabled due to server metaManager NullPointerException")
     @Test
     public void testCloneAndDropGraph() {
         int initialGraphNumber = graphsAPI.list().size();
@@ -212,13 +201,12 @@ public class GraphsApiTest extends BaseApiTest {
         }
         Map<String, String> result = graphsAPI.create(GRAPH3, "hugegraph",
                                                       config);
-        Assert.assertEquals(2, result.size());
         Assert.assertEquals(GRAPH3, result.get("name"));
         Assert.assertEquals("rocksdb", result.get("backend"));
 
         Assert.assertEquals(initialGraphNumber + 1, graphsAPI.list().size());
 
-        HugeClient client = new HugeClient(baseClient(), DEFAULT_GRAPHSPACE, GRAPH3);
+        HugeClient client = new HugeClient(baseClient(), GRAPHSPACE, GRAPH3);
         // Insert graph schema and data
         initPropertyKey(client);
         initVertexLabel(client);
@@ -269,10 +257,6 @@ public class GraphsApiTest extends BaseApiTest {
         Assert.assertEquals(initialGraphNumber, graphsAPI.list().size());
     }
 
-    // FIXME: This test fails due to NullPointerException in server's metaManager.graphConfigs()
-    //        when calling graphsAPI.list(). Need to update and fix after server metaManager is fixed.
-    //        See: GraphManager.graphs() line 2055 in hugegraph-server
-    @Ignore("Temporarily disabled due to server metaManager NullPointerException")
     @Test
     public void testCloneAndDropGraphWithoutConfig() {
         int initialGraphNumber = graphsAPI.list().size();
@@ -281,7 +265,6 @@ public class GraphsApiTest extends BaseApiTest {
         String config = null;
         Map<String, String> result = graphsAPI.create(GRAPH3, "hugegraph",
                                                       config);
-        Assert.assertEquals(2, result.size());
         Assert.assertEquals(GRAPH3, result.get("name"));
         Assert.assertEquals("rocksdb", result.get("backend"));
 

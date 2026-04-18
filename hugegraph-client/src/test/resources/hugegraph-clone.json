@@ -1,0 +1,5 @@
+{
+    "store": "hugegraph3",
+    "rocksdb.data_path": "rocksdb-data/data_hugegraph3",
+    "rocksdb.wal_path": "rocksdb-data/wal_hugegraph3"
+}
