@@ -139,7 +139,7 @@ public class HugeClientHttpsTest extends BaseFuncTest {
                       .configSSL("", "")
                       .build();
         }, e -> {
-            Assert.assertContains("The url parameter can't be null",
+            Assert.assertContains("Expect a string value as the url parameter argument",
                                   e.getMessage());
         });
     }
@@ -153,7 +153,7 @@ public class HugeClientHttpsTest extends BaseFuncTest {
                       .configSSL("", "")
                       .build();
         }, e -> {
-            Assert.assertContains("The graph parameter can't be null",
+            Assert.assertContains("Expect a string value as the graph name parameter argument",
                                   e.getMessage());
         });
     }
