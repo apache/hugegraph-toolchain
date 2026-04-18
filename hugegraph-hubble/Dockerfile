@@ -37,7 +37,7 @@ RUN set -x \
 
 FROM eclipse-temurin:11-jre-jammy
 
-COPY --from=build /pkg/hugegraph-hubble/apache-hugegraph-hubble-incubating-*/ /hubble
+COPY --from=build /pkg/hugegraph-hubble/apache-hugegraph-hubble-*/ /hubble
 WORKDIR /hubble/
 
 EXPOSE 8088

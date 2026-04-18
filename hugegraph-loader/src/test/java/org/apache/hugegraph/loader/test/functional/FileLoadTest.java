@@ -258,8 +258,11 @@ public class FileLoadTest extends LoadTest {
         argsList1.addAll(Arrays.asList("--username", "admin", "--password", "pa"));
         Assert.assertThrows(ParseException.class, () -> {
             HugeGraphLoader loader = new HugeGraphLoader(argsList1.toArray(new String[0]));
-            loader.load();
-            loader.shutdown();
+            try {
+                loader.load();
+            } finally {
+                loader.shutdown();
+            }
         }, (e) -> {
             String msg = e.getMessage();
             Assert.assertTrue(msg.startsWith("Failed to convert value"));
@@ -2579,8 +2582,11 @@ public class FileLoadTest extends LoadTest {
         argsList.addAll(Arrays.asList("--username", "admin", "--password", "pa"));
         AsyncThrowsAssert.assertThrows(RuntimeException.class, () -> {
             HugeGraphLoader loader = new HugeGraphLoader(argsList.toArray(new String[0]));
-            loader.load();
-            loader.shutdown();
+            try {
+                loader.load();
+            } finally {
+                loader.shutdown();
+            }
         }, e -> {
             String msgSuffix = "check whether the headers or field_mapping " +
                                "are configured correctly";

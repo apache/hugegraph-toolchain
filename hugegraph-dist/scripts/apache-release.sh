@@ -41,14 +41,14 @@ rm -rf dist && mkdir -p dist/apache-${REPO}
 # step1: package the source code
 cd ../../ || exit
 git archive --format=tar.gz \
-  --output="${GROUP}-dist/scripts/dist/apache-${REPO}/apache-${REPO}-incubating-${RELEASE_VERSION}-src.tar.gz" \
-  --prefix="apache-${REPO}-incubating-${RELEASE_VERSION}-src/" "${GIT_BRANCH}" || exit
+  --output="${GROUP}-dist/scripts/dist/apache-${REPO}/apache-${REPO}-${RELEASE_VERSION}-src.tar.gz" \
+  --prefix="apache-${REPO}-${RELEASE_VERSION}-src/" "${GIT_BRANCH}" || exit
 
 cd - || exit
 
 # step2: copy the binary file (Optional)
 # Note: it's optional for project to generate binary package (skip this step if not need)
-cp -v ../../target/apache-${REPO}-incubating-"${RELEASE_VERSION}".tar.gz \
+cp -v ../../target/apache-${REPO}-"${RELEASE_VERSION}".tar.gz \
   dist/apache-${REPO} || exit
 
 # step3: sign + hash
@@ -83,7 +83,7 @@ cd ../
 rm -rfv ${SVN_DIR}
 
 ##### 4.1 pull from remote & copy files
-svn co "https://dist.apache.org/repos/dist/dev/incubator/${GROUP}" ${SVN_DIR}
+svn co "https://dist.apache.org/repos/dist/dev/${GROUP}" ${SVN_DIR}
 mkdir -p ${SVN_DIR}/"${RELEASE_VERSION}"
 cp -v apache-${REPO}/*tar.gz* "${SVN_DIR}/${RELEASE_VERSION}"
 cd ${SVN_DIR} || exit

@@ -20,12 +20,12 @@ package v1
 import (
     "context"
     "encoding/json"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/hgtransport"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go/hgtransport"
     "io"
     "io/ioutil"
     "net/http"
 
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/api"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go/api"
 )
 
 // ----- API Definition -------------------------------------------------------

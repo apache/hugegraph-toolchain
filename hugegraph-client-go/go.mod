@@ -1,4 +1,4 @@
-module github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go
+module github.com/apache/hugegraph-toolchain/hugegraph-client-go
 
 go 1.19
 

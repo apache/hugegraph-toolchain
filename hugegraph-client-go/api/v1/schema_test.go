@@ -19,7 +19,7 @@ package v1_test
 
 import (
     "fmt"
-    "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go"
+    "github.com/apache/hugegraph-toolchain/hugegraph-client-go"
     "log"
     "testing"
 )

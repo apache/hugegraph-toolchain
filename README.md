@@ -5,7 +5,7 @@
 [![Build Status](https://github.com/apache/hugegraph-toolchain/actions/workflows/loader-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/loader-ci.yml)
 [![Build Status](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml)
 [![Build Status](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml)
-[![Maven Central](https://maven-badges.herokuapp.com/maven-central/org.apache.hugegraph/hugegraph-client/badge.svg)](https://mvnrepository.com/artifact/org.apache.hugegraph/hugegraph-client)
+[![Maven Central](https://img.shields.io/maven-central/v/org.apache.hugegraph/hugegraph-toolchain)](https://mvnrepository.com/artifact/org.apache.hugegraph/hugegraph-toolchain)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/apache/hugegraph-toolchain)
 
 ## What is HugeGraph Toolchain?
@@ -19,7 +19,7 @@ A comprehensive suite of client SDKs, data tools, and management utilities for [
 **HugeGraph Ecosystem**:
 1. [hugegraph](https://github.com/apache/hugegraph) - Core graph database (**[pd](https://github.com/apache/hugegraph/tree/master/hugegraph-pd)** / **[store](https://github.com/apache/hugegraph/tree/master/hugegraph-store)** / **[server](https://github.com/apache/hugegraph/tree/master/hugegraph-server)** / **[commons](https://github.com/apache/hugegraph/tree/master/hugegraph-commons)**)
 2. [hugegraph-computer](https://github.com/apache/hugegraph-computer) - Distributed graph computing system
-3. [hugegraph-ai](https://github.com/apache/incubator-hugegraph-ai) - Graph AI/LLM/Knowledge Graph integration
+3. [hugegraph-ai](https://github.com/apache/hugegraph-ai) - Graph AI/LLM/Knowledge Graph integration
 4. [hugegraph-website](https://github.com/apache/hugegraph-doc) - Documentation and website
 
 ## Architecture Overview
@@ -191,7 +191,7 @@ client := hugegraph.NewClient("http://localhost:8080", "hugegraph")
 
 </details>
 
-> **Looking for other languages?** See [hugegraph-python-client](https://github.com/apache/incubator-hugegraph-ai/tree/main/hugegraph-python-client) in the hugegraph-ai repository.
+> **Looking for other languages?** See [hugegraph-python-client](https://github.com/apache/hugegraph-ai/tree/main/hugegraph-python-client) in the hugegraph-ai repository.
 
 ---
 
@@ -247,7 +247,7 @@ client := hugegraph.NewClient("http://localhost:8080", "hugegraph")
 
 **Quick Start**:
 ```bash
-cd hugegraph-hubble/apache-hugegraph-hubble-incubating-*/bin
+cd hugegraph-hubble/apache-hugegraph-hubble-*/bin
 ./start-hubble.sh      # Background mode
 ./start-hubble.sh -f   # Foreground mode
 ./stop-hubble.sh       # Stop server

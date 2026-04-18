@@ -116,6 +116,11 @@ public class FileMapping {
     @JsonProperty("update_time")
     private Date updateTime;
 
+    @JsonProperty("total_size_bytes")
+    public long getTotalSizeBytes() {
+        return this.totalSize;
+    }
+
     public FileMapping(int connId, String name, String path) {
         this(connId, name, path, HubbleUtil.nowDate());
     }

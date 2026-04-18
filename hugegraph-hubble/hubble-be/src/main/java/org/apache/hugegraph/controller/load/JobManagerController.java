@@ -104,11 +104,7 @@ public class JobManagerController {
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable("id") int id) {
-        JobManager task = this.service.get(id);
-        if (task == null) {
-            throw new ExternalException("job.manager.not-exist.id", id);
-        }
-        this.service.remove(id);
+        this.service.deleteJob(id);
     }
 
     @GetMapping("{id}")

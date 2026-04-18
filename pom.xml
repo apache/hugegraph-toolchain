@@ -26,7 +26,7 @@
     <packaging>pom</packaging>
 
     <name>${project.artifactId}</name>
-    <url>https://github.com/apache/incubator-hugegraph-toolchain</url>
+    <url>https://github.com/apache/hugegraph-toolchain</url>
     <description>
         hugegraph-toolchain is the integration project contains a series of utilities for HugeGraph,
         it includes 5+ main modules (loader/hubble/tools/clients/data connector)
@@ -48,7 +48,7 @@
 
     <developers>
         <developer>
-            <id>Apache HugeGraph(Incubating)</id>
+            <id>Apache HugeGraph</id>
             <email>dev-subscribe@hugegraph.apache.org</email>
             <url>https://hugegraph.apache.org/</url>
         </developer>
@@ -59,7 +59,7 @@
             <name>Developer List</name>
             <subscribe>dev-subscribe@hugegraph.apache.org</subscribe>
             <unsubscribe>dev-unsubscribe@hugegraph.apache.org</unsubscribe>
-            <post>dev@hugegraph.incubator.apache.org</post>
+            <post>dev@hugegraph.apache.org</post>
         </mailingList>
         <mailingList>
             <name>Commits List</name>
@@ -102,7 +102,7 @@
         <!-- TODO: upgrade common later -->
         <hugegraph.common.version>1.5.0</hugegraph.common.version>
         <release.name>${project.artifactId}</release.name>
-        <final.name>apache-${release.name}-incubating-${project.version}</final.name>
+        <final.name>apache-${release.name}-${project.version}</final.name>
         <assembly.dir>${project.basedir}/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
@@ -565,7 +565,7 @@
                         <exclude>**/*.txt</exclude>
                         <exclude>**/.flattened-pom.xml</exclude>
                         <exclude>**/hubble-fe/**/*</exclude>
-                        <exclude>**/apache-hugegraph-hubble-incubating-*/**/*</exclude>
+                        <exclude>**/apache-hugegraph-hubble-*/**/*</exclude>
                     </excludes>
                     <!-- All files are included by default:
                     <includes>

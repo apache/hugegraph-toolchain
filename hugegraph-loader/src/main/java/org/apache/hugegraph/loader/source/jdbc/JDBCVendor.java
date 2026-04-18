@@ -54,6 +54,11 @@ public enum JDBCVendor {
         }
 
         @Override
+        public String buildUrl(JDBCSource source) {
+            return super.buildUrl(source) + "&allowPublicKeyRetrieval=true";
+        }
+
+        @Override
         public String buildGetHeaderSql(JDBCSource source) {
             return String.format("SELECT COLUMN_NAME " +
                                  "FROM INFORMATION_SCHEMA.COLUMNS " +

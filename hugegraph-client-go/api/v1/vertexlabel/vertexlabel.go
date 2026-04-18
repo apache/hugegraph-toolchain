@@ -28,8 +28,8 @@ import (
    "net/url"
    "strings"
 
-   "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/api"
-   "github.com/apache/incubator-hugegraph-toolchain/hugegraph-client-go/internal/model"
+   "github.com/apache/hugegraph-toolchain/hugegraph-client-go/api"
+   "github.com/apache/hugegraph-toolchain/hugegraph-client-go/internal/model"
 )
 
 type VertexLabel struct {
