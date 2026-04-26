@@ -20,6 +20,7 @@ env:
 
 jobs:
   decide-rerun-action:
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
     runs-on: ubuntu-latest
     outputs:
       action: ${{ steps.decision.outputs.action }}
@@ -30,19 +31,16 @@ jobs:
           WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
           RUN_ID: ${{ github.event.workflow_run.id }}
           RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
-          CONCLUSION: ${{ github.event.workflow_run.conclusion }}
           EVENT_NAME: ${{ github.event.workflow_run.event }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
           set -euo pipefail
 
           action="skip"
-          reason="non-failure"
+          reason="unsupported event: $EVENT_NAME"
 
-          if [[ "$CONCLUSION" == "failure" ]]; then
-            if [[ "$EVENT_NAME" != "push" && "$EVENT_NAME" != "pull_request" ]]; then
-              reason="unsupported event: $EVENT_NAME"
-            elif (( RUN_ATTEMPT > MAX_RERUNS )); then
+          if [[ "$EVENT_NAME" == "push" || "$EVENT_NAME" == "pull_request" ]]; then
+            if (( RUN_ATTEMPT > MAX_RERUNS )); then
               reason="retry limit reached"
             else
               action="rerun"
