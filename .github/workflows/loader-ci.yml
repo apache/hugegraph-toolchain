@@ -64,6 +64,7 @@ jobs:
             }
             const sha = commits[offset].sha.substring(0, 7);
             core.exportVariable('COMMIT_ID', sha);
+            core.setOutput('commit_id', sha);
             console.log(`Using HugeGraph commit id: ${sha}`);
 
       - name: Install JDK 11
@@ -88,8 +89,8 @@ jobs:
       - name: Cache HugeGraph Server
         uses: actions/cache@v4
         with:
-          path: ~/hugegraph-cache-${{ env.COMMIT_ID }}
-          key: ${{ runner.os }}-hugegraph-server-${{ env.COMMIT_ID }}
+          path: ~/hugegraph-cache-${{ steps.get-commit.outputs.commit_id }}
+          key: ${{ runner.os }}-hugegraph-server-${{ steps.get-commit.outputs.commit_id }}
 
       - name: use staged maven repo settings
         if: ${{ env.USE_STAGE == 'true' }}
