@@ -26,9 +26,6 @@ jobs:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-loader/assembly/travis
       STATIC_DIR: hugegraph-loader/assembly/static
-      # TODO: replace it with the (latest - n) commit id (n >= 15)
-      # hugegraph commit date: 2025-10-30
-      COMMIT_ID: 5b3d295
       DB_USER: root
       DB_PASS: root
       DB_DATABASE: load_test
@@ -49,6 +46,25 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 2
+
+      - name: Get HugeGraph stable commit id
+        id: get-commit
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const offset = 15;
+            const { data: commits } = await github.rest.repos.listCommits({
+              owner: 'apache',
+              repo: 'hugegraph',
+              per_page: offset + 1
+            });
+            if (commits.length <= offset) {
+              core.setFailed(`Not enough commits. Found ${commits.length}, needed ${offset + 1}`);
+              return;
+            }
+            const sha = commits[offset].sha.substring(0, 7);
+            core.exportVariable('COMMIT_ID', sha);
+            console.log(`Using HugeGraph commit id: ${sha}`);
 
       - name: Install JDK 11
         uses: actions/setup-java@v4
