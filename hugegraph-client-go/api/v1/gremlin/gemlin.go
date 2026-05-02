@@ -83,13 +83,19 @@ type PostRequest struct {
     gremlin  string
     bindings map[string]string
     language string
-    aliases  map[string]string
+    aliases  struct {
+        //Graph string `json:"graph"`
+        //G     string `json:"g"`
+    }
 }
 type PostRequestData struct {
     Gremlin  string            `json:"gremlin"`
     Bindings map[string]string `json:"bindings,omitempty"`
     Language string            `json:"language,omitempty"`
-    Aliases  map[string]string `json:"aliases,omitempty"`
+    Aliases  struct {
+        //Graph string `json:"graph"`
+        //G     string `json:"g"`
+    } `json:"aliases,omitempty"`
 }
 type PostResponse struct {
     StatusCode int               `json:"-"`
@@ -126,23 +132,6 @@ func (g Post) WithGremlin(gremlin string) func(request *PostRequest) {
     }
 }
 
-// buildDefaultAliases mirrors GremlinManager.java: aliases the requested
-// graph name to the conventional traversal source so that scripts can use
-// `g.V()` / `g.E()` against the active graph.
-func buildDefaultAliases(transport api.Transport) map[string]string {
-    cfg := transport.GetConfig()
-    aliases := map[string]string{}
-    if cfg.GraphSpace != "" {
-        full := cfg.GraphSpace + "-" + cfg.Graph
-        aliases["graph"] = full
-        aliases["g"] = "__g_" + full
-    } else {
-        aliases["graph"] = cfg.Graph
-        aliases["g"] = "__g_" + cfg.Graph
-    }
-    return aliases
-}
-
 func (g GetRequest) Do(ctx context.Context, transport api.Transport) (*GetResponse, error) {
 
     url := "/gremlin"
@@ -156,10 +145,7 @@ func (g GetRequest) Do(ctx context.Context, transport api.Transport) (*GetRespon
         params.Add("language", g.language)
     }
 
-    if g.aliases == nil {
-        g.aliases = buildDefaultAliases(transport)
-    }
-    if len(g.aliases) > 0 {
+    if g.aliases != nil && len(g.aliases) >= 0 {
         aliasesJsonStr, err := json.Marshal(g.aliases)
         if err != nil {
             return nil, err
@@ -207,10 +193,6 @@ func (g PostRequest) Do(ctx context.Context, transport api.Transport) (*PostResp
 
     if len(g.language) < 1 {
         g.language = "gremlin-groovy"
-    }
-
-    if g.aliases == nil {
-        g.aliases = buildDefaultAliases(transport)
     }
 
     gd := &PostRequestData{
