@@ -32,7 +32,7 @@ func TestGremlin(t *testing.T) {
         log.Println(err)
     }
     respGet, err := client.Gremlin.Get(
-        client.Gremlin.Get.WithGremlin("hugegraph.traversal().V().limit(3)"),
+        client.Gremlin.Get.WithGremlin("g.V().limit(3)"),
     )
     if err != nil {
         log.Fatalln(err)
@@ -42,7 +42,7 @@ func TestGremlin(t *testing.T) {
     }
 
     respPost, err := client.Gremlin.Post(
-        client.Gremlin.Post.WithGremlin("hugegraph.traversal().V().limit(3)"),
+        client.Gremlin.Post.WithGremlin("g.V().limit(3)"),
     )
     if err != nil {
         log.Fatalln(err)
