@@ -31,21 +31,16 @@ func TestGremlin(t *testing.T) {
     if err != nil {
         log.Println(err)
     }
-    respGet, err := client.Gremlin.Get(
-        client.Gremlin.Get.WithGremlin("hugegraph.traversal().V().limit(3)"),
-    )
-    if err != nil {
-        log.Fatalln(err)
-    }
-    if respGet.StatusCode != 200 {
-        t.Error("client.Gremlin.GremlinGet error ")
-    }
 
     respPost, err := client.Gremlin.Post(
-        client.Gremlin.Post.WithGremlin("hugegraph.traversal().V().limit(3)"),
+        client.Gremlin.Post.WithGremlin("g.V().limit(3)"),
     )
     if err != nil {
         log.Fatalln(err)
+    }
+    if respPost.StatusCode != 200 {
+        t.Errorf("client.Gremlin.Post status=%d, message=%s",
+            respPost.StatusCode, respPost.Data.Message)
     }
     fmt.Println(respPost.Data.Result.Data)
 
