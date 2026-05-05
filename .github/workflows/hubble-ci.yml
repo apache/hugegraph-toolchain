@@ -57,7 +57,6 @@ jobs:
               const { data: tag } = await github.rest.git.getTag({ owner, repo, tag_sha: sha });
               sha = tag.object.sha;
             }
-            sha = sha.substring(0, 7);
             core.exportVariable('COMMIT_ID', sha);
             core.setOutput('commit_id', sha);
             console.log(`Using HugeGraph release ${release.tag_name} (${sha})`);

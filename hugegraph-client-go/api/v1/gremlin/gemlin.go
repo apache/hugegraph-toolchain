@@ -126,11 +126,6 @@ func (g Post) WithGremlin(gremlin string) func(request *PostRequest) {
     }
 }
 
-// buildDefaultAliases mirrors GremlinManager.java for HugeGraph 1.7.0+:
-// the server registers traversal sources as `__g_<graphSpace>-<graph>`
-// (graphSpace defaults to "DEFAULT", matching HugeClientBuilder.DEFAULT_GRAPHSPACE).
-// Sending these aliases lets scripts use `g.V()` against the active graph
-// regardless of how the server names its bindings internally.
 func buildDefaultAliases(transport api.Transport) map[string]string {
     cfg := transport.GetConfig()
     graphSpace := cfg.GraphSpace

@@ -92,11 +92,12 @@ func NewCommonClient(cfg Config) (*CommonClient, error) {
             Host:   fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
             Scheme: "http",
         },
-        Username:  cfg.Username,
-        Password:  cfg.Password,
-        Graph:     cfg.Graph,
-        Transport: cfg.Transport,
-        Logger:    cfg.Logger,
+        Username:   cfg.Username,
+        Password:   cfg.Password,
+        GraphSpace: cfg.GraphSpace,
+        Graph:      cfg.Graph,
+        Transport:  cfg.Transport,
+        Logger:     cfg.Logger,
     })
 
     return &CommonClient{
