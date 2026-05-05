@@ -33,9 +33,7 @@ public class DateUtilTest {
     @Test
     public void testNowUsesDefaultTimeZone() {
         String pattern = "Z";
-
-        DateUtil.parse("1970-01-01 +0000", "yyyy-MM-dd Z", "GMT");
-
+        DateUtil.parse("+0000", pattern, "GMT");
         Assert.assertEquals("+0800", DateUtil.now(pattern));
     }
 
@@ -96,18 +94,24 @@ public class DateUtilTest {
 
         String dateStr = "2024-01-15 12:00:00";
         String pattern = "yyyy-MM-dd HH:mm:ss";
+        long expectedEpochGMT8 = DateUtil.parse(dateStr, pattern, "GMT+8").getTime();
+        long expectedEpochGMT0 = DateUtil.parse(dateStr, pattern, "GMT+0").getTime();
+        long expectedDiff = 8 * 60 * 60 * 1000;
 
         for (int i = 0; i < threads; i++) {
             final int threadId = i;
             executor.submit(() -> {
                 try {
                     String timeZone = threadId % 2 == 0 ? "GMT+8" : "GMT+0";
+                    long expectedEpoch = threadId % 2 == 0 ? expectedEpochGMT8 : expectedEpochGMT0;
                     for (int j = 0; j < iterations; j++) {
                         Date result = DateUtil.parse(dateStr, pattern, timeZone);
-                        if (result == null) {
+                        if (result == null || result.getTime() != expectedEpoch) {
                             errors.incrementAndGet();
                         }
                     }
+                } catch (Exception e) {
+                    errors.incrementAndGet();
                 } finally {
                     latch.countDown();
                 }
@@ -118,5 +122,6 @@ public class DateUtilTest {
         executor.shutdown();
 
         Assert.assertEquals(0, errors.get());
+        Assert.assertEquals(expectedDiff, expectedEpochGMT0 - expectedEpochGMT8);
     }
 }
