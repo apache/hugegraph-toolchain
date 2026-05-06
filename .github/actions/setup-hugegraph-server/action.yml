@@ -1,0 +1,18 @@
+name: 'Setup HugeGraph Server'
+description: 'Prepare environment and install HugeGraph server from source'
+
+inputs:
+  travis-dir:
+    description: 'Path to the Travis assembly directory containing install scripts'
+    required: true
+  commit-id:
+    description: 'HugeGraph commit SHA to install'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Prepare env and service
+      shell: bash
+      run: |
+        ${{ inputs.travis-dir }}/install-hugegraph-from-source.sh ${{ inputs.commit-id }}

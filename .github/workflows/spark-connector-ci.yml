@@ -37,50 +37,24 @@ jobs:
 
       - name: Get HugeGraph stable commit id
         id: get-commit
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const owner = 'apache';
-            const repo = 'hugegraph';
-            const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
-            const { data: ref } = await github.rest.git.getRef({
-              owner, repo, ref: `tags/${release.tag_name}`
-            });
-            let sha = ref.object.sha;
-            if (ref.object.type === 'tag') {
-              const { data: tag } = await github.rest.git.getTag({ owner, repo, tag_sha: sha });
-              sha = tag.object.sha;
-            }
-            core.exportVariable('COMMIT_ID', sha);
-            core.setOutput('commit_id', sha);
-            console.log(`Using HugeGraph release ${release.tag_name} (${sha})`);
+        uses: ./.github/actions/get-hugegraph-commit
 
-      - name: Install JDK 11
-        uses: actions/setup-java@v4
+      - name: Setup Java environment
+        uses: ./.github/actions/setup-java-env
         with:
-          java-version: '11'
+          java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'adopt'
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: use staged maven repo settings
-        if: ${{ env.USE_STAGE == 'true' }}
-        run: |
-          cp $HOME/.m2/settings.xml /tmp/settings.xml
-          mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml
+          use-stage: ${{ env.USE_STAGE }}
 
       - name: Compile
         run: |
           mvn install -pl hugegraph-client,hugegraph-spark-connector -am -Dmaven.javadoc.skip=true -DskipTests -ntp
 
-      - name: Prepare env and service
-        run: |
-          $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
+      - name: Setup HugeGraph server
+        uses: ./.github/actions/setup-hugegraph-server
+        with:
+          travis-dir: ${{ env.TRAVIS_DIR }}
+          commit-id: ${{ steps.get-commit.outputs.commit_id }}
 
       - name: Run test
         run: |

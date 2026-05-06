@@ -1,0 +1,40 @@
+name: 'Setup Java and Maven Environment'
+description: 'Install JDK, cache Maven packages, and optionally apply staged Maven repository settings'
+
+inputs:
+  java-version:
+    description: 'Java version to install'
+    required: false
+    default: '11'
+  distribution:
+    description: 'JDK distribution'
+    required: false
+    default: 'zulu'
+  use-stage:
+    description: 'Whether to apply staged Maven repository settings'
+    required: false
+    default: 'true'
+
+runs:
+  using: composite
+  steps:
+    - name: Install JDK ${{ inputs.java-version }}
+      uses: actions/setup-java@v4
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: ${{ inputs.distribution }}
+        cache: 'maven'
+
+    - name: Cache Maven packages
+      uses: actions/cache@v4
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: ${{ runner.os }}-maven-
+
+    - name: Use staged maven repo settings
+      if: ${{ inputs.use-stage == 'true' }}
+      shell: bash
+      run: |
+        cp $HOME/.m2/settings.xml /tmp/settings.xml
+        mv -vf .github/configs/settings.xml $HOME/.m2/settings.xml

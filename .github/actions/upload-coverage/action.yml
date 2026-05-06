@@ -1,0 +1,20 @@
+name: 'Upload Coverage to Codecov'
+description: 'Upload test coverage report to Codecov'
+
+inputs:
+  token:
+    description: 'Codecov upload token'
+    required: true
+  file:
+    description: 'Path to the coverage report file'
+    required: false
+    default: 'target/jacoco.xml'
+
+runs:
+  using: composite
+  steps:
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        token: ${{ inputs.token }}
+        file: ${{ inputs.file }}
