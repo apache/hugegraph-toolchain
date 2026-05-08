@@ -79,7 +79,58 @@ jobs:
         run: |
           sleep "$RETRY_DELAY_SECONDS"
 
+      - name: Check source branch freshness
+        id: freshness
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HEAD_REPOSITORY: ${{ github.event.workflow_run.head_repository.full_name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WORKFLOW_NAME: ${{ github.event.workflow_run.name }}
+          RUN_ID: ${{ github.event.workflow_run.id }}
+        run: |
+          set -euo pipefail
+
+          action="rerun"
+          latest_head_sha="$HEAD_SHA"
+          reason="head unchanged"
+
+          if [[ -z "$HEAD_REPOSITORY" || -z "$HEAD_BRANCH" || -z "$HEAD_SHA" ]]; then
+            action="skip"
+            reason="missing head repository metadata"
+          else
+            latest_head_sha="$(gh api "repos/$HEAD_REPOSITORY/commits" -f sha="$HEAD_BRANCH" -F per_page=1 --jq '.[0].sha' 2>/dev/null || true)"
+
+            if [[ -z "$latest_head_sha" || "$latest_head_sha" == "null" ]]; then
+              action="skip"
+              reason="head branch no longer available"
+            elif [[ "$latest_head_sha" != "$HEAD_SHA" ]]; then
+              action="skip"
+              reason="head moved to $latest_head_sha"
+            fi
+          fi
+
+          {
+            echo "action=$action"
+            echo "latest_head_sha=$latest_head_sha"
+            echo "reason=$reason"
+          } >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Rerun CI freshness check"
+            echo ""
+            echo "- Workflow: $WORKFLOW_NAME"
+            echo "- Run ID: $RUN_ID"
+            echo "- Head repository: $HEAD_REPOSITORY"
+            echo "- Head branch: $HEAD_BRANCH"
+            echo "- Failed run head SHA: $HEAD_SHA"
+            echo "- Current branch tip SHA: $latest_head_sha"
+            echo "- Action: $action"
+            echo "- Reason: $reason"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Rerun failed jobs
+        if: steps.freshness.outputs.action == 'rerun'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
