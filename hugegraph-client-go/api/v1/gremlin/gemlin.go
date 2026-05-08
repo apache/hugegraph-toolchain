@@ -132,6 +132,9 @@ func buildDefaultAliases(transport api.Transport) map[string]string {
     if graphSpace == "" {
         graphSpace = "DEFAULT"
     }
+    if cfg.Graph == "" {
+        cfg.Graph = "hugegraph"
+    }
     full := graphSpace + "-" + cfg.Graph
     return map[string]string{
         "graph": full,

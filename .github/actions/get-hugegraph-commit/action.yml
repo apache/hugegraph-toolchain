@@ -16,15 +16,22 @@ runs:
         script: |
           const owner = 'apache';
           const repo = 'hugegraph';
-          const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
-          const { data: ref } = await github.rest.git.getRef({
-            owner, repo, ref: `tags/${release.tag_name}`
-          });
-          let sha = ref.object.sha;
-          if (ref.object.type === 'tag') {
-            const { data: tag } = await github.rest.git.getTag({ owner, repo, tag_sha: sha });
-            sha = tag.object.sha;
+          try {
+            const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
+            const tagName = release.tag_name;
+            const { data: ref } = await github.rest.git.getRef({
+              owner, repo, ref: `tags/${tagName}`
+            });
+            let sha = ref.object.sha;
+            if (ref.object.type === 'tag') {
+              const { data: tag } = await github.rest.git.getTag({ owner, repo, tag_sha: sha });
+              sha = tag.object.sha;
+            } else if (ref.object.type !== 'commit') {
+              throw new Error(`Unexpected ref type: ${ref.object.type}`);
+            }
+            core.exportVariable('COMMIT_ID', sha);
+            core.setOutput('commit_id', sha);
+            console.log(`Using HugeGraph release ${tagName} (${sha})`);
+          } catch (error) {
+            core.setFailed(`Failed to get HugeGraph commit: ${error.message}`);
           }
-          core.exportVariable('COMMIT_ID', sha);
-          core.setOutput('commit_id', sha);
-          console.log(`Using HugeGraph release ${release.tag_name} (${sha})`);

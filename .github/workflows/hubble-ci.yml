@@ -65,6 +65,8 @@ jobs:
           mvn -e compile -Dmaven.javadoc.skip=true -ntp
 
       - name: Prepare env and service
+        env:
+          COMMIT_ID: ${{ steps.get-commit.outputs.commit_id }}
         run: |
           python -m pip install -r ${TRAVIS_DIR}/requirements.txt
           cd hugegraph-hubble

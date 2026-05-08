@@ -39,8 +39,8 @@ func TestGremlin(t *testing.T) {
         log.Fatalln(err)
     }
     if respPost.StatusCode != 200 {
-         t.Errorf("client.Gremlin.Post http_status=%d, gremlin_status=%d, message=%s",
-             respPost.StatusCode, respPost.Data.Status.Code, respPost.Data.Status.Message)
+        t.Errorf("client.Gremlin.Post http_status=%d, gremlin_status=%d, message=%s",
+            respPost.StatusCode, respPost.Data.Status.Code, respPost.Data.Status.Message)
     }
     fmt.Println(respPost.Data.Result.Data)
 

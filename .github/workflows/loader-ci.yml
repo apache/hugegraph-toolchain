@@ -75,6 +75,8 @@ jobs:
           mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
 
       - name: Prepare env and service
+        env:
+          COMMIT_ID: ${{ steps.get-commit.outputs.commit_id }}
         run: |
           $TRAVIS_DIR/install-hadoop.sh
           $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
