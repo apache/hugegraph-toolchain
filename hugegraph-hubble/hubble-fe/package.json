@@ -28,7 +28,7 @@
     "framer-motion": "^2.1.2",
     "i18next": "^19.5.3",
     "less": "^3.11.3",
-    "lodash-es": "^4.17.15",
+    "lodash-es": "^4.17.23",
     "mobx": "^5.13.0",
     "mobx-react": "^6.2.2",
     "prettier": "^2.0.5",
