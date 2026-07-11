@@ -20,14 +20,17 @@
  * @file 异步任务结果
  */
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useParams} from 'react-router-dom';
+import {Alert, Button, Empty, Spin} from 'antd';
+import {useTranslation} from 'react-i18next';
 import * as api from '../../../api/index';
 import ReactJsonView from 'react-json-view';
 import convertStringToJSON from '../../../utils/convertStringToJSON';
 import c from './index.module.scss';
 
 const AsyncTaskResult = () => {
+    const {t} = useTranslation();
     const {
         graphspace,
         graph,
@@ -35,11 +38,39 @@ const AsyncTaskResult = () => {
     } = useParams();
 
     const [asyncTaskResultJson, setAsyncTaskResultJson] = useState();
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(false);
+    const requestRef = useRef(null);
 
     const getResult = useCallback(
         async () => {
-            const response = await api.analysis.fetchAsyncTaskResult(graphspace, graph, taskId);
-            setAsyncTaskResultJson(response.data?.task_result);
+            const request = Symbol('async-result');
+            requestRef.current = request;
+            setLoading(true);
+            setError(false);
+            setAsyncTaskResultJson();
+            try {
+                const response = await api.analysis.fetchAsyncTaskResult(
+                    graphspace, graph, taskId
+                );
+                if (requestRef.current !== request) {
+                    return;
+                }
+                if (response?.status !== 200) {
+                    throw new Error('task result unavailable');
+                }
+                setAsyncTaskResultJson(response.data?.task_result);
+            }
+            catch {
+                if (requestRef.current === request) {
+                    setError(true);
+                }
+            }
+            finally {
+                if (requestRef.current === request) {
+                    setLoading(false);
+                }
+            }
         },
         [graph, graphspace, taskId]
     );
@@ -47,15 +78,36 @@ const AsyncTaskResult = () => {
     useEffect(
         () => {
             getResult();
+            return () => {
+                requestRef.current = null;
+            };
         },
         [getResult, graph, graphspace, taskId]
     );
     const resultForJSON = convertStringToJSON(asyncTaskResultJson);
+    const hasResult = asyncTaskResultJson !== undefined
+                      && asyncTaskResultJson !== null
+                      && asyncTaskResultJson !== 'null';
 
     return (
         <div className={c.asyncTaskResult}>
-            {
-                resultForJSON === null ? (
+            {error && (
+                <Alert
+                    showIcon
+                    type='error'
+                    message={t('analysis.async_task.result_load_failed')}
+                    action={(
+                        <Button size='small' onClick={getResult}>
+                            {t('analysis.async_task.retry_result')}
+                        </Button>
+                    )}
+                />
+            )}
+            {loading && <Spin tip={t('analysis.async_task.result_loading')} />}
+            {!loading && !error && (
+                !hasResult ? (
+                    <Empty description={t('analysis.async_task.no_result')} />
+                ) : resultForJSON === null ? (
                     asyncTaskResultJson
                 ) : (
                     <ReactJsonView
@@ -66,7 +118,7 @@ const AsyncTaskResult = () => {
                         groupArraysAfterLength={50}
                     />
                 )
-            }
+            )}
         </div>
     );
 };

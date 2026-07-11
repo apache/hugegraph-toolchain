@@ -59,6 +59,7 @@ const AsyncTaskDetail = props => {
         onPageChange,
         getAsynTaskList,
         asyncManageTaskData,
+        loading,
     } = props;
 
     const {graphSpace: currentGraphSpace, graph: currentGraph, isVermeer} = useContext(GraphAnalysisContext);
@@ -318,6 +319,7 @@ const AsyncTaskDetail = props => {
                     current: page,
                     pageSize: pageSize,
                 }}
+                loading={loading}
             />
         </div>
     );

@@ -22,7 +22,7 @@
 
 import React, {useCallback, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Tabs, message} from 'antd';
+import {Alert, Button, Tabs, message} from 'antd';
 import ExecuteLog from '../ExecuteLog';
 import Favorite from '../Favorite';
 import GraphAnalysisContext from '../../../Context';
@@ -40,7 +40,12 @@ const LogsDetail = props => {
     const {
         executionLogsData,
         favoriteQueriesData,
-        isLoading,
+        executionLogsLoading,
+        favoriteQueriesLoading,
+        executionLogsError,
+        favoriteQueriesError,
+        onRetryExecutionLogs,
+        onRetryFavoriteQueries,
         pageExecute,
         pageFavorite,
         pageSize,
@@ -153,34 +158,62 @@ const LogsDetail = props => {
             label: t('analysis.logs.execute_tab'),
             key: 'excutes',
             children: (
-                <ExecuteLog
-                    executeLogsDataRecords={executeLogsDataRecords}
-                    executeLogsDataTotal={executeLogsDataTotal}
-                    isLoading={isLoading}
-                    pageExecute={pageExecute}
-                    pageSize={pageSize}
-                    onExecutePageChange={onExecutePageChange}
-                    onAddCollection={onAddHandler}
-                    onLoadContent={onLoadHandler}
-                />),
+                <>
+                    {executionLogsError && (
+                        <Alert
+                            showIcon
+                            type='error'
+                            message={t('analysis.logs.execution_load_failed')}
+                            action={(
+                                <Button size='small' onClick={onRetryExecutionLogs}>
+                                    {t('analysis.logs.retry_execution')}
+                                </Button>
+                            )}
+                        />
+                    )}
+                    <ExecuteLog
+                        executeLogsDataRecords={executeLogsDataRecords}
+                        executeLogsDataTotal={executeLogsDataTotal}
+                        isLoading={executionLogsLoading}
+                        pageExecute={pageExecute}
+                        pageSize={pageSize}
+                        onExecutePageChange={onExecutePageChange}
+                        onAddCollection={onAddHandler}
+                        onLoadContent={onLoadHandler}
+                    />
+                </>),
         },
         {
             label: t('analysis.logs.favorite_tab'),
             key: 'favorites',
             children: (
-                <Favorite
-                    favoriteQueriesDataRecords={favoriteQueriesDataRecords}
-                    favoriteQueriesDataTotal={favoriteQueriesDataTotal}
-                    isLoading={isLoading}
-                    pageFavorite={pageFavorite}
-                    pageSize={pageSize}
-                    onFavoritePageChange={onFavoritePageChange}
-                    onChangeSearchValue={onChangeSearchValue}
-                    onSortChange={onSortChange}
-                    onDel={onDelHandler}
-                    onEditCollection={onEditHandler}
-                    onLoadContent={onLoadHandler}
-                />),
+                <>
+                    {favoriteQueriesError && (
+                        <Alert
+                            showIcon
+                            type='error'
+                            message={t('analysis.logs.favorite_load_failed')}
+                            action={(
+                                <Button size='small' onClick={onRetryFavoriteQueries}>
+                                    {t('analysis.logs.retry_favorites')}
+                                </Button>
+                            )}
+                        />
+                    )}
+                    <Favorite
+                        favoriteQueriesDataRecords={favoriteQueriesDataRecords}
+                        favoriteQueriesDataTotal={favoriteQueriesDataTotal}
+                        isLoading={favoriteQueriesLoading}
+                        pageFavorite={pageFavorite}
+                        pageSize={pageSize}
+                        onFavoritePageChange={onFavoritePageChange}
+                        onChangeSearchValue={onChangeSearchValue}
+                        onSortChange={onSortChange}
+                        onDel={onDelHandler}
+                        onEditCollection={onEditHandler}
+                        onLoadContent={onLoadHandler}
+                    />
+                </>),
         },
     ];
 

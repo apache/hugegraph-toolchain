@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {act, fireEvent, render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import AnalysisHome from './index';
 import GraphAnalysisContext from '../../Context';
 import * as api from '../../../api';
@@ -46,7 +46,18 @@ jest.mock('../QueryBar/Home', () => props => (
 jest.mock('../QueryResult/Home', () => ({queryStatus, queryMessage}) => (
     <div>query result {queryStatus} {queryMessage}</div>
 ));
-jest.mock('../LogsDetail/Home', () => () => <div>query history</div>);
+jest.mock('../LogsDetail/Home', () => props => (
+    <div>
+        query history
+        <span>{props.executionLogsData.records?.[0]?.content}</span>
+        {props.executionLogsError && (
+            <button onClick={props.onRetryExecutionLogs}>Retry records</button>
+        )}
+        {props.favoriteQueriesError && (
+            <button onClick={props.onRetryFavoriteQueries}>Retry favorites</button>
+        )}
+    </div>
+));
 jest.mock('react-i18next', () => ({useTranslation: () => ({t: key => key})}));
 
 const okList = {status: 200, data: {records: [], total: 0}};
@@ -100,4 +111,62 @@ it('turns a rejected synchronous query into a recoverable failed result', async 
     expect(await screen.findByText(/query result failed/)).toHaveTextContent(
         'analysis.query_result.run_failed_action'
     );
+});
+
+it('keeps execution-history failure separate and retries only that source', async () => {
+    api.analysis.getExecutionLogs
+        .mockRejectedValueOnce(new Error('history offline'))
+        .mockResolvedValueOnce(okList);
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+
+    fireEvent.click(await screen.findByRole('button', {name: 'Retry records'}));
+
+    await waitFor(() => expect(api.analysis.getExecutionLogs).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByRole('button', {
+        name: 'Retry records',
+    })).not.toBeInTheDocument());
+    expect(api.analysis.fetchFavoriteQueries).toHaveBeenCalledTimes(1);
+});
+
+it('does not let late history from the previous graph replace current rows', async () => {
+    let resolveA;
+    let resolveB;
+    api.analysis.getExecutionLogs.mockImplementation((space, graph) => (
+        new Promise(resolve => {
+            if (graph === 'graph-a') {
+                resolveA = resolve;
+            }
+            else {
+                resolveB = resolve;
+            }
+        })
+    ));
+    const {rerender} = render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'graph-a'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+    rerender(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'graph-b'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    await act(async () => resolveB({
+        status: 200,
+        data: {records: [{id: 2, content: 'current-b'}], total: 1},
+    }));
+    expect(await screen.findByText('current-b')).toBeInTheDocument();
+    await act(async () => resolveA({
+        status: 200,
+        data: {records: [{id: 1, content: 'stale-a'}], total: 1},
+    }));
+    expect(screen.getByText('current-b')).toBeInTheDocument();
+    expect(screen.queryByText('stale-a')).not.toBeInTheDocument();
 });

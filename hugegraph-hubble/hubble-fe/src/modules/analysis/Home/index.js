@@ -52,7 +52,10 @@ const AnalysisHome = () => {
     const [executeMode, setExecuteMode] = useState(QUERY);
     const [analysisMode, setAnalysisMode] = useState(GREMLIN);
     const [panelType, setPanelType] = useState(CLOSED);
-    const [isLoading, setLoading] = useState(false);
+    const [executionLogsLoading, setExecutionLogsLoading] = useState(false);
+    const [favoriteQueriesLoading, setFavoriteQueriesLoading] = useState(false);
+    const [executionLogsError, setExecutionLogsError] = useState(false);
+    const [favoriteQueriesError, setFavoriteQueriesError] = useState(false);
     const [favoriteQueriesData, setFavoriteQueriesData] = useState({});
     const [executionLogsData, setExecutionLogsData] = useState({});
     const [codeEditorContent, setCodeEditorContent] = useState('');
@@ -63,9 +66,13 @@ const AnalysisHome = () => {
     const [sortMode, setSortMode] = useState();
     const [graphRenderMode, setGraphRenderMode] = useState(CANVAS2D);
     const queryRequest = useRef(null);
+    const executionLogsRequest = useRef(null);
+    const favoriteQueriesRequest = useRef(null);
 
     useEffect(() => () => {
         queryRequest.current = null;
+        executionLogsRequest.current = null;
+        favoriteQueriesRequest.current = null;
     }, []);
 
     const getExecutionLogsList = useCallback(
@@ -73,14 +80,35 @@ const AnalysisHome = () => {
             if (analysisMode === TEXT2GQL) {
                 return;
             }
+            const request = Symbol('execution-logs');
+            executionLogsRequest.current = request;
             const params = {'page_size': pageSize, 'page_no': pageExecute, 'type': EXECUTION_LOGS_TYPE[analysisMode]};
-            setLoading(true);
-            const response = await api.analysis.getExecutionLogs(graphSpace, graph, params);
-            const {status, data = {}} = response;
-            if (status === 200) {
+            setExecutionLogsLoading(true);
+            setExecutionLogsError(false);
+            setExecutionLogsData({});
+            try {
+                const response = await api.analysis.getExecutionLogs(
+                    graphSpace, graph, params
+                );
+                if (executionLogsRequest.current !== request) {
+                    return;
+                }
+                const {status, data = {}} = response || {};
+                if (status !== 200) {
+                    throw new Error('execution logs unavailable');
+                }
                 setExecutionLogsData({records: data.records, total: data.total});
             }
-            setLoading(false);
+            catch {
+                if (executionLogsRequest.current === request) {
+                    setExecutionLogsError(true);
+                }
+            }
+            finally {
+                if (executionLogsRequest.current === request) {
+                    setExecutionLogsLoading(false);
+                }
+            }
         },
         [graphSpace, graph, pageSize, pageExecute, analysisMode]
     );
@@ -90,6 +118,8 @@ const AnalysisHome = () => {
             if (analysisMode === TEXT2GQL) {
                 return;
             }
+            const request = Symbol('favorite-queries');
+            favoriteQueriesRequest.current = request;
             const params = {
                 page_size: pageSize,
                 page_no: pageFavorite,
@@ -97,13 +127,32 @@ const AnalysisHome = () => {
                 time_order: sortMode,
                 type: FAVORITE_TYPE[analysisMode],
             };
-            setLoading(true);
-            const response = await api.analysis.fetchFavoriteQueries(graphSpace, graph, params);
-            const {status, data = {}} = response;
-            if (status === 200) {
+            setFavoriteQueriesLoading(true);
+            setFavoriteQueriesError(false);
+            setFavoriteQueriesData({});
+            try {
+                const response = await api.analysis.fetchFavoriteQueries(
+                    graphSpace, graph, params
+                );
+                if (favoriteQueriesRequest.current !== request) {
+                    return;
+                }
+                const {status, data = {}} = response || {};
+                if (status !== 200) {
+                    throw new Error('favorite queries unavailable');
+                }
                 setFavoriteQueriesData({records: data.records, total: data.total});
             }
-            setLoading(false);
+            catch {
+                if (favoriteQueriesRequest.current === request) {
+                    setFavoriteQueriesError(true);
+                }
+            }
+            finally {
+                if (favoriteQueriesRequest.current === request) {
+                    setFavoriteQueriesLoading(false);
+                }
+            }
         },
         [graphSpace, graph, pageSize, pageFavorite, search, sortMode, analysisMode]
     );
@@ -121,6 +170,14 @@ const AnalysisHome = () => {
         },
         [getExecutionLogsList]
     );
+
+    const retryExecutionLogs = useCallback(() => {
+        getExecutionLogsList();
+    }, [getExecutionLogsList]);
+
+    const retryFavoriteQueries = useCallback(() => {
+        getFavoriteQueriesList();
+    }, [getFavoriteQueriesList]);
 
     const initQueryResult = useCallback(
         () => {
@@ -182,9 +239,17 @@ const AnalysisHome = () => {
     const onAnalysisModeChange = useCallback(
         queryType => {
             queryRequest.current = null;
+            executionLogsRequest.current = null;
+            favoriteQueriesRequest.current = null;
             setCodeEditorContent('');
             setAnalysisMode(queryType);
             initQueryResult();
+            setExecutionLogsData({});
+            setFavoriteQueriesData({});
+            setExecutionLogsError(false);
+            setFavoriteQueriesError(false);
+            setExecutionLogsLoading(false);
+            setFavoriteQueriesLoading(false);
             onResetPage();
         },
         [initQueryResult, onResetPage]
@@ -441,7 +506,12 @@ const AnalysisHome = () => {
                 pageExecute={pageExecute}
                 onClickLoadContent={handleClickLoadContent}
                 analysisMode={analysisMode}
-                isLoading={isLoading}
+                executionLogsLoading={executionLogsLoading}
+                favoriteQueriesLoading={favoriteQueriesLoading}
+                executionLogsError={executionLogsError}
+                favoriteQueriesError={favoriteQueriesError}
+                onRetryExecutionLogs={retryExecutionLogs}
+                onRetryFavoriteQueries={retryFavoriteQueries}
                 pageSize={pageSize}
                 pageFavorite={pageFavorite}
                 onExecutePageChange={onExecutePageChange}
