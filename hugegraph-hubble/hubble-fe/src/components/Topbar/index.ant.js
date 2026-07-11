@@ -25,6 +25,7 @@ import * as api from '../../api/index';
 import * as user from '../../utils/user';
 import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
+import GraphContextSwitcher from '../GraphContextSwitcher';
 
 const {Option} = Select;
 
@@ -106,8 +107,9 @@ const Topbar = () => {
     };
 
     return (
-        <Layout.Header>
+        <Layout.Header className={style.header}>
             <div className={style.logo}><img src={Logo} alt='' /></div>
+            <GraphContextSwitcher />
             <div className={style.rightContainer}>
                 <Select
                     value={languageType}

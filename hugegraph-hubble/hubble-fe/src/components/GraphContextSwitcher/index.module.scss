@@ -16,48 +16,56 @@
  * under the License.
  */
 
-div.nav {
-    background-color: #121212;
-    :global(.one-ui-pro-nav-profile) {
-        span, svg {
-            color: #fff;
-        }
-
-        &:hover {
-            span, svg {
-                color: #0066ff;
-            }
-        }
-    }
-}
-
-.header {
-  position: relative;
+.context {
   display: flex;
   align-items: center;
+  min-width: 0;
+  margin-left: 28px;
 }
 
-.logo {
-  flex: 0 0 120px;
-  width: 120px;
-  height: 31px;
+.graphspace {
+  width: 160px;
+}
 
-  img {
-    display: block;
-    width: 120px;
-    height: 31px;
+.graph {
+  width: 180px;
+}
+
+.separator {
+  color: rgba(255, 255, 255, 0.56);
+}
+
+.mode {
+  margin-right: 0;
+  border-color: rgba(255, 255, 255, 0.32);
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.errorStack {
+  position: absolute;
+  z-index: 20;
+  top: 56px;
+  left: 148px;
+  display: grid;
+  gap: 8px;
+  min-width: 360px;
+}
+
+.error {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.16);
+}
+
+@media (max-width: 1280px) {
+  .context {
+    margin-left: 16px;
   }
-}
 
-.rightContainer {
-  display: flex;
-  align-items: center;
-  flex: 0 0 auto;
-  margin-left: auto;
-  color: #fff;
-  cursor: pointer;
-}
+  .graphspace {
+    width: 132px;
+  }
 
-.right {
-  margin-left: 10px;
+  .graph {
+    width: 148px;
+  }
 }

@@ -31,6 +31,47 @@
       "invalid_data_format": "非法的数据格式"
     }
   },
+  "workbench": {
+    "skip_to_workspace": "跳到主工作区",
+    "navigation": "主导航",
+    "context": {
+      "name": "当前图上下文",
+      "graphspace": "当前 GraphSpace",
+      "graph": "当前图",
+      "select_graphspace": "选择 GraphSpace",
+      "select_graph": "选择图",
+      "non_pd_fixed": "固定 DEFAULT",
+      "graphspaces_load_failed": "GraphSpace 列表暂时无法加载，当前页面内容不会丢失。",
+      "graphs_load_failed": "图列表暂时无法加载，当前页面内容不会丢失。",
+      "retry": "重试",
+      "retry_graphspaces": "重试 GraphSpace",
+      "retry_graphs": "重试图列表"
+    },
+    "nav": {
+      "home": "工作台",
+      "understand": "理解图",
+      "prepare": "准备数据",
+      "query": "查询与分析",
+      "support": "系统与运维"
+    },
+    "page": {
+      "navigation": "图数据工作台",
+      "graphs": "图管理",
+      "schema": "Schema 管理",
+      "graph_detail": "图详情",
+      "graph_meta": "图元数据",
+      "datasource": "数据源管理",
+      "import": "数据导入",
+      "import_detail": "导入任务详情",
+      "query": "图查询",
+      "algorithms": "图算法",
+      "async_tasks": "分析任务",
+      "async_result": "分析任务结果",
+      "account": "账号管理",
+      "profile": "个人中心",
+      "not_found": "页面未找到"
+    }
+  },
   "request": {
     "failed": "请求失败",
     "error": "请求出错：{{message}}，path：{{path}}"

@@ -26,6 +26,10 @@ jest.mock('../../api/index', () => ({
         status: jest.fn(),
         logout: jest.fn(),
     },
+    manage: {
+        getGraphList: jest.fn(() => Promise.resolve({status: 200, data: {records: []}})),
+        getGraphSpaceList: jest.fn(() => Promise.resolve({status: 200, data: {records: []}})),
+    },
 }));
 
 jest.mock('react-i18next', () => ({
@@ -80,6 +84,8 @@ jest.mock('antd', () => {
 describe('Topbar request errors', () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        api.manage.getGraphList.mockResolvedValue({status: 200, data: {records: []}});
+        api.manage.getGraphSpaceList.mockResolvedValue({status: 200, data: {records: []}});
         localStorage.clear();
         sessionStorage.clear();
         sessionStorage.setItem('user_', JSON.stringify({id: 'admin', user_nickname: 'admin'}));
