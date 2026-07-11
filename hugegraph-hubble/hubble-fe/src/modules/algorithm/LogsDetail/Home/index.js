@@ -23,7 +23,7 @@
 import React, {useCallback, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
 import GraphAnalysisContext from '../../../Context';
-import {Tabs, message} from 'antd';
+import {Alert, Button, Tabs, message} from 'antd';
 import ExecuteLog from '../ExecuteLog';
 import Favorite from '../Favorite';
 import * as api from '../../../../api/index';
@@ -32,7 +32,12 @@ import c from './index.module.scss';
 const LogsDetail = props => {
     const {t} = useTranslation();
     const {
-        isLoading,
+        executionLogsLoading,
+        favoriteQueriesLoading,
+        executionLogsError,
+        favoriteQueriesError,
+        onRetryExecutionLogs,
+        onRetryFavoriteQueries,
         pageExecute,
         pageFavorite,
         pageSize,
@@ -137,33 +142,61 @@ const LogsDetail = props => {
             label: t('analysis.logs.execute_tab'),
             key: 'excutes',
             children: (
-                <ExecuteLog
-                    isLoading={isLoading}
-                    pageExecute={pageExecute}
-                    pageSize={pageSize}
-                    onExecutePageChange={onExecutePageChange}
-                    onAddCollection={onAddHandler}
-                    executionLogsDataRecords={executionLogsDataRecords}
-                    executionLogsDataTotal={executionLogsDataTotal}
-                />
+                <>
+                    {executionLogsError && (
+                        <Alert
+                            showIcon
+                            type='error'
+                            message={t('analysis.logs.execution_load_failed')}
+                            action={(
+                                <Button size='small' onClick={onRetryExecutionLogs}>
+                                    {t('analysis.logs.retry_execution')}
+                                </Button>
+                            )}
+                        />
+                    )}
+                    <ExecuteLog
+                        isLoading={executionLogsLoading}
+                        pageExecute={pageExecute}
+                        pageSize={pageSize}
+                        onExecutePageChange={onExecutePageChange}
+                        onAddCollection={onAddHandler}
+                        executionLogsDataRecords={executionLogsDataRecords}
+                        executionLogsDataTotal={executionLogsDataTotal}
+                    />
+                </>
             ),
         },
         {
             label: t('analysis.logs.favorite_tab'),
             key: 'favorites',
             children: (
-                <Favorite
-                    isLoading={isLoading}
-                    pageFavorite={pageFavorite}
-                    pageSize={pageSize}
-                    onFavoritePageChange={onFavoritePageChange}
-                    onChangeFavorSearch={onChangeFavorSearch}
-                    onSortChange={onSortChange}
-                    onDel={onDelHandler}
-                    onEditCollection={onEditHandler}
-                    favoriteQueriesDataRecords={favoriteQueriesDataRecords}
-                    favoriteQueriesDataTotal={favoriteQueriesDataTotal}
-                />
+                <>
+                    {favoriteQueriesError && (
+                        <Alert
+                            showIcon
+                            type='error'
+                            message={t('analysis.logs.favorite_load_failed')}
+                            action={(
+                                <Button size='small' onClick={onRetryFavoriteQueries}>
+                                    {t('analysis.logs.retry_favorites')}
+                                </Button>
+                            )}
+                        />
+                    )}
+                    <Favorite
+                        isLoading={favoriteQueriesLoading}
+                        pageFavorite={pageFavorite}
+                        pageSize={pageSize}
+                        onFavoritePageChange={onFavoritePageChange}
+                        onChangeFavorSearch={onChangeFavorSearch}
+                        onSortChange={onSortChange}
+                        onDel={onDelHandler}
+                        onEditCollection={onEditHandler}
+                        favoriteQueriesDataRecords={favoriteQueriesDataRecords}
+                        favoriteQueriesDataTotal={favoriteQueriesDataTotal}
+                    />
+                </>
             ),
         },
     ];

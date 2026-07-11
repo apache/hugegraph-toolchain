@@ -49,6 +49,8 @@ jest.mock('../QueryResult/Home', () => ({queryStatus, queryMessage}) => (
 jest.mock('../LogsDetail/Home', () => props => (
     <div>
         query history
+        <span>favorite page {props.pageFavorite}</span>
+        <button onClick={() => props.onFavoritePageChange(2, 10)}>Go favorite page 2</button>
         <span>{props.executionLogsData.records?.[0]?.content}</span>
         {props.executionLogsError && (
             <button onClick={props.onRetryExecutionLogs}>Retry records</button>
@@ -169,4 +171,32 @@ it('does not let late history from the previous graph replace current rows', asy
     }));
     expect(screen.getByText('current-b')).toBeInTheDocument();
     expect(screen.queryByText('stale-a')).not.toBeInTheDocument();
+});
+
+it('keeps a pending favorite page selected instead of rolling back early', async () => {
+    let resolvePageTwo;
+    api.analysis.fetchFavoriteQueries
+        .mockResolvedValueOnce(okList)
+        .mockImplementationOnce(() => new Promise(resolve => {
+            resolvePageTwo = resolve;
+        }));
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await waitFor(() => expect(api.analysis.fetchFavoriteQueries).toHaveBeenCalledTimes(1));
+
+    fireEvent.click(screen.getByRole('button', {name: 'Go favorite page 2'}));
+    await waitFor(() => expect(api.analysis.fetchFavoriteQueries).toHaveBeenCalledTimes(2));
+    expect(screen.getByText('favorite page 2')).toBeInTheDocument();
+
+    await act(async () => {
+        resolvePageTwo({
+            status: 200,
+            data: {records: [{id: 2}], total: 11},
+        });
+    });
+    expect(screen.getByText('favorite page 2')).toBeInTheDocument();
+    expect(api.analysis.fetchFavoriteQueries).toHaveBeenCalledTimes(2);
 });

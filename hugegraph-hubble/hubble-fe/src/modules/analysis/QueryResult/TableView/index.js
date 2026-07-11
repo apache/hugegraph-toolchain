@@ -63,6 +63,10 @@ export function renderTableCell(value) {
     return String(value);
 }
 
+export function tableRowKey(record, index) {
+    return record.id ?? record._id ?? `result-row-${index}`;
+}
+
 const TableView = props => {
     const {t} = useTranslation();
     const {

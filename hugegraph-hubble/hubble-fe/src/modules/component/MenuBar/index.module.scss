@@ -18,6 +18,8 @@
 
 .menuBar{
     display: flex;
+    min-width: 0;
+    max-width: 100%;
     justify-content: space-between;
     background-color: #fff;    
     height: 40px;
@@ -25,4 +27,10 @@
     border: 1px solid #E7E8E9;
     border-top: none;
     margin: 0 0 -1px -1px;
+    overflow-x: auto;
+    overflow-y: hidden;
+
+    &::-webkit-scrollbar {
+        height: 4px;
+    }
 }

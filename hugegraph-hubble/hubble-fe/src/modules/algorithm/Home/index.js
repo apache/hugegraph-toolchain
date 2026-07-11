@@ -20,7 +20,7 @@
  * @file 图算法 Home
  */
 
-import React, {useCallback, useState, useEffect, useContext} from 'react';
+import React, {useCallback, useState, useEffect, useContext, useRef} from 'react';
 import AlgorithmFormHome from '../algorithmsForm/Home';
 import GraphResult from '../GraphResult/Home';
 import LogsDetail from '../LogsDetail/Home';
@@ -58,12 +58,22 @@ const AlgorithmHome = () => {
     const [pageExecute, setExecutePage] = useState(defaultPageParams.page);
     const [pageFavorite, setFavoritePage] = useState(defaultPageParams.page);
     const [pageSize, setPageSize] = useState(defaultPageParams.pageSize);
-    const [isLoading, setLoading] = useState(false);
+    const [executionLogsLoading, setExecutionLogsLoading] = useState(false);
+    const [favoriteQueriesLoading, setFavoriteQueriesLoading] = useState(false);
+    const [executionLogsError, setExecutionLogsError] = useState(false);
+    const [favoriteQueriesError, setFavoriteQueriesError] = useState(false);
     const [favorSearch, setFavorSearch] = useState();
     const [sortMode, setSortMode] = useState();
     const [favoriteQueriesData, setFavoriteQueriesData] = useState({});
     const [executionLogsData, setExecutionLogsData] = useState({});
     const [graphRenderMode, setGraphRenderMode] = useState(CANVAS2D);
+    const executionLogsRequest = useRef(null);
+    const favoriteQueriesRequest = useRef(null);
+
+    useEffect(() => () => {
+        executionLogsRequest.current = null;
+        favoriteQueriesRequest.current = null;
+    }, []);
 
     const initQueryResult = useCallback(
         () => {
@@ -116,6 +126,8 @@ const AlgorithmHome = () => {
 
     const getFavoriteQueriesList = useCallback(
         async () => {
+            const request = Symbol('algorithm-favorites');
+            favoriteQueriesRequest.current = request;
             const params = {
                 'page_size': pageSize,
                 'page_no': pageFavorite,
@@ -123,15 +135,34 @@ const AlgorithmHome = () => {
                 'time_order': sortMode,
                 'type': 'ALGORITHM',
             };
-            setLoading(true);
-            const response  = await api.analysis.fetchFavoriteQueries(graphSpace, graph, params);
-            setLoading(false);
-            const {status, data} = response || {};
-            if (status !== 200) {
-                setFavoriteQueriesData({records: [], total: 0});
+            setFavoriteQueriesLoading(true);
+            setFavoriteQueriesError(false);
+            setFavoriteQueriesData({});
+            try {
+                const response = await api.analysis.fetchFavoriteQueries(
+                    graphSpace, graph, params
+                );
+                if (favoriteQueriesRequest.current !== request) {
+                    return;
+                }
+                const {status, data} = response || {};
+                if (status !== 200) {
+                    throw new Error('algorithm favorites unavailable');
+                }
+                setFavoriteQueriesData({
+                    records: data?.records ?? [],
+                    total: data?.total ?? 0,
+                });
             }
-            else {
-                setFavoriteQueriesData({records: data?.records ?? [], total: data?.total ?? 0});
+            catch {
+                if (favoriteQueriesRequest.current === request) {
+                    setFavoriteQueriesError(true);
+                }
+            }
+            finally {
+                if (favoriteQueriesRequest.current === request) {
+                    setFavoriteQueriesLoading(false);
+                }
             }
         },
         [favorSearch, graph, graphSpace, pageFavorite, pageSize, sortMode]
@@ -139,22 +170,51 @@ const AlgorithmHome = () => {
 
     const getExecutionLogsList = useCallback(
         async () => {
+            const request = Symbol('algorithm-logs');
+            executionLogsRequest.current = request;
             const params = {'page_size': pageSize, 'page_no': pageExecute, 'type': TYPE.ALGORITHM};
-            setLoading(true);
-            const response = await api.analysis.getExecutionLogs(graphSpace, graph, params);
-            setLoading(false);
-            const {status, data} = response || {};
-            if (status !== 200) {
-                setExecutionLogsData({records: [], total: 0});
+            setExecutionLogsLoading(true);
+            setExecutionLogsError(false);
+            setExecutionLogsData({});
+            try {
+                const response = await api.analysis.getExecutionLogs(
+                    graphSpace, graph, params
+                );
+                if (executionLogsRequest.current !== request) {
+                    return;
+                }
+                const {status, data} = response || {};
+                if (status !== 200) {
+                    throw new Error('algorithm logs unavailable');
+                }
+                setExecutionLogsData({
+                    records: data?.records ?? [],
+                    total: data?.total ?? 0,
+                });
             }
-            else {
-                setExecutionLogsData({records: data?.records ?? [], total: data?.total ?? 0});
+            catch {
+                if (executionLogsRequest.current === request) {
+                    setExecutionLogsError(true);
+                }
+            }
+            finally {
+                if (executionLogsRequest.current === request) {
+                    setExecutionLogsLoading(false);
+                }
             }
         },
         [TYPE.ALGORITHM, graph, graphSpace, pageExecute, pageSize]
     );
 
     const onFavoriteRefresh = useCallback(() => {
+        getFavoriteQueriesList();
+    }, [getFavoriteQueriesList]);
+
+    const retryExecutionLogs = useCallback(() => {
+        getExecutionLogsList();
+    }, [getExecutionLogsList]);
+
+    const retryFavoriteQueries = useCallback(() => {
         getFavoriteQueriesList();
     }, [getFavoriteQueriesList]);
 
@@ -168,11 +228,16 @@ const AlgorithmHome = () => {
 
     useEffect(
         () => {
-            if (pageFavorite > 1 && _.isEmpty(favoriteQueriesData.records)) {
+            if (pageFavorite > 1
+                && !favoriteQueriesLoading
+                && !favoriteQueriesError
+                && Array.isArray(favoriteQueriesData.records)
+                && _.isEmpty(favoriteQueriesData.records)) {
                 setFavoritePage(pageFavorite - 1);
             }
         },
-        [favoriteQueriesData, pageFavorite, pageSize]
+        [favoriteQueriesData, favoriteQueriesError, favoriteQueriesLoading,
+            pageFavorite, pageSize]
     );
 
     const resetGraphInfo = useCallback(
@@ -302,7 +367,12 @@ const AlgorithmHome = () => {
                 pageExecute={pageExecute}
                 pageFavorite={pageFavorite}
                 pageSize={pageSize}
-                isLoading={isLoading}
+                executionLogsLoading={executionLogsLoading}
+                favoriteQueriesLoading={favoriteQueriesLoading}
+                executionLogsError={executionLogsError}
+                favoriteQueriesError={favoriteQueriesError}
+                onRetryExecutionLogs={retryExecutionLogs}
+                onRetryFavoriteQueries={retryFavoriteQueries}
                 onExecutePageChange={onExecutePageChange}
                 onFavoritePageChange={onFavoritePageChange}
                 onChangeFavorSearch={onChangeFavorSearch}

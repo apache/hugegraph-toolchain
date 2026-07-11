@@ -283,11 +283,16 @@ const AnalysisHome = () => {
 
     useEffect(
         () => {
-            if (pageFavorite > 1 && _.isEmpty(favoriteQueriesData.records)) {
+            if (pageFavorite > 1
+                && !favoriteQueriesLoading
+                && !favoriteQueriesError
+                && Array.isArray(favoriteQueriesData.records)
+                && _.isEmpty(favoriteQueriesData.records)) {
                 setFavoritePage(pageFavorite - 1);
             }
         },
-        [favoriteQueriesData, pageFavorite, pageSize]
+        [favoriteQueriesData, favoriteQueriesError, favoriteQueriesLoading,
+            pageFavorite, pageSize]
     );
 
     const onExecuteQuery = useCallback(
