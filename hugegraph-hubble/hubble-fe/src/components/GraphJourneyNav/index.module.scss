@@ -1,4 +1,4 @@
-/*!
+/*
  *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
@@ -16,54 +16,37 @@
  * under the License.
  */
 
-.statusBar {
+.journeyNav {
+    margin: -8px 0 20px;
+    border-bottom: 1px solid #e5eaf0;
+}
+
+.tabs {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 48px;
-    margin-bottom: 16px;
-    padding: 8px 16px;
-    border: 1px solid #e5eaf0;
-    border-radius: 6px;
-    background: #fff;
-}
+    gap: 28px;
 
-.updatedAt {
-    color: #5b6573;
-}
+    a {
+        position: relative;
+        padding: 12px 2px;
+        color: #5b6573;
+        font-weight: 500;
 
-.statusTag-success:global(.ant-tag) {
-    color: #237804;
-}
-
-.statusTag-error:global(.ant-tag) {
-    color: #874d00;
-}
-
-.statusTag-loading:global(.ant-tag) {
-    color: #003eb3;
-}
-
-.inlineAlert {
-    margin-bottom: 16px;
-}
-
-.metricCard {
-    height: 100%;
-
-    :global(.ant-statistic) {
-        margin-bottom: 16px;
-    }
-
-    :global(.ant-statistic-content) {
-        color: #152536;
-        font-weight: 600;
+        &:hover {
+            color: #096dd9;
+        }
     }
 }
 
-@media (max-width: 1280px) {
-    .statusBar {
-        align-items: flex-start;
-        gap: 12px;
+.activeTab {
+    color: #096dd9 !important;
+
+    &::after {
+        position: absolute;
+        right: 0;
+        bottom: -1px;
+        left: 0;
+        height: 2px;
+        background: #096dd9;
+        content: '';
     }
 }

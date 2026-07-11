@@ -23,6 +23,7 @@ import ListView from './ListView';
 import {useParams, useNavigate} from 'react-router-dom';
 import * as api from '../../api';
 import {useTranslation} from 'react-i18next';
+import GraphJourneyNav from '../../components/GraphJourneyNav';
 
 const Meta = () => {
     const [viewType, setViewType] = useState('list');
@@ -116,6 +117,11 @@ const Meta = () => {
                 </PageHeader>
 
                 <div className='container'>
+                    <GraphJourneyNav
+                        graphspace={graphspace}
+                        graph={graph}
+                        active='schema'
+                    />
                     {hasIdentityError && (
                         <Space direction='vertical' style={{width: '100%'}}>
                             {errors.graphspace && (

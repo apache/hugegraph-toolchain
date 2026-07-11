@@ -16,38 +16,48 @@
  * under the License.
  */
 
-import {Alert, PageHeader, Row, Col, Button, Spin, message, Space, Table} from 'antd';
-import {useCallback, useEffect, useState} from 'react';
+import {
+    Alert, PageHeader, Row, Col, Button, Spin, message, Space, Table,
+    Card, Statistic, Tag,
+} from 'antd';
+import {
+    NodeIndexOutlined, ReloadOutlined, SearchOutlined, ShareAltOutlined,
+} from '@ant-design/icons';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import * as api from '../../api';
+import GraphJourneyNav from '../../components/GraphJourneyNav';
 import style from './index.module.scss';
-import vertexSvg from './assets/aaa.svg';
-import edgeSvg from './assets/collaboration-full.svg';
 import {useTranslation} from 'react-i18next';
 
 const GraphDetail = () => {
     const [graphspaceInfo, setGraphspaceInfo] = useState({});
     const [graphIno, setGraphInfo] = useState({});
-    const [loading, setLoading] = useState({graph: true, graphspace: true});
+    const [pageLoading, setPageLoading] = useState(true);
+    const [statisticsLoading, setStatisticsLoading] = useState(true);
+    const [updating, setUpdating] = useState(false);
     const [statistic, setStatistic] = useState({});
-    const [statisticError, setStatisticError] = useState(false);
+    const [statisticsStatus, setStatisticsStatus] = useState('loading');
+    const [pageDataRoute, setPageDataRoute] = useState(null);
+    const [statisticsDataRoute, setStatisticsDataRoute] = useState(null);
     const [pageError, setPageError] = useState(false);
+    const pageRequest = useRef(null);
+    const statisticsRequest = useRef(null);
+    const updateRequest = useRef(null);
     const {graphspace, graph} = useParams();
     const navigate = useNavigate();
     const {t} = useTranslation();
+    const routeKey = `${graphspace}/${graph}`;
+    const currentRoute = useRef(routeKey);
+    currentRoute.current = routeKey;
 
     const handleBack = useCallback(() => {
         navigate(-1);
     }, [navigate]);
 
-    const handleUpdate = useCallback(() => {
-        api.manage.updateGraphStatistic(graphspace, graph).then(res => {
-            if (res.status === 200) {
-                message.success(t('graph.detail.update_success'));
-                return;
-            }
-        }).catch(() => {});
-    }, [graphspace, graph, t]);
+    const handleQuery = useCallback(() => {
+        navigate(`/gremlin/${graphspace}/${graph}`);
+    }, [graphspace, graph, navigate]);
 
     const formatList = data => {
         if (!data || Object.keys(data).length === 0) {
@@ -57,143 +67,289 @@ const GraphDetail = () => {
         return Object.keys(data).map(item => ({key: item, num: data[item]}));
     };
 
-    useEffect(() => {
-        if (!graphspace || !graph) {
-            return;
-        }
-
+    const loadPage = useCallback(async () => {
+        const token = Symbol('graph-detail-page');
+        pageRequest.current = token;
+        setPageLoading(true);
+        setPageError(false);
+        setGraphspaceInfo({});
+        setGraphInfo({});
         const inlineErrorConfig = {suppressBusinessErrorToast: true};
-        api.manage.getGraphSpace(graphspace, inlineErrorConfig).then(res => {
-            if (res.status === 200) {
-                setGraphspaceInfo(res.data);
-                setLoading(l => ({...l, graphspace: false}));
+        try {
+            const [graphspaceResponse, graphResponse] = await Promise.all([
+                api.manage.getGraphSpace(graphspace, inlineErrorConfig),
+                api.manage.getGraph(graphspace, graph, inlineErrorConfig),
+            ]);
+            if (pageRequest.current !== token) {
+                return;
+            }
+            if (graphspaceResponse.status !== 200 || graphResponse.status !== 200) {
+                setPageDataRoute(routeKey);
+                setPageError(true);
+                return;
+            }
+            setGraphspaceInfo(graphspaceResponse.data);
+            setGraphInfo(graphResponse.data);
+            setPageDataRoute(routeKey);
+        }
+        catch (error) {
+            if (pageRequest.current !== token) {
                 return;
             }
             setPageError(true);
-            setLoading(l => ({...l, graphspace: false}));
-        }).catch(() => {
-            setPageError(true);
-            setLoading(l => ({...l, graphspace: false}));
-        });
+            setGraphInfo({});
+            setPageDataRoute(routeKey);
+        }
+        finally {
+            if (pageRequest.current === token) {
+                setPageLoading(false);
+            }
+        }
+    }, [graphspace, graph, routeKey]);
 
-        api.manage.getGraph(graphspace, graph, inlineErrorConfig).then(res => {
-            if (res.status === 200) {
-                setGraphInfo(res.data);
-                setLoading(l => ({...l, graph: false}));
+    const loadStatistics = useCallback(async () => {
+        const token = Symbol('graph-detail-statistics');
+        statisticsRequest.current = token;
+        setStatisticsLoading(true);
+        setStatisticsStatus('loading');
+        setStatistic({});
+        const inlineErrorConfig = {suppressBusinessErrorToast: true};
+        try {
+            const res = await api.manage.getGraphStatistic(
+                graphspace,
+                graph,
+                inlineErrorConfig
+            );
+            if (statisticsRequest.current !== token) {
                 return;
             }
-
-            setPageError(true);
-            setGraphInfo({});
-            setLoading(l => ({...l, graph: false}));
-        }).catch(() => {
-            setPageError(true);
-            setGraphInfo({});
-            setLoading(l => ({...l, graph: false}));
-        });
-
-        api.manage.getGraphStatistic(graphspace, graph, inlineErrorConfig).then(res => {
             if (res.status === 200) {
                 setStatistic(res.data);
-                setStatisticError(false);
+                setStatisticsStatus('success');
+                setStatisticsDataRoute(routeKey);
                 return;
             }
-            setStatisticError(true);
-        }).catch(() => {
-            setStatisticError(true);
-        });
-    }, [graphspace, graph]);
+            setStatisticsStatus('error');
+            setStatistic({});
+            setStatisticsDataRoute(routeKey);
+        }
+        catch (error) {
+            if (statisticsRequest.current !== token) {
+                return;
+            }
+            setStatisticsStatus('error');
+            setStatistic({});
+            setStatisticsDataRoute(routeKey);
+        }
+        finally {
+            if (statisticsRequest.current === token) {
+                setStatisticsLoading(false);
+            }
+        }
+    }, [graphspace, graph, routeKey]);
+
+    const handleUpdate = useCallback(async () => {
+        const token = Symbol('graph-detail-update');
+        const requestedRoute = routeKey;
+        updateRequest.current = token;
+        setUpdating(true);
+        try {
+            const res = await api.manage.updateGraphStatistic(graphspace, graph);
+            if (updateRequest.current !== token
+                || currentRoute.current !== requestedRoute) {
+                return;
+            }
+            if (res.status !== 200) {
+                message.error(t('graph.detail.update_failed'));
+                return;
+            }
+            message.success(t('graph.detail.update_success'));
+            await loadStatistics();
+        }
+        catch (error) {
+            if (updateRequest.current === token
+                && currentRoute.current === requestedRoute) {
+                message.error(t('graph.detail.update_failed'));
+            }
+        }
+        finally {
+            if (updateRequest.current === token
+                && currentRoute.current === requestedRoute) {
+                setUpdating(false);
+            }
+        }
+    }, [graphspace, graph, loadStatistics, routeKey, t]);
+
+    useEffect(() => {
+        if (!graphspace || !graph) {
+            return undefined;
+        }
+        loadPage();
+        loadStatistics();
+        return () => {
+            pageRequest.current = null;
+            statisticsRequest.current = null;
+            updateRequest.current = null;
+            setUpdating(false);
+        };
+    }, [graphspace, graph, loadPage, loadStatistics]);
 
     const pageTitle = `${graphspaceInfo.nickname ?? graphspace} - `
                       + `${graphIno.nickname ?? graph} - ${t('graph.detail.title')}`;
+    const isPageDataCurrent = pageDataRoute === routeKey;
+    const isStatisticsDataCurrent = statisticsDataRoute === routeKey;
+    const visibleStatisticsStatus = isStatisticsDataCurrent
+        ? statisticsStatus
+        : 'loading';
+    const visibleStatistic = isStatisticsDataCurrent ? statistic : {};
 
     return (
-        <Spin spinning={loading.graph || loading.graphspace}>
-            {!loading.graph && !loading.graphspace && (
+        <Spin spinning={pageLoading || !isPageDataCurrent}>
+            {!pageLoading && isPageDataCurrent && (
                 <>
                     <PageHeader
                         ghost={false}
                         onBack={handleBack}
                         title={pageTitle}
+                        extra={[
+                            <Button
+                                key='query'
+                                type='primary'
+                                icon={<SearchOutlined />}
+                                onClick={handleQuery}
+                            >
+                                {t('graph.detail.query')}
+                            </Button>,
+                        ]}
                     />
 
                     <div className={'container'}>
-                        <>
-                            {pageError ? (
-                                <Alert
-                                    type='error'
-                                    showIcon
-                                    message={t('graph.detail.unavailable')}
-                                />
-                            ) : statisticError && (
-                                <Alert
-                                    type='warning'
-                                    showIcon
-                                    message={t('graph.detail.statistics_unavailable')}
-                                />
-                            )}
-                            {!pageError && (
-                                <Row justify='end' className={style.top}>
-                                    <Col>
-                                        <Space>
-                                            <span>
-                                                {t('graph.detail.last_update')}
-                                                {statistic.update_time ?? '--/--'}
-                                            </span>
-                                            <Button type='primary' onClick={handleUpdate}>
-                                                {t('graph.detail.update_data')}
-                                            </Button>
-                                        </Space>
-                                    </Col>
-                                </Row>
-                            )}
+                        <GraphJourneyNav
+                            graphspace={graphspace}
+                            graph={graph}
+                            active='overview'
+                        />
 
-                            {!pageError && (
-                                <Row gutter={[10, 10]}>
+                        {pageError ? (
+                            <Alert
+                                type='error'
+                                showIcon
+                                message={t('graph.detail.unavailable')}
+                                action={(
+                                    <Button size='small' onClick={loadPage}>
+                                        {t('graph.detail.retry_page')}
+                                    </Button>
+                                )}
+                            />
+                        ) : (
+                            <>
+                                <div className={style.statusBar}>
+                                    <Space size='middle'>
+                                        <span>{t('graph.detail.data_status')}</span>
+                                        <Tag
+                                            color={visibleStatisticsStatus === 'error'
+                                                ? 'gold'
+                                                : visibleStatisticsStatus === 'success'
+                                                    ? 'green' : 'blue'}
+                                            className={style[`statusTag-${visibleStatisticsStatus}`]}
+                                        >
+                                            {visibleStatisticsStatus === 'error'
+                                                ? t('graph.detail.partial')
+                                                : visibleStatisticsStatus === 'success'
+                                                    ? t('graph.detail.available')
+                                                    : t('graph.detail.loading')}
+                                        </Tag>
+                                        <span className={style.updatedAt}>
+                                            {t('graph.detail.last_update')}
+                                            {visibleStatistic.update_time ?? '--/--'}
+                                        </span>
+                                    </Space>
+                                    <Button
+                                        icon={<ReloadOutlined />}
+                                        loading={updating}
+                                        onClick={handleUpdate}
+                                    >
+                                        {t('graph.detail.update_data')}
+                                    </Button>
+                                </div>
+
+                                {visibleStatisticsStatus === 'error' && (
+                                    <Alert
+                                        className={style.inlineAlert}
+                                        type='warning'
+                                        showIcon
+                                        message={t('graph.detail.statistics_unavailable')}
+                                        action={(
+                                            <Button
+                                                size='small'
+                                                loading={statisticsLoading}
+                                                onClick={loadStatistics}
+                                            >
+                                                {t('graph.detail.retry_statistics')}
+                                            </Button>
+                                        )}
+                                    />
+                                )}
+
+                                <Row gutter={[16, 16]}>
                                     <Col span={12}>
-                                        <div>
-                                            <Row className={style.type}>
-                                                <Col span={6} className={style.vertex}>
-                                                    <img width={20} src={vertexSvg} />
-                                                    <span>{t('graph.detail.vertex_total')}</span>
-                                                </Col>
-                                                <Col span={18}>{statistic.vertex_count ?? 0}</Col>
-                                            </Row>
+                                        <Card
+                                            className={style.metricCard}
+                                            title={(
+                                                <Space>
+                                                    <NodeIndexOutlined />
+                                                    {t('graph.detail.vertex_total')}
+                                                </Space>
+                                            )}
+                                        >
+                                            <Statistic
+                                                loading={statisticsLoading}
+                                                value={visibleStatisticsStatus !== 'success'
+                                                    ? '--'
+                                                    : visibleStatistic.vertex_count ?? 0}
+                                            />
                                             <Table
                                                 columns={[
                                                     {title: t('graph.detail.vertex_type'), dataIndex: 'key'},
                                                     {title: t('graph.detail.count'), dataIndex: 'num'},
                                                 ]}
-                                                dataSource={formatList(statistic.vertices)}
-                                                className={style.card}
+                                                dataSource={formatList(visibleStatistic.vertices)}
                                                 pagination={false}
+                                                size='small'
                                             />
-                                        </div>
+                                        </Card>
                                     </Col>
 
                                     <Col span={12}>
-                                        <div>
-                                            <Row className={style.type}>
-                                                <Col span={6} className={style.edge}>
-                                                    <img width={20} src={edgeSvg} />
+                                        <Card
+                                            className={style.metricCard}
+                                            title={(
+                                                <Space>
+                                                    <ShareAltOutlined />
                                                     {t('graph.detail.edge_total')}
-                                                </Col>
-                                                <Col span={18}>{statistic.edge_count ?? 0}</Col>
-                                            </Row>
+                                                </Space>
+                                            )}
+                                        >
+                                            <Statistic
+                                                loading={statisticsLoading}
+                                                value={visibleStatisticsStatus !== 'success'
+                                                    ? '--'
+                                                    : visibleStatistic.edge_count ?? 0}
+                                            />
                                             <Table
                                                 columns={[
                                                     {title: t('graph.detail.edge_type'), dataIndex: 'key'},
                                                     {title: t('graph.detail.count'), dataIndex: 'num'},
                                                 ]}
-                                                dataSource={formatList(statistic.edges)}
+                                                dataSource={formatList(visibleStatistic.edges)}
                                                 pagination={false}
-                                                className={style.card}
+                                                size='small'
                                             />
-                                        </div>
+                                        </Card>
                                     </Col>
                                 </Row>
-                            )}
-                        </>
+                            </>
+                        )}
                     </div>
                 </>
             )}
