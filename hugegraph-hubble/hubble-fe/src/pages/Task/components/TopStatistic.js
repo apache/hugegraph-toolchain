@@ -20,7 +20,7 @@ import {Row, Col} from 'antd';
 import style from './index.module.scss';
 import {useTranslation} from 'react-i18next';
 
-const CardBox = ({title, listItems}) => {
+const CardBox = ({title, listItems, available}) => {
 
     return (
         <div className={style.cardbox}>
@@ -29,7 +29,9 @@ const CardBox = ({title, listItems}) => {
                 {listItems.map(item => {
                     return (
                         <Col key={item.label}>
-                            <div className={style.value}>{item.value ?? 0}</div>
+                            <div className={style.value}>
+                                {available ? (item.value ?? 0) : '--'}
+                            </div>
                             <div className={style.label}>{item.label}</div>
                         </Col>
                     );
@@ -39,7 +41,7 @@ const CardBox = ({title, listItems}) => {
     );
 };
 
-const TopStatistic = ({data}) => {
+const TopStatistic = ({data, available = true}) => {
     const {t} = useTranslation();
 
     return (
@@ -47,6 +49,7 @@ const TopStatistic = ({data}) => {
             <Col span={5}>
                 <CardBox
                     title={t('task.statistic.realtime')}
+                    available={available}
                     listItems={[
                         {
                             label: t('task.statistic.max_concurrency'),
@@ -58,6 +61,7 @@ const TopStatistic = ({data}) => {
             <Col span={5}>
                 <CardBox
                     title={t('task.statistic.offline')}
+                    available={available}
                     listItems={[
                         {
                             label: t('task.statistic.max_concurrency'),
@@ -69,6 +73,7 @@ const TopStatistic = ({data}) => {
             <Col span={7}>
                 <CardBox
                     title={t('task.statistic.pending')}
+                    available={available}
                     listItems={[
                         {label: t('task.statistic.once'), value: data?.todo?.ONCE},
                         {label: t('task.statistic.cron'), value: data?.todo?.CRON},
@@ -82,6 +87,7 @@ const TopStatistic = ({data}) => {
             <Col span={7} className={style.last}>
                 <CardBox
                     title={t('task.statistic.executing')}
+                    available={available}
                     listItems={[
                         {label: t('task.statistic.once'), value: data?.running?.ONCE},
                         {label: t('task.statistic.cron'), value: data?.running?.CRON},

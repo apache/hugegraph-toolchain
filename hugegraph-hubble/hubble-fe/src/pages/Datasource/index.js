@@ -16,14 +16,17 @@
  * under the License.
  */
 
-import {Button, Row, Col, PageHeader, Input, Modal, Table, Space, message} from 'antd';
-import {useState, useEffect, useCallback} from 'react';
+import {
+    Alert, Button, Row, Col, PageHeader, Input, Modal, Table, Space, Spin, message,
+} from 'antd';
+import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import EditLayer from './EditLayer';
 import TableHeader from '../../components/TableHeader';
 import {sourceTypeOptions} from './config';
 import * as api from '../../api';
 import RowActionButton from '../../components/RowActionButton';
+import DataPreparationNav from '../../components/DataPreparationNav';
 
 const Datasource = () => {
     const {t} = useTranslation();
@@ -33,6 +36,10 @@ const Datasource = () => {
     const [refresh, setRefresh] = useState(false);
     const [query, setQuery] = useState('');
     const [pagination, setPagination] = useState({pageSize: 10, current: 1});
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [reloadToken, setReloadToken] = useState(0);
+    const listRequest = useRef(null);
 
     const delDatasource = useCallback(datasourceID => {
         api.manage.delDatasource(datasourceID).then(res => {
@@ -80,6 +87,8 @@ const Datasource = () => {
     const handleHideLayer = useCallback(() => setEditLayer(false), []);
 
     const handleRefresh = useCallback(() => setRefresh(!refresh), [refresh]);
+
+    const retryList = useCallback(() => setReloadToken(value => value + 1), []);
 
     const rowKey = useCallback(record => record.datasource_id, []);
 
@@ -145,17 +154,42 @@ const Datasource = () => {
     }, [delBatchDatasource, selectedItems, t]);
 
     useEffect(() => {
+        const token = Symbol('datasource-list');
+        listRequest.current = token;
+        setLoading(true);
+        setLoadError(false);
         api.manage.getDatasourceList({
             query,
             page_no: pagination.current,
         }).then(res => {
+            if (listRequest.current !== token) {
+                return;
+            }
             if (res.status === 200) {
                 setData(res.data.records);
-                setPagination({...pagination, total: res.data.total});
+                setPagination(value => ({...value, total: res.data.total}));
+                return;
+            }
+            setData([]);
+            setLoadError(true);
+        }).catch(() => {
+            if (listRequest.current === token) {
+                setData([]);
+                setLoadError(true);
+            }
+        }).finally(() => {
+            if (listRequest.current === token) {
+                setLoading(false);
             }
         });
+
+        return () => {
+            if (listRequest.current === token) {
+                listRequest.current = null;
+            }
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [refresh, query, pagination.current]);
+    }, [refresh, reloadToken, query, pagination.current]);
 
     return (
         <>
@@ -169,7 +203,21 @@ const Datasource = () => {
                 </Row>
             </PageHeader>
 
+            <DataPreparationNav active='datasource' />
+
             <div className='container'>
+                {loadError && (
+                    <Alert
+                        showIcon
+                        type='error'
+                        message={t('datasource.load_failed')}
+                        action={(
+                            <Button size='small' onClick={retryList}>
+                                {t('datasource.retry')}
+                            </Button>
+                        )}
+                    />
+                )}
                 <TableHeader>
                     <Space>
                         <Button type='primary' onClick={handleShowLayer}>{t('datasource.create')}</Button>
@@ -181,19 +229,21 @@ const Datasource = () => {
                         </span>
                     </Space>
                 </TableHeader>
-                <Table
-                    columns={columns}
-                    rowKey={rowKey}
-                    dataSource={data}
-                    rowSelection={{
-                        type: 'checkbox',
-                        onChange: selectedRowKeys => {
-                            setSelectedItems(selectedRowKeys);
-                        },
-                    }}
-                    pagination={pagination}
-                    onChange={handleTable}
-                />
+                <Spin spinning={loading}>
+                    <Table
+                        columns={columns}
+                        rowKey={rowKey}
+                        dataSource={data}
+                        rowSelection={{
+                            type: 'checkbox',
+                            onChange: selectedRowKeys => {
+                                setSelectedItems(selectedRowKeys);
+                            },
+                        }}
+                        pagination={pagination}
+                        onChange={handleTable}
+                    />
+                </Spin>
                 <EditLayer
                     visible={editLayer}
                     onCancel={handleHideLayer}

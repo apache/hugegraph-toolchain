@@ -16,12 +16,15 @@
  * under the License.
  */
 
-import {useCallback, useState, useEffect} from 'react';
-import {Table, Space, PageHeader, Row, Col, Input, Button, message, Modal, Spin} from 'antd';
+import {useCallback, useState, useEffect, useRef} from 'react';
+import {
+    Alert, Table, Space, PageHeader, Row, Col, Input, Button, message, Modal, Spin,
+} from 'antd';
 import EditLayer from './EditLayer';
 import {useParams, useNavigate} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../api/index';
+import DataPreparationNav from '../../components/DataPreparationNav';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
@@ -50,10 +53,20 @@ const Schema = () => {
     const [pagination, setPagination] = useState({current: 1, pageSize: 10});
     const [query, setQuery] = useState('');
     const [graphspaceInfo, setGraphspaceInfo] = useState({});
-    const [loadingCount, setLoadingCount] = useState(0);
+    const [graphspaceLoading, setGraphspaceLoading] = useState(true);
+    const [listLoading, setListLoading] = useState(true);
+    const [graphspaceError, setGraphspaceError] = useState(false);
+    const [listError, setListError] = useState(false);
+    const [graphspaceRetry, setGraphspaceRetry] = useState(0);
+    const [listRetry, setListRetry] = useState(0);
+    const [graphspaceDataKey, setGraphspaceDataKey] = useState(null);
+    const [listDataKey, setListDataKey] = useState(null);
+    const graphspaceRequest = useRef(null);
+    const listRequest = useRef(null);
     const {graphspace} = useParams();
     const navigate = useNavigate();
     const {current} = pagination;
+    const listKey = JSON.stringify([graphspace, query, current]);
 
     const viewSchema = useCallback(data => {
         setMode('view');
@@ -101,6 +114,8 @@ const Schema = () => {
     const handleBack = useCallback(() => navigate('/graphspace'), [navigate]);
     const hideEditLayer = useCallback(() => setEditLayer(false), []);
     const handleRefresh = useCallback(() => setRefresh(value => !value), []);
+    const retryGraphspace = useCallback(() => setGraphspaceRetry(value => value + 1), []);
+    const retryList = useCallback(() => setListRetry(value => value + 1), []);
 
     const columns = [
         {
@@ -133,41 +148,96 @@ const Schema = () => {
     ];
 
     useEffect(() => {
-        setLoadingCount(value => value + 1);
+        const token = Symbol('schema-graphspace');
+        graphspaceRequest.current = token;
+        setGraphspaceLoading(true);
+        setGraphspaceError(false);
         api.manage.getGraphSpace(graphspace, PAGE_ERROR_CONFIG).then(res => {
+            if (graphspaceRequest.current !== token) {
+                return;
+            }
             if (res.status === 200) {
                 setGraphspaceInfo(res.data);
+                setGraphspaceDataKey(graphspace);
                 return;
             }
 
-            message.error(t('common.msg.load_failed'));
-        }).catch(() => message.error(t('common.msg.load_failed')))
-            .finally(() => setLoadingCount(value => Math.max(0, value - 1)));
-    }, [graphspace, t]);
+            setGraphspaceInfo({});
+            setGraphspaceDataKey(graphspace);
+            setGraphspaceError(true);
+        }).catch(() => {
+            if (graphspaceRequest.current === token) {
+                setGraphspaceInfo({});
+                setGraphspaceDataKey(graphspace);
+                setGraphspaceError(true);
+            }
+        }).finally(() => {
+            if (graphspaceRequest.current === token) {
+                setGraphspaceLoading(false);
+            }
+        });
+
+        return () => {
+            if (graphspaceRequest.current === token) {
+                graphspaceRequest.current = null;
+            }
+        };
+    }, [graphspace, graphspaceRetry]);
 
     useEffect(() => {
-        setLoadingCount(value => value + 1);
+        const token = Symbol('schema-list');
+        listRequest.current = token;
+        setListLoading(true);
+        setListError(false);
         api.manage.getSchemaList(graphspace, {
             query,
             page_no: current,
         }, PAGE_ERROR_CONFIG).then(res => {
+            if (listRequest.current !== token) {
+                return;
+            }
             if (res.status === 200) {
                 setData(res.data.records);
+                setListDataKey(listKey);
                 setPagination(value => ({...value, total: res.data.total}));
                 return;
             }
-            message.error(t('common.msg.load_failed'));
-        }).catch(() => message.error(t('common.msg.load_failed')))
-            .finally(() => setLoadingCount(value => Math.max(0, value - 1)));
-    }, [graphspace, refresh, current, query, t]);
+            setData([]);
+            setListDataKey(listKey);
+            setListError(true);
+        }).catch(() => {
+            if (listRequest.current === token) {
+                setData([]);
+                setListDataKey(listKey);
+                setListError(true);
+            }
+        }).finally(() => {
+            if (listRequest.current === token) {
+                setListLoading(false);
+            }
+        });
+
+        return () => {
+            if (listRequest.current === token) {
+                listRequest.current = null;
+            }
+        };
+    }, [graphspace, refresh, listRetry, current, query, listKey]);
+
+    const visibleGraphspaceInfo = graphspaceDataKey === graphspace
+        ? graphspaceInfo
+        : {};
+    const visibleData = listDataKey === listKey ? data : [];
 
     return (
         <>
-            <Spin spinning={loadingCount > 0}>
+            <Spin spinning={graphspaceLoading || listLoading}>
                 <PageHeader
                     ghost={false}
                     onBack={handleBack}
-                    title={t('schema_template.title', {name: graphspaceInfo.nickname})}
+                    title={t('schema_template.title', {
+                        name: visibleGraphspaceInfo.nickname ?? graphspace,
+                    })}
                 >
                     <Row justify='space-between'>
                         <Col>
@@ -186,10 +256,36 @@ const Schema = () => {
                     </Row>
                 </PageHeader>
 
+                <DataPreparationNav active='schema' graphspace={graphspace} />
+
                 <div className='container'>
+                    {graphspaceError && graphspaceDataKey === graphspace && (
+                        <Alert
+                            showIcon
+                            type='error'
+                            message={t('schema_template.graphspace_failed')}
+                            action={(
+                                <Button size='small' onClick={retryGraphspace}>
+                                    {t('schema_template.retry_graphspace')}
+                                </Button>
+                            )}
+                        />
+                    )}
+                    {listError && listDataKey === listKey && (
+                        <Alert
+                            showIcon
+                            type='error'
+                            message={t('schema_template.load_failed')}
+                            action={(
+                                <Button size='small' onClick={retryList}>
+                                    {t('schema_template.retry')}
+                                </Button>
+                            )}
+                        />
+                    )}
                     <Table
                         columns={columns}
-                        dataSource={data}
+                        dataSource={visibleData}
                         bordered
                         size='small'
                         pagination={pagination}

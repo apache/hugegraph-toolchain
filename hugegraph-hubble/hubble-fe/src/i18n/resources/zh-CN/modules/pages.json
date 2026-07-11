@@ -381,9 +381,22 @@
       "graph": "图"
     }
   },
+  "data_preparation": {
+    "journey": "数据准备旅程",
+    "schema": "Schema 模板",
+    "graph_schema": "图 Schema",
+    "datasource": "数据源",
+    "import": "导入任务",
+    "choose_graphspace": "请先选择图空间",
+    "choose_graph": "请先选择图"
+  },
   "task": {
     "title": "数据导入",
     "search_placeholder": "请输入任务名称",
+    "load_failed": "导入任务加载失败，请检查服务后重试。",
+    "retry": "重试导入任务",
+    "metrics_failed": "导入概览加载失败。",
+    "retry_metrics": "重试导入概览",
     "pause": "暂停",
     "execute": "执行",
     "action": {
@@ -541,6 +554,8 @@
     "search_placeholder": "输入数据源名称搜索",
     "delete_title": "删除数据源",
     "delete_content": "删除后，该数据源将从系统中消失。您确定要删除这个数据源吗？",
+    "load_failed": "数据源加载失败，请检查服务后重试。",
+    "retry": "重试数据源",
     "selected_count": "已选中 {{selected}} 条 / 共 {{total}} 条",
     "col": {
       "name": "数据源名称",
@@ -775,6 +790,10 @@
     "title": "{{name}} - Schema 模板管理",
     "create": "创建 Schema 模板",
     "search_placeholder": "请输入 Schema 模板名称",
+    "load_failed": "Schema 模板加载失败，请检查服务后重试。",
+    "retry": "重试 Schema 模板",
+    "graphspace_failed": "图空间详情加载失败。",
+    "retry_graphspace": "重试图空间详情",
     "delete_confirm": "确定要删除 {{name}} 吗？",
     "delete_success": "删除成功",
     "delete_failed": "删除失败",

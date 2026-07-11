@@ -29,6 +29,7 @@ import {
     message,
     Badge,
     Spin,
+    Alert,
 } from 'antd';
 import {
     EditOutlined,
@@ -38,7 +39,7 @@ import {
     CaretRightOutlined,
     LineChartOutlined,
 } from '@ant-design/icons';
-import {useState, useEffect, useCallback} from 'react';
+import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import style from './index.module.scss';
 import EditLayer from './components/EditLayer';
@@ -49,6 +50,7 @@ import * as api from '../../api';
 import {StatusField} from '../../components/Status';
 import {sourceType, syncType} from './config';
 import TableHeader from '../../components/TableHeader';
+import DataPreparationNav from '../../components/DataPreparationNav';
 
 const DetailTip = ({row}) => {
     const {t} = useTranslation();
@@ -174,6 +176,20 @@ const Task = () => {
     const [pagination, setPagination] = useState({pageSize: 10, current: 1});
     const [metricsData, setMetricsData] = useState({});
     const [loading, setLoading] = useState(false);
+    const [listLoading, setListLoading] = useState(true);
+    const [listError, setListError] = useState(false);
+    const [metricsError, setMetricsError] = useState(false);
+    const [metricsAvailable, setMetricsAvailable] = useState(false);
+    const [listRetryToken, setListRetryToken] = useState(0);
+    const [metricsRetryToken, setMetricsRetryToken] = useState(0);
+    const [listPollToken, setListPollToken] = useState(0);
+    const [metricsPollToken, setMetricsPollToken] = useState(0);
+    const listRequest = useRef(null);
+    const metricsRequest = useRef(null);
+    const listPending = useRef(false);
+    const metricsPending = useRef(false);
+    const listFailed = useRef(false);
+    const metricsFailed = useRef(false);
     const navigate = useNavigate();
     const sourceTypes = sourceType(t);
     const syncTypes = syncType(t);
@@ -245,6 +261,9 @@ const Task = () => {
     const handleRefresh = useCallback(() => {
         setRefresh(!refresh);
     }, [refresh]);
+
+    const retryList = useCallback(() => setListRetryToken(value => value + 1), []);
+    const retryMetrics = useCallback(() => setMetricsRetryToken(value => value + 1), []);
 
     const handleHideEditLayer = useCallback(() => setEditLayer(false), []);
 
@@ -322,33 +341,100 @@ const Task = () => {
     ];
 
     useEffect(() => {
+        const token = Symbol('task-list');
+        listRequest.current = token;
+        listPending.current = true;
+        setListLoading(true);
         api.manage.getTaskList({
             query: searchName,
             page_no: pagination.current,
         }).then(res => {
+            if (listRequest.current !== token) {
+                return;
+            }
             if (res.status === 200) {
                 setData(res.data.records);
-                setPagination({...pagination, total: res.data.total, pageSize: res.data.size});
+                setPagination(value => ({
+                    ...value,
+                    total: res.data.total,
+                    pageSize: res.data.size,
+                }));
+                listFailed.current = false;
+                setListError(false);
                 return;
             }
-
-            message.error(res.message);
+            setData([]);
+            listFailed.current = true;
+            setListError(true);
+        }).catch(() => {
+            if (listRequest.current === token) {
+                setData([]);
+                listFailed.current = true;
+                setListError(true);
+            }
+        }).finally(() => {
+            if (listRequest.current === token) {
+                listPending.current = false;
+                setListLoading(false);
+            }
         });
 
+        return () => {
+            if (listRequest.current === token) {
+                listRequest.current = null;
+            }
+        };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchName, refresh, listRetryToken, listPollToken, pagination.current]);
+
+    useEffect(() => {
+        const token = Symbol('task-metrics');
+        metricsRequest.current = token;
+        metricsPending.current = true;
         api.manage.getMetricsTask().then(res => {
+            if (metricsRequest.current !== token) {
+                return;
+            }
             if (res.status === 200) {
                 setMetricsData(res.data);
+                metricsFailed.current = false;
+                setMetricsError(false);
+                setMetricsAvailable(true);
                 return;
             }
-
-            message.error(res.message);
+            setMetricsData({});
+            metricsFailed.current = true;
+            setMetricsError(true);
+            setMetricsAvailable(false);
+        }).catch(() => {
+            if (metricsRequest.current === token) {
+                setMetricsData({});
+                metricsFailed.current = true;
+                setMetricsError(true);
+                setMetricsAvailable(false);
+            }
+        }).finally(() => {
+            if (metricsRequest.current === token) {
+                metricsPending.current = false;
+            }
         });
+
+        return () => {
+            if (metricsRequest.current === token) {
+                metricsRequest.current = null;
+            }
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchName, refresh, pagination.current]);
+    }, [refresh, metricsRetryToken, metricsPollToken]);
 
     useEffect(() => {
         let id = setInterval(() => {
-            setRefresh(val => !val);
+            if (!listPending.current && !listFailed.current) {
+                setListPollToken(value => value + 1);
+            }
+            if (!metricsPending.current && !metricsFailed.current) {
+                setMetricsPollToken(value => value + 1);
+            }
         }, 12000);
 
         return () => clearInterval(id);
@@ -361,7 +447,7 @@ const Task = () => {
                 onBack={false}
                 title={t('task.title')}
             >
-                <TopStatistic data={metricsData} />
+                <TopStatistic data={metricsData} available={metricsAvailable} />
                 <Row justify='end' style={{paddingTop: 16}}>
                     <Col>
                         <Input.Search
@@ -372,8 +458,34 @@ const Task = () => {
                 </Row>
             </PageHeader>
 
+            <DataPreparationNav active='task' />
+
             <div className='container'>
-                <Spin spinning={loading}>
+                {metricsError && (
+                    <Alert
+                        showIcon
+                        type='error'
+                        message={t('task.metrics_failed')}
+                        action={(
+                            <Button size='small' onClick={retryMetrics}>
+                                {t('task.retry_metrics')}
+                            </Button>
+                        )}
+                    />
+                )}
+                {listError && (
+                    <Alert
+                        showIcon
+                        type='error'
+                        message={t('task.load_failed')}
+                        action={(
+                            <Button size='small' onClick={retryList}>
+                                {t('task.retry')}
+                            </Button>
+                        )}
+                    />
+                )}
+                <Spin spinning={loading || listLoading}>
                     <TableHeader>
                         <Button type='primary' onClick={handleBack}>
                             {t('task.create')}

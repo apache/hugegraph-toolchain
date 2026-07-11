@@ -381,9 +381,22 @@
       "graph": "Graph"
     }
   },
+  "data_preparation": {
+    "journey": "Data preparation journey",
+    "schema": "Schema templates",
+    "graph_schema": "Graph Schema",
+    "datasource": "Data sources",
+    "import": "Import tasks",
+    "choose_graphspace": "Choose a graph space first",
+    "choose_graph": "Choose a graph first"
+  },
   "task": {
     "title": "Data Import",
     "search_placeholder": "Search by task name",
+    "load_failed": "Could not load import tasks. Check the service and retry.",
+    "retry": "Retry import tasks",
+    "metrics_failed": "Could not load the import summary.",
+    "retry_metrics": "Retry import summary",
     "pause": "Pause",
     "execute": "Run",
     "action": {
@@ -541,6 +554,8 @@
     "search_placeholder": "Search by data source name",
     "delete_title": "Delete Data Source",
     "delete_content": "This data source will be removed from the system. Delete this data source?",
+    "load_failed": "Could not load data sources. Check the service and retry.",
+    "retry": "Retry data sources",
     "selected_count": "{{selected}} selected / {{total}} total",
     "col": {
       "name": "Name",
@@ -775,6 +790,10 @@
     "title": "{{name}} - Schema Template Management",
     "create": "Create Schema Template",
     "search_placeholder": "Enter a schema template name",
+    "load_failed": "Could not load schema templates. Check the service and retry.",
+    "retry": "Retry schema templates",
+    "graphspace_failed": "Could not load graph-space details.",
+    "retry_graphspace": "Retry graph-space details",
     "delete_confirm": "Delete {{name}}?",
     "delete_success": "Deleted successfully",
     "delete_failed": "Delete failed",
