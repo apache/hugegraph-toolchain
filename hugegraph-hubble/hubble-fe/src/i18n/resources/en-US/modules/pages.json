@@ -447,6 +447,8 @@
     },
     "detail": {
       "title": "Task Detail",
+      "load_failed": "Could not load task runs. Check the service and retry.",
+      "retry": "Retry task runs",
       "success": "Success",
       "failed": "Failed",
       "running": "Running",

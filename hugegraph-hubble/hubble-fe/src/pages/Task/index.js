@@ -57,7 +57,11 @@ const DetailTip = ({row}) => {
     const {job_summary} = row;
 
     return (
-        <Link to={`/task/detail/${row.task_id}`}>
+        <Link
+            to={`/task/detail/${row.task_id}`}
+            aria-label={t('task.action.detail')}
+            title={t('task.action.detail')}
+        >
             <Tooltip
                 title={(
                     <div className={style.task_detail}>
@@ -106,10 +110,70 @@ const RunningText = ({status, onClick, data}) => {
         onClick(data);
     }, [onClick, data]);
 
-    return status === 'enable' ? (
-        <Tooltip title={t('task.pause')}><PauseOutlined onClick={handleClick} /></Tooltip>
-    ) : (
-        <Tooltip title={t('task.execute')}><CaretRightOutlined onClick={handleClick} /></Tooltip>
+    const isEnabled = status === 'enable';
+    const label = isEnabled ? t('task.action.pause') : t('task.action.run');
+
+    return (
+        <Tooltip title={label}>
+            <Button
+                type='link'
+                aria-label={label}
+                icon={isEnabled ? <PauseOutlined /> : <CaretRightOutlined />}
+                onClick={handleClick}
+            />
+        </Tooltip>
+    );
+};
+
+const TaskActions = ({row, onView, onEdit, onEnable, onDisable, onDelete}) => {
+    const {t} = useTranslation();
+    const canEditOrDelete = row.task_schedule_status === 'DISABLE';
+    const handleView = useCallback(() => onView(row), [onView, row]);
+    const handleEdit = useCallback(() => onEdit(row), [onEdit, row]);
+    const handleDelete = useCallback(() => {
+        Modal.confirm({
+            title: t('common.confirm.delete'),
+            content: t('common.confirm.delete_irrecoverable'),
+            onOk: () => onDelete(row.task_id),
+        });
+    }, [onDelete, row.task_id, t]);
+
+    return (
+        <Space>
+            <DetailTip row={row} />
+            <Button
+                type='link'
+                aria-label={t('task.action.config')}
+                title={t('task.action.config')}
+                icon={<FileTextOutlined />}
+                onClick={handleView}
+            />
+            <Button
+                type='link'
+                aria-label={t('task.action.edit')}
+                title={t('task.action.edit')}
+                icon={<EditOutlined />}
+                disabled={!canEditOrDelete}
+                onClick={handleEdit}
+            />
+            {row.task_schedule_status === 'ENABLE'
+                ? (
+                    <RunningText
+                        status='enable'
+                        data={row.task_id}
+                        onClick={onDisable}
+                    />)
+                : <RunningText data={row.task_id} onClick={onEnable} />}
+            <Button
+                type='link'
+                danger
+                aria-label={t('task.action.delete')}
+                title={t('task.action.delete')}
+                icon={<DeleteOutlined />}
+                disabled={!canEditOrDelete}
+                onClick={handleDelete}
+            />
+        </Space>
     );
 };
 

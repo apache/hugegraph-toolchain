@@ -266,7 +266,7 @@ const MappingForm = ({prev,
                 <Form.Item name='vertices' hidden />
                 <Form.Item name='edges' hidden />
 
-                <Form.Item extra={t('task.edit.mapping_required_tip')}>
+                <Form.Item extra={!submitEnable ? t('task.edit.mapping_required_tip') : null}>
                     <Space>
                         <Button onClick={prev}>{t('common.action.back')}</Button>
                         <Button type='primary' onClick={onFinish} disabled={!submitEnable}>

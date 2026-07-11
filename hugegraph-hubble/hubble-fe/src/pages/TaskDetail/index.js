@@ -16,12 +16,13 @@
  * under the License.
  */
 
-import {message, PageHeader, Table} from 'antd';
-import {useState, useEffect, useCallback} from 'react';
+import {Alert, Button, PageHeader, Spin, Table} from 'antd';
+import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate, useParams} from 'react-router-dom';
 import * as api from '../../api';
 import {StatusField} from '../../components/Status';
+import DataPreparationNav from '../../components/DataPreparationNav';
 
 const createColumns = t => [
     {
@@ -84,35 +85,85 @@ const TaskDetail = () => {
     const {t} = useTranslation();
     const columns = createColumns(t);
     const [data, setData] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [loadError, setLoadError] = useState(false);
+    const [retryToken, setRetryToken] = useState(0);
+    const [dataTaskId, setDataTaskId] = useState(null);
+    const request = useRef(null);
     const {taskid} = useParams();
     const navigate = useNavigate();
 
     const handleBack = useCallback(() => navigate('/task'), [navigate]);
+    const retry = useCallback(() => setRetryToken(value => value + 1), []);
 
     useEffect(() => {
+        const token = Symbol('task-detail-jobs');
+        request.current = token;
+        setLoading(true);
         api.manage.getJobsList({taskid}).then(res => {
-            if (res.status === 200) {
-                setData(res.data.records);
+            if (request.current !== token) {
                 return;
             }
-
-            message.error(res.message);
+            if (res.status === 200) {
+                setData(res.data.records);
+                setDataTaskId(taskid);
+                setLoadError(false);
+                return;
+            }
+            setData([]);
+            setDataTaskId(taskid);
+            setLoadError(true);
+        }).catch(() => {
+            if (request.current === token) {
+                setData([]);
+                setDataTaskId(taskid);
+                setLoadError(true);
+            }
+        }).finally(() => {
+            if (request.current === token) {
+                setLoading(false);
+            }
         });
-    }, [taskid]);
+
+        return () => {
+            if (request.current === token) {
+                request.current = null;
+            }
+        };
+    }, [taskid, retryToken]);
+
+    const visibleData = dataTaskId === taskid ? data : [];
 
     return (
         <>
             <PageHeader
                 ghost={false}
                 onBack={handleBack}
-                title={t('async_task.detail.title')}
+                title={t('task.detail.title')}
             />
 
+            <DataPreparationNav active='task' />
+
             <div className='container'>
-                <Table
-                    columns={columns}
-                    dataSource={data}
-                />
+                {loadError && dataTaskId === taskid && (
+                    <Alert
+                        showIcon
+                        type='error'
+                        message={t('task.detail.load_failed')}
+                        action={(
+                            <Button size='small' onClick={retry}>
+                                {t('task.detail.retry')}
+                            </Button>
+                        )}
+                    />
+                )}
+                <Spin spinning={loading}>
+                    <Table
+                        rowKey='job_id'
+                        columns={columns}
+                        dataSource={visibleData}
+                    />
+                </Spin>
             </div>
         </>
     );

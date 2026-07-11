@@ -28,7 +28,7 @@ import {
     getTaskGraphspaceOptions,
 } from '../../../utils/productMode';
 
-const BaseForm = ({cancel, visible}) => {
+const BaseForm = ({cancel, visible, loading}) => {
     const {t} = useTranslation();
     const pdMode = isPdEnabled();
     const [datasourceOptions, setDatasourceOptions] = useState([]);
@@ -273,7 +273,7 @@ const BaseForm = ({cancel, visible}) => {
                 <Form.Item wrapperCol={{offset: 3}}>
                     <Space>
                         <Button onClick={cancel}>{t('common.action.cancel')}</Button>
-                        <Button type='primary' htmlType='submit'>
+                        <Button type='primary' htmlType='submit' loading={loading}>
                             {t('common.action.next')}
                         </Button>
                     </Space>

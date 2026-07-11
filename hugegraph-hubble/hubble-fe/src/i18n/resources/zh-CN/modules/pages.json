@@ -447,6 +447,8 @@
     },
     "detail": {
       "title": "任务详情",
+      "load_failed": "任务执行记录加载失败，请检查服务后重试。",
+      "retry": "重试执行记录",
       "success": "完成",
       "failed": "失败",
       "running": "运行中",

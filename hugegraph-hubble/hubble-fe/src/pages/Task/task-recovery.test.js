@@ -38,7 +38,7 @@ jest.mock('./components/TopStatistic', () => ({data, available}) => (
 ));
 jest.mock('../../components/DataPreparationNav', () => () => null);
 jest.mock('react-router-dom', () => ({
-    Link: ({children}) => <span>{children}</span>,
+    Link: ({children, to, ...props}) => <a href={to} {...props}>{children}</a>,
     useNavigate: () => jest.fn(),
 }));
 jest.mock('react-i18next', () => ({
@@ -59,6 +59,12 @@ jest.mock('react-i18next', () => ({
         'task.col.sync_type': 'Schedule',
         'account.col.id': 'Creator',
         'graphspace.col.operation': 'Actions',
+        'task.action.detail': 'View execution history',
+        'task.action.config': 'View task configuration',
+        'task.action.edit': 'Edit task',
+        'task.action.pause': 'Pause task',
+        'task.action.run': 'Run task',
+        'task.action.delete': 'Delete task',
         'common.label.unknown': 'Unknown',
     })[key] || key}),
 }));
@@ -142,4 +148,35 @@ it('keeps metrics unknown until a metrics-only retry succeeds', async () => {
     await waitFor(() => expect(screen.getByTestId('task-metrics')).toHaveTextContent('7'));
     expect(api.manage.getMetricsTask).toHaveBeenCalledTimes(2);
     expect(api.manage.getTaskList).toHaveBeenCalledTimes(1);
+});
+
+it('gives every task-row action an accessible name and disables unsafe actions', async () => {
+    api.manage.getTaskList.mockResolvedValue({
+        status: 200,
+        data: {
+            records: [{
+                task_id: 7,
+                task_name: 'nightly import',
+                ingestion_mapping: {structs: []},
+                ingestion_option: {graphspace: 'DEFAULT', graph: 'hugegraph'},
+                task_schedule_status: 'ENABLE',
+                task_schedule_type: 'ONCE',
+            }],
+            total: 1,
+            size: 10,
+        },
+    });
+    api.manage.getMetricsTask.mockResolvedValue({status: 200, data: {}});
+
+    render(<Task />);
+
+    expect(await screen.findByRole('link', {
+        name: 'View execution history',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('button', {
+        name: 'View task configuration',
+    })).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Edit task'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Pause task'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Delete task'})).toBeDisabled();
 });

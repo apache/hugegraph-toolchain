@@ -22,8 +22,10 @@ import {
     Steps,
     message,
     Modal,
+    Alert,
+    Button,
 } from 'antd';
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import Style from './index.module.scss';
 import BaseForm from './BaseForm/index';
@@ -33,6 +35,8 @@ import ScheduleForm from './ScheduleForm/index';
 import {useNavigate} from 'react-router-dom';
 import * as api from '../../api';
 import JSONbig from 'json-bigint';
+import DataPreparationNav from '../../components/DataPreparationNav';
+import {createTaskOnce, loadTaskBaseContext} from './taskFlow';
 
 const TaskEdit = () => {
     const {t} = useTranslation();
@@ -49,11 +53,26 @@ const TaskEdit = () => {
     const [vertexList, setVertexList] = useState([]);
     const [edgeList, setEdgeList] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [baseLoading, setBaseLoading] = useState(false);
+    const [baseError, setBaseError] = useState(null);
+    const [pendingBase, setPendingBase] = useState(null);
+    const [submitError, setSubmitError] = useState(false);
+    const baseRequest = useRef(null);
+    const basePending = useRef(false);
+    const submitPending = useRef(false);
+    const mounted = useRef(true);
     const navigate = useNavigate();
 
     const cancel = useCallback(() => {
         navigate('/task');
     }, [navigate]);
+
+    useEffect(() => {
+        return () => {
+            mounted.current = false;
+            baseRequest.current = null;
+        };
+    }, []);
 
     const prev = useCallback(() => setCurrent(value => value - 1), []);
 
@@ -70,25 +89,23 @@ const TaskEdit = () => {
     //     //
     // };
 
-    const submitBase = useCallback(values => {
+    const submitBase = useCallback(async values => {
+        if (basePending.current) {
+            return;
+        }
+        basePending.current = true;
         const {ingestion_option, datasource_id} = values;
-        setGraphspace(ingestion_option.graphspace);
-        setGraph(ingestion_option.graph);
-        setDatasourceID(datasource_id.toString());
-
-        api.manage.getDatasource(datasource_id.toString()).then(res => {
-            if (res.status === 200) {
-                setDatasource(res.data);
-            }
-        });
-
-        api.manage.getGraphSpace(ingestion_option.graphspace).then(res => {
-            if (res.status !== 200) {
-                message.error(t('task.edit.graph_not_exist'));
+        const token = Symbol('task-base-context');
+        baseRequest.current = token;
+        setPendingBase(values);
+        setBaseLoading(true);
+        setBaseError(null);
+        try {
+            const context = await loadTaskBaseContext(api.manage, values);
+            if (baseRequest.current !== token) {
                 return;
             }
-
-            if (res.data.storage_percent >= 1) {
+            if (context.graphspace.storage_percent >= 1) {
                 Modal.error({
                     title: t('common.label.warning'),
                     content: t('task.edit.graphspace_full', {
@@ -97,10 +114,30 @@ const TaskEdit = () => {
                 });
                 return;
             }
-
+            setGraphspace(ingestion_option.graphspace);
+            setGraph(ingestion_option.graph);
+            setDatasourceID(datasource_id.toString());
+            setDatasource(context.datasource);
             setCurrent(1);
-        });
+        }
+        catch (error) {
+            if (baseRequest.current === token) {
+                setBaseError(error.reason || 'request');
+            }
+        }
+        finally {
+            if (baseRequest.current === token) {
+                setBaseLoading(false);
+            }
+            basePending.current = false;
+        }
     }, [t]);
+
+    const retryBase = useCallback(() => {
+        if (pendingBase) {
+            submitBase(pendingBase);
+        }
+    }, [pendingBase, submitBase]);
 
     const submitField = useCallback(values => {
         const {source_keys, target_keys} = values;
@@ -140,12 +177,13 @@ const TaskEdit = () => {
         setEdgeList([...edgeList]);
     }, [edgeList]);
 
-    const submitForms = useCallback(({base_form, mapping_form, schedule_form}) => {
+    const submitForms = useCallback(async ({base_form, mapping_form, schedule_form}) => {
         const baseValues = base_form.getFieldsValue();
         const mappingValues = mapping_form.getFieldsValue();
         const scheduleValues = schedule_form.getFieldsValue();
 
         setLoading(true);
+        setSubmitError(false);
 
         const values = {
             ...baseValues,
@@ -167,16 +205,25 @@ const TaskEdit = () => {
             },
         };
 
-        api.manage.addTask(JSONbig.stringify(values)).then(res => {
-            setLoading(false);
-            if (res.status === 200) {
-                message.success(t('common.msg.create_success'));
-                navigate('/task');
+        try {
+            const result = await createTaskOnce(
+                api.manage,
+                JSONbig.stringify(values),
+                submitPending
+            );
+            if (result.skipped || !mounted.current) {
                 return;
             }
-
-            message.error(res.message);
-        });
+            setLoading(false);
+            message.success(t('common.msg.create_success'));
+            navigate('/task');
+        }
+        catch (error) {
+            if (mounted.current) {
+                setLoading(false);
+                setSubmitError(true);
+            }
+        }
     }, [datasource, header, navigate, t]);
 
     const handleFinish = useCallback((name, {values, forms}) => {
@@ -247,7 +294,28 @@ const TaskEdit = () => {
                 title={t('task.title')}
             />
 
+            <DataPreparationNav active='task' />
+
             <div className='container'>
+                {baseError && current === 0 && (
+                    <Alert
+                        showIcon
+                        type='error'
+                        message={t(`task.edit.${baseError}_failed`)}
+                        action={(
+                            <Button size='small' onClick={retryBase} loading={baseLoading}>
+                                {t('task.edit.retry_context')}
+                            </Button>
+                        )}
+                    />
+                )}
+                {submitError && current === 3 && (
+                    <Alert
+                        showIcon
+                        type='error'
+                        message={t('task.edit.submit_failed')}
+                    />
+                )}
                 <Steps labelPlacement='vertical' current={current}>
                     <Steps.Step key="1" title={t('task.edit.step_basic')} />
                     <Steps.Step key="2" title={t('task.edit.step_source_fields')} />
@@ -264,6 +332,7 @@ const TaskEdit = () => {
                         <BaseForm
                             cancel={cancel}
                             visible={current === 0}
+                            loading={baseLoading}
                         />
                         <FieldForm
                             datasourceID={datasourceID}
