@@ -189,7 +189,9 @@ const GraphContextSwitcher = () => {
                 >
                     {graphspaces.map(item => (
                         <Option key={item.name} value={item.name}>
-                            {item.nickname || item.name}
+                            {item.name === DEFAULT_GRAPHSPACE
+                                ? t('workbench.context.default_graphspace')
+                                : item.nickname || item.name}
                         </Option>
                     ))}
                 </Select>

@@ -47,6 +47,7 @@ beforeEach(() => {
         status: 200,
         data: {
             configured: true,
+            available: true,
             address: '127.0.0.1:8092',
             protocol: 'http',
         },
@@ -73,13 +74,11 @@ test('opens a configured and healthy Dashboard capability', async () => {
     await waitFor(() => expect(monitor).toBeEnabled());
     fireEvent.click(monitor);
 
-    await waitFor(() => expect(window.fetch).toHaveBeenCalledWith(
+    expect(window.open).toHaveBeenCalledWith(
         'http://127.0.0.1:8092/monitor/machine',
-        expect.objectContaining({mode: 'no-cors'})
-    ));
-    expect(window.open).toHaveBeenCalledWith('about:blank', '_blank');
-    await waitFor(() => expect(window.open.mock.results[0].value.location.replace)
-        .toHaveBeenCalledWith('http://127.0.0.1:8092/monitor/machine'));
+        '_blank',
+        'noopener,noreferrer'
+    );
 });
 
 test('labels an unconfigured Dashboard instead of Coming Soon', async () => {
@@ -99,23 +98,27 @@ test('labels an unconfigured Dashboard instead of Coming Soon', async () => {
     expect(screen.queryByText('navigation_page.coming_soon')).not.toBeInTheDocument();
 });
 
-test('keeps a configured capability retryable after a health probe fails', async () => {
-    window.fetch.mockRejectedValue(new Error('offline'));
-    const popup = window.open();
-    window.open.mockClear();
+test('disables a configured but unavailable Dashboard capability', async () => {
+    api.auth.getDashboard.mockResolvedValue({
+        status: 200,
+        data: {
+            configured: true,
+            available: false,
+            address: '127.0.0.1:8092',
+            protocol: 'http',
+        },
+    });
     renderConsole();
 
     const monitor = await screen.findByRole('button', {
         name: 'navigation_page.monitor_manage',
     });
-    await waitFor(() => expect(monitor).toBeEnabled());
-    fireEvent.click(monitor);
-
-    await waitFor(() => expect(mockMessageError).toHaveBeenCalledWith(
-        'navigation_page.dashboard_unavailable'
+    await waitFor(() => expect(monitor).toHaveAttribute(
+        'title', 'navigation_page.dashboard_unavailable'
     ));
-    expect(popup.close).toHaveBeenCalled();
-    await waitFor(() => expect(monitor).toBeEnabled());
+    expect(monitor).toBeDisabled();
+    expect(screen.getAllByText('navigation_page.coming_soon')).toHaveLength(4);
+    expect(window.open).not.toHaveBeenCalled();
 });
 
 test('shows a diagnostic state when Dashboard configuration cannot be read', async () => {

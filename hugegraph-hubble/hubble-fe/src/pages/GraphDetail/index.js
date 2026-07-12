@@ -194,7 +194,10 @@ const GraphDetail = () => {
         };
     }, [graphspace, graph, loadPage, loadStatistics]);
 
-    const pageTitle = `${graphspaceInfo.nickname ?? graphspace} - `
+    const graphspaceLabel = graphspace === 'DEFAULT'
+        ? t('workbench.context.default_graphspace')
+        : graphspaceInfo.nickname ?? graphspace;
+    const pageTitle = `${graphspaceLabel} - `
                       + `${graphIno.nickname ?? graph} - ${t('graph.detail.title')}`;
     const isPageDataCurrent = pageDataRoute === routeKey;
     const isStatisticsDataCurrent = statisticsDataRoute === routeKey;

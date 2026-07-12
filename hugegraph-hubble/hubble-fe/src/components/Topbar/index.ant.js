@@ -104,6 +104,10 @@ const Topbar = () => {
         }],
         onClick: confirm,
     };
+    const userLabel = userInfo?.user_name === 'admin'
+        && (!userInfo.user_nickname || userInfo.user_nickname === '超级管理员')
+        ? t('Topbar.super_admin')
+        : userInfo?.user_nickname ?? userInfo?.user_name ?? '';
 
     return (
         <Layout.Header className={`${style.header} workbench-topbar`}>
@@ -124,7 +128,7 @@ const Topbar = () => {
                 <Dropdown menu={userMenu}>
                     <Space className={style.right}>
                         <Avatar size={'small'} icon={<UserOutlined />} />
-                        <span>{userInfo?.user_nickname ?? ''}</span>
+                        <span>{userLabel}</span>
                     </Space>
                 </Dropdown>
             </div>

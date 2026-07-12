@@ -1,5 +1,6 @@
 {
   "Topbar": {
+    "super_admin": "Super Admin",
     "exit":{
       "name": "Log Out",
       "confirm":"Confirm log out?",

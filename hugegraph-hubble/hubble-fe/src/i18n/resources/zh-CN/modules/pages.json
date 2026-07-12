@@ -207,7 +207,7 @@
     },
     "sample": {
       "hlm_title": "构建红楼梦 Demo 图？",
-      "hlm_description": "目标图：{{graph}}。将添加内置中文文学数据集的 41 个人物和 51 条关系；只补齐缺失的 Schema 和元素，不清空或更新已匹配数据，可安全重试。建议使用独立或空图；Schema 或 ID 冲突会中止导入，但不会清空既有数据。",
+      "hlm_description": "目标图：{{graph}}。将添加内置中文文学数据集的 14 个人物和 15 条关系；只补齐缺失的 Schema 和元素，不清空或更新已匹配数据，可安全重试。建议使用独立或空图；Schema 或 ID 冲突会中止导入，但不会清空既有数据。",
       "loader_title": "导入 Loader 内置示例图？",
       "loader_description": "目标图：{{graph}}。将添加 HugeGraph Loader 示例的 8 个顶点和 6 条边；不会清空数据，也不会更新已匹配元素，可安全重复执行。建议使用独立或空图；若 Schema 或 ID 冲突，解决后可重试。",
       "rank_title": "导入 Rank 电影示例图？",
@@ -416,6 +416,12 @@
     "retry": "重试导入任务",
     "metrics_failed": "导入概览加载失败。",
     "retry_metrics": "重试导入概览",
+    "demo": {
+      "title": "快速构建 Demo 数据集",
+      "target": "当前目标：{{graphspace}} / {{graph}}。快速 Demo 只补齐缺失 Schema 和数据，不会清空图；它与定时 Loader 任务相互独立。",
+      "choose_graph": "请先选择目标图，再返回这里用几秒钟构建 Demo。",
+      "select_graph": "选择目标图"
+    },
     "pause": "暂停",
     "execute": "执行",
     "action": {

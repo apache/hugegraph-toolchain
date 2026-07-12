@@ -52,6 +52,7 @@ import {StatusField} from '../../components/Status';
 import {sourceType, syncType} from './config';
 import TableHeader from '../../components/TableHeader';
 import DataPreparationNav from '../../components/DataPreparationNav';
+import {readWorkbenchGraphContext} from '../../utils/workbenchGraphContext';
 
 const {Text} = Typography;
 
@@ -199,6 +200,7 @@ const Task = () => {
     const [metricsRetryToken, setMetricsRetryToken] = useState(0);
     const [listPollToken, setListPollToken] = useState(0);
     const [metricsPollToken, setMetricsPollToken] = useState(0);
+    const [demoLoading, setDemoLoading] = useState('');
     const listRequest = useRef(null);
     const metricsRequest = useRef(null);
     const listPending = useRef(false);
@@ -208,6 +210,7 @@ const Task = () => {
     const navigate = useNavigate();
     const sourceTypes = sourceType(t);
     const syncTypes = syncType(t);
+    const demoTarget = readWorkbenchGraphContext();
 
     const search = useCallback(val => {
         setSearchName(val);
@@ -279,6 +282,47 @@ const Task = () => {
 
     const retryList = useCallback(() => setListRetryToken(value => value + 1), []);
     const retryMetrics = useCallback(() => setMetricsRetryToken(value => value + 1), []);
+
+    const loadDemo = useCallback(dataset => {
+        const {graphspace, graph} = readWorkbenchGraphContext();
+        if (!graphspace || !graph) {
+            return;
+        }
+        Modal.confirm({
+            title: t(`graph.sample.${dataset}_title`),
+            content: t(`graph.sample.${dataset}_description`, {graph}),
+            okText: t('graph.sample.confirm'),
+            cancelText: t('common.action.cancel'),
+            onOk: async () => {
+                setDemoLoading(dataset);
+                try {
+                    const res = await api.manage.loadSampleGraph(
+                        graphspace,
+                        graph,
+                        dataset,
+                        {suppressBusinessErrorToast: true}
+                    );
+                    if (res.status !== 200) {
+                        throw new Error(res.message || t('graph.sample.failed'));
+                    }
+                    message.success(t('graph.sample.success', {
+                        vertices: res.data.vertices,
+                        edges: res.data.edges,
+                    }));
+                }
+                catch (error) {
+                    message.error(error.message || t('graph.sample.failed'));
+                    throw error;
+                }
+                finally {
+                    setDemoLoading('');
+                }
+            },
+        });
+    }, [t]);
+    const loadHlmDemo = useCallback(() => loadDemo('hlm'), [loadDemo]);
+    const loadLoaderDemo = useCallback(() => loadDemo('loader'), [loadDemo]);
+    const chooseDemoGraph = useCallback(() => navigate('/graphspace'), [navigate]);
 
     const handleHideEditLayer = useCallback(() => setEditLayer(false), []);
 
@@ -486,6 +530,39 @@ const Task = () => {
             <DataPreparationNav active='task' />
 
             <div className='container'>
+                <Alert
+                    showIcon
+                    type='info'
+                    message={t('task.demo.title')}
+                    description={demoTarget.graph
+                        ? t('task.demo.target', {
+                            graphspace: demoTarget.graphspace,
+                            graph: demoTarget.graph,
+                        })
+                        : t('task.demo.choose_graph')}
+                    action={demoTarget.graph ? (
+                        <Space wrap>
+                            <Button
+                                loading={demoLoading === 'hlm'}
+                                disabled={Boolean(demoLoading)}
+                                onClick={loadHlmDemo}
+                            >
+                                {t('graph.menu.load_hlm_sample')}
+                            </Button>
+                            <Button
+                                loading={demoLoading === 'loader'}
+                                disabled={Boolean(demoLoading)}
+                                onClick={loadLoaderDemo}
+                            >
+                                {t('graph.menu.load_loader_sample')}
+                            </Button>
+                        </Space>
+                    ) : (
+                        <Button onClick={chooseDemoGraph}>
+                            {t('task.demo.select_graph')}
+                        </Button>
+                    )}
+                />
                 {metricsError && (
                     <Alert
                         showIcon

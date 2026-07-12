@@ -25,7 +25,7 @@ import {useTranslation} from 'react-i18next';
 
 import * as api from '../../../api';
 import Item from '../Item';
-import {normalizeDashboardUrl, probeDashboard} from './dashboard';
+import {normalizeDashboardUrl} from './dashboard';
 
 const ConsoleItem = () => {
 
@@ -48,7 +48,10 @@ const ConsoleItem = () => {
                 const url = normalizeDashboardUrl(
                     res.data.address, res.data.protocol
                 );
-                setDashboard({status: 'configured', url});
+                setDashboard({
+                    status: res.data.available ? 'configured' : 'unavailable',
+                    url,
+                });
             }
         }).catch(() => {
             if (!cancelled) {
@@ -60,22 +63,11 @@ const ConsoleItem = () => {
         };
     }, []);
 
-    const openDashboard = useCallback(async url => {
-        const popup = window.open('about:blank', '_blank');
+    const openDashboard = useCallback(url => {
+        const popup = window.open(url, '_blank', 'noopener,noreferrer');
         if (!popup) {
             message.error(t('navigation_page.dashboard_popup_blocked'));
-            return;
         }
-        popup.opener = null;
-        setDashboard(current => ({...current, status: 'checking'}));
-        if (!await probeDashboard(url)) {
-            popup.close();
-            setDashboard(current => ({...current, status: 'unavailable'}));
-            message.error(t('navigation_page.dashboard_unavailable'));
-            return;
-        }
-        setDashboard(current => ({...current, status: 'configured'}));
-        popup.location.replace(url);
     }, [t]);
 
     const configured = Boolean(dashboard.url);
@@ -89,11 +81,13 @@ const ConsoleItem = () => {
     const item = (titleKey, path = '') => ({
         title: t(titleKey),
         url: configured ? dashboard.url + path : '',
-        disabled: !configured || dashboard.status === 'checking',
+        disabled: !configured || dashboard.status !== 'configured',
         reason,
         badge: dashboard.status === 'unconfigured'
-            ? t('navigation_page.not_configured') : '',
-        onClick: configured
+            ? t('navigation_page.not_configured')
+            : dashboard.status === 'unavailable'
+                ? t('navigation_page.coming_soon') : '',
+        onClick: configured && dashboard.status === 'configured'
             ? () => openDashboard(dashboard.url + path)
             : undefined,
     });

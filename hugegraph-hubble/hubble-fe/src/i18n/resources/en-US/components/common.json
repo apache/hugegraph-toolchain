@@ -40,6 +40,7 @@
       "graph": "Current graph",
       "select_graphspace": "Select GraphSpace",
       "select_graph": "Select graph",
+      "default_graphspace": "Default GraphSpace",
       "non_pd_fixed": "DEFAULT fixed",
       "graphspaces_load_failed": "GraphSpaces are temporarily unavailable. Your current page is preserved.",
       "graphs_load_failed": "Graphs are temporarily unavailable. Your current page is preserved.",

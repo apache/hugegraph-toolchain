@@ -40,6 +40,7 @@
       "graph": "当前图",
       "select_graphspace": "选择 GraphSpace",
       "select_graph": "选择图",
+      "default_graphspace": "默认图空间",
       "non_pd_fixed": "固定 DEFAULT",
       "graphspaces_load_failed": "GraphSpace 列表暂时无法加载，当前页面内容不会丢失。",
       "graphs_load_failed": "图列表暂时无法加载，当前页面内容不会丢失。",

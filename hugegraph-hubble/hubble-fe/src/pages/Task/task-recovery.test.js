@@ -27,6 +27,7 @@ jest.mock('../../api', () => ({
         enableTask: jest.fn(),
         disableTask: jest.fn(),
         deleteTask: jest.fn(),
+        loadSampleGraph: jest.fn(),
     },
 }));
 jest.mock('./components/EditLayer', () => () => null);
@@ -48,6 +49,16 @@ jest.mock('react-i18next', () => ({
         'task.retry': 'Retry import tasks',
         'task.metrics_failed': 'Could not load import summary.',
         'task.retry_metrics': 'Retry import summary',
+        'task.demo.title': 'Quick demo datasets',
+        'task.demo.target': 'Current target',
+        'task.demo.choose_graph': 'Choose a target graph first',
+        'task.demo.select_graph': 'Choose graph',
+        'graph.menu.load_hlm_sample': 'Build Red Chamber Demo',
+        'graph.menu.load_loader_sample': 'Load Loader Example',
+        'graph.sample.hlm_title': 'Build demo?',
+        'graph.sample.hlm_description': 'Safe demo',
+        'graph.sample.confirm': 'Build demo',
+        'graph.sample.success': 'Demo ready',
         'task.create': 'Create task',
         'task.search_placeholder': 'Search',
         'task.col.name': 'Name',
@@ -80,6 +91,28 @@ beforeAll(() => {
 afterEach(() => {
     jest.clearAllMocks();
     jest.useRealTimers();
+    localStorage.clear();
+});
+
+it('offers quick demos for the current target graph on the import page', async () => {
+    localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'demo_space',
+        graph: 'literature_demo',
+    }));
+    api.manage.getTaskList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0, size: 10},
+    });
+    api.manage.getMetricsTask.mockResolvedValue({status: 200, data: {}});
+
+    render(<Task />);
+
+    expect(await screen.findByText('Quick demo datasets')).toBeInTheDocument();
+    expect(screen.getByText('Current target')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Build Red Chamber Demo'}))
+        .toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Load Loader Example'}))
+        .toBeEnabled();
 });
 
 it('keeps task-list failure distinct from an empty list and retries only that source', async () => {
@@ -93,14 +126,14 @@ it('keeps task-list failure distinct from an empty list and retries only that so
 
     render(<Task />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-        'Could not load import tasks.'
-    );
+    expect(await screen.findByText('Could not load import tasks.'))
+        .toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: 'Retry import tasks'}));
 
     await waitFor(() => expect(api.manage.getTaskList).toHaveBeenCalledTimes(2));
     expect(api.manage.getMetricsTask).toHaveBeenCalledTimes(1);
-    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByText('Could not load import tasks.'))
+        .not.toBeInTheDocument());
 });
 
 it('does not overlap or auto-retry a pending then failed task-list poll', async () => {
@@ -121,11 +154,11 @@ it('does not overlap or auto-retry a pending then failed task-list poll', async 
         rejectList(new Error('offline'));
         await Promise.resolve();
     });
-    expect(screen.getByRole('alert')).toHaveTextContent('Could not load import tasks.');
+    expect(screen.getByText('Could not load import tasks.')).toBeInTheDocument();
 
     act(() => jest.advanceTimersByTime(24000));
     expect(api.manage.getTaskList).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('Could not load import tasks.')).toBeInTheDocument();
     unmount();
 });
 

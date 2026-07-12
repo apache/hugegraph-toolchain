@@ -207,7 +207,7 @@
     },
     "sample": {
       "hlm_title": "Build the Red Chamber demo graph?",
-      "hlm_description": "Target graph: {{graph}}. Adds the built-in Chinese literature dataset (41 characters and 51 relationships). It creates missing schema and elements only, never clears or updates matching data, and is safe to retry. Use a dedicated or empty graph; schema or ID conflicts stop the import without clearing existing data.",
+      "hlm_description": "Target graph: {{graph}}. Adds the built-in Chinese literature dataset (14 characters and 15 relationships). It creates missing schema and elements only, never clears or updates matching data, and is safe to retry. Use a dedicated or empty graph; schema or ID conflicts stop the import without clearing existing data.",
       "loader_title": "Load the built-in Loader example?",
       "loader_description": "Target graph: {{graph}}. Adds the HugeGraph Loader example (8 vertices and 6 edges). It never clears data or updates existing matching elements. Repeating the action is safe. Use a dedicated or empty graph; a schema or ID conflict stops the import and can be retried after correction.",
       "rank_title": "Load the Rank movie example?",
@@ -416,6 +416,12 @@
     "retry": "Retry import tasks",
     "metrics_failed": "Could not load the import summary.",
     "retry_metrics": "Retry import summary",
+    "demo": {
+      "title": "Quick demo datasets",
+      "target": "Current target: {{graphspace}} / {{graph}}. These quick demos create missing schema and data without clearing the graph; they are separate from scheduled Loader tasks.",
+      "choose_graph": "Choose a target graph first, then return here to build a demo in a few seconds.",
+      "select_graph": "Choose graph"
+    },
     "pause": "Pause",
     "execute": "Run",
     "action": {

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {render, waitFor} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import Topbar from './index.ant';
 import * as api from '../../api/index';
@@ -137,5 +137,23 @@ describe('Topbar request errors', () => {
                 '/gremlin/DEFAULT/hugegraph?tab=graph#result'
             );
         });
+    });
+
+    it('localizes the built-in admin nickname instead of leaking Chinese', () => {
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'admin',
+            user_name: 'admin',
+            user_nickname: '超级管理员',
+        }));
+        api.auth.status.mockResolvedValue({status: 200});
+
+        render(
+            <MemoryRouter initialEntries={['/navigation']}>
+                <Topbar />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('Topbar.super_admin')).toBeInTheDocument();
+        expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
     });
 });

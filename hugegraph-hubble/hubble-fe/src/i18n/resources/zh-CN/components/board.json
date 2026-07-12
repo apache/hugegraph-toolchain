@@ -1,5 +1,6 @@
 {
   "Topbar": {
+    "super_admin": "超级管理员",
     "exit":{
       "name": "退出登录",
       "confirm":"确定退出吗？",

@@ -34,26 +34,4 @@ const normalizeDashboardUrl = (address, protocol = 'http') => {
     return url.origin;
 };
 
-const probeDashboard = async (url, fetchImpl = window.fetch.bind(window), timeout = 3000) => {
-    const controller = new AbortController();
-    const timer = window.setTimeout(() => controller.abort(), timeout);
-    try {
-        await fetchImpl(url, {
-            method: 'GET',
-            mode: 'no-cors',
-            credentials: 'omit',
-            cache: 'no-store',
-            referrerPolicy: 'no-referrer',
-            signal: controller.signal,
-        });
-        return true;
-    }
-    catch {
-        return false;
-    }
-    finally {
-        window.clearTimeout(timer);
-    }
-};
-
-export {normalizeDashboardUrl, probeDashboard};
+export {normalizeDashboardUrl};
