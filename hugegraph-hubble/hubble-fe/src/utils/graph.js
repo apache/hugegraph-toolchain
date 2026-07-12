@@ -51,12 +51,11 @@ const fitView = graph => {
     const w = (width - padding[1] - padding[3]) / bbox.width;
     const h = (height - padding[0] - padding[2]) / bbox.height;
     graph.translate(viewCenter.x - groupCenter.x, viewCenter.y - groupCenter.y);
-    // w与h是画布宽高和图宽高的比，横向和纵向有一个小于1就需要做transform操作；
-    if (w < 1 || h < 1) {
-        let ratio = w;
-        if (w > h) {
-            ratio = h;
-        }
+    const fitRatio = Math.min(w, h);
+    const itemCount = (graph.getNodes?.().length || 0) + (graph.getEdges?.().length || 0);
+    const shouldMagnifySmallGraph = itemCount > 0 && itemCount <= 40 && fitRatio > 1;
+    if (fitRatio < 1 || shouldMagnifySmallGraph) {
+        const ratio = shouldMagnifySmallGraph ? Math.min(fitRatio, 1.35) : fitRatio;
         if (!graph.zoom(ratio, viewCenter)) {
             console.warn('zoom failed, ratio out of range, ratio: %f', ratio);
         }
@@ -70,10 +69,21 @@ const fitView = graph => {
  */
 const mapLayoutNameToLayoutDetails = layoutOptions => {
     const {layout} = layoutOptions || {};
+    const nodeCount = Number(layoutOptions?.nodeCount) || 0;
+    const smallGraph = nodeCount > 0 && nodeCount <= 20;
+    const largeGraph = nodeCount >= 500;
     let res;
     const forceOptions = {
         type: 'force2',
         animate: false,
+        preventOverlap: !largeGraph,
+        linkDistance: smallGraph ? 140 : largeGraph ? 48 : 84,
+        nodeStrength: smallGraph ? 1800 : largeGraph ? 650 : 1000,
+        nodeSpacing: node => {
+            const size = Array.isArray(node?.size) ? Math.max(...node.size) : node?.size;
+            return Math.max(smallGraph ? 32 : 12, Number(size) / 2 || 0);
+        },
+        maxIteration: largeGraph ? 260 : 420,
         centripetalOptions: {
             leaf: 5,
             single: 5,

@@ -20,7 +20,7 @@
  * @file 图分析画布 Home
  */
 
-import React, {useCallback, useEffect, useState, useContext, useRef} from 'react';
+import React, {useCallback, useEffect, useState, useContext, useMemo, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import GraphAnalysisContext from '../../../../Context';
 import Graph from '../../../../component/Graph';
@@ -95,6 +95,10 @@ const GraphResult = props => {
     const [graphAllInfo, setGraphAllInfo] = useState();
     const [graph, setGraph] = useState();
     const showCanvasInfo =  (_.size(data.vertices) !== 0 || _.size(data.edges) !== 0) && queryStatus === SUCCESS;
+    const defaultLayout = useMemo(
+        () => ({layout: 'force', nodeCount: graphData.nodes.length}),
+        [graphData.nodes.length]
+    );
 
     useEffect(
         () => {
@@ -432,7 +436,7 @@ const GraphResult = props => {
     const renderCanvas2D = () => (
         <Graph
             data={graphData}
-            layout={'force'}
+            layout={defaultLayout}
             onGraphRender={onGraphRender}
             onNodeClick={handleClickGraphNode}
             onEdgeClick={handleClickGraphEdge}

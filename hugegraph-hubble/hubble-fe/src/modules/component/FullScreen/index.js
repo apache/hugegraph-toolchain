@@ -50,7 +50,7 @@ const FullScreen = props => {
 
     const handleFullScreen = useCallback(
         () => {
-            const container = graph?.getContainer();
+            const container = graph?.getContainer?.();
             if (screenfull.isEnabled) {
                 if (screenfull.isFullscreen) {
                     screenfull.exit();
@@ -63,11 +63,35 @@ const FullScreen = props => {
         [graph]
     );
 
+    useEffect(
+        () => {
+            const container = graph?.getContainer?.();
+            if (!container) {
+                return undefined;
+            }
+            const handleShortcut = event => {
+                const target = event.target;
+                if (event.key?.toLowerCase() !== 'f' || event.metaKey || event.ctrlKey
+                    || event.altKey || event.isComposing
+                    || target.closest?.('input, textarea, select, button, [contenteditable="true"]')) {
+                    return;
+                }
+                event.preventDefault();
+                handleFullScreen();
+            };
+            container.addEventListener('keydown', handleShortcut);
+            return () => container.removeEventListener('keydown', handleShortcut);
+        },
+        [graph, handleFullScreen]
+    );
+
+    const shortcutLabel = t('analysis.canvas.toolbar.full_screen_shortcut');
+
     return (
-        <Tooltip title={t('analysis.canvas.toolbar.full_screen')} placement='bottom'>
+        <Tooltip title={shortcutLabel} placement='bottom'>
             <Button
                 type="text"
-                aria-label={t('analysis.canvas.toolbar.full_screen')}
+                aria-label={shortcutLabel}
                 onClick={handleFullScreen}
                 icon={<CompressOutlined />}
             />

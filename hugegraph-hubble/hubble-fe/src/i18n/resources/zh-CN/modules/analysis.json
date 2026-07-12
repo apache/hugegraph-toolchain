@@ -14,6 +14,7 @@
       "text2gql_privacy": "当前不会发送、生成、保存或执行任何内容。",
       "execute_query": "执行查询",
       "execute_task": "执行任务",
+      "execute_shortcut": "执行查询（Ctrl/Command + Enter）",
       "execute_mode_desc": "查询模式适合 30 秒内可返回结果的小规模分析，任务模式适合较长时间返回结果的大规模分析，任务详情可在任务管理中查看",
       "empty_query": "查询语句不能为空",
       "collapse": "收起",
@@ -42,6 +43,7 @@
       "no_more_neighbors": "不存在更多邻接点"
     },
     "canvas": {
+      "graph_canvas": "图画布",
       "import": "导入",
       "export": "导出",
       "style": "外观设置",
@@ -67,6 +69,7 @@
         "clear_canvas": "清空画布",
         "fit_center": "自适应",
         "full_screen": "全屏",
+        "full_screen_shortcut": "全屏（画布聚焦后按 F）",
         "undo": "后退",
         "redo": "前进",
         "refresh_layout": "刷新布局",

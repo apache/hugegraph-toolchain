@@ -53,6 +53,7 @@ const ContentCommon = props => {
         isEmptyQuery,
         favoriteCardVisible,
         setFavoriteCardVisible,
+        isExecuting,
     } = props;
 
     const context = useContext(GraphAnalysisContext);
@@ -184,9 +185,25 @@ const ContentCommon = props => {
 
     const onExecution = useCallback(
         () => {
-            onExecute(activeTab);
+            if (!isEmptyQuery && !isExecuting) {
+                onExecute(activeTab);
+            }
         },
-        [activeTab, onExecute]
+        [activeTab, isEmptyQuery, isExecuting, onExecute]
+    );
+
+    const onQueryKeyDown = useCallback(
+        event => {
+            const nativeEvent = event.nativeEvent || event;
+            const isEditor = event.target.closest?.('.cm-editor');
+            if (event.key !== 'Enter' || (!event.metaKey && !event.ctrlKey)
+                || nativeEvent.isComposing || !isEditor || isEmptyQuery || isExecuting) {
+                return;
+            }
+            event.preventDefault();
+            onExecution();
+        },
+        [isEmptyQuery, isExecuting, onExecution]
     );
 
     const executeMenu = {
@@ -198,16 +215,22 @@ const ContentCommon = props => {
     };
 
     return (
-        <div className={tabClassName}>
+        <div className={tabClassName} onKeyDown={onQueryKeyDown}>
             <div className={c.leftHeader}>
                 {props.children}
                 <div className={c.btnGroup}>
-                    <Tooltip placement="bottom" title={isEmptyQuery ? emptyDesc : ''}>
+                    <Tooltip
+                        placement="bottom"
+                        title={isEmptyQuery
+                            ? emptyDesc
+                            : t('analysis.query.execute_shortcut')}
+                    >
                         <Dropdown.Button
                             menu={executeMenu}
-                            disabled={isEmptyQuery}
+                            disabled={isEmptyQuery || isExecuting}
                             onClick={onExecution}
                             size='small'
+                            title={t('analysis.query.execute_shortcut')}
                         >
                             {isQueryMode ? t('analysis.query.execute_query') : t('analysis.query.execute_task')}
                         </Dropdown.Button>

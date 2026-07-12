@@ -60,7 +60,7 @@ test('gives every graph toolbar icon button its localized tooltip name', () => {
         'zoom_in',
         'undo',
         'redo',
-        'full_screen',
+        'full_screen_shortcut',
         'refresh_layout',
         'fix_node',
         'clear_canvas',

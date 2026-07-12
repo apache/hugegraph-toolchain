@@ -20,7 +20,7 @@ jest.mock('@antv/graphin-icons', () => ({
     default: () => ({glyphs: []}),
 }));
 
-import {fitView} from './graph';
+import {fitView, mapLayoutNameToLayoutDetails} from './graph';
 
 it('skips fitting while the graph tab has no measurable viewport', () => {
     const resetMatrix = jest.fn();
@@ -42,4 +42,26 @@ it('skips fitting while the graph tab has no measurable viewport', () => {
     expect(resetMatrix).not.toHaveBeenCalled();
     expect(graph.translate).not.toHaveBeenCalled();
     expect(graph.zoom).not.toHaveBeenCalled();
+});
+
+it('keeps a five-node query graph readable with collision-aware spacing', () => {
+    const layout = mapLayoutNameToLayoutDetails({layout: 'force', nodeCount: 5});
+
+    expect(layout).toMatchObject({
+        type: 'force2',
+        preventOverlap: true,
+        linkDistance: 140,
+        nodeStrength: 1800,
+    });
+    expect(layout.nodeSpacing({size: 60})).toBeGreaterThanOrEqual(32);
+});
+
+it('uses bounded force work for 309 and 600 node results', () => {
+    const medium = mapLayoutNameToLayoutDetails({layout: 'force', nodeCount: 309});
+    const large = mapLayoutNameToLayoutDetails({layout: 'force', nodeCount: 600});
+
+    expect(medium.maxIteration).toBeLessThanOrEqual(500);
+    expect(large.maxIteration).toBeLessThanOrEqual(300);
+    expect(large.preventOverlap).toBe(false);
+    expect(large.linkDistance).toBeLessThan(medium.linkDistance);
 });

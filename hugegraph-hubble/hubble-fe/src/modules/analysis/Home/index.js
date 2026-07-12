@@ -66,11 +66,13 @@ const AnalysisHome = () => {
     const [sortMode, setSortMode] = useState();
     const [graphRenderMode, setGraphRenderMode] = useState(CANVAS2D);
     const queryRequest = useRef(null);
+    const executionInFlight = useRef(false);
     const executionLogsRequest = useRef(null);
     const favoriteQueriesRequest = useRef(null);
 
     useEffect(() => () => {
         queryRequest.current = null;
+        executionInFlight.current = false;
         executionLogsRequest.current = null;
         favoriteQueriesRequest.current = null;
     }, []);
@@ -397,12 +399,20 @@ const AnalysisHome = () => {
             if (tabKey !== GREMLIN && tabKey !== CYPHER) {
                 return;
             }
+            if (executionInFlight.current) {
+                return;
+            }
+            executionInFlight.current = true;
+            let execution;
             if (executeMode === QUERY) {
-                onExecuteQuery(tabKey);
+                execution = onExecuteQuery(tabKey);
             }
             else {
-                onExecuteTask(tabKey);
+                execution = onExecuteTask(tabKey);
             }
+            execution.finally(() => {
+                executionInFlight.current = false;
+            });
         },
         [executeMode, onExecuteQuery, onExecuteTask]
     );
@@ -489,6 +499,7 @@ const AnalysisHome = () => {
                 onTabsChange={onAnalysisModeChange}
                 onExecute={onExecute}
                 onRefresh={onFavoriteRefresh}
+                isExecuting={queryStatus === LOADING}
             />
             {analysisMode !== TEXT2GQL && <QueryResult
                 queryResult={queryResult}

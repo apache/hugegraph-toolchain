@@ -115,6 +115,26 @@ it('turns a rejected synchronous query into a recoverable failed result', async 
     );
 });
 
+it('does not start a duplicate query while the first request is pending', async () => {
+    let resolveQuery;
+    api.analysis.getExecutionQuery.mockImplementation(() => new Promise(resolve => {
+        resolveQuery = resolve;
+    }));
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    const run = screen.getByRole('button', {name: 'Run current'});
+    fireEvent.click(run);
+    fireEvent.click(run);
+
+    expect(api.analysis.getExecutionQuery).toHaveBeenCalledTimes(1);
+    await act(async () => resolveQuery({status: 200, data: {}}));
+});
+
 it('keeps execution-history failure separate and retries only that source', async () => {
     api.analysis.getExecutionLogs
         .mockRejectedValueOnce(new Error('history offline'))

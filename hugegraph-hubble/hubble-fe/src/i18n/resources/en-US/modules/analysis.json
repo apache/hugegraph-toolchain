@@ -14,6 +14,7 @@
       "text2gql_privacy": "Nothing entered here is sent, generated, saved, or executed.",
       "execute_query": "Run Query",
       "execute_task": "Run Task",
+      "execute_shortcut": "Run query (Ctrl/Command + Enter)",
       "execute_mode_desc": "Query mode is for small analyses that return within 30 seconds. Task mode is for larger analyses that take longer; task details are available in Task Management.",
       "empty_query": "Query statement cannot be empty",
       "collapse": "Collapse",
@@ -42,6 +43,7 @@
       "no_more_neighbors": "No more adjacent vertices"
     },
     "canvas": {
+      "graph_canvas": "Graph canvas",
       "import": "Import",
       "export": "Export",
       "style": "Style",
@@ -67,6 +69,7 @@
         "clear_canvas": "Clear Canvas",
         "fit_center": "Fit Center",
         "full_screen": "Full Screen",
+        "full_screen_shortcut": "Full screen (focus canvas, then press F)",
         "undo": "Undo",
         "redo": "Redo",
         "refresh_layout": "Refresh Layout",
