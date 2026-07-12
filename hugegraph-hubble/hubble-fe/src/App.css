@@ -88,5 +88,10 @@
 }
 
 .ant-table-tbody .ant-empty-normal {
-    margin: 200px 0;
+    display: flex;
+    min-height: var(--workbench-table-empty-min-height);
+    margin: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
