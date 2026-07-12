@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM maven:3.9.0-eclipse-temurin-11 AS build
+FROM --platform=$BUILDPLATFORM maven:3.9.0-eclipse-temurin-11 AS build
 
 COPY . /pkg
 WORKDIR /pkg
@@ -23,17 +23,10 @@ WORKDIR /pkg
 ARG MAVEN_ARGS
 
 RUN set -x \
-    && mvn install $MAVEN_ARGS -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
-
-RUN set -x \
-    && cd /pkg/hugegraph-loader/ \
-    && echo "$(ls)" \
-    && mvn clean package $MAVEN_ARGS -DskipTests
+    && mvn clean package $MAVEN_ARGS -pl hugegraph-client,hugegraph-loader -am \
+       -Dmaven.javadoc.skip=true -DskipTests -ntp
 
 FROM eclipse-temurin:11-jre-jammy
-
-COPY --from=build /pkg/hugegraph-loader/apache-hugegraph-loader-*/ /loader
-WORKDIR /loader/
 
 RUN set -x \
     && apt-get -q update \
@@ -44,6 +37,9 @@ RUN set -x \
        lsof \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=build /pkg/hugegraph-loader/apache-hugegraph-loader-*/ /loader
+WORKDIR /loader/
 
 VOLUME /loader
 

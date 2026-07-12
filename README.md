@@ -406,11 +406,27 @@ docker run --rm \
 Build images locally:
 ```bash
 # Loader
-cd hugegraph-loader && docker build -t hugegraph/hugegraph-loader:latest .
+docker build -f hugegraph-loader/Dockerfile \
+  -t hugegraph/hugegraph-loader:latest .
 
 # Hubble
-cd hugegraph-hubble && docker build -t hugegraph/hugegraph-hubble:latest .
+docker build -f hugegraph-hubble/Dockerfile \
+  -t hugegraph/hugegraph-hubble:latest .
 ```
+
+Multi-platform builds use BuildKit's automatic platform arguments. The Maven
+and Node build stages run on `$BUILDPLATFORM`, while the final JRE stage uses
+`$TARGETPLATFORM`. Java bytecode and frontend assets are architecture-neutral,
+so they are built once without QEMU. Target-stage package installation still
+runs for each architecture.
+
+This optimization applies only to architecture-independent build outputs. A
+component that compiles native code must use a target-platform build stage or
+separate platform stages. Loader and Hubble packaging is validated on arm64;
+native dependencies must still be audited. Loader includes arm64 variants for
+Snappy, LZ4, Commons Crypto, and gRPC tcnative. Some optional legacy HBase and
+Jansi natives remain x86-only, so their fallback paths require target-runtime
+validation when those optional features are used.
 
 ## Documentation
 
