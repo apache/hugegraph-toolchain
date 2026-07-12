@@ -23,9 +23,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BooleanSupplier;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -123,17 +126,17 @@ public class SampleGraphController extends BaseController {
 
     public static final String HLM_SCHEMA =
             "schema = graph.schema();\n" +
-            "schema.propertyKey('姓名').asText().ifNotExist().create();\n" +
-            "schema.propertyKey('性别').asText().ifNotExist().create();\n" +
-            "schema.propertyKey('年龄').asInt().ifNotExist().create();\n" +
-            "schema.propertyKey('职称').asText().ifNotExist().create();\n" +
-            "schema.propertyKey('特点').asText().ifNotExist().create();\n" +
-            "schema.propertyKey('亲疏').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('name').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('gender').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('age').asInt().ifNotExist().create();\n" +
+            "schema.propertyKey('title').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('feature').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('intimacy').asText().ifNotExist().create();\n" +
             "schema.vertexLabel('人物').useCustomizeStringId()" +
-            ".properties('姓名','性别','年龄','职称','特点')" +
+            ".properties('name','gender','age','title','feature')" +
             ".ifNotExist().create();\n" +
             "schema.edgeLabel('关系').sourceLabel('人物')" +
-            ".targetLabel('人物').properties('亲疏')" +
+            ".targetLabel('人物').properties('intimacy')" +
             ".ifNotExist().create();";
 
     public static final String HLM_DATA = loadHlmData();
@@ -174,74 +177,182 @@ public class SampleGraphController extends BaseController {
 
     private static void createSchema(HugeClient client, String dataset) {
         SchemaManager schema = client.schema();
+        Set<String> propertyKeys = new HashSet<>();
+        schema.getPropertyKeys().forEach(key -> propertyKeys.add(key.name()));
+        Set<String> vertexLabels = new HashSet<>();
+        schema.getVertexLabels().forEach(label -> vertexLabels.add(label.name()));
+        Set<String> edgeLabels = new HashSet<>();
+        schema.getEdgeLabels().forEach(label -> edgeLabels.add(label.name()));
         if ("loader".equals(dataset)) {
-            createLoaderSchema(schema);
+            createLoaderSchema(schema, propertyKeys, vertexLabels, edgeLabels);
         } else if ("rank".equals(dataset)) {
-            createRankSchema(schema);
+            createRankSchema(schema, propertyKeys, vertexLabels, edgeLabels);
         } else {
-            createHlmSchema(schema);
+            createHlmSchema(schema, propertyKeys, vertexLabels, edgeLabels);
         }
     }
 
-    private static void createLoaderSchema(SchemaManager schema) {
-        schema.propertyKey("name").asText().ifNotExist().create();
-        schema.propertyKey("age").asInt().ifNotExist().create();
-        schema.propertyKey("city").asText().ifNotExist().create();
-        schema.propertyKey("weight").asDouble().ifNotExist().create();
-        schema.propertyKey("lang").asText().ifNotExist().create();
-        schema.propertyKey("date").asText().ifNotExist().create();
-        schema.propertyKey("price").asDouble().ifNotExist().create();
-        schema.vertexLabel("person")
+    private static void createLoaderSchema(SchemaManager schema,
+                                           Set<String> propertyKeys,
+                                           Set<String> vertexLabels,
+                                           Set<String> edgeLabels) {
+        createPropertyIfMissing(schema, propertyKeys, "name", () ->
+                schema.propertyKey("name").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "age", () ->
+                schema.propertyKey("age").asInt().create());
+        createPropertyIfMissing(schema, propertyKeys, "city", () ->
+                schema.propertyKey("city").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "weight", () ->
+                schema.propertyKey("weight").asDouble().create());
+        createPropertyIfMissing(schema, propertyKeys, "lang", () ->
+                schema.propertyKey("lang").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "date", () ->
+                schema.propertyKey("date").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "price", () ->
+                schema.propertyKey("price").asDouble().create());
+        createVertexIfMissing(schema, vertexLabels, "person", () ->
+                schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
               .nullableKeys("age", "city")
-              .ifNotExist().create();
-        schema.vertexLabel("software")
+              .create());
+        createVertexIfMissing(schema, vertexLabels, "software", () ->
+                schema.vertexLabel("software")
               .useCustomizeNumberId()
               .properties("name", "lang", "price")
-              .ifNotExist().create();
-        schema.edgeLabel("knows")
+              .create());
+        createEdgeIfMissing(schema, edgeLabels, "knows", () ->
+                schema.edgeLabel("knows")
               .sourceLabel("person").targetLabel("person")
               .properties("date", "weight")
-              .ifNotExist().create();
-        schema.edgeLabel("created")
+              .create());
+        createEdgeIfMissing(schema, edgeLabels, "created", () ->
+                schema.edgeLabel("created")
               .sourceLabel("person").targetLabel("software")
               .properties("date", "weight")
-              .ifNotExist().create();
+              .create());
     }
 
-    private static void createRankSchema(SchemaManager schema) {
-        schema.propertyKey("name").asText().ifNotExist().create();
-        schema.vertexLabel("person").properties("name")
-              .useCustomizeStringId().ifNotExist().create();
-        schema.vertexLabel("movie").properties("name")
-              .useCustomizeStringId().ifNotExist().create();
-        schema.edgeLabel("follow")
+    private static void createRankSchema(SchemaManager schema,
+                                         Set<String> propertyKeys,
+                                         Set<String> vertexLabels,
+                                         Set<String> edgeLabels) {
+        createPropertyIfMissing(schema, propertyKeys, "name", () ->
+                schema.propertyKey("name").asText().create());
+        createVertexIfMissing(schema, vertexLabels, "person", () ->
+                schema.vertexLabel("person")
+              .properties("name").useCustomizeStringId().create());
+        createVertexIfMissing(schema, vertexLabels, "movie", () ->
+                schema.vertexLabel("movie")
+              .properties("name").useCustomizeStringId().create());
+        createEdgeIfMissing(schema, edgeLabels, "follow", () ->
+                schema.edgeLabel("follow")
               .sourceLabel("person").targetLabel("person")
-              .ifNotExist().create();
-        schema.edgeLabel("like")
+              .create());
+        createEdgeIfMissing(schema, edgeLabels, "like", () ->
+                schema.edgeLabel("like")
               .sourceLabel("person").targetLabel("movie")
-              .ifNotExist().create();
-        schema.edgeLabel("directedBy")
+              .create());
+        createEdgeIfMissing(schema, edgeLabels, "directedBy", () ->
+                schema.edgeLabel("directedBy")
               .sourceLabel("movie").targetLabel("person")
-              .ifNotExist().create();
+              .create());
     }
 
-    private static void createHlmSchema(SchemaManager schema) {
-        schema.propertyKey("姓名").asText().ifNotExist().create();
-        schema.propertyKey("性别").asText().ifNotExist().create();
-        schema.propertyKey("年龄").asInt().ifNotExist().create();
-        schema.propertyKey("职称").asText().ifNotExist().create();
-        schema.propertyKey("特点").asText().ifNotExist().create();
-        schema.propertyKey("亲疏").asText().ifNotExist().create();
-        schema.vertexLabel("人物")
+    private static void createHlmSchema(SchemaManager schema,
+                                        Set<String> propertyKeys,
+                                        Set<String> vertexLabels,
+                                        Set<String> edgeLabels) {
+        createPropertyIfMissing(schema, propertyKeys, "name", () ->
+                schema.propertyKey("name").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "gender", () ->
+                schema.propertyKey("gender").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "age", () ->
+                schema.propertyKey("age").asInt().create());
+        createPropertyIfMissing(schema, propertyKeys, "title", () ->
+                schema.propertyKey("title").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "feature", () ->
+                schema.propertyKey("feature").asText().create());
+        createPropertyIfMissing(schema, propertyKeys, "intimacy", () ->
+                schema.propertyKey("intimacy").asText().create());
+        createVertexIfMissing(schema, vertexLabels, "人物", () ->
+                schema.vertexLabel("人物")
               .useCustomizeStringId()
-              .properties("姓名", "性别", "年龄", "职称", "特点")
-              .ifNotExist().create();
-        schema.edgeLabel("关系")
+              .properties("name", "gender", "age", "title", "feature")
+              .create());
+        createEdgeIfMissing(schema, edgeLabels, "关系", () ->
+                schema.edgeLabel("关系")
               .sourceLabel("人物").targetLabel("人物")
-              .properties("亲疏")
-              .ifNotExist().create();
+              .properties("intimacy")
+              .create());
+    }
+
+    private static void createPropertyIfMissing(SchemaManager schema,
+                                                Set<String> existing,
+                                                String name, Runnable create) {
+        createIfMissing(existing, name, create,
+                        () -> schema.getPropertyKey(name) != null);
+    }
+
+    private static void createVertexIfMissing(SchemaManager schema,
+                                              Set<String> existing,
+                                              String name, Runnable create) {
+        createIfMissing(existing, name, create,
+                        () -> schema.getVertexLabel(name) != null);
+    }
+
+    private static void createEdgeIfMissing(SchemaManager schema,
+                                            Set<String> existing,
+                                            String name, Runnable create) {
+        createIfMissing(existing, name, create,
+                        () -> schema.getEdgeLabel(name) != null);
+    }
+
+    private static void createIfMissing(Set<String> existing, String name,
+                                        Runnable create,
+                                        BooleanSupplier exists) {
+        if (existing.contains(name)) {
+            return;
+        }
+        RuntimeException conflict = null;
+        for (int attempt = 0; attempt < 20; attempt++) {
+            try {
+                create.run();
+                existing.add(name);
+                return;
+            } catch (RuntimeException e) {
+                if (!causedByExistingSchema(e)) {
+                    throw e;
+                }
+                conflict = e;
+                try {
+                    if (exists.getAsBoolean()) {
+                        existing.add(name);
+                        return;
+                    }
+                } catch (RuntimeException ignored) {
+                    // HStore can briefly report a create conflict before the
+                    // schema becomes visible through the read endpoint.
+                }
+                try {
+                    Thread.sleep(100L);
+                } catch (InterruptedException interrupted) {
+                    Thread.currentThread().interrupt();
+                    throw e;
+                }
+            }
+        }
+        throw conflict;
+    }
+
+    private static boolean causedByExistingSchema(Throwable throwable) {
+        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
+            if (cause.getMessage() != null &&
+                cause.getMessage().contains(" has existed")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static String vertex(String variable, String name, int age,
@@ -359,18 +470,18 @@ public class SampleGraphController extends BaseController {
     private static String hlmVertex(String[] person) {
         return String.format("g.V('%1$s').hasLabel('人物').fold()" +
                              ".coalesce(unfold(),addV('人物').property(T.id,'%1$s')" +
-                             ".property('姓名','%1$s').property('性别','%2$s')" +
-                             ".property('年龄',%3$s).property('职称','%4$s')" +
-                             ".property('特点','%5$s')).next();\n",
+                             ".property('name','%1$s').property('gender','%2$s')" +
+                             ".property('age',%3$s).property('title','%4$s')" +
+                             ".property('feature','%5$s')).next();\n",
                              escape(person[0]), escape(person[1]), person[2],
                              escape(person[3]), escape(person[4]));
     }
 
     private static String hlmEdge(String[] edge) {
         return String.format("if (!g.V('%1$s').outE('关系')" +
-                             ".where(inV().hasId('%2$s')).has('亲疏','%3$s')" +
+                             ".where(inV().hasId('%2$s')).has('intimacy','%3$s')" +
                              ".hasNext()) { g.V('%1$s').next().addEdge('关系'," +
-                             "g.V('%2$s').next(),'亲疏','%3$s'); };\n",
+                             "g.V('%2$s').next(),'intimacy','%3$s'); };\n",
                              escape(edge[0]), escape(edge[1]), escape(edge[2]));
     }
 

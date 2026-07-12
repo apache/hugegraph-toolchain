@@ -109,8 +109,8 @@ public class SampleGraphControllerTest {
 
         ArgumentCaptor<GremlinRequest> requests =
                 ArgumentCaptor.forClass(GremlinRequest.class);
-        Mockito.verify(schema).propertyKey("姓名");
-        Mockito.verify(schema).propertyKey("年龄");
+        Mockito.verify(schema).propertyKey("name");
+        Mockito.verify(schema).propertyKey("age");
         Mockito.verify(schema).vertexLabel("人物");
         Mockito.verify(schema).edgeLabel("关系");
         Mockito.verify(gremlin).execute(requests.capture());
