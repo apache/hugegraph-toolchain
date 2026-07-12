@@ -136,6 +136,7 @@ const Sidebar = () => {
             <Layout.Sider
                 collapsible
                 collapsed={collapsed}
+                width={224}
                 onCollapse={setCollapsed}
                 theme='light'
                 trigger={
