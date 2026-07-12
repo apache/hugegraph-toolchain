@@ -68,7 +68,9 @@ const openPasswordForm = async () => {
     const changePassword = await screen.findByRole('button', {name: 'my.edit.title'});
     await waitFor(() => expect(changePassword).toBeEnabled());
     await userEvent.click(changePassword);
-    return screen.getByRole('button', {name: 'common.action.confirm'});
+    const confirm = screen.getByRole('button', {name: 'common.action.confirm'});
+    expect(confirm.closest('.ant-col')).toHaveClass('ant-col-offset-7');
+    return confirm;
 };
 
 const fillValidPasswords = async () => {
@@ -86,6 +88,8 @@ test('shows a persistent profile error and retries without stale identity', asyn
         });
 
     render(<My />);
+
+    expect(screen.getByTestId('profile-surface')).toBeInTheDocument();
 
     expect(await screen.findByText('my.load.unavailable')).toBeInTheDocument();
     expect(screen.queryByText('Administrator')).not.toBeInTheDocument();

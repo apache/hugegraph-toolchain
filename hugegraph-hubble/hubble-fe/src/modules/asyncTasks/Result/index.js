@@ -21,7 +21,7 @@
  */
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {useParams} from 'react-router-dom';
+import {Link, useParams} from 'react-router-dom';
 import {Alert, Button, Empty, Spin} from 'antd';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../api/index';
@@ -90,35 +90,54 @@ const AsyncTaskResult = () => {
                       && asyncTaskResultJson !== 'null';
 
     return (
-        <div className={c.asyncTaskResult}>
-            {error && (
-                <Alert
-                    showIcon
-                    type='error'
-                    message={t('analysis.async_task.result_load_failed')}
-                    action={(
-                        <Button size='small' onClick={getResult}>
-                            {t('analysis.async_task.retry_result')}
-                        </Button>
+        <div className={c.pageCanvas}>
+            <section className={c.asyncTaskResult}>
+                <header className={c.resultHeader}>
+                    <div>
+                        <h2>{t('analysis.async_task.result_title')}</h2>
+                        <p>
+                            {t('analysis.async_task.result_context', {
+                                graphspace,
+                                graph,
+                                taskId,
+                            })}
+                        </p>
+                    </div>
+                    <Link to={`/asyncTasks/${graphspace}/${graph}`}>
+                        {t('analysis.async_task.result_back')}
+                    </Link>
+                </header>
+                <div className={c.resultBody}>
+                    {error && (
+                        <Alert
+                            showIcon
+                            type='error'
+                            message={t('analysis.async_task.result_load_failed')}
+                            action={(
+                                <Button size='small' onClick={getResult}>
+                                    {t('analysis.async_task.retry_result')}
+                                </Button>
+                            )}
+                        />
                     )}
-                />
-            )}
-            {loading && <Spin tip={t('analysis.async_task.result_loading')} />}
-            {!loading && !error && (
-                !hasResult ? (
-                    <Empty description={t('analysis.async_task.no_result')} />
-                ) : resultForJSON === null ? (
-                    asyncTaskResultJson
-                ) : (
-                    <ReactJsonView
-                        src={resultForJSON}
-                        name={false}
-                        displayObjectSize={false}
-                        displayDataTypes={false}
-                        groupArraysAfterLength={50}
-                    />
-                )
-            )}
+                    {loading && <Spin tip={t('analysis.async_task.result_loading')} />}
+                    {!loading && !error && (
+                        !hasResult ? (
+                            <Empty description={t('analysis.async_task.no_result')} />
+                        ) : resultForJSON === null ? (
+                            asyncTaskResultJson
+                        ) : (
+                            <ReactJsonView
+                                src={resultForJSON}
+                                name={false}
+                                displayObjectSize={false}
+                                displayDataTypes={false}
+                                groupArraysAfterLength={50}
+                            />
+                        )
+                    )}
+                </div>
+            </section>
         </div>
     );
 };

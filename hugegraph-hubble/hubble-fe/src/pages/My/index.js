@@ -139,7 +139,7 @@ const My = () => {
                 ]}
             />
 
-            <div className='container'>
+            <div className={style.pageCanvas}>
                 {profileError && (
                     <Alert
                         type='error'
@@ -152,82 +152,88 @@ const My = () => {
                         )}
                     />
                 )}
-                <Form
-                    className={style.form}
-                    labelCol={{span: 6}}
-                    initialValues={{user_name: data.user_name}}
-                    form={form}
+                <section
+                    className={style.profileSurface}
+                    data-testid='profile-surface'
+                    aria-label={t('my.title')}
                 >
-                    {!profileError && changePass === false
-                        ? (
-                            <Spin spinning={spinning}>
-                                <Form.Item label={t('my.col.id')} className={style.item}>
-                                    {data.user_name}
-                                </Form.Item>
-                                <Form.Item label={t('my.col.name')} className={style.item}>
-                                    {data.user_nickname}
-                                </Form.Item>
-                                <Form.Item label={t('my.col.remark')} className={style.item}>
-                                    {data.user_description}
-                                </Form.Item>
-                                <Form.Item label={t('my.col.permission_roles')} className={style.item}>
-                                    {data.adminSpaces && data.adminSpaces.join(',')}
-                                </Form.Item>
-                                <Form.Item label={t('my.col.create_time')} className={style.item}>
-                                    {data.user_create}
-                                </Form.Item>
-                            </Spin>
-                        )
-                        : !profileError ? (
-                            <>
-                                <Form.Item label={t('my.col.name')} name='user_name'>
-                                    <Input disabled />
-                                </Form.Item>
-                                <Form.Item label={t('my.edit.old_password')} name='old_password'>
-                                    <Input.Password
-                                        autoComplete='new-password'
-                                        placeholder={t('my.edit.old_password_placeholder')}
-                                    />
-                                </Form.Item>
-                                <Form.Item
-                                    label={t('my.edit.new_password')}
-                                    name='user_password'
-                                    rules={[rules.required(), {type: 'string', min: 5, max: 16}]}
-                                >
-                                    <Input.Password placeholder={t('my.edit.new_password_placeholder')} />
-                                </Form.Item>
-                                <Form.Item
-                                    label={t('my.edit.confirm_password')}
-                                    name='repeat_password'
-                                    dependencies={['user_password']}
-                                    hasFeedback
-                                    rules={[
-                                        rules.required(),
-                                        ({getFieldValue}) => ({
-                                            validator(_, value) {
-                                                if (!value || getFieldValue('user_password') === value) {
-                                                    return Promise.resolve();
-                                                }
+                    <Form
+                        className={style.form}
+                        labelCol={{span: 7}}
+                        initialValues={{user_name: data.user_name}}
+                        form={form}
+                    >
+                        {!profileError && changePass === false
+                            ? (
+                                <Spin spinning={spinning}>
+                                    <Form.Item label={t('my.col.id')} className={style.item}>
+                                        {data.user_name}
+                                    </Form.Item>
+                                    <Form.Item label={t('my.col.name')} className={style.item}>
+                                        {data.user_nickname}
+                                    </Form.Item>
+                                    <Form.Item label={t('my.col.remark')} className={style.item}>
+                                        {data.user_description}
+                                    </Form.Item>
+                                    <Form.Item label={t('my.col.permission_roles')} className={style.item}>
+                                        {data.adminSpaces && data.adminSpaces.join(',')}
+                                    </Form.Item>
+                                    <Form.Item label={t('my.col.create_time')} className={style.item}>
+                                        {data.user_create}
+                                    </Form.Item>
+                                </Spin>
+                            )
+                            : !profileError ? (
+                                <>
+                                    <Form.Item label={t('my.col.name')} name='user_name'>
+                                        <Input disabled />
+                                    </Form.Item>
+                                    <Form.Item label={t('my.edit.old_password')} name='old_password'>
+                                        <Input.Password
+                                            autoComplete='new-password'
+                                            placeholder={t('my.edit.old_password_placeholder')}
+                                        />
+                                    </Form.Item>
+                                    <Form.Item
+                                        label={t('my.edit.new_password')}
+                                        name='user_password'
+                                        rules={[rules.required(), {type: 'string', min: 5, max: 16}]}
+                                    >
+                                        <Input.Password placeholder={t('my.edit.new_password_placeholder')} />
+                                    </Form.Item>
+                                    <Form.Item
+                                        label={t('my.edit.confirm_password')}
+                                        name='repeat_password'
+                                        dependencies={['user_password']}
+                                        hasFeedback
+                                        rules={[
+                                            rules.required(),
+                                            ({getFieldValue}) => ({
+                                                validator(_, value) {
+                                                    if (!value || getFieldValue('user_password') === value) {
+                                                        return Promise.resolve();
+                                                    }
 
-                                                return Promise.reject(new Error(t('my.edit.password_mismatch')));
-                                            },
-                                        }),
-                                    ]}
-                                >
-                                    <Input.Password placeholder={t('my.edit.confirm_password_placeholder')} />
-                                </Form.Item>
-                                <Form.Item wrapperCol={{offset: 6}}>
-                                    <Space>
-                                        <Button onClick={handleShowAccount}>{t('common.action.cancel')}</Button>
-                                        <Button type='primary' onClick={handleForm} loading={loading}>
-                                            {t('common.action.confirm')}
-                                        </Button>
-                                    </Space>
-                                    {/* <div className={Style.desc}>上次更改密码时间：2022-06-24 10:44:22</div> */}
-                                </Form.Item>
-                            </>
-                        ) : null}
-                </Form>
+                                                    return Promise.reject(new Error(t('my.edit.password_mismatch')));
+                                                },
+                                            }),
+                                        ]}
+                                    >
+                                        <Input.Password placeholder={t('my.edit.confirm_password_placeholder')} />
+                                    </Form.Item>
+                                    <Form.Item wrapperCol={{offset: 7}}>
+                                        <Space>
+                                            <Button onClick={handleShowAccount}>{t('common.action.cancel')}</Button>
+                                            <Button type='primary' onClick={handleForm} loading={loading}>
+                                                {t('common.action.confirm')}
+                                            </Button>
+                                        </Space>
+                                        {/* <div className={Style.desc}>上次更改密码时间：2022-06-24 10:44:22</div> */}
+                                    </Form.Item>
+                                </>
+                            ) : null}
+                    </Form>
+                </section>
             </div>
 
             <EditLayer

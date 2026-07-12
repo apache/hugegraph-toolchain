@@ -19,17 +19,26 @@
 import {Result} from 'antd';
 import {Link} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
+import c from './index.module.scss';
 
 const Error404 = () => {
     const {t} = useTranslation();
 
     return (
-        <Result
-            status={404}
-            title={404}
-            subTitle={t('not_found.subtitle')}
-            extra={<Link to='/'>{t('not_found.home')}</Link>}
-        />
+        <div className={c.pageCanvas}>
+            <section className={c.surface} data-testid='not-found-surface'>
+                <Result
+                    status={404}
+                    title={404}
+                    subTitle={t('not_found.subtitle')}
+                    extra={(
+                        <Link className={c.primaryAction} to='/navigation'>
+                            {t('not_found.home')}
+                        </Link>
+                    )}
+                />
+            </section>
+        </div>
     );
 };
 

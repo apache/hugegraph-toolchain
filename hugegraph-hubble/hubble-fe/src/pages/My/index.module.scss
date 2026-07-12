@@ -16,18 +16,37 @@
  * under the License.
  */
 
+.pageCanvas {
+    display: grid;
+    align-content: start;
+    gap: var(--workbench-space-4);
+}
+
+.profileSurface {
+    width: min(100%, 720px);
+    padding: 24px;
+    border: 1px solid var(--workbench-color-border);
+    border-radius: var(--workbench-radius-lg);
+    background: var(--workbench-color-surface);
+    box-shadow: var(--workbench-shadow-surface);
+}
+
 form.form {
-    width: 600px;
-    margin: auto;
-    margin-top: 60px;
-    font-size: 24px;
+    width: 100%;
+    margin: 0;
 
     .item {
-        margin: 0;
+        margin-bottom: var(--workbench-space-3);
     }
 }
 
 .desc {
     color: #848484;
     margin-top: 5px;
+}
+
+@media (max-width: 900px) {
+    .profileSurface {
+        padding: var(--workbench-space-4);
+    }
 }

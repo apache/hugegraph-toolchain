@@ -16,23 +16,19 @@
  * under the License.
  */
 
-import {render, screen} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
-import Error404 from './index';
+import fs from 'fs';
+import path from 'path';
 
-jest.mock('react-i18next', () => ({
-    useTranslation: () => ({t: key => key}),
-}));
+const read = relativePath => fs.readFileSync(path.join(__dirname, relativePath), 'utf8');
 
-test('uses localized unknown-route recovery copy', () => {
-    render(
-        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
-            <Error404 />
-        </MemoryRouter>
-    );
+test('low-frequency pages use bounded token-based surfaces', () => {
+    const profile = read('pages/My/index.module.scss');
+    const notFound = read('pages/Error404/index.module.scss');
+    const asyncResult = read('modules/asyncTasks/Result/index.module.scss');
 
-    expect(screen.getByText('not_found.subtitle')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'not_found.home'}))
-        .toHaveAttribute('href', '/navigation');
-    expect(screen.getByTestId('not-found-surface')).toBeInTheDocument();
+    expect(profile).not.toMatch(/width:\s*600px/);
+    expect(profile).not.toMatch(/margin-top:\s*60px/);
+    expect(profile).toContain('var(--workbench-color-surface)');
+    expect(notFound).toContain('var(--workbench-color-surface)');
+    expect(asyncResult).toContain('var(--workbench-color-surface)');
 });
