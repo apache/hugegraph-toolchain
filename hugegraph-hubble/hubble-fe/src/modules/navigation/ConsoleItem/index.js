@@ -19,19 +19,83 @@
 /**
  * @file 运维管理子项块
  */
+import {message} from 'antd';
+import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 
+import * as api from '../../../api';
 import Item from '../Item';
+import {normalizeDashboardUrl, probeDashboard} from './dashboard';
 
 const ConsoleItem = () => {
 
     const {t} = useTranslation();
-    const item = titleKey => ({
+    const [dashboard, setDashboard] = useState({status: 'loading', url: ''});
+
+    useEffect(() => {
+        let cancelled = false;
+        api.auth.getDashboard().then(res => {
+            if (cancelled) {
+                return;
+            }
+            if (res?.status !== 200) {
+                setDashboard({status: 'unavailable', url: ''});
+            }
+            else if (!res.data?.configured) {
+                setDashboard({status: 'unconfigured', url: ''});
+            }
+            else {
+                const url = normalizeDashboardUrl(
+                    res.data.address, res.data.protocol
+                );
+                setDashboard({status: 'configured', url});
+            }
+        }).catch(() => {
+            if (!cancelled) {
+                setDashboard({status: 'unavailable', url: ''});
+            }
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    const openDashboard = useCallback(async url => {
+        const popup = window.open('about:blank', '_blank');
+        if (!popup) {
+            message.error(t('navigation_page.dashboard_popup_blocked'));
+            return;
+        }
+        popup.opener = null;
+        setDashboard(current => ({...current, status: 'checking'}));
+        if (!await probeDashboard(url)) {
+            popup.close();
+            setDashboard(current => ({...current, status: 'unavailable'}));
+            message.error(t('navigation_page.dashboard_unavailable'));
+            return;
+        }
+        setDashboard(current => ({...current, status: 'configured'}));
+        popup.location.replace(url);
+    }, [t]);
+
+    const configured = Boolean(dashboard.url);
+    const reason = dashboard.status === 'loading'
+        ? t('navigation_page.dashboard_checking')
+        : dashboard.status === 'unconfigured'
+            ? t('navigation_page.dashboard_unconfigured')
+            : dashboard.status === 'unavailable'
+                ? t('navigation_page.dashboard_unavailable')
+                : '';
+    const item = (titleKey, path = '') => ({
         title: t(titleKey),
-        url: '',
-        disabled: true,
-        reason: t('navigation_page.coming_soon'),
-        badge: t('navigation_page.coming_soon'),
+        url: configured ? dashboard.url + path : '',
+        disabled: !configured || dashboard.status === 'checking',
+        reason,
+        badge: dashboard.status === 'unconfigured'
+            ? t('navigation_page.not_configured') : '',
+        onClick: configured
+            ? () => openDashboard(dashboard.url + path)
+            : undefined,
     });
 
     return (
@@ -40,9 +104,9 @@ const ConsoleItem = () => {
             btnTitle={t('navigation_page.operation_manage')}
             listData={[
                 item('navigation_page.cluster_manage'),
-                item('navigation_page.monitor_manage'),
-                item('navigation_page.node_manage'),
-                item('navigation_page.alert_manage'),
+                item('navigation_page.monitor_manage', '/monitor/machine'),
+                item('navigation_page.node_manage', '/operate/node'),
+                item('navigation_page.alert_manage', '/alert/rule'),
             ]}
         />
     );

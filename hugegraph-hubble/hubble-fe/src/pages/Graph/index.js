@@ -73,6 +73,7 @@ const Graph = () => {
     const [loading, setLoading] = useState(false);
     const [listUnavailable, setListUnavailable] = useState(false);
     const [clearSelection, setClearSelection] = useState(null);
+    const [sampleLoading, setSampleLoading] = useState('');
     const {graphspace} = useParams();
     const navigate = useNavigate();
     const pdMode = isPdEnabled();
@@ -124,6 +125,38 @@ const Graph = () => {
     const handleClearConfirm = useCallback(() => {
         return api.manage.clearGraph(graphspace, clearSelection.graph);
     }, [clearSelection, graphspace]);
+
+    const loadSample = useCallback((graph, dataset) => {
+        Modal.confirm({
+            title: t(`graph.sample.${dataset}_title`),
+            content: t(`graph.sample.${dataset}_description`, {graph}),
+            okText: t('graph.sample.confirm'),
+            cancelText: t('common.action.cancel'),
+            onOk: async () => {
+                setSampleLoading(`${graph}:${dataset}`);
+                try {
+                    const res = await api.manage.loadSampleGraph(graphspace, graph, dataset, {
+                        suppressBusinessErrorToast: true,
+                    });
+                    if (res.status !== 200) {
+                        throw new Error(res.message || t('graph.sample.failed'));
+                    }
+                    message.success(t('graph.sample.success', {
+                        vertices: res.data.vertices,
+                        edges: res.data.edges,
+                    }));
+                    setRefresh(value => !value);
+                }
+                catch (error) {
+                    message.error(error.message || t('graph.sample.failed'));
+                    throw error;
+                }
+                finally {
+                    setSampleLoading('');
+                }
+            },
+        });
+    }, [graphspace, t]);
 
     const showSchema = useCallback(graph => {
         setViewLayer(true);
@@ -354,6 +387,32 @@ const Graph = () => {
             key: '5',
             label: t('graph.menu.view_schema'),
             onClick: () => showSchema(item.name),
+        },
+        {
+            key: 'sample-loader',
+            disabled: Boolean(sampleLoading),
+            label: sampleLoading === `${item.name}:loader`
+                ? t('graph.sample.loading') : t('graph.menu.load_loader_sample'),
+            onClick: sampleLoading ? undefined : () => loadSample(item.name, 'loader'),
+        },
+        {
+            key: 'sample-rank',
+            disabled: Boolean(sampleLoading),
+            label: sampleLoading === `${item.name}:rank`
+                ? t('graph.sample.loading') : t('graph.menu.load_rank_sample'),
+            onClick: sampleLoading ? undefined : () => loadSample(item.name, 'rank'),
+        },
+        {
+            key: 'sample-rank-docs',
+            label: (
+                <a
+                    href="https://hugegraph.apache.org/docs/clients/restful-api/rank/"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    {t('graph.sample.rank_docs')}
+                </a>
+            ),
         },
         {
             key: '6',

@@ -22,11 +22,16 @@
 
 import React, {useMemo} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Tabs} from 'antd';
+import {Alert, Tabs} from 'antd';
 import JsonView from '../JsonView';
 import GraphResult from '../GraphResult/Home';
 import TableView from '../TableView';
-import {getJsonViewContent} from './utils';
+import {
+    GRAPH_EDGE_LIMIT,
+    GRAPH_NODE_LIMIT,
+    getGraphViewLimitStatus,
+    getJsonViewContent,
+} from './utils';
 import c from './index.module.scss';
 
 const QueryResult = props => {
@@ -49,6 +54,10 @@ const QueryResult = props => {
     const jsonViewContent = useMemo(
         () => getJsonViewContent(queryResultJson),
         [queryResultJson]
+    );
+    const graphLimit = useMemo(
+        () => getGraphViewLimitStatus(queryResultGraph),
+        [queryResultGraph]
     );
 
     const GRAPH_VIEW = t('analysis.query_result.graph');
@@ -75,7 +84,19 @@ const QueryResult = props => {
         );
     };
 
-    const graphView = (
+    const graphView = graphLimit.exceeded ? (
+        <Alert
+            showIcon
+            type="warning"
+            message={t('analysis.query_result.graph_limit_title')}
+            description={t('analysis.query_result.graph_limit_description', {
+                nodes: graphLimit.nodeCount,
+                edges: graphLimit.edgeCount,
+                nodeLimit: GRAPH_NODE_LIMIT,
+                edgeLimit: GRAPH_EDGE_LIMIT,
+            })}
+        />
+    ) : (
         <GraphResult
             data={queryResultGraph}
             isQueryMode={isQueryMode}
@@ -91,6 +112,7 @@ const QueryResult = props => {
             <Tabs
                 tabPosition="left"
                 className={c.queryResultTabs}
+                defaultActiveKey={graphLimit.exceeded ? 2 : 1}
                 items={[
                     {
                         label: renderTab(GRAPH_VIEW),

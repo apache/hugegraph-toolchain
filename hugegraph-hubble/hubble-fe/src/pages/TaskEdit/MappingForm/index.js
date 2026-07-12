@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Space, Button, Form, Typography, message, List} from 'antd';
+import {Alert, Space, Button, Form, Typography, message, List} from 'antd';
 import {useState, useEffect, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../api';
@@ -213,6 +213,12 @@ const MappingForm = ({prev,
     return (
         <div style={{display: visible ? '' : 'none'}}>
             <Typography.Title level={5}>{t('task.edit.step_mapping_fields')}</Typography.Title>
+            <Alert
+                showIcon
+                type='info'
+                message={t('task.edit.mapping_help_title')}
+                description={t('task.edit.mapping_help')}
+            />
             <Space className={'form_attr_button'}>
                 <Button onClick={createVertex}>
                     {t('task.edit.add_vertex_mapping')}

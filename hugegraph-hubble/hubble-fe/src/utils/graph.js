@@ -52,7 +52,8 @@ const fitView = graph => {
     const h = (height - padding[0] - padding[2]) / bbox.height;
     graph.translate(viewCenter.x - groupCenter.x, viewCenter.y - groupCenter.y);
     const fitRatio = Math.min(w, h);
-const itemCount = (graph.getNodes?.()?.length || 0) + (graph.getEdges?.()?.length || 0);
+    const itemCount = (graph.getNodes?.()?.length || 0)
+        + (graph.getEdges?.()?.length || 0);
     const shouldMagnifySmallGraph = itemCount > 0 && itemCount <= 40 && fitRatio > 1;
     if (fitRatio < 1 || shouldMagnifySmallGraph) {
         const ratio = shouldMagnifySmallGraph ? Math.min(fitRatio, 1.35) : fitRatio;

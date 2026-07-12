@@ -85,10 +85,12 @@ test('uses the same journey names as the global navigation in both languages', (
     expect(zhHome.home.workbench.journeys.prepare.title).toBe('数据准备');
     expect(enHome.home.workbench.journeys.understand.title).toBe('Graph Overview');
     expect(enHome.home.workbench.journeys.prepare.title).toBe('Data Preparation');
+    expect(enHome.home.workbench.journeys.query.title).toBe('Query & Analysis');
     expect(zhCommon.workbench.nav.understand).toBe('图概览');
     expect(zhCommon.workbench.nav.prepare).toBe('数据准备');
     expect(enCommon.workbench.nav.understand).toBe('Graph Overview');
     expect(enCommon.workbench.nav.prepare).toBe('Data Preparation');
+    expect(enCommon.workbench.nav.query).toBe('Query & Analysis');
 });
 
 test('keeps GraphSpace and support capabilities available to a PD superadmin', () => {

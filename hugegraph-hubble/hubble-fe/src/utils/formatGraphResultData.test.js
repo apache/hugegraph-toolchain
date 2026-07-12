@@ -42,7 +42,7 @@ const metaData = {
     ],
 };
 
-test('formats edge id display without losing raw edge label', () => {
+test('uses a readable edge label by default without losing the full edge id', () => {
     const graphData = formatToGraphData({
         vertices: [],
         edges: [
@@ -57,10 +57,20 @@ test('formats edge id display without losing raw edge label', () => {
     }, metaData, {});
 
     expect(graphData.edges[0].id).toBe('edge-1');
-    expect(graphData.edges[0].label).toBe('edge-1');
+    expect(graphData.edges[0].label).toBe('knows');
     expect(graphData.edges[0].rawLabel).toBe('knows');
     expect(graphData.edges[0].itemType).toBe('knows');
     expect(graphData.edges[0].legendType).toBe('knows');
+});
+
+test('falls back to the full edge id when the edge label is missing', () => {
+    const graphData = formatToGraphData({
+        vertices: [],
+        edges: [{id: 'edge-1', source: 'v1', target: 'v2', properties: {}}],
+    }, metaData, {});
+
+    expect(graphData.edges[0].label).toBe('edge-1');
+    expect(graphData.edges[0].id).toBe('edge-1');
 });
 
 test('exports raw edge label instead of display label', () => {

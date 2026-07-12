@@ -86,7 +86,11 @@ const items = (t, pathname) => {
                     key: 'schema',
                 },
                 {
-                    label: <Link to='/source'>{t('manage.source')}</Link>,
+                    label: (
+                        <Link to='/source' title={t('manage.source')}>
+                            {t('manage.source')}
+                        </Link>
+                    ),
                     key: 'source',
                 },
                 {
@@ -136,7 +140,7 @@ const Sidebar = () => {
             <Layout.Sider
                 collapsible
                 collapsed={collapsed}
-                width={224}
+                width={248}
                 onCollapse={setCollapsed}
                 theme='light'
                 trigger={

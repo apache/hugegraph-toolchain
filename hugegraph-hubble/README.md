@@ -7,6 +7,36 @@
 hugegraph-hubble is a graph management and analysis platform that provides features:
 graph data load, schema management, graph relationship analysis, and graphical display.
 
+## Local development feedback loop
+
+Run the frontend with third-party source-map noise disabled:
+
+```bash
+cd hubble-fe
+yarn dev
+```
+
+Run the backend incrementally with Java 11 and the Maven daemon:
+
+```bash
+export JAVA_HOME=$(/usr/libexec/java_home -v 11)
+mvnd -pl hubble-be -DskipTests compile dependency:build-classpath \
+  -Dmdep.outputFile=/tmp/hubble-be-classpath
+mkdir -p /tmp/hubble-dev-home
+cd hubble-be
+"$JAVA_HOME/bin/java" -Dfile.encoding=UTF-8 \
+  -Dhubble.home.path=/tmp/hubble-dev-home \
+  -cp "target/classes:$(</tmp/hubble-be-classpath)" \
+  org.apache.hugegraph.HugeGraphHubble
+```
+
+Stop the previous backend process before restarting after Java changes. Changes
+under `hubble-be/src/main/resources` are copied by the next `compile`. The POM
+does not configure `spring-boot:run`, so that command is not a supported local
+shortcut. Build
+the release package with `mvnd package -DskipTests`; these development commands
+do not change packaged runtime behavior.
+
 ## Functional Modules Overview
 
 ```mermaid

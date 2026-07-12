@@ -40,7 +40,9 @@
       "no_table_result": "无表格结果，请查看图或 Json 数据",
       "no_json_result": "无 Json 结果，请查看图或表格数据",
       "expand_failed": "展开失败",
-      "no_more_neighbors": "不存在更多邻接点"
+      "no_more_neighbors": "不存在更多邻接点",
+      "graph_limit_title": "结果过大，已默认收起图画布",
+      "graph_limit_description": "当前结果包含 {{nodes}} 个节点、{{edges}} 条边，画布上限为 {{nodeLimit}} 个节点、{{edgeLimit}} 条边。请使用表格或 Json 查看完整结果。"
     },
     "canvas": {
       "graph_canvas": "图画布",

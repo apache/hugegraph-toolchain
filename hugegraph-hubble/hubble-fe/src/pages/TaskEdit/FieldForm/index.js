@@ -203,6 +203,12 @@ const FieldForm = ({visible, prev, datasourceID}) => {
         <div style={{display: visible ? '' : 'none'}} className={style.transfer}>
             <Form form={fieldForm} name='field_form'>
                 <Typography.Title level={5}>{t('task.edit.step_source_fields')}</Typography.Title>
+                <Alert
+                    showIcon
+                    type='info'
+                    message={t('task.edit.fields_help_title')}
+                    description={t('task.edit.fields_help')}
+                />
                 {loadError && (
                     <Alert
                         showIcon

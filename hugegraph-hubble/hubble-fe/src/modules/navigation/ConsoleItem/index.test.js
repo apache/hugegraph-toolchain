@@ -15,7 +15,7 @@
  * under the License.
  */
 
-import {render, screen} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 
 import * as api from '../../../api';
@@ -45,34 +45,90 @@ beforeEach(() => {
     });
     api.auth.getDashboard.mockResolvedValue({
         status: 200,
-        data: {address: '127.0.0.1:8092', protocol: 'http'},
+        data: {
+            configured: true,
+            address: '127.0.0.1:8092',
+            protocol: 'http',
+        },
     });
 });
 
-test('keeps unimplemented operations visibly disabled without loading Dashboard', () => {
-    render(
-        <MemoryRouter
-            future={{
-                v7_relativeSplatPath: true,
-                v7_startTransition: true,
-            }}
-        >
-            <ConsoleItem />
-        </MemoryRouter>
-    );
+const renderConsole = () => render(
+    <MemoryRouter
+        future={{
+            v7_relativeSplatPath: true,
+            v7_startTransition: true,
+        }}
+    >
+        <ConsoleItem />
+    </MemoryRouter>
+);
 
-    const buttons = [
-        'navigation_page.cluster_manage',
-        'navigation_page.monitor_manage',
-        'navigation_page.node_manage',
-        'navigation_page.alert_manage',
-    ].map(name => screen.getByRole('button', {name}));
+test('opens a configured and healthy Dashboard capability', async () => {
+    renderConsole();
 
-    buttons.forEach(button => {
-        expect(button).toBeDisabled();
-        expect(button).toHaveAttribute('title', 'navigation_page.coming_soon');
+    const monitor = await screen.findByRole('button', {
+        name: 'navigation_page.monitor_manage',
     });
-    expect(api.auth.getDashboard).not.toHaveBeenCalled();
-    expect(window.fetch).not.toHaveBeenCalled();
-    expect(window.open).not.toHaveBeenCalled();
+    await waitFor(() => expect(monitor).toBeEnabled());
+    fireEvent.click(monitor);
+
+    await waitFor(() => expect(window.fetch).toHaveBeenCalledWith(
+        'http://127.0.0.1:8092/monitor/machine',
+        expect.objectContaining({mode: 'no-cors'})
+    ));
+    expect(window.open).toHaveBeenCalledWith('about:blank', '_blank');
+    await waitFor(() => expect(window.open.mock.results[0].value.location.replace)
+        .toHaveBeenCalledWith('http://127.0.0.1:8092/monitor/machine'));
+});
+
+test('labels an unconfigured Dashboard instead of Coming Soon', async () => {
+    api.auth.getDashboard.mockResolvedValue({
+        status: 200,
+        data: {configured: false},
+    });
+    renderConsole();
+
+    const monitor = await screen.findByRole('button', {
+        name: 'navigation_page.monitor_manage',
+    });
+    await waitFor(() => expect(monitor).toHaveAttribute(
+        'title', 'navigation_page.dashboard_unconfigured'
+    ));
+    expect(screen.getAllByText('navigation_page.not_configured')).toHaveLength(4);
+    expect(screen.queryByText('navigation_page.coming_soon')).not.toBeInTheDocument();
+});
+
+test('keeps a configured capability retryable after a health probe fails', async () => {
+    window.fetch.mockRejectedValue(new Error('offline'));
+    const popup = window.open();
+    window.open.mockClear();
+    renderConsole();
+
+    const monitor = await screen.findByRole('button', {
+        name: 'navigation_page.monitor_manage',
+    });
+    await waitFor(() => expect(monitor).toBeEnabled());
+    fireEvent.click(monitor);
+
+    await waitFor(() => expect(mockMessageError).toHaveBeenCalledWith(
+        'navigation_page.dashboard_unavailable'
+    ));
+    expect(popup.close).toHaveBeenCalled();
+    await waitFor(() => expect(monitor).toBeEnabled());
+});
+
+test('shows a diagnostic state when Dashboard configuration cannot be read', async () => {
+    api.auth.getDashboard.mockRejectedValue(new Error('backend unavailable'));
+    await act(async () => {
+        renderConsole();
+        await Promise.resolve();
+    });
+
+    const monitor = await screen.findByRole('button', {
+        name: 'navigation_page.monitor_manage',
+    });
+    await waitFor(() => expect(monitor).toHaveAttribute(
+        'title', 'navigation_page.dashboard_unavailable'
+    ));
 });

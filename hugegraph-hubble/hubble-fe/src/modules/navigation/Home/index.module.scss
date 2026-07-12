@@ -107,6 +107,7 @@
 .primaryAction {
     display: flex;
     width: 100%;
+    min-width: 0;
     min-height: 32px;
     align-items: center;
     justify-content: center;
@@ -117,6 +118,9 @@
     background: var(--workbench-color-brand);
     color: #fff;
     line-height: 22px;
+    overflow-wrap: anywhere;
+    text-align: center;
+    white-space: normal;
     transition: background-color 0.2s, border-color 0.2s;
 
     &:hover,

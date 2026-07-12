@@ -24,7 +24,7 @@
       "name_rule": "Start with a letter, and use lowercase letters, numbers, or underscores only",
       "cn_name_rule": "Use Chinese characters, letters, or underscores only",
       "property_name_rule": "Use Chinese characters, letters, numbers, or underscores only",
-      "normal_name_rule": "Use Chinese characters, letters, numbers, or underscores only, up to 20 characters",
+      "normal_name_rule": "Use Chinese characters, letters, numbers, or underscores only, up to 48 characters",
       "jdbc_rule": "Enter a valid JDBC URL, for example: jdbc:mysql://127.0.0.1:3306/db_name",
       "account_name_rule": "Account name must be within 16 characters and cannot start or end with an underscore",
       "favorite_name_rule": "Use Chinese characters, letters, numbers, or underscores only, up to 48 characters",
@@ -51,7 +51,7 @@
       "home": "Workbench",
       "understand": "Graph Overview",
       "prepare": "Data Preparation",
-      "query": "Query and analyze",
+      "query": "Query & Analysis",
       "support": "System and operations"
     },
     "page": {

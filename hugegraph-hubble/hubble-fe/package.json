@@ -49,6 +49,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "dev": "GENERATE_SOURCEMAP=false react-scripts start",
     "build": "node scripts/check-i18n.js && react-scripts build",
     "lint": "eslint src --ext .js,.jsx,.ts,.tsx --max-warnings=0",
     "i18n:check": "node scripts/check-i18n.js",

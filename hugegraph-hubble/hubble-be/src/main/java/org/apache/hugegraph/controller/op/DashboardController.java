@@ -31,7 +31,6 @@ import org.apache.hugegraph.common.Constant;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.controller.BaseController;
 import org.apache.hugegraph.options.HubbleOptions;
-import org.apache.hugegraph.util.E;
 
 @RestController
 @RequestMapping(Constant.API_VERSION + "dashboard")
@@ -42,11 +41,11 @@ public class DashboardController extends BaseController {
     @GetMapping
     public Map<String, Object> listOperations() {
         String address = config.get(HubbleOptions.DASHBOARD_ADDRESS);
-        E.checkArgument(StringUtils.isNotEmpty(address),
-                        "Please set 'dashboard.address' in config file " +
-                        "conf/hugegraph-hubble.properties.");
-
         Map<String, Object> result = new HashMap<>();
+        result.put("configured", StringUtils.isNotEmpty(address));
+        if (StringUtils.isEmpty(address)) {
+            return result;
+        }
         result.put("address", address);
         result.put("protocol", config.get(HubbleOptions.SERVER_PROTOCOL));
         return result;

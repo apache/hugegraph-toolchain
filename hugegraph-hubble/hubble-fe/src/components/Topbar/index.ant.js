@@ -111,6 +111,7 @@ const Topbar = () => {
             <GraphContextSwitcher />
             <div className={style.rightContainer}>
                 <Select
+                    aria-label={t('login.language')}
                     value={languageType}
                     style={{width: 120}}
                     size="small"

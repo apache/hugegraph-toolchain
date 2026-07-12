@@ -43,10 +43,27 @@ public class DashboardControllerTest {
 
         Map<String, Object> result = controller.listOperations();
 
+        Assert.assertEquals(true, result.get("configured"));
         Assert.assertEquals("127.0.0.1:8092", result.get("address"));
         Assert.assertEquals("https", result.get("protocol"));
         Mockito.verify(config).get(HubbleOptions.DASHBOARD_ADDRESS);
         Mockito.verify(config).get(HubbleOptions.SERVER_PROTOCOL);
+        Mockito.verifyNoMoreInteractions(config);
+    }
+
+    @Test
+    public void testReturnsUnconfiguredAsNormalCapabilityState() {
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.DASHBOARD_ADDRESS)).thenReturn("");
+        DashboardController controller = new DashboardController();
+        ReflectionTestUtils.setField(controller, "config", config);
+
+        Map<String, Object> result = controller.listOperations();
+
+        Assert.assertEquals(false, result.get("configured"));
+        Assert.assertFalse(result.containsKey("address"));
+        Assert.assertFalse(result.containsKey("protocol"));
+        Mockito.verify(config).get(HubbleOptions.DASHBOARD_ADDRESS);
         Mockito.verifyNoMoreInteractions(config);
     }
 }

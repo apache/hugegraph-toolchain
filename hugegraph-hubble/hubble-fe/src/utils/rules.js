@@ -112,7 +112,7 @@ const isPropertyName = msg => ({
 // Chinese characters, letters, numbers, underscore
 const isNoramlName = msg => ({
     validator(_, value) {
-        let res = /^[\u4E00-\u9FA5\uFE30-\uFFA0\_a-zA-Z0-9_]{1,20}$/.test(value);
+        let res = /^[\u4E00-\u9FA5\uFE30-\uFFA0\_a-zA-Z0-9_]{1,48}$/.test(value);
         if (!res) {
             return Promise.reject(
                 typeof msg === 'string' ? msg : validationMessage('normal_name_rule')

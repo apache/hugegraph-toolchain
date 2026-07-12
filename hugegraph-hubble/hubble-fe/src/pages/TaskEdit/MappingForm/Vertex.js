@@ -227,6 +227,9 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
                     // required={selectLabel.id_strategy !== 'PRIMARY_KEY'}
                     label={t('task.edit.id_column')}
                     name={'id'}
+                    extra={t('task.edit.id_column_help', {
+                        strategy: selectLabel.id_strategy || '-',
+                    })}
                     rules={[!['PRIMARY_KEY', 'AUTOMATIC'].includes(selectLabel.id_strategy) ? rules.required() : null]}
                 >
                     <Select
@@ -235,12 +238,18 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
                         options={targetOptions}
                     />
                 </Form.Item>
-                <Form.Item label={t('task.edit.property_mapping')}>
+                <Form.Item
+                    label={t('task.edit.property_mapping')}
+                    extra={t('task.edit.property_mapping_help')}
+                >
                     <Form.List name={'attr'} rules={[checkDuplicate]}>
                         {attrFormList}
                     </Form.List>
                 </Form.Item>
-                <Form.Item label={t('task.edit.value_mapping')}>
+                <Form.Item
+                    label={t('task.edit.value_mapping')}
+                    extra={t('task.edit.value_mapping_help')}
+                >
                     <Form.List name={'value'}>
                         {valueFormList}
                     </Form.List>

@@ -120,6 +120,13 @@ const clearGraph = (graphspace, graph) => {
     return request.post(`/graphspaces/${graphspace}/graphs/${graph}/clear`);
 };
 
+const loadSampleGraph = (graphspace, graph, dataset, config = {}) => {
+    return request.post(`/graphspaces/${graphspace}/graphs/${graph}/sample`, undefined, {
+        ...config,
+        params: {dataset},
+    });
+};
+
 const getGraphStatistic = (graphspace, graph, config) => {
     return request.get(`/graphspaces/${graphspace}/graphs/${graph}/statistics`, config);
 };
@@ -133,7 +140,7 @@ const cloneGraph = (graphspace, graph, params) => {
 };
 
 export {getGraphList, getGraph, addGraph, updateGraph, delGraph, getDefaultGraph,
-    getGraphView, setDefaultGraph, clearGraph,
+    getGraphView, setDefaultGraph, clearGraph, loadSampleGraph,
     getGraphStatistic, updateGraphStatistic, cloneGraph};
 
 // meta property

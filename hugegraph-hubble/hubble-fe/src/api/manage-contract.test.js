@@ -48,6 +48,17 @@ test('clears graph data with POST on the canonical route', () => {
     expect(manage.clearGraphData).toBeUndefined();
 });
 
+test('loads the non-destructive sample through the target graph route', () => {
+    const config = {suppressBusinessErrorToast: true};
+    manage.loadSampleGraph('DEFAULT', 'g', 'loader', config);
+
+    expect(request.post).toHaveBeenCalledWith(
+        '/graphspaces/DEFAULT/graphs/g/sample',
+        undefined,
+        {...config, params: {dataset: 'loader'}}
+    );
+});
+
 test('reads the default graph from the canonical route', () => {
     manage.getDefaultGraph('DEFAULT');
     expect(request.get).toHaveBeenCalledWith(

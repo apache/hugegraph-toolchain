@@ -177,6 +177,12 @@ const BaseForm = ({cancel, visible, loading}) => {
                 labelCol={{span: 3}}
             >
                 <Typography.Title level={5}>{t('task.edit.basic_info')}</Typography.Title>
+                <Alert
+                    showIcon
+                    type='info'
+                    message={t('task.edit.workflow_title')}
+                    description={t('task.edit.workflow_description')}
+                />
                 {datasourceError && (
                     <Alert
                         showIcon
@@ -216,6 +222,7 @@ const BaseForm = ({cancel, visible, loading}) => {
                 <Form.Item
                     label={t('task.edit.name')}
                     name='task_name'
+                    extra={t('task.edit.name_help')}
                     validateTrigger={['onBlur', 'onChange']}
                     rules={[
                         rules.required(),
@@ -223,12 +230,13 @@ const BaseForm = ({cancel, visible, loading}) => {
                         checkExistName,
                     ]}
                 >
-                    <Input placeholder={t('task.edit.name_placeholder')} showCount maxLength={20} />
+                    <Input placeholder={t('task.edit.name_placeholder')} showCount maxLength={48} />
                 </Form.Item>
                 <Form.Item
                     label={t('task.edit.source')}
                     wrapperCol={{span: 6}}
                     name='datasource_id'
+                    extra={t('task.edit.source_help')}
                     rules={[rules.required()]}
                 >
                     <Select
@@ -270,6 +278,16 @@ const BaseForm = ({cancel, visible, loading}) => {
                         </Form.Item>
                     </Space>
                 </Form.Item>
+                <Typography.Paragraph type="secondary" style={{marginLeft: '12.5%'}}>
+                    {t('task.edit.target_help')}{' '}
+                    <a
+                        href="https://hugegraph.apache.org/docs/quickstart/toolchain/hugegraph-loader/"
+                        target="_blank"
+                        rel="noreferrer"
+                    >
+                        {t('task.edit.loader_docs')}
+                    </a>
+                </Typography.Paragraph>
                 <Form.Item wrapperCol={{offset: 3}}>
                     <Space>
                         <Button onClick={cancel}>{t('common.action.cancel')}</Button>

@@ -55,4 +55,24 @@ const getJsonViewContent = jsonView => {
     return {value: projected};
 };
 
-export {getJsonViewContent, isJsonBigNumber, projectJsonValue};
+const GRAPH_NODE_LIMIT = 300;
+const GRAPH_EDGE_LIMIT = 300;
+
+const getGraphViewLimitStatus = (graphView = {}) => {
+    const nodeCount = Array.isArray(graphView.vertices) ? graphView.vertices.length : 0;
+    const edgeCount = Array.isArray(graphView.edges) ? graphView.edges.length : 0;
+    return {
+        nodeCount,
+        edgeCount,
+        exceeded: nodeCount > GRAPH_NODE_LIMIT || edgeCount > GRAPH_EDGE_LIMIT,
+    };
+};
+
+export {
+    GRAPH_EDGE_LIMIT,
+    GRAPH_NODE_LIMIT,
+    getGraphViewLimitStatus,
+    getJsonViewContent,
+    isJsonBigNumber,
+    projectJsonValue,
+};

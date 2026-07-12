@@ -47,6 +47,7 @@ import {
     isSemanticZoomCandidate,
     setItemLabelVisibility,
 } from '../../../utils/graphSemanticZoom';
+import {preserveNodePositions, shouldRestartGraphLayout} from './data';
 
 const Graph = (props, ref) => {
     const {t} = useTranslation();
@@ -121,10 +122,18 @@ const Graph = (props, ref) => {
             if (!graphInstance || graphInstance.destroyed) {
                 return;
             }
-            graphInstance.changeData(data || {nodes: [], edges: []}, true);
-            if (layout) {
+            const nextData = data || {nodes: [], edges: []};
+            const shouldRestartLayout = shouldRestartGraphLayout(
+                graphData.current,
+                nextData
+            );
+            const renderedData = shouldRestartLayout ? nextData
+                : preserveNodePositions(nextData, graphInstance.getNodes?.());
+            graphInstance.changeData(renderedData, true);
+            if (layout && shouldRestartLayout) {
                 graphInstance.updateLayout(layout);
             }
+            graphData.current = nextData;
             graphInstance.refresh();
             semanticZoomVisibility.current = applySemanticZoom(graphInstance, data, {
                 excludedItem: hoveredItem.current,
@@ -134,13 +143,6 @@ const Graph = (props, ref) => {
             recordSemanticZoom(semanticZoomVisibility.current);
         },
         [data, layout, recordSemanticZoom]
-    );
-
-    useEffect(
-        () => {
-            graphData.current = data;
-        },
-        [data]
     );
 
     useEffect(

@@ -26,6 +26,7 @@ import org.apache.hugegraph.controller.load.LoadTaskController;
 import org.apache.hugegraph.entity.load.FileMapping;
 import org.apache.hugegraph.entity.load.JobManager;
 import org.apache.hugegraph.entity.load.LoadTask;
+import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.service.load.FileMappingService;
 import org.apache.hugegraph.service.load.JobManagerService;
 import org.apache.hugegraph.service.load.LoadTaskService;
@@ -34,6 +35,32 @@ import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class LoaderScopeControllerTest {
+
+    @Test
+    public void testJobCreateRejectsMissingNameAsParameterError() {
+        JobManagerService service = Mockito.mock(JobManagerService.class);
+        JobManagerController controller = new JobManagerController(service);
+
+        try {
+            controller.create("space-a", "graph-a", JobManager.builder().build());
+            org.junit.Assert.fail("Expected a parameter error for missing job_name");
+        } catch (ExternalException expected) {
+            // Expected: the controller must not leak a NullPointerException.
+        }
+        Mockito.verifyZeroInteractions(service);
+    }
+
+    @Test
+    public void testJobCreateNormalizesOptionalNullRemarks() {
+        JobManagerService service = Mockito.mock(JobManagerService.class);
+        JobManager entity = JobManager.builder().jobName("task_1").build();
+        JobManagerController controller = new JobManagerController(service);
+
+        controller.create("space-a", "graph-a", entity);
+
+        org.junit.Assert.assertEquals("", entity.getJobRemarks());
+        Mockito.verify(service).save(entity);
+    }
 
     @Test
     public void testJobLookupUsesGraphScope() {

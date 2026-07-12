@@ -278,6 +278,7 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
                     required
                     label={t('task.edit.source_id')}
                     name='source'
+                    extra={t('task.edit.edge_id_help')}
                     rules={[rules.required()]}
                 >
                     <Select
@@ -289,6 +290,7 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
                     required
                     label={t('task.edit.target_id')}
                     name='target'
+                    extra={t('task.edit.edge_id_help')}
                     rules={[rules.required()]}
                 >
                     <Select

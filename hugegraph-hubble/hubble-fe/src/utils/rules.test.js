@@ -33,7 +33,7 @@ jest.mock('../i18n', () => ({
                 'common.validation.property_name_rule':
                     'Use Chinese characters, letters, numbers, or underscores only',
                 'common.validation.normal_name_rule':
-                    'Use Chinese characters, letters, numbers, or underscores only, up to 20 characters',
+                    'Use Chinese characters, letters, numbers, or underscores only, up to 48 characters',
                 'common.validation.jdbc_rule':
                     'Enter a valid JDBC URL, for example: jdbc:mysql://127.0.0.1:3306/db_name',
                 'common.validation.account_name_rule':
@@ -51,7 +51,7 @@ jest.mock('../i18n', () => ({
                 'common.validation.name_rule': '以字母开头,只能包含小写字母、数字、_',
                 'common.validation.cn_name_rule': '只能包含中文、字母、_',
                 'common.validation.property_name_rule': '只能包含中文、字母、数字、_',
-                'common.validation.normal_name_rule': '只能包含中文、字母、数字、_, 不能超过20个字符',
+                'common.validation.normal_name_rule': '只能包含中文、字母、数字、_，最多 48 个字符',
                 'common.validation.jdbc_rule':
                     '请输入正确的jdbc url, 例如：jdbc:mysql://127.0.0.1:3306/db_name',
                 'common.validation.account_name_rule': '账号名不超过16个字符，且不能以下划线开始和结尾',
@@ -116,7 +116,7 @@ describe('rules i18n defaults', () => {
             ],
             [
                 rules.isNoramlName(),
-                'Use Chinese characters, letters, numbers, or underscores only, up to 20 characters',
+                'Use Chinese characters, letters, numbers, or underscores only, up to 48 characters',
             ],
             [
                 rules.isJDBC(),
@@ -175,7 +175,7 @@ describe('rules i18n defaults', () => {
             [rules.isName(), '以字母开头,只能包含小写字母、数字、_'],
             [rules.isCNName(), '只能包含中文、字母、_'],
             [rules.isPropertyName(), '只能包含中文、字母、数字、_'],
-            [rules.isNoramlName(), '只能包含中文、字母、数字、_, 不能超过20个字符'],
+            [rules.isNoramlName(), '只能包含中文、字母、数字、_，最多 48 个字符'],
             [rules.isJDBC(), '请输入正确的jdbc url, 例如：jdbc:mysql://127.0.0.1:3306/db_name'],
             [rules.isAccountName(), '账号名不超过16个字符，且不能以下划线开始和结尾'],
             [rules.isUUID(), '非法的数据格式'],

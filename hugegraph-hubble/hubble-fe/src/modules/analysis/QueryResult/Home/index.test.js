@@ -15,7 +15,7 @@
  * under the License.
  */
 
-import {getJsonViewContent} from './utils';
+import {getGraphViewLimitStatus, getJsonViewContent} from './utils';
 import JSONbig from 'json-bigint';
 
 it('projects BigInt, production BigNumber, and null-prototype values safely', () => {
@@ -34,6 +34,27 @@ it('projects BigInt, production BigNumber, and null-prototype values safely', ()
     expect(projected[1]).toEqual({name: 'alice'});
     expect(getJsonViewContent()).toEqual([]);
     expect(getJsonViewContent({data: false})).toEqual({value: false});
+});
+
+describe('graph view limits', () => {
+    it.each([
+        [300, 300, false],
+        [301, 0, true],
+        [0, 301, true],
+    ])('evaluates %i nodes and %i edges', (nodeCount, edgeCount, exceeded) => {
+        expect(getGraphViewLimitStatus({
+            vertices: new Array(nodeCount),
+            edges: new Array(edgeCount),
+        })).toEqual({nodeCount, edgeCount, exceeded});
+    });
+
+    it('handles a missing graph result without collapsing', () => {
+        expect(getGraphViewLimitStatus()).toEqual({
+            nodeCount: 0,
+            edgeCount: 0,
+            exceeded: false,
+        });
+    });
 });
 
 it('marks circular display values without throwing', () => {

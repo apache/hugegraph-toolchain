@@ -20,6 +20,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import {BrowserRouter} from 'react-router-dom';
 import {ConfigProvider} from 'antd';
+import {useTranslation} from 'react-i18next';
 // FIXME: Consolidate moment into date-fns after replacing filter comparisons
 // and Ant Design date values together; removing it piecemeal changes semantics.
 import 'moment/locale/zh-cn';
@@ -29,9 +30,16 @@ import reportWebVitals from './reportWebVitals';
 import zhCN from 'antd/lib/locale/zh_CN';
 import enUS from 'antd/lib/locale/en_US';
 import './i18n';
-import {getCurrentLanguage} from './utils/language';
 
-const languageType = getCurrentLanguage() === 'zh-CN' ? zhCN : enUS;
+const LocalizedApp = () => {
+    const {i18n} = useTranslation();
+    const locale = i18n.language === 'zh-CN' ? zhCN : enUS;
+    return (
+        <ConfigProvider locale={locale}>
+            <App />
+        </ConfigProvider>
+    );
+};
 const routerFuture = {
     v7_startTransition: true,
     v7_relativeSplatPath: true,
@@ -40,9 +48,7 @@ const root = ReactDOM.createRoot(document.getElementById('root'));
 
 root.render(
     <BrowserRouter future={routerFuture}>
-        <ConfigProvider locale={languageType}>
-            <App />
-        </ConfigProvider>
+        <LocalizedApp />
     </BrowserRouter>
 );
 

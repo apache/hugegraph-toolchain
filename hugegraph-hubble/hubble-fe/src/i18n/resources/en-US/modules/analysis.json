@@ -40,7 +40,9 @@
       "no_table_result": "No table result. Check Graph or Json data.",
       "no_json_result": "No Json result. Check Graph or Table data.",
       "expand_failed": "Failed to expand",
-      "no_more_neighbors": "No more adjacent vertices"
+      "no_more_neighbors": "No more adjacent vertices",
+      "graph_limit_title": "Graph canvas collapsed for readability",
+      "graph_limit_description": "This result contains {{nodes}} nodes and {{edges}} edges. The canvas limit is {{nodeLimit}} nodes and {{edgeLimit}} edges. Use Table or Json to inspect the complete result."
     },
     "canvas": {
       "graph_canvas": "Graph canvas",

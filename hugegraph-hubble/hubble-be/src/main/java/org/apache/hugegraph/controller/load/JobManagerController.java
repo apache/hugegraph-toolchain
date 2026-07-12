@@ -74,12 +74,17 @@ public class JobManagerController {
                              @PathVariable("graph") String graph,
                              @RequestBody JobManager entity) {
         synchronized (this.service) {
+            Ex.check(!StringUtils.isEmpty(entity.getJobName()),
+                     "common.param.cannot-be-null-or-empty", "job_name");
             Ex.check(entity.getJobName().length() <= 48,
                      "job.manager.job-name.reached-limit");
-            Ex.check(entity.getJobName() != null, () ->
+            Ex.check(true, () ->
                      Constant.COMMON_NAME_PATTERN.matcher(
                      entity.getJobName()).matches(),
                      "job.manager.job-name.unmatch-regex");
+            if (entity.getJobRemarks() == null) {
+                entity.setJobRemarks("");
+            }
             Ex.check(entity.getJobRemarks().length() <= 200,
                      "job.manager.job-remarks.reached-limit");
             Ex.check(!StringUtils.isEmpty(entity.getJobRemarks()), () ->
@@ -151,12 +156,17 @@ public class JobManagerController {
                              @PathVariable("graph") String graph,
                              @PathVariable("id") int id,
                              @RequestBody JobManager newEntity) {
+        Ex.check(!StringUtils.isEmpty(newEntity.getJobName()),
+                 "common.param.cannot-be-null-or-empty", "job_name");
         Ex.check(newEntity.getJobName().length() <= 48,
                  "job.manager.job-name.reached-limit");
-        Ex.check(newEntity.getJobName() != null, () ->
+        Ex.check(true, () ->
                  Constant.COMMON_NAME_PATTERN.matcher(
                  newEntity.getJobName()).matches(),
                  "job.manager.job-name.unmatch-regex");
+        if (newEntity.getJobRemarks() == null) {
+            newEntity.setJobRemarks("");
+        }
         Ex.check(!StringUtils.isEmpty(newEntity.getJobRemarks()), () ->
                  Constant.COMMON_REMARK_PATTERN.matcher(
                  newEntity.getJobRemarks()).matches(),

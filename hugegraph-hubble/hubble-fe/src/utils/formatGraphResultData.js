@@ -137,6 +137,9 @@ const formatToGraphData = (queryData, metaData, styleConfig) => {
         } = customizedEdgeStyle;
         const {style = {}} = metaConfig || {};
         const {color = '#5c73e6', display_fields = ['~id'], thickness = 'NORMAL', with_arrow: withArrow} = style;
+        const edgeDisplayFields = display_fields.length === 1 && display_fields[0] === '~id'
+            ? ['~label']
+            : display_fields;
         const size = ['THICK', 'NORMAL', 'FINE'].indexOf(thickness) * 0.8 + 0.8;
         const arrowWidth = size + 5;
         const endArrow = withArrow ? {
@@ -153,7 +156,15 @@ const formatToGraphData = (queryData, metaData, styleConfig) => {
             target: item.target,
             type: customizedType || 'line',
             properties: {...item.properties},
-            label: display_fields?.map(k => (k === '~id' ? item.id : item.properties[k])).join('\n'),
+            label: edgeDisplayFields?.map(k => {
+                if (k === '~id') {
+                    return item.id;
+                }
+                if (k === '~label') {
+                    return rawLabel || item.id;
+                }
+                return item.properties[k];
+            }).join('\n'),
             legendType: rawLabel,
             itemType: rawLabel,
             style: {
