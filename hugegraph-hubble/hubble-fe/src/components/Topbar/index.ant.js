@@ -112,6 +112,7 @@ const Topbar = () => {
             <div className={style.rightContainer}>
                 <Select
                     aria-label={t('login.language')}
+                    data-testid="language-switcher"
                     value={languageType}
                     style={{width: 120}}
                     size="small"

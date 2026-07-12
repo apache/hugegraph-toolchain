@@ -91,7 +91,7 @@ async function captureLanguage(page, hubbleUrl, screenshot) {
 }
 
 async function switchToEnglish(page) {
-  await page.getByRole('combobox', { name: '语言', exact: true })
+  await page.locator('[data-testid="language-switcher"] .ant-select-selector')
             .click({ timeout: 5000 });
   await page.locator('.ant-select-item-option[title="English"]')
             .click({ timeout: 5000 });
@@ -133,8 +133,8 @@ async function main() {
                                    path.join(outputDir, 'i18n-zh-CN.png'));
     await switchToEnglish(page);
     selectorTextAfterSwitch = await page
-      .getByRole('combobox', { name: 'Language', exact: true })
-      .evaluate((element) => element.closest('.ant-select')?.innerText || '');
+      .locator('[data-testid="language-switcher"]')
+      .innerText({ timeout: 5000 });
     await page.screenshot({
       path: path.join(outputDir, 'i18n-en-US.png'),
       fullPage: true
