@@ -25,6 +25,7 @@ jest.mock('react-i18next', () => ({
 }));
 
 jest.mock('react-router-dom', () => ({
+    Link: ({children}) => <span>{children}</span>,
     useNavigate: () => jest.fn(),
     useParams: () => ({graphspace: 'space-a', graph: 'graph-a'}),
 }));

@@ -20,6 +20,7 @@ import ContentCommon from './index';
 import GraphAnalysisContext from '../../../Context';
 
 jest.mock('react-i18next', () => ({
+    initReactI18next: {type: '3rdParty', init: jest.fn()},
     useTranslation: () => ({t: key => ({
         'analysis.query.execute_query': 'Run Query',
         'analysis.query.execute_task': 'Run Task',

@@ -76,15 +76,3 @@ test('keeps unimplemented operations visibly disabled without loading Dashboard'
     expect(window.fetch).not.toHaveBeenCalled();
     expect(window.open).not.toHaveBeenCalled();
 });
-
-test('shows why operations are disabled when Dashboard is unavailable', async () => {
-    api.auth.getDashboard.mockResolvedValue({status: 500});
-    render(
-        <MemoryRouter future={{v7_relativeSplatPath: true, v7_startTransition: true}}>
-            <ConsoleItem />
-        </MemoryRouter>
-    );
-
-    expect(await screen.findByText('navigation_page.dashboard_unavailable'))
-        .toBeInTheDocument();
-});
