@@ -64,6 +64,9 @@ test('keeps favorite submission disabled until the name is backend-compatible', 
 
     fireEvent.change(input, {target: {value: 'query-name'}});
     expect(submit).toBeDisabled();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+        'common.validation.favorite_name_rule'
+    );
     fireEvent.click(submit);
     expect(api.analysis.addFavoriate).not.toHaveBeenCalled();
 
