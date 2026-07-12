@@ -2,7 +2,17 @@
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0.
+ * The ASF licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  */
 
 package org.apache.hugegraph.unit;
@@ -49,9 +59,9 @@ public class SampleGraphControllerTest {
     @Test
     public void testSampleContractIsRetrySafeAndNonDestructive() {
         String schema = SampleGraphController.LOADER_SCHEMA +
-                        SampleGraphController.RANK_SCHEMA;
+                        SampleGraphController.HLM_SCHEMA;
         String data = SampleGraphController.LOADER_DATA +
-                      SampleGraphController.RANK_DATA;
+                      SampleGraphController.HLM_DATA;
 
         Assert.assertTrue(schema.contains("ifNotExist()"));
         Assert.assertTrue(data.contains("fold().coalesce(unfold(),addV"));
@@ -70,10 +80,34 @@ public class SampleGraphControllerTest {
                                            "coalesce(unfold(),addV"));
         Assert.assertEquals(6, occurrences(SampleGraphController.LOADER_DATA,
                                            ".addEdge("));
-        Assert.assertEquals(14, occurrences(SampleGraphController.RANK_DATA,
+        Assert.assertEquals(41, occurrences(SampleGraphController.HLM_DATA,
                                             "coalesce(unfold(),addV"));
-        Assert.assertEquals(15, occurrences(SampleGraphController.RANK_DATA,
+        Assert.assertEquals(51, occurrences(SampleGraphController.HLM_DATA,
                                             ".addEdge("));
+    }
+
+    @Test
+    public void testLoadRedChamberDataset() {
+        HugeClient client = Mockito.mock(HugeClient.class);
+        GremlinManager gremlin = Mockito.mock(GremlinManager.class);
+        Mockito.when(client.gremlin()).thenReturn(gremlin);
+        Mockito.when(gremlin.gremlin(Mockito.anyString()))
+               .thenAnswer(invocation -> new GremlinRequest.Builder(
+                       invocation.getArgument(0), gremlin));
+        SampleGraphController controller = new TestController(client);
+
+        Map<String, Object> result = controller.load("DEFAULT", "hugegraph",
+                                                     "hlm");
+
+        ArgumentCaptor<GremlinRequest> requests =
+                ArgumentCaptor.forClass(GremlinRequest.class);
+        Mockito.verify(gremlin, Mockito.times(2)).execute(requests.capture());
+        Assert.assertEquals(SampleGraphController.HLM_SCHEMA,
+                            requests.getAllValues().get(0).gremlin);
+        Assert.assertEquals(SampleGraphController.HLM_DATA,
+                            requests.getAllValues().get(1).gremlin);
+        Assert.assertEquals(41, result.get("vertices"));
+        Assert.assertEquals(51, result.get("edges"));
     }
 
     private static int occurrences(String value, String token) {

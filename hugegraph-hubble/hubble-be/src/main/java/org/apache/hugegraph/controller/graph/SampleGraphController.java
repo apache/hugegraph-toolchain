@@ -2,12 +2,29 @@
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0.
+ * The ASF licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
  */
 
 package org.apache.hugegraph.controller.graph;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import lombok.extern.log4j.Log4j2;
@@ -31,6 +48,8 @@ public class SampleGraphController extends BaseController {
     public static final String LOADER_SOURCE = "hugegraph-loader/example/file";
     public static final String RANK_SOURCE =
             "hugegraph-doc/rank-api/neighbor-rank-example";
+    public static final String HLM_SOURCE =
+            "hubble-be/src/main/resources/demo/hlm.txt";
 
     public static final String LOADER_SCHEMA =
             "schema = graph.schema();\n" +
@@ -101,19 +120,38 @@ public class SampleGraphController extends BaseController {
             rankEdge("F", "directedBy", "L") +
             rankEdge("G", "directedBy", "M");
 
+    public static final String HLM_SCHEMA =
+            "schema = graph.schema();\n" +
+            "schema.propertyKey('姓名').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('性别').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('年龄').asInt().ifNotExist().create();\n" +
+            "schema.propertyKey('职称').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('特点').asText().ifNotExist().create();\n" +
+            "schema.propertyKey('亲疏').asText().ifNotExist().create();\n" +
+            "schema.vertexLabel('人物').useCustomizeStringId()" +
+            ".properties('姓名','性别','年龄','职称','特点')" +
+            ".ifNotExist().create();\n" +
+            "schema.edgeLabel('关系').sourceLabel('人物')" +
+            ".targetLabel('人物').properties('亲疏')" +
+            ".ifNotExist().create();";
+
+    public static final String HLM_DATA = loadHlmData();
+
     @PostMapping
     public Map<String, Object> load(@PathVariable("graphspace") String graphSpace,
                                     @PathVariable("graph") String graph,
                                     @RequestParam(name = "dataset",
                                                   defaultValue = "loader")
                                     String dataset) {
+        boolean loader = "loader".equals(dataset);
         boolean rank = "rank".equals(dataset);
-        Ex.check(rank || "loader".equals(dataset),
-                 "common.param.should-belong-to", "dataset", "[loader, rank]");
+        boolean hlm = "hlm".equals(dataset);
+        Ex.check(loader || rank || hlm, "common.param.should-belong-to",
+                 "dataset", "[loader, hlm, rank]");
         HugeClient client = this.authGremlinClient(graphSpace, graph);
         try {
-            client.gremlin().gremlin(rank ? RANK_SCHEMA : LOADER_SCHEMA).execute();
-            client.gremlin().gremlin(rank ? RANK_DATA : LOADER_DATA).execute();
+            client.gremlin().gremlin(schema(dataset)).execute();
+            client.gremlin().gremlin(data(dataset)).execute();
         } catch (RuntimeException e) {
             log.warn("Failed to load sample dataset '{}' into {}/{}",
                      dataset, graphSpace, graph, e);
@@ -123,11 +161,11 @@ public class SampleGraphController extends BaseController {
 
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("dataset", dataset);
-        result.put("source", rank ? RANK_SOURCE : LOADER_SOURCE);
+        result.put("source", source(dataset));
         result.put("graphspace", graphSpace);
         result.put("graph", graph);
-        result.put("vertices", rank ? 14 : 8);
-        result.put("edges", rank ? 15 : 6);
+        result.put("vertices", hlm ? 41 : rank ? 14 : 8);
+        result.put("edges", hlm ? 51 : rank ? 15 : 6);
         result.put("idempotent", true);
         result.put("clears_existing_data", false);
         return result;
@@ -182,5 +220,88 @@ public class SampleGraphController extends BaseController {
                              ".where(inV().hasId(v%3$s.id())).hasNext()) { " +
                              "v%1$s.addEdge('%2$s',v%3$s); };\n",
                              source, label, target);
+    }
+
+    private static String schema(String dataset) {
+        if ("hlm".equals(dataset)) {
+            return HLM_SCHEMA;
+        }
+        return "rank".equals(dataset) ? RANK_SCHEMA : LOADER_SCHEMA;
+    }
+
+    private static String data(String dataset) {
+        if ("hlm".equals(dataset)) {
+            return HLM_DATA;
+        }
+        return "rank".equals(dataset) ? RANK_DATA : LOADER_DATA;
+    }
+
+    private static String source(String dataset) {
+        if ("hlm".equals(dataset)) {
+            return HLM_SOURCE;
+        }
+        return "rank".equals(dataset) ? RANK_SOURCE : LOADER_SOURCE;
+    }
+
+    private static String loadHlmData() {
+        Map<String, String[]> vertices = new LinkedHashMap<>();
+        List<String[]> edges = new ArrayList<>();
+        try (InputStream stream = SampleGraphController.class
+                .getResourceAsStream("/demo/hlm.txt")) {
+            if (stream == null) {
+                throw new IOException("Missing /demo/hlm.txt");
+            }
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    stream, StandardCharsets.UTF_8))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (line.isEmpty() || line.startsWith("#")) {
+                        continue;
+                    }
+                    String[] fields = line.split(",", -1);
+                    if (fields.length != 11) {
+                        throw new IOException("Invalid Red Chamber record");
+                    }
+                    vertices.putIfAbsent(fields[0], person(fields, 0));
+                    vertices.putIfAbsent(fields[5], person(fields, 5));
+                    edges.add(new String[]{fields[0], fields[5], fields[10]});
+                }
+            }
+        } catch (IOException e) {
+            throw new ExceptionInInitializerError(e);
+        }
+
+        StringBuilder gremlin = new StringBuilder();
+        vertices.forEach((name, fields) -> gremlin.append(hlmVertex(fields)));
+        edges.forEach(edge -> gremlin.append(hlmEdge(edge)));
+        return gremlin.toString();
+    }
+
+    private static String[] person(String[] fields, int offset) {
+        return new String[]{fields[offset], fields[offset + 1],
+                            fields[offset + 2], fields[offset + 3],
+                            fields[offset + 4]};
+    }
+
+    private static String hlmVertex(String[] person) {
+        return String.format("g.V('%1$s').hasLabel('人物').fold()" +
+                             ".coalesce(unfold(),addV('人物').property(T.id,'%1$s')" +
+                             ".property('姓名','%1$s').property('性别','%2$s')" +
+                             ".property('年龄',%3$s).property('职称','%4$s')" +
+                             ".property('特点','%5$s')).next();\n",
+                             escape(person[0]), escape(person[1]), person[2],
+                             escape(person[3]), escape(person[4]));
+    }
+
+    private static String hlmEdge(String[] edge) {
+        return String.format("if (!g.V('%1$s').outE('关系')" +
+                             ".where(inV().hasId('%2$s')).has('亲疏','%3$s')" +
+                             ".hasNext()) { g.V('%1$s').next().addEdge('关系'," +
+                             "g.V('%2$s').next(),'亲疏','%3$s'); };\n",
+                             escape(edge[0]), escape(edge[1]), escape(edge[2]));
+    }
+
+    private static String escape(String value) {
+        return value.replace("\\", "\\\\").replace("'", "\\'");
     }
 }

@@ -200,11 +200,14 @@
       "clear_graph": "清空 Schema 与数据",
       "set_default": "设为默认",
       "view_schema": "查看schema",
+      "load_hlm_sample": "构建红楼梦 Demo 图",
       "load_loader_sample": "导入 Loader 示例",
-      "load_rank_sample": "导入 Rank 电影示例",
+      "load_rank_sample": "构建 Rank 迷你电影 Demo",
       "clone": "克隆图"
     },
     "sample": {
+      "hlm_title": "构建红楼梦 Demo 图？",
+      "hlm_description": "目标图：{{graph}}。将添加内置中文文学数据集的 41 个人物和 51 条关系；只补齐缺失的 Schema 和元素，不清空或更新已匹配数据，可安全重试。建议使用独立或空图；Schema 或 ID 冲突会中止导入，但不会清空既有数据。",
       "loader_title": "导入 Loader 内置示例图？",
       "loader_description": "目标图：{{graph}}。将添加 HugeGraph Loader 示例的 8 个顶点和 6 条边；不会清空数据，也不会更新已匹配元素，可安全重复执行。建议使用独立或空图；若 Schema 或 ID 冲突，解决后可重试。",
       "rank_title": "导入 Rank 电影示例图？",
@@ -213,7 +216,9 @@
       "loading": "正在导入示例...",
       "success": "示例图已就绪：{{vertices}} 个顶点、{{edges}} 条边",
       "failed": "示例导入失败；既有数据未被清空，请检查冲突后重试。",
-      "rank_docs": "MovieLens 与 Rank API 官方文档"
+      "rank_docs": "Rank API 官方文档",
+      "movielens_docs": "MovieLens Small 数据集说明",
+      "movielens_download": "下载 MovieLens Small（955 KB）"
     },
     "schema_view": {
       "export": "导出 Groovy Schema",

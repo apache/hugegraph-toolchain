@@ -389,6 +389,13 @@ const Graph = () => {
             onClick: () => showSchema(item.name),
         },
         {
+            key: 'sample-hlm',
+            disabled: Boolean(sampleLoading),
+            label: sampleLoading === `${item.name}:hlm`
+                ? t('graph.sample.loading') : t('graph.menu.load_hlm_sample'),
+            onClick: sampleLoading ? undefined : () => loadSample(item.name, 'hlm'),
+        },
+        {
             key: 'sample-loader',
             disabled: Boolean(sampleLoading),
             label: sampleLoading === `${item.name}:loader`
@@ -411,6 +418,30 @@ const Graph = () => {
                     rel="noreferrer"
                 >
                     {t('graph.sample.rank_docs')}
+                </a>
+            ),
+        },
+        {
+            key: 'sample-movielens-docs',
+            label: (
+                <a
+                    href="https://files.grouplens.org/datasets/movielens/ml-latest-small-README.html"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    {t('graph.sample.movielens_docs')}
+                </a>
+            ),
+        },
+        {
+            key: 'sample-movielens-download',
+            label: (
+                <a
+                    href="https://files.grouplens.org/datasets/movielens/ml-latest-small.zip"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    {t('graph.sample.movielens_download')}
                 </a>
             ),
         },
