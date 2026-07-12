@@ -40,6 +40,12 @@ import './index.css';
 import useCustomNode from '../../../customHook/useCustomNode';
 import useCustomGrid from '../../../customHook/useCustomGrid';
 import useCustomEdge from '../../../customHook/useCustomEdge';
+import {
+    applySemanticZoom,
+    getItemCount,
+    isSemanticZoomCandidate,
+    setItemLabelVisibility,
+} from '../../../utils/graphSemanticZoom';
 
 const Graph = (props, ref) => {
     const {
@@ -58,6 +64,24 @@ const Graph = (props, ref) => {
 
     const container = useRef(null);
     const graph = useRef(null);
+    const graphData = useRef(data);
+    const hoveredItem = useRef(null);
+    const semanticZoomVisibility = useRef();
+    const semanticZoomHandler = useRef();
+
+    const recordSemanticZoom = useCallback(
+        visibility => {
+            if (container.current) {
+                container.current.dataset.semanticZoom = [
+                    getItemCount(graphData.current),
+                    graph.current?.getZoom?.().toFixed(2) || '1.00',
+                    visibility.nodeLabels ? 'nodes-visible' : 'nodes-hidden',
+                    visibility.edgeLabels ? 'edges-visible' : 'edges-hidden',
+                ].join(':');
+            }
+        },
+        []
+    );
 
     const [layout, setLayout] = useState();
     const [context, setContext] = useState({
@@ -91,8 +115,21 @@ const Graph = (props, ref) => {
                 graphInstance.updateLayout(layout);
             }
             graphInstance.refresh();
+            semanticZoomVisibility.current = applySemanticZoom(graphInstance, data, {
+                excludedItem: hoveredItem.current,
+                force: true,
+                previousVisibility: semanticZoomVisibility.current,
+            });
+            recordSemanticZoom(semanticZoomVisibility.current);
         },
-        [data, layout]
+        [data, layout, recordSemanticZoom]
+    );
+
+    useEffect(
+        () => {
+            graphData.current = data;
+        },
+        [data]
     );
 
     useEffect(
@@ -160,17 +197,38 @@ const Graph = (props, ref) => {
                     },
                 };
                 const graphInstance = new G6.Graph(graphOptions);
+                const applyCurrentSemanticZoom = force => {
+                    semanticZoomVisibility.current = applySemanticZoom(
+                        graphInstance,
+                        graphData.current,
+                        {
+                            excludedItem: hoveredItem.current,
+                            force,
+                            previousVisibility: semanticZoomVisibility.current,
+                        }
+                    );
+                    recordSemanticZoom(semanticZoomVisibility.current);
+                };
                 graphInstance.on('node:mouseenter', evt => {
                     const {item} = evt;
+                    hoveredItem.current = item;
                     graphInstance.setItemState(item, 'customActive', true);
                     highLightRelatedEdges(graphInstance, item);
                     setItemLabelState(graphInstance, item, 'bold');
+                    if (isSemanticZoomCandidate(graphData.current)) {
+                        setItemLabelVisibility(item, true);
+                    }
                 });
                 graphInstance.on('node:mouseleave', evt => {
                     const {item} = evt;
+                    hoveredItem.current = null;
                     clearItemStates(graphInstance, item, ['customActive', 'addActive']);
                     clearEdgesStates(graphInstance, ['edgeActive', 'addActive']);
                     setItemLabelState(graphInstance, item, 'normal');
+                    setItemLabelVisibility(
+                        item,
+                        semanticZoomVisibility.current?.nodeLabels !== false
+                    );
                 });
                 graphInstance.on('node:click', evt => {
                     const {item} = evt;
@@ -180,11 +238,20 @@ const Graph = (props, ref) => {
                 });
                 graphInstance.on('edge:mouseenter', evt => {
                     const {item} = evt;
+                    hoveredItem.current = item;
                     graphInstance.setItemState(item, 'edgeActive', true);
+                    if (isSemanticZoomCandidate(graphData.current)) {
+                        setItemLabelVisibility(item, true);
+                    }
                 });
                 graphInstance.on('edge:mouseleave', evt => {
                     const {item} = evt;
+                    hoveredItem.current = null;
                     clearItemStates(graphInstance, item, ['edgeActive', 'addActive']);
+                    setItemLabelVisibility(
+                        item,
+                        semanticZoomVisibility.current?.edgeLabels !== false
+                    );
                 });
                 graphInstance.on('edge:click', evt => {
                     clearSelectedStates(graphInstance);
@@ -202,8 +269,19 @@ const Graph = (props, ref) => {
                 });
                 graphInstance.on('afterrender', evt => {
                     fitView(graphInstance);
+                    applyCurrentSemanticZoom(true);
                     onGraphRender && onGraphRender(graphInstance);
                 });
+                graphInstance.on('afterlayout', () => {
+                    fitView(graphInstance);
+                    applyCurrentSemanticZoom(true);
+                });
+                semanticZoomHandler.current = _.throttle(evt => {
+                    if (evt.action === 'zoom') {
+                        applyCurrentSemanticZoom(false);
+                    }
+                }, 80);
+                graphInstance.on('viewportchange', semanticZoomHandler.current);
                 graphInstance.get('canvas').set('localRefresh', false);
                 graph.current = graphInstance;
                 setContext({
@@ -214,7 +292,8 @@ const Graph = (props, ref) => {
                 graphInstance.render();
             };
         },
-        [clickount, data, debounceClick, layout, onEdgeClick, onGraphRender, onNodeClick, onNodedbClick]
+        [clickount, data, debounceClick, layout, onEdgeClick, onGraphRender, onNodeClick,
+            onNodedbClick, recordSemanticZoom]
     );
 
     useEffect(
@@ -230,6 +309,7 @@ const Graph = (props, ref) => {
     useEffect(
         () => {
             return () => {
+                semanticZoomHandler.current?.cancel();
                 graph.current?.destroy();
             };
         },
