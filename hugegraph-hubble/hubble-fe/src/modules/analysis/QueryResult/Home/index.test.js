@@ -15,8 +15,29 @@
  * under the License.
  */
 
+import React from 'react';
+import {render, screen} from '@testing-library/react';
+import QueryResult from './index';
 import {getGraphViewLimitStatus, getJsonViewContent} from './utils';
 import JSONbig from 'json-bigint';
+
+jest.mock('react-i18next', () => ({
+    useTranslation: () => ({
+        t: (key, options) => {
+            const text = {
+                'analysis.query_result.graph': 'Graph',
+                'analysis.query_result.table': 'Table',
+                'analysis.query_result.graph_limit_title': 'Graph limit',
+                'analysis.query_result.graph_limit_description':
+                    `${options?.nodes}/${options?.nodeLimit}`,
+            };
+            return text[key] || key;
+        },
+    }),
+}));
+jest.mock('../GraphResult/Home', () => () => <div>graph canvas</div>);
+jest.mock('../TableView', () => () => <div>table result</div>);
+jest.mock('../JsonView', () => () => <div>json result</div>);
 
 it('projects BigInt, production BigNumber, and null-prototype values safely', () => {
     const bigNumber = JSONbig.parse('{"id":9007199254740993}').id;
@@ -54,6 +75,24 @@ describe('graph view limits', () => {
             edgeCount: 0,
             exceeded: false,
         });
+    });
+
+    it('switches an existing result view to Table when a new result exceeds the limit', () => {
+        const result = nodeCount => ({
+            graph_view: {vertices: new Array(nodeCount), edges: []},
+            json_view: {data: []},
+            table_view: {header: [], rows: []},
+        });
+        const view = render(<QueryResult queryResult={result(300)} />);
+        expect(screen.getByRole('tab', {name: 'Graph'})).toHaveAttribute(
+            'aria-selected', 'true'
+        );
+
+        view.rerender(<QueryResult queryResult={result(301)} />);
+
+        expect(screen.getByRole('tab', {name: 'Table'})).toHaveAttribute(
+            'aria-selected', 'true'
+        );
     });
 });
 

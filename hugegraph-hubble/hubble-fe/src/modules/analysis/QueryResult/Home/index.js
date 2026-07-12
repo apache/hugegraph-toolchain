@@ -20,7 +20,7 @@
  * @file Gremlin语法分析 查询结果
  */
 
-import React, {useMemo} from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Alert, Tabs} from 'antd';
 import JsonView from '../JsonView';
@@ -59,6 +59,10 @@ const QueryResult = props => {
         () => getGraphViewLimitStatus(queryResultGraph),
         [queryResultGraph]
     );
+    const [activeView, setActiveView] = useState(graphLimit.exceeded ? 2 : 1);
+    useEffect(() => {
+        setActiveView(graphLimit.exceeded ? 2 : 1);
+    }, [graphLimit.exceeded, queryResultGraph]);
 
     const GRAPH_VIEW = t('analysis.query_result.graph');
     const TABLE_VIEW = t('analysis.query_result.table');
@@ -112,7 +116,8 @@ const QueryResult = props => {
             <Tabs
                 tabPosition="left"
                 className={c.queryResultTabs}
-                defaultActiveKey={graphLimit.exceeded ? 2 : 1}
+                activeKey={activeView}
+                onChange={setActiveView}
                 items={[
                     {
                         label: renderTab(GRAPH_VIEW),
