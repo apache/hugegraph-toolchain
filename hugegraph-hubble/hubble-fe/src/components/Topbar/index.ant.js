@@ -107,7 +107,7 @@ const Topbar = () => {
     };
 
     return (
-        <Layout.Header className={style.header}>
+        <Layout.Header className={`${style.header} workbench-topbar`}>
             <div className={style.logo}><img src={Logo} alt='' /></div>
             <GraphContextSwitcher />
             <div className={style.rightContainer}>

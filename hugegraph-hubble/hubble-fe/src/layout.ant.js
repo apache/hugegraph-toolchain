@@ -22,6 +22,7 @@ import Topbar from './components/Topbar/index.ant';
 import {Outlet, useLocation} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getWorkbenchPageTitleKey} from './utils/workbenchNavigation';
+import {useCallback} from 'react';
 import 'antd/dist/antd.css';
 
 const LayoutAnt = () => {
@@ -29,10 +30,21 @@ const LayoutAnt = () => {
     const {t} = useTranslation();
     const pageTitle = t(getWorkbenchPageTitleKey(location.pathname));
     const routeSection = location.pathname.split('/')[1] || 'navigation';
+    const focusWorkspace = useCallback(event => {
+        const workspace = document.getElementById('workbench-main');
+        if (workspace) {
+            event.preventDefault();
+            workspace.focus();
+        }
+    }, []);
 
     return (
         <Layout>
-            <a className="workbench-skip-link" href="#workbench-main">
+            <a
+                className="workbench-skip-link"
+                href="#workbench-main"
+                onClick={focusWorkspace}
+            >
                 {t('workbench.skip_to_workspace')}
             </a>
             <Topbar />

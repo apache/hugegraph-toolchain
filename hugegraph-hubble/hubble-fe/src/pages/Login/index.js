@@ -97,7 +97,7 @@ const Login = () => {
     }, [navigateAfterLogin]);
 
     return (
-        <div className={style.loginContainer}>
+        <div className={`${style.loginContainer} workbench-login`}>
             <main className={style.loginShell}>
                 <section
                     className={style.brandPanel}

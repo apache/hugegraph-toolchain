@@ -47,11 +47,14 @@
     border-radius: var(--workbench-radius);
     background: var(--workbench-color-surface);
     color: var(--workbench-color-brand-strong);
-    box-shadow: var(--workbench-focus-ring);
     transform: translateY(-160%);
 
     &:focus {
         transform: translateY(0);
+    }
+
+    &:focus-visible {
+        box-shadow: var(--workbench-focus-ring);
     }
 }
 
@@ -81,6 +84,19 @@
         background: #eaf2ff;
         font-weight: 600;
     }
+
+    :where(a[href], button, [role='button'], .ant-menu-item,
+        .ant-menu-submenu-title):focus-visible {
+        box-shadow: var(--workbench-focus-ring);
+    }
+
+}
+
+.workbench-topbar {
+    :where(a[href], button, [role='button']):focus-visible {
+        box-shadow: var(--workbench-focus-ring);
+    }
+
 }
 
 #workbench-main {
@@ -111,6 +127,18 @@
     .ant-empty-description {
         color: var(--workbench-color-text-secondary);
     }
+
+    :where(a[href], button, [role='button'], .ant-tabs-tab-btn,
+        .ant-menu-item):focus-visible {
+        box-shadow: var(--workbench-focus-ring);
+    }
+
+}
+
+.workbench-login {
+    :where(a[href], button, [role='button']):focus-visible {
+        box-shadow: var(--workbench-focus-ring);
+    }
 }
 
 .workbench-page-title {
@@ -125,8 +153,8 @@
     border: 0;
 }
 
-#workbench-main:focus {
-    outline: none;
+#workbench-main:focus-visible {
+    box-shadow: var(--workbench-focus-ring);
 }
 
 @media (prefers-reduced-motion: reduce) {

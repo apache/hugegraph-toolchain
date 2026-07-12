@@ -17,6 +17,7 @@
  */
 
 import {render, screen} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {MemoryRouter, Route, Routes} from 'react-router-dom';
 import LayoutAnt from './layout.ant';
 import './i18n';
@@ -45,4 +46,25 @@ test('provides a localized skip link and semantic workspace title', () => {
     expect(screen.getByRole('main')).toHaveClass('workbench-route-gremlin');
     expect(screen.getByRole('heading', {level: 1, name: '图查询'}))
         .toHaveClass('workbench-page-title');
+});
+
+test('moves keyboard focus into the workspace through the skip link', async () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/gremlin/DEFAULT/hugegraph']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Routes>
+                <Route path="*" element={<LayoutAnt />}>
+                    <Route path="*" element={<div>Query content</div>} />
+                </Route>
+            </Routes>
+        </MemoryRouter>
+    );
+
+    await userEvent.tab();
+    expect(screen.getByRole('link', {name: '跳到主工作区'})).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getByRole('main')).toHaveFocus();
 });
