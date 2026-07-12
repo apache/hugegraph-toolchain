@@ -39,12 +39,12 @@ test('provides a localized skip link and semantic workspace title', () => {
         </MemoryRouter>
     );
 
-    expect(screen.getByRole('link', {name: '跳到主工作区'}))
+    expect(screen.getByRole('link', {name: 'Skip to main workspace'}))
         .toHaveAttribute('href', '#workbench-main');
     expect(screen.getByRole('main')).toHaveAttribute('id', 'workbench-main');
     expect(screen.getByRole('main')).toHaveAttribute('tabindex', '-1');
     expect(screen.getByRole('main')).toHaveClass('workbench-route-gremlin');
-    expect(screen.getByRole('heading', {level: 1, name: '图查询'}))
+    expect(screen.getByRole('heading', {level: 1, name: 'Graph Query'}))
         .toHaveClass('workbench-page-title');
 });
 
@@ -63,7 +63,7 @@ test('moves keyboard focus into the workspace through the skip link', async () =
     );
 
     await userEvent.tab();
-    expect(screen.getByRole('link', {name: '跳到主工作区'})).toHaveFocus();
+    expect(screen.getByRole('link', {name: 'Skip to main workspace'})).toHaveFocus();
     await userEvent.keyboard('{Enter}');
 
     expect(screen.getByRole('main')).toHaveFocus();

@@ -128,6 +128,18 @@ describe('Login request errors', () => {
         expect(localStorage.getItem('languageType')).toBe('en-US');
     });
 
+    it('defaults a fresh login to English without overwriting storage', () => {
+        render(
+            <MemoryRouter future={{v7_relativeSplatPath: true, v7_startTransition: true}}>
+                <Login />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('combobox', {name: 'login.language'}))
+            .toHaveValue('en-US');
+        expect(localStorage.getItem('languageType')).toBeNull();
+    });
+
     it('keeps rejected login requests from escaping the submit handler', async () => {
         const loginError = new Error('login failed');
         api.auth.login.mockRejectedValue(loginError);

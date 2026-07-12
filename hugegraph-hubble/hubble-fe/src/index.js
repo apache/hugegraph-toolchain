@@ -29,8 +29,9 @@ import reportWebVitals from './reportWebVitals';
 import zhCN from 'antd/lib/locale/zh_CN';
 import enUS from 'antd/lib/locale/en_US';
 import './i18n';
+import {getCurrentLanguage} from './utils/language';
 
-const languageType = localStorage.getItem('languageType') === 'en-US' ? enUS : zhCN;
+const languageType = getCurrentLanguage() === 'zh-CN' ? zhCN : enUS;
 const routerFuture = {
     v7_startTransition: true,
     v7_relativeSplatPath: true,

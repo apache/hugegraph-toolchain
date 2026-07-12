@@ -16,12 +16,9 @@
  * under the License.
  */
 
-const DEFAULT_LANGUAGE = 'zh-CN';
-const ACCEPT_LANGUAGE = 'Accept-Language';
+import {getCurrentLanguage} from '../utils/language';
 
-export const getCurrentLanguage = () => {
-    return localStorage.getItem('languageType') || DEFAULT_LANGUAGE;
-};
+const ACCEPT_LANGUAGE = 'Accept-Language';
 
 export const withLanguageHeader = (headers = {}) => {
     const hasLanguageHeader = Object.keys(headers).some(

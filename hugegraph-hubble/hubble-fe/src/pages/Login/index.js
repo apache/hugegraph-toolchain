@@ -26,6 +26,7 @@ import * as user from '../../utils/user';
 import * as configUtil from '../../utils/config';
 import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
+import {getCurrentLanguage} from '../../utils/language';
 
 const LOGIN_PATH = '/login';
 const UNSAFE_REDIRECT_RE = /[\x00-\x1F\x7F\\]/;
@@ -51,9 +52,7 @@ const Login = () => {
     const [form] = Form.useForm();
     const location = useLocation();
     const {t, i18n} = useTranslation();
-    const [languageType, setLanguageType] = useState(
-        localStorage.getItem('languageType') || 'zh-CN'
-    );
+    const [languageType, setLanguageType] = useState(getCurrentLanguage);
 
     useEffect(() => {
         const queryRedirect = new URLSearchParams(location.search).get('redirect');

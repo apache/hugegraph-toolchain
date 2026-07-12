@@ -26,6 +26,7 @@ import * as user from '../../utils/user';
 import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import GraphContextSwitcher from '../GraphContextSwitcher';
+import {getCurrentLanguage} from '../../utils/language';
 
 const {Option} = Select;
 
@@ -34,9 +35,7 @@ const Topbar = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const {t} = useTranslation();
-    const [languageType, setLanguageType] = useState(
-        localStorage.getItem('languageType') || 'zh-CN'
-    );
+    const [languageType, setLanguageType] = useState(getCurrentLanguage);
 
     const redirectToLogin = useCallback(() => {
         const redirect = `${location.pathname}${location.search}`;

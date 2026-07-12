@@ -19,9 +19,10 @@
 import {render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import Sidebar from './index.ant';
-import '../../i18n';
+import i18n from '../../i18n';
 
 beforeEach(() => {
+    i18n.changeLanguage('zh-CN');
     sessionStorage.clear();
     localStorage.clear();
     sessionStorage.setItem('user_', JSON.stringify({

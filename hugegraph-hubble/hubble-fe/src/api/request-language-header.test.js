@@ -59,6 +59,13 @@ describe('request language header', () => {
         localStorage.clear();
     });
 
+    it('defaults fresh sessions to English', () => {
+        const intercept = loadRequestInterceptor('./request');
+        const config = intercept({headers: {}, data: {}});
+
+        expect(config.headers['Accept-Language']).toBe('en-US');
+    });
+
     it('adds the selected language to JSON requests', () => {
         localStorage.setItem('languageType', 'en-US');
         const intercept = loadRequestInterceptor('./request');

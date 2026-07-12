@@ -90,6 +90,15 @@ const Graph = (props, ref) => {
         graph: graph.current,
     });
 
+    const focusCanvas = useCallback(event => {
+        const isInteractive = event.target.closest?.(
+            'button, input, textarea, select, a, [contenteditable="true"]'
+        );
+        if (!isInteractive) {
+            event.currentTarget.focus({preventScroll: true});
+        }
+    }, []);
+
     const throttledContainerResize = useMemo(
         () => {
             return _.throttle((width, height) => {
@@ -326,6 +335,7 @@ const Graph = (props, ref) => {
                 id={'graph'}
                 tabIndex={0}
                 aria-label={t('analysis.canvas.graph_canvas')}
+                onMouseDown={focusCanvas}
             >
                 {props.children}
             </div>
