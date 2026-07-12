@@ -259,7 +259,7 @@
         <dependency>
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
-            <version>3.17.3</version>
+            <version>3.25.5</version>
         </dependency>
         <!-- Use 'core' classifier to avoid embedded protobuf-java 2.5.0 conflict
              with hg-pd-grpc which requires protobuf-java 3.17.x -->
