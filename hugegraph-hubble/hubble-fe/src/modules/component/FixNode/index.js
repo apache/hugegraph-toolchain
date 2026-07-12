@@ -79,7 +79,13 @@ const FixNode = () => {
 
     return (
         <Tooltip title={t('analysis.canvas.toolbar.fix_node')} placement='bottom'>
-            <Button disabled={!fixState} type="text" onClick={handleFixNode} icon={<PushpinOutlined />} />
+            <Button
+                disabled={!fixState}
+                type="text"
+                aria-label={t('analysis.canvas.toolbar.fix_node')}
+                onClick={handleFixNode}
+                icon={<PushpinOutlined />}
+            />
         </Tooltip>
     );
 };

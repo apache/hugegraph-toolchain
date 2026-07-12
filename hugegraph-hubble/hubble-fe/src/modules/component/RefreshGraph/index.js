@@ -43,7 +43,12 @@ const RefreshGraph = () => {
 
     return (
         <Tooltip title={t('analysis.canvas.toolbar.refresh_layout')} placement='bottom'>
-            <Button type="text" onClick={handleRefreshGraph} icon={<SyncOutlined />} />
+            <Button
+                type="text"
+                aria-label={t('analysis.canvas.toolbar.refresh_layout')}
+                onClick={handleRefreshGraph}
+                icon={<SyncOutlined />}
+            />
         </Tooltip>
     );
 };

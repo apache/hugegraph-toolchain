@@ -47,10 +47,20 @@ const ZoomGraph = () => {
     return (
         <>
             <Tooltip title={t('analysis.canvas.toolbar.zoom_out')} placement='bottom'>
-                <Button type="text" onClick={handleZoomIn} icon={<ZoomOutOutlined />} />
+                <Button
+                    type="text"
+                    aria-label={t('analysis.canvas.toolbar.zoom_out')}
+                    onClick={handleZoomIn}
+                    icon={<ZoomOutOutlined />}
+                />
             </Tooltip>
             <Tooltip title={t('analysis.canvas.toolbar.zoom_in')} placement='bottom'>
-                <Button type="text" onClick={handleZoomOut} icon={<ZoomInOutlined />} />
+                <Button
+                    type="text"
+                    aria-label={t('analysis.canvas.toolbar.zoom_in')}
+                    onClick={handleZoomOut}
+                    icon={<ZoomInOutlined />}
+                />
             </Tooltip>
         </>
     );

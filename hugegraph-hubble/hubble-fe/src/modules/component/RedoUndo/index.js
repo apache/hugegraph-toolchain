@@ -155,10 +155,22 @@ const RedoUndo = props => {
     return (
         <>
             <Tooltip title={t('analysis.canvas.toolbar.undo')} placement='bottom'>
-                <Button disabled={!undoState} type="text" onClick={handleUndo} icon={<ArrowLeftOutlined />} />
+                <Button
+                    disabled={!undoState}
+                    type="text"
+                    aria-label={t('analysis.canvas.toolbar.undo')}
+                    onClick={handleUndo}
+                    icon={<ArrowLeftOutlined />}
+                />
             </Tooltip>
             <Tooltip title={t('analysis.canvas.toolbar.redo')} placement='bottom'>
-                <Button disabled={!redoState} type="text" onClick={handleRedo} icon={<ArrowRightOutlined />} />
+                <Button
+                    disabled={!redoState}
+                    type="text"
+                    aria-label={t('analysis.canvas.toolbar.redo')}
+                    onClick={handleRedo}
+                    icon={<ArrowRightOutlined />}
+                />
             </Tooltip>
         </>
     );

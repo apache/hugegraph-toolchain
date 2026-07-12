@@ -65,7 +65,12 @@ const FullScreen = props => {
 
     return (
         <Tooltip title={t('analysis.canvas.toolbar.full_screen')} placement='bottom'>
-            <Button type="text" onClick={handleFullScreen} icon={<CompressOutlined />} />
+            <Button
+                type="text"
+                aria-label={t('analysis.canvas.toolbar.full_screen')}
+                onClick={handleFullScreen}
+                icon={<CompressOutlined />}
+            />
         </Tooltip>
     );
 };

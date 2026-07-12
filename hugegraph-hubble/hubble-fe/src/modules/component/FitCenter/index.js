@@ -43,7 +43,12 @@ const FitCenter = () => {
 
     return (
         <Tooltip title={t('analysis.canvas.toolbar.fit_center')} placement='bottom'>
-            <Button type="text" onClick={handleFitCenter} icon={<OneToOneOutlined />} />
+            <Button
+                type="text"
+                aria-label={t('analysis.canvas.toolbar.fit_center')}
+                onClick={handleFitCenter}
+                icon={<OneToOneOutlined />}
+            />
         </Tooltip>
     );
 };

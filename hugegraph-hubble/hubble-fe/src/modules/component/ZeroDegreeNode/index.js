@@ -53,7 +53,12 @@ const ZeroDegreeNodeSearch = props => {
 
     return (
         <Tooltip title={t('analysis.canvas.toolbar.isolated_nodes')} placement='bottom'>
-            <Button type="text" onClick={handleSearchZeroDegreeNodes} icon={<UngroupOutlined />} />
+            <Button
+                type="text"
+                aria-label={t('analysis.canvas.toolbar.isolated_nodes')}
+                onClick={handleSearchZeroDegreeNodes}
+                icon={<UngroupOutlined />}
+            />
         </Tooltip>
     );
 };

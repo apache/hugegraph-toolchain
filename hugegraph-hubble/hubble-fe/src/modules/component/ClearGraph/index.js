@@ -58,7 +58,13 @@ const ClearGraph = props => {
     return (
         <>
             <Tooltip title={t('analysis.canvas.toolbar.clear_canvas')} placement='bottom'>
-                <Button disabled={!enable} type="text" onClick={handleClear} icon={<CopyrightOutlined />} />
+                <Button
+                    disabled={!enable}
+                    type="text"
+                    aria-label={t('analysis.canvas.toolbar.clear_canvas')}
+                    onClick={handleClear}
+                    icon={<CopyrightOutlined />}
+                />
             </Tooltip>
             <Modal
                 width={600}
