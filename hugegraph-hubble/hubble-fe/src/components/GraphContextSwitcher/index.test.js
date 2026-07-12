@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter, useLocation} from 'react-router-dom';
 import GraphContextSwitcher from './index';
 import * as api from '../../api';
@@ -105,6 +105,77 @@ describe('GraphContextSwitcher', () => {
         expect(screen.getByRole('group', {name: 'workbench.context.name'})).toBeInTheDocument();
     });
 
+    test('loads every PD GraphSpace without pagination truncation', async () => {
+        sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+        api.manage.getGraphSpaceList.mockResolvedValueOnce({
+            status: 200,
+            data: [
+                {name: 'DEFAULT', nickname: 'Default'},
+                {name: 'demo_space', nickname: 'Demo Space'},
+                {name: 'loader_space', nickname: 'Loader Space'},
+            ],
+        });
+        renderSwitcher('/graphspace/demo_space');
+
+        expect(await screen.findByRole('option', {name: 'Loader Space'})).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'workbench.context.graphspace'}))
+            .toHaveValue('demo_space');
+        expect(api.manage.getGraphSpaceList).toHaveBeenCalledWith(
+            {all: true},
+            expect.any(Object)
+        );
+    });
+
+    test('temporarily keeps the selected GraphSpace in options while loading', () => {
+        sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+        api.manage.getGraphSpaceList.mockReturnValueOnce(new Promise(() => {}));
+        renderSwitcher('/graphspace/demo_space');
+
+        expect(screen.getByRole('combobox', {name: 'workbench.context.graphspace'}))
+            .toHaveValue('demo_space');
+        expect(screen.getByRole('option', {name: 'demo_space'})).toBeInTheDocument();
+    });
+
+    test('replaces a missing GraphSpace and never reuses its graph', async () => {
+        sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+        api.manage.getGraphSpaceList.mockResolvedValueOnce({
+            status: 200,
+            data: [{name: 'space_b', nickname: 'Space B'}],
+        });
+        renderSwitcher('/gremlin/deleted_space/old_graph');
+
+        await waitFor(() => {
+            expect(screen.getByRole('combobox', {name: 'workbench.context.graphspace'}))
+                .toHaveValue('space_b');
+        });
+        expect(screen.getByRole('combobox', {name: 'workbench.context.graph'}))
+            .not.toHaveValue('old_graph');
+        expect(screen.getByText('/graphspace/space_b')).toBeInTheDocument();
+        expect(JSON.parse(localStorage.getItem('hubble_workbench_graph_context'))).toEqual({
+            graphspace: 'space_b',
+        });
+    });
+
+    test('clears a deep-linked graph that does not belong to its GraphSpace', async () => {
+        sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+        api.manage.getGraphList.mockResolvedValueOnce({
+            status: 200,
+            data: {records: [{name: 'graph_b', nickname: 'Graph B'}]},
+        });
+        renderSwitcher('/gremlin/space_a/missing_graph');
+
+        await waitFor(() => {
+            expect(screen.getByRole('combobox', {name: 'workbench.context.graph'}))
+                .toHaveValue('');
+        });
+        await waitFor(() => {
+            expect(screen.getByText('/graphspace/space_a')).toBeInTheDocument();
+        });
+        expect(JSON.parse(localStorage.getItem('hubble_workbench_graph_context'))).toEqual({
+            graphspace: 'space_a',
+        });
+    });
+
     test('route context selects and persists the current graph', async () => {
         sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
         renderSwitcher('/gremlin/space_a/graph_a');
@@ -170,14 +241,17 @@ describe('GraphContextSwitcher', () => {
     test('switching GraphSpace immediately removes graphs from the previous space', async () => {
         sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
         let resolveSpaceB;
-        api.manage.getGraphList
-            .mockResolvedValueOnce({
+        api.manage.getGraphList.mockImplementation(graphspace => {
+            if (graphspace === 'space_b') {
+                return new Promise(resolve => {
+                    resolveSpaceB = resolve;
+                });
+            }
+            return Promise.resolve({
                 status: 200,
                 data: {records: [{name: 'graph_a', nickname: 'Graph A'}]},
-            })
-            .mockReturnValueOnce(new Promise(resolve => {
-                resolveSpaceB = resolve;
-            }));
+            });
+        });
         renderSwitcher('/graphspace/space_a');
         await screen.findByRole('option', {name: 'Graph A'});
 
@@ -188,11 +262,52 @@ describe('GraphContextSwitcher', () => {
 
         expect(screen.queryByRole('option', {name: 'Graph A'})).not.toBeInTheDocument();
         expect(screen.getByRole('combobox', {name: 'workbench.context.graph'})).toBeDisabled();
+        await waitFor(() => {
+            expect(api.manage.getGraphList).toHaveBeenCalledWith(
+                'space_b',
+                {page_no: 1, page_size: -1},
+                expect.any(Object)
+            );
+        });
         resolveSpaceB({
             status: 200,
             data: {records: [{name: 'graph_b', nickname: 'Graph B'}]},
         });
         expect(await screen.findByRole('option', {name: 'Graph B'})).toBeInTheDocument();
+    });
+
+    test('ignores a graph response from the previously selected GraphSpace', async () => {
+        sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+        let resolveSpaceA;
+        api.manage.getGraphList.mockImplementation(graphspace => {
+            if (graphspace === 'space_a') {
+                return new Promise(resolve => {
+                    resolveSpaceA = resolve;
+                });
+            }
+            return Promise.resolve({
+                status: 200,
+                data: {records: [{name: 'graph_b', nickname: 'Graph B'}]},
+            });
+        });
+        renderSwitcher('/graphspace/space_a');
+        await screen.findByRole('option', {name: 'Space B'});
+
+        fireEvent.change(
+            screen.getByRole('combobox', {name: 'workbench.context.graphspace'}),
+            {target: {value: 'space_b'}}
+        );
+        expect(await screen.findByRole('option', {name: 'Graph B'})).toBeInTheDocument();
+
+        await act(async () => {
+            resolveSpaceA({
+                status: 200,
+                data: {records: [{name: 'graph_a', nickname: 'Graph A'}]},
+            });
+            await Promise.resolve();
+        });
+        expect(screen.queryByRole('option', {name: 'Graph A'})).not.toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'Graph B'})).toBeInTheDocument();
     });
 
     test('stacks both failures and retries only the selected source', async () => {

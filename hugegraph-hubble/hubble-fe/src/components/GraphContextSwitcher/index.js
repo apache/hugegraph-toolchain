@@ -32,7 +32,8 @@ import {
 import style from './index.module.scss';
 
 const {Option} = Select;
-const LIST_PARAMS = {page_no: 1, page_size: -1};
+const GRAPHSPACE_LIST_PARAMS = {all: true};
+const GRAPH_LIST_PARAMS = {page_no: 1, page_size: -1};
 const INLINE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
 const getRecords = response => {
@@ -88,10 +89,11 @@ const GraphContextSwitcher = () => {
         }
 
         setLoading(value => ({...value, graphspaces: true}));
-        api.manage.getGraphSpaceList(LIST_PARAMS, INLINE_ERROR_CONFIG)
+        api.manage.getGraphSpaceList(GRAPHSPACE_LIST_PARAMS, INLINE_ERROR_CONFIG)
             .then(response => {
                 if (!cancelled) {
-                    setGraphspaces(getRecords(response));
+                    const records = getRecords(response);
+                    setGraphspaces(records);
                     setErrors(value => ({...value, graphspaces: false}));
                     setLoading(value => ({...value, graphspaces: false}));
                 }
@@ -106,7 +108,7 @@ const GraphContextSwitcher = () => {
         return () => {
             cancelled = true;
         };
-    }, [pdEnabled, reloadTokens.graphspaces]);
+    }, [navigate, pdEnabled, reloadTokens.graphspaces]);
 
     useEffect(() => {
         let cancelled = false;
@@ -118,10 +120,12 @@ const GraphContextSwitcher = () => {
 
         setLoading(value => ({...value, graphs: true}));
         setErrors(value => ({...value, graphs: false}));
-        api.manage.getGraphList(context.graphspace, LIST_PARAMS, INLINE_ERROR_CONFIG)
+        const requestedGraphspace = context.graphspace;
+        api.manage.getGraphList(requestedGraphspace, GRAPH_LIST_PARAMS, INLINE_ERROR_CONFIG)
             .then(response => {
                 if (!cancelled) {
-                    setGraphs(getRecords(response));
+                    const records = getRecords(response);
+                    setGraphs(records);
                     setErrors(value => ({...value, graphs: false}));
                     setLoading(value => ({...value, graphs: false}));
                 }
@@ -136,7 +140,68 @@ const GraphContextSwitcher = () => {
         return () => {
             cancelled = true;
         };
-    }, [context.graphspace, reloadTokens.graphs]);
+    }, [context.graphspace, navigate, reloadTokens.graphs]);
+
+    useEffect(() => {
+        if (!pdEnabled || loading.graphspaces || errors.graphspaces || !context.graphspace || (
+            graphspaces.some(item => item.name === context.graphspace)
+        )) {
+            return;
+        }
+
+        const graphspace = graphspaces[0]?.name;
+        const nextContext = graphspace ? {graphspace} : {};
+        setContext(nextContext);
+        setGraphs([]);
+        if (graphspace) {
+            writeWorkbenchGraphContext(localStorage, nextContext);
+            navigate(`/graphspace/${encodeURIComponent(graphspace)}`, {replace: true});
+        }
+        else {
+            localStorage.removeItem('hubble_workbench_graph_context');
+            navigate('/graphspace', {replace: true});
+        }
+    }, [
+        context.graphspace,
+        errors.graphspaces,
+        graphspaces,
+        loading.graphspaces,
+        navigate,
+        pdEnabled,
+    ]);
+
+    useEffect(() => {
+        if (loading.graphs || errors.graphs || !context.graph || (
+            graphs.some(item => item.name === context.graph)
+        )) {
+            return;
+        }
+
+        const nextContext = {graphspace: context.graphspace};
+        setContext(nextContext);
+        writeWorkbenchGraphContext(localStorage, nextContext);
+        navigate(
+            `/graphspace/${encodeURIComponent(context.graphspace)}`,
+            {replace: true}
+        );
+    }, [
+        context.graph,
+        context.graphspace,
+        errors.graphs,
+        graphs,
+        loading.graphs,
+        navigate,
+    ]);
+
+    const graphspaceOptions = useMemo(() => {
+        if (!context.graphspace || graphspaces.some(item => item.name === context.graphspace)) {
+            return graphspaces;
+        }
+        if (!loading.graphspaces && !errors.graphspaces) {
+            return graphspaces;
+        }
+        return [{name: context.graphspace, nickname: context.graphspace}, ...graphspaces];
+    }, [context.graphspace, errors.graphspaces, graphspaces, loading.graphspaces]);
 
     const selectGraphspace = useCallback(graphspace => {
         const nextContext = {graphspace};
@@ -162,11 +227,13 @@ const GraphContextSwitcher = () => {
     }, [context.graphspace, navigate]);
 
     const retryGraphspaces = useCallback(() => {
+        setLoading(value => ({...value, graphspaces: true}));
         setErrors(value => ({...value, graphspaces: false}));
         setReloadTokens(value => ({...value, graphspaces: value.graphspaces + 1}));
     }, []);
 
     const retryGraphs = useCallback(() => {
+        setLoading(value => ({...value, graphs: true}));
         setErrors(value => ({...value, graphs: false}));
         setReloadTokens(value => ({...value, graphs: value.graphs + 1}));
     }, []);
@@ -187,7 +254,7 @@ const GraphContextSwitcher = () => {
                     placeholder={t('workbench.context.select_graphspace')}
                     value={context.graphspace}
                 >
-                    {graphspaces.map(item => (
+                    {graphspaceOptions.map(item => (
                         <Option key={item.name} value={item.name}>
                             {item.name === DEFAULT_GRAPHSPACE
                                 ? t('workbench.context.default_graphspace')
