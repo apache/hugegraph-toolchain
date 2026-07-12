@@ -82,15 +82,27 @@ test('uses the same journey names as the global navigation in both languages', (
     const enCommon = require('../../../i18n/resources/en-US/components/common.json');
 
     expect(zhHome.home.workbench.journeys.understand.title).toBe('图概览');
-    expect(zhHome.home.workbench.journeys.prepare.title).toBe('数据准备');
+    expect(zhHome.home.workbench.journeys.prepare.title).toBe('图导入');
+    expect(zhHome.home.workbench.journeys.query.title).toBe('图查询');
     expect(enHome.home.workbench.journeys.understand.title).toBe('Graph Overview');
-    expect(enHome.home.workbench.journeys.prepare.title).toBe('Data Preparation');
-    expect(enHome.home.workbench.journeys.query.title).toBe('Query & Analysis');
+    expect(enHome.home.workbench.journeys.prepare.title).toBe('Graph Import');
+    expect(enHome.home.workbench.journeys.query.title).toBe('Graph Query');
     expect(zhCommon.workbench.nav.understand).toBe('图概览');
-    expect(zhCommon.workbench.nav.prepare).toBe('数据准备');
+    expect(zhCommon.workbench.nav.prepare).toBe('图导入');
+    expect(zhCommon.workbench.nav.query).toBe('图查询');
     expect(enCommon.workbench.nav.understand).toBe('Graph Overview');
-    expect(enCommon.workbench.nav.prepare).toBe('Data Preparation');
-    expect(enCommon.workbench.nav.query).toBe('Query & Analysis');
+    expect(enCommon.workbench.nav.prepare).toBe('Graph Import');
+    expect(enCommon.workbench.nav.query).toBe('Graph Query');
+});
+
+test('orders graph query before graph import in the main journey', () => {
+    isPdEnabled.mockReturnValue(false);
+    renderHome();
+
+    const queryTitle = screen.getByText('home.workbench.journeys.query.title');
+    const importTitle = screen.getByText('home.workbench.journeys.prepare.title');
+    expect(queryTitle.compareDocumentPosition(importTitle)
+        & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 
 test('keeps GraphSpace and support capabilities available to a PD superadmin', () => {

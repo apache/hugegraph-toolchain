@@ -401,7 +401,7 @@
     }
   },
   "data_preparation": {
-    "journey": "数据准备旅程",
+    "journey": "图导入旅程",
     "schema": "Schema 模板",
     "graph_schema": "图 Schema",
     "datasource": "数据源",
@@ -680,7 +680,7 @@
     },
     "name_placeholder": "允许出现中英文、数字、下划线",
     "delete_irreversible": "删除后无法恢复，请谨慎操作。",
-    "delete_task_hint": "删除元数据耗时较久，详情可在任务管理中查看",
+    "delete_task_hint": "删除元数据耗时较久，详情可在异步任务中查看",
     "col": {
       "label_index": "类型索引",
       "properties": "关联属性",
@@ -737,7 +737,7 @@
       "display_fields": "顶点展示内容",
       "delete_confirm": "确认删除此顶点类型？",
       "delete_warning": "删除后无法恢复，请谨慎操作",
-      "delete_task_note": "删除元数据耗时较久，详情可在任务管理中查看",
+      "delete_task_note": "删除元数据耗时较久，详情可在异步任务中查看",
       "col": {
         "name": "顶点类型名称",
         "id_strategy": "ID策略",
@@ -770,7 +770,7 @@
       "style": "边样式：",
       "delete_confirm": "确认删除此边类型？",
       "delete_warning": "删除后无法恢复，请谨慎操作",
-      "delete_task_note": "删除元数据耗时较久，详情可在任务管理中查看",
+      "delete_task_note": "删除元数据耗时较久，详情可在异步任务中查看",
       "col": {
         "name": "边类型名称",
         "type": "边类型",
@@ -874,14 +874,14 @@
     "create_graph": "创建图",
     "create_schema": "创建Schema",
     "load_data": "数据入库",
-    "graph_query": "图语言分析",
+    "graph_query": "GQL 图查询",
     "graph_algorithm": "图算法分析",
     "graph_manage": "图空间管理",
     "data_manage": "数据管理",
     "account_manage": "账号管理",
     "role_manage": "角色管理",
     "resource_manage": "资源管理",
-    "task_manage": "任务管理",
+    "task_manage": "异步任务",
     "datasource_manage": "数据源管理",
     "operation_manage": "运维管理",
     "cluster_manage": "集群管理",

@@ -26,7 +26,7 @@ import {useTranslation} from 'react-i18next';
 import GraphJourneyNav from '../../components/GraphJourneyNav';
 
 const Meta = () => {
-    const [viewType, setViewType] = useState('list');
+    const [viewType, setViewType] = useState('image');
     const [graphIno, setGraphInfo] = useState({});
     const [graphspaceInfo, setGraphspaceInfo] = useState({});
     const [loading, setLoading] = useState(true);
@@ -104,12 +104,12 @@ const Meta = () => {
                         <Col>
                             <Radio.Group
                                 options={[
-                                    {label: t('common.label.list_mode'), value: 'list'},
                                     {label: t('common.label.view_mode'), value: 'image'},
+                                    {label: t('common.label.list_mode'), value: 'list'},
                                 ]}
                                 optionType='button'
                                 buttonStyle='solid'
-                                defaultValue={'list'}
+                                value={viewType}
                                 onChange={handleChangeViewType}
                             />
                         </Col>

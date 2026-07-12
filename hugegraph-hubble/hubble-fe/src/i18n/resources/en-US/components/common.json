@@ -51,8 +51,8 @@
     "nav": {
       "home": "Workbench",
       "understand": "Graph Overview",
-      "prepare": "Data Preparation",
-      "query": "Query & Analysis",
+      "prepare": "Graph Import",
+      "query": "Graph Query",
       "support": "System and operations"
     },
     "page": {

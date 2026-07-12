@@ -51,8 +51,8 @@
     "nav": {
       "home": "工作台",
       "understand": "图概览",
-      "prepare": "数据准备",
-      "query": "查询与分析",
+      "prepare": "图导入",
+      "query": "图查询",
       "support": "系统与运维"
     },
     "page": {

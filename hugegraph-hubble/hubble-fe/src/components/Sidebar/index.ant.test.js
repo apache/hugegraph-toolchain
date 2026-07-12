@@ -45,10 +45,14 @@ test('exposes the application menu as named primary navigation', async () => {
 
     const navigation = await screen.findByRole('navigation', {name: '主导航'});
     expect(screen.getByText('图概览')).toBeInTheDocument();
-    expect(screen.getByText('数据准备')).toBeInTheDocument();
-    expect(screen.getByText('查询与分析')).toBeInTheDocument();
+    expect(screen.getByText('图导入')).toBeInTheDocument();
+    expect(screen.getByText('图查询')).toBeInTheDocument();
     expect(screen.getByText('系统与运维')).toBeInTheDocument();
-    expect(navigation).toContainElement(screen.getByRole('link', {name: '图语言分析'}));
+    expect(navigation).toContainElement(screen.getByRole('link', {name: 'GQL 图查询'}));
+    expect(navigation).toContainElement(screen.getByRole('link', {name: '异步任务'}));
+    const menuSections = screen.getAllByRole('menuitem')
+        .map(item => item.textContent);
+    expect(menuSections.indexOf('图查询')).toBeLessThan(menuSections.indexOf('图导入'));
     expect(screen.getByRole('link', {name: '图 Schema'})).toHaveAttribute(
         'href', '/graphspace/DEFAULT/graph/hugegraph/meta'
     );

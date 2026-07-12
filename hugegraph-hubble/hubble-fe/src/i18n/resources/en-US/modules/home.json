@@ -8,7 +8,7 @@
     "role": "Role Management",
     "workbench": {
       "title": "Graph Data Workbench",
-      "subtitle": "Understand your graph, prepare data, and analyze efficiently",
+      "subtitle": "Understand your graph, query it, and import data efficiently",
       "intro": "Apache HugeGraph Hubble organizes work around graph data users. Start with a goal and keep GraphSpace, graph, and task context through the next steps.",
       "mode": {
         "pd": "PD / HStore cluster mode",
@@ -22,14 +22,14 @@
           "primary": "View graphs"
         },
         "prepare": {
-          "title": "Data Preparation",
-          "description": "Configure data sources, schema, and import tasks while tracking preparation status.",
+          "title": "Graph Import",
+          "description": "Configure data sources, schema, and import tasks while tracking import status.",
           "primary": "Manage Schema",
           "secondary_1": "Manage data sources",
           "secondary_2": "View import tasks"
         },
         "query": {
-          "title": "Query & Analysis",
+          "title": "Graph Query",
           "description": "Explore graph data with queries, algorithms, and asynchronous analysis tasks.",
           "primary": "Start graph query",
           "secondary_1": "Run algorithms",

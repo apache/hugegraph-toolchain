@@ -2,7 +2,7 @@
   "analysis": {
     "name": "Business Analysis",
     "query": {
-      "name": "Graph Query",
+      "name": "GQL Graph Query",
       "placeholder": "Enter a query statement",
       "gremlin_tab": "Gremlin",
       "cypher_tab": "Cypher",
@@ -15,7 +15,7 @@
       "execute_query": "Run Query",
       "execute_task": "Run Task",
       "execute_shortcut": "Run query (Ctrl/Command + Enter)",
-      "execute_mode_desc": "Query mode is for small analyses that return within 30 seconds. Task mode is for larger analyses that take longer; task details are available in Task Management.",
+      "execute_mode_desc": "Query mode is for small analyses that return within 30 seconds. Task mode is for larger analyses that take longer; task details are available in Async Tasks.",
       "empty_query": "Query statement cannot be empty",
       "collapse": "Collapse",
       "expand": "Expand",
@@ -792,7 +792,7 @@
       }
     },
     "async_task": {
-      "name": "Task Management",
+      "name": "Async Tasks",
       "search_placeholder": "Enter a task ID or name",
       "get_failed": "Failed to get async tasks",
       "retry_list": "Retry tasks",
@@ -802,7 +802,7 @@
       "no_result": "No task result is available.",
       "result_title": "Task result",
       "result_context": "{{graphspace}} / {{graph}} / Task {{taskId}}",
-      "result_back": "Back to task management",
+      "result_back": "Back to async tasks",
       "delete_failed": "Delete failed",
       "abort_failed": "Abort failed",
       "delete_confirm_title": "Delete Task",

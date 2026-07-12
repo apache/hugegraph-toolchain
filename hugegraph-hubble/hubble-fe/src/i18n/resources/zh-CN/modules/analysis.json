@@ -2,7 +2,7 @@
   "analysis": {
     "name": "业务分析",
     "query": {
-      "name": "图语言分析",
+      "name": "GQL 图查询",
       "placeholder": "请输入查询语句",
       "gremlin_tab": "Gremlin 分析",
       "cypher_tab": "Cypher 分析",
@@ -15,7 +15,7 @@
       "execute_query": "执行查询",
       "execute_task": "执行任务",
       "execute_shortcut": "执行查询（Ctrl/Command + Enter）",
-      "execute_mode_desc": "查询模式适合 30 秒内可返回结果的小规模分析，任务模式适合较长时间返回结果的大规模分析，任务详情可在任务管理中查看",
+      "execute_mode_desc": "查询模式适合 30 秒内可返回结果的小规模分析，任务模式适合较长时间返回结果的大规模分析，任务详情可在异步任务中查看",
       "empty_query": "查询语句不能为空",
       "collapse": "收起",
       "expand": "展开",
@@ -792,7 +792,7 @@
       }
     },
     "async_task": {
-      "name": "任务管理",
+      "name": "异步任务",
       "search_placeholder": "请输入任务ID或名称",
       "get_failed": "获取异步任务失败",
       "retry_list": "重试任务列表",
@@ -802,7 +802,7 @@
       "no_result": "该任务暂无可显示的结果。",
       "result_title": "任务结果",
       "result_context": "{{graphspace}} / {{graph}} / 任务 {{taskId}}",
-      "result_back": "返回任务管理",
+      "result_back": "返回异步任务",
       "delete_failed": "删除失败",
       "abort_failed": "终止失败",
       "delete_confirm_title": "删除任务",

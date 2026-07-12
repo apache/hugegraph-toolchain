@@ -70,5 +70,26 @@ test('shows persistent source-specific recovery instead of spinning forever', as
 
     await waitFor(() => expect(screen.getByText('Space A - Graph A - schema.title'))
         .toBeInTheDocument());
+    expect(screen.getByText('schema image')).toBeInTheDocument();
+});
+
+test('defaults to image mode and preserves manual list switching', async () => {
+    api.manage.getGraph.mockResolvedValue({
+        status: 200,
+        data: {nickname: 'Graph A'},
+    });
+    api.manage.getGraphSpace.mockResolvedValue({
+        status: 200,
+        data: {nickname: 'Space A'},
+    });
+
+    render(<Meta />);
+
+    expect(await screen.findByText('schema image')).toBeInTheDocument();
+    expect(screen.queryByText('schema list')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByLabelText('common.label.list_mode'));
+
     expect(screen.getByText('schema list')).toBeInTheDocument();
+    expect(screen.queryByText('schema image')).not.toBeInTheDocument();
 });

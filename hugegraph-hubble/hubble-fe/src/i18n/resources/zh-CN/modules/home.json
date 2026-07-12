@@ -8,7 +8,7 @@
     "role": "角色管理",
     "workbench": {
       "title": "图数据工作台",
-      "subtitle": "从图概览开始，高效完成数据准备与查询分析",
+      "subtitle": "从图概览开始，高效完成图查询与图导入",
       "intro": "Apache HugeGraph Hubble 面向图数据使用者组织工作流。选择一个目标开始，GraphSpace、图和任务上下文会在后续步骤中持续保留。",
       "mode": {
         "pd": "PD / HStore 集群模式",
@@ -22,14 +22,14 @@
           "primary": "查看图"
         },
         "prepare": {
-          "title": "数据准备",
-          "description": "配置数据源、Schema 和导入任务，并跟踪数据准备状态。",
+          "title": "图导入",
+          "description": "配置数据源、Schema 和导入任务，并跟踪图导入状态。",
           "primary": "管理 Schema",
           "secondary_1": "管理数据源",
           "secondary_2": "查看导入任务"
         },
         "query": {
-          "title": "查询与分析",
+          "title": "图查询",
           "description": "用图查询、算法和异步任务探索数据并分析结果。",
           "primary": "开始图查询",
           "secondary_1": "运行图算法",

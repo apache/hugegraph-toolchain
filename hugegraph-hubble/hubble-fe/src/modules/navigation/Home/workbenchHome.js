@@ -25,14 +25,14 @@ const getWorkbenchJourneys = pdEnabled => [
         secondaryPaths: [],
     },
     {
-        key: 'prepare',
-        primaryPath: getPreparationSchemaPath(pdEnabled),
-        secondaryPaths: ['/source', '/task'],
-    },
-    {
         key: 'query',
         primaryPath: '/gremlin',
         secondaryPaths: ['/algorithms', '/asyncTasks'],
+    },
+    {
+        key: 'prepare',
+        primaryPath: getPreparationSchemaPath(pdEnabled),
+        secondaryPaths: ['/source', '/task'],
     },
 ];
 

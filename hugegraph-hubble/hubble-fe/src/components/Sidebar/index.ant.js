@@ -71,6 +71,25 @@ const items = (t, pathname) => {
             }],
         },
         {
+            label: t('workbench.nav.query'),
+            key: 'query',
+            icon: <DatabaseOutlined />,
+            children: [
+                {
+                    label: <Link to='/gremlin'>{t('analysis.query.name')}</Link>,
+                    key: 'gremlin',
+                },
+                {
+                    label: <Link to='/algorithms'>{t('analysis.algorithm.name')}</Link>,
+                    key: 'algorithms',
+                },
+                {
+                    label: <Link to='/asyncTasks'>{t('analysis.async_task.name')}</Link>,
+                    key: 'asyncTasks',
+                },
+            ],
+        },
+        {
             label: t('workbench.nav.prepare'),
             key: 'prepare',
             icon: <CloudUploadOutlined />,
@@ -96,25 +115,6 @@ const items = (t, pathname) => {
                 {
                     label: <Link to='/task'>{t('manage.task')}</Link>,
                     key: 'task',
-                },
-            ],
-        },
-        {
-            label: t('workbench.nav.query'),
-            key: 'query',
-            icon: <DatabaseOutlined />,
-            children: [
-                {
-                    label: <Link to='/gremlin'>{t('analysis.query.name')}</Link>,
-                    key: 'gremlin',
-                },
-                {
-                    label: <Link to='/algorithms'>{t('analysis.algorithm.name')}</Link>,
-                    key: 'algorithms',
-                },
-                {
-                    label: <Link to='/asyncTasks'>{t('analysis.async_task.name')}</Link>,
-                    key: 'asyncTasks',
                 },
             ],
         },
