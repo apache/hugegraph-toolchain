@@ -55,7 +55,9 @@ test.each([
     localStorage.setItem('hubble_workbench_graph_context', JSON.stringify(context));
 
     expect(getPreparationSchemaPath(pdEnabled)).toBe(expected);
-    expect(getWorkbenchJourneys(pdEnabled)[1]).toMatchObject({
+    expect(getWorkbenchJourneys(pdEnabled).find(journey => (
+        journey.key === 'prepare'
+    ))).toMatchObject({
         key: 'prepare',
         primaryPath: expected,
         secondaryPaths: ['/source', '/task'],

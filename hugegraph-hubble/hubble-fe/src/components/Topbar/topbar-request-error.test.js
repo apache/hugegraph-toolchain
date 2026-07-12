@@ -84,8 +84,14 @@ jest.mock('antd', () => {
 describe('Topbar request errors', () => {
     beforeEach(() => {
         jest.clearAllMocks();
-        api.manage.getGraphList.mockResolvedValue({status: 200, data: {records: []}});
-        api.manage.getGraphSpaceList.mockResolvedValue({status: 200, data: {records: []}});
+        api.manage.getGraphList.mockResolvedValue({
+            status: 200,
+            data: {records: [{name: 'hugegraph'}]},
+        });
+        api.manage.getGraphSpaceList.mockResolvedValue({
+            status: 200,
+            data: {records: [{name: 'DEFAULT'}]},
+        });
         localStorage.clear();
         sessionStorage.clear();
         sessionStorage.setItem('user_', JSON.stringify({id: 'admin', user_nickname: 'admin'}));
