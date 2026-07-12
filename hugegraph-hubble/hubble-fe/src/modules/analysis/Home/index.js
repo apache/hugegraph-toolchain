@@ -304,7 +304,10 @@ const AnalysisHome = () => {
             setQueryMode(true);
             setQueryStatus(LOADING);
             setPanelType(CLOSED);
-            setGraphRenderMode(CANVAS2D);
+            const previousGraph = queryResult?.graph_view;
+            if (_.isEmpty(previousGraph?.vertices) && _.isEmpty(previousGraph?.edges)) {
+                setGraphRenderMode(CANVAS2D);
+            }
             try {
                 let response;
                 if (tabKey === GREMLIN) {
@@ -345,7 +348,8 @@ const AnalysisHome = () => {
                 setQueryStatus(FAILED);
             }
         },
-        [graph, graphSpace, codeEditorContent, onExeLogsRefresh, onFavoriteRefresh, resetGraphInfo, t]
+        [graph, graphSpace, codeEditorContent, onExeLogsRefresh, onFavoriteRefresh,
+            queryResult, resetGraphInfo, t]
     );
 
     const onExecuteTask = useCallback(

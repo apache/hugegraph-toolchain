@@ -17,6 +17,7 @@
 
 import {
     preserveNodePositions,
+    shouldKeepGraphCanvas,
     shouldRestartGraphLayout,
 } from './data';
 
@@ -44,4 +45,11 @@ test('keeps node coordinates when a repeated query refreshes graph data', () => 
         {id: 'a', x: 120, y: 80},
         {id: 'b', x: 360, y: 240},
     ]);
+});
+
+test('keeps the existing canvas mounted while a repeated query is loading', () => {
+    expect(shouldKeepGraphCanvas(true, 'loading', data)).toBe(true);
+    expect(shouldKeepGraphCanvas(true, 'loading', {nodes: [], edges: []})).toBe(false);
+    expect(shouldKeepGraphCanvas(false, 'loading', data)).toBe(false);
+    expect(shouldKeepGraphCanvas(true, 'success', data)).toBe(false);
 });

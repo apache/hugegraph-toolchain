@@ -46,6 +46,7 @@ import {GRAPH_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE} from '../../../../../utils/
 import {formatToGraphData, formatToLegendData, formatToDownloadData,
     formatToStyleData, updateGraphDataStyle} from '../../../../../utils/formatGraphResultData';
 import {mapLayoutNameToLayoutDetails} from '../../../../../utils/graph';
+import {shouldKeepGraphCanvas} from '../../../../component/Graph/data';
 import {fetchExpandInfo, handleAddGraphNode, handleAddGraphEdge, handleExpandGraph} from '../utils';
 import {filterData} from '../../../../../utils/filter';
 import c from './index.module.scss';
@@ -515,6 +516,9 @@ const GraphResult = props => {
                     <GraphStatusView status={STANDBY} message={t('analysis.query_result.no_data')} />
                 );
             case LOADING:
+                if (shouldKeepGraphCanvas(isQueryMode, queryStatus, graphData)) {
+                    return graphRenderMode === CANVAS2D ? renderCanvas2D() : renderCanvas3D();
+                }
                 return (
                     <GraphStatusView
                         status={LOADING}

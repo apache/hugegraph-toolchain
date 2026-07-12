@@ -29,6 +29,11 @@ export const shouldRestartGraphLayout = (previousData, nextData) => {
     return topologySignature(previousData) !== topologySignature(nextData);
 };
 
+export const shouldKeepGraphCanvas = (isQueryMode, queryStatus, data) => {
+    const itemCount = (data?.nodes?.length || 0) + (data?.edges?.length || 0);
+    return isQueryMode && queryStatus === 'loading' && itemCount > 0;
+};
+
 export const preserveNodePositions = (data, graphItems = []) => {
     const positions = new Map();
     graphItems.forEach(item => {

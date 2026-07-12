@@ -43,8 +43,17 @@ jest.mock('../QueryBar/Home', () => props => (
         <button onClick={() => props.onExecute(props.activeTab)}>Run current</button>
     </div>
 ));
-jest.mock('../QueryResult/Home', () => ({queryStatus, queryMessage}) => (
-    <div>query result {queryStatus} {queryMessage}</div>
+jest.mock('../QueryResult/Home', () => ({
+    queryStatus,
+    queryMessage,
+    graphRenderMode,
+    onGraphRenderModeChange,
+}) => (
+    <div>
+        query result {queryStatus} {queryMessage}
+        <span>render mode {graphRenderMode}</span>
+        <button onClick={() => onGraphRenderModeChange('3D模式')}>Use 3D</button>
+    </div>
 ));
 jest.mock('../LogsDetail/Home', () => props => (
     <div>
@@ -133,6 +142,49 @@ it('does not start a duplicate query while the first request is pending', async 
 
     expect(api.analysis.getExecutionQuery).toHaveBeenCalledTimes(1);
     await act(async () => resolveQuery({status: 200, data: {}}));
+});
+
+it('preserves the 3D canvas mode while repeating a graph query', async () => {
+    let resolveRepeatedQuery;
+    api.analysis.getExecutionQuery
+        .mockResolvedValueOnce({
+            status: 200,
+            data: {
+                graph_view: {
+                    vertices: [{id: 'v1'}],
+                    edges: [],
+                },
+            },
+        })
+        .mockImplementationOnce(() => new Promise(resolve => {
+            resolveRepeatedQuery = resolve;
+        }));
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    const run = screen.getByRole('button', {name: 'Run current'});
+    fireEvent.click(run);
+    await screen.findByText(/query result success/);
+    fireEvent.click(screen.getByRole('button', {name: 'Use 3D'}));
+    expect(screen.getByText('render mode 3D模式')).toBeInTheDocument();
+
+    fireEvent.click(run);
+    expect(await screen.findByText(/query result loading/)).toBeInTheDocument();
+    expect(screen.getByText('render mode 3D模式')).toBeInTheDocument();
+
+    await act(async () => resolveRepeatedQuery({
+        status: 200,
+        data: {
+            graph_view: {
+                vertices: [{id: 'v1'}],
+                edges: [],
+            },
+        },
+    }));
 });
 
 it('keeps execution-history failure separate and retries only that source', async () => {
