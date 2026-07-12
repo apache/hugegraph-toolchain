@@ -41,7 +41,11 @@ jest.mock('../pages/GraphSpace', () => () => <div>graphspace page</div>);
 jest.mock('../pages/Meta', () => () => <div>meta page</div>);
 jest.mock('../pages/GraphDetail', () => () => <div>graph detail page</div>);
 jest.mock('../pages/My', () => () => <div>my page</div>);
-jest.mock('../pages/Account', () => () => <div>account page</div>);
+const mockAccountRender = jest.fn();
+jest.mock('../pages/Account', () => () => {
+    mockAccountRender();
+    return <div>account page</div>;
+});
 jest.mock('../pages/Role/Auth', () => () => <div>role auth page</div>);
 jest.mock('../pages/Navigation', () => () => <div>navigation page</div>);
 jest.mock('../pages/Error404', () => () => <div>not found page</div>);
@@ -77,6 +81,7 @@ describe('route guard', () => {
     beforeEach(() => {
         localStorage.clear();
         sessionStorage.clear();
+        mockAccountRender.mockClear();
         isPdEnabled.mockReturnValue(false);
     });
 
@@ -125,6 +130,7 @@ describe('route guard', () => {
         sessionStorage.setItem('user_', JSON.stringify({
             id: 'admin',
             user_nickname: 'admin',
+            is_superadmin: true,
         }));
 
         renderRoutes('/role/graphspace/DEFAULT/admin');
@@ -132,6 +138,38 @@ describe('route guard', () => {
         expect(screen.getByText('navigation page')).toBeTruthy();
         expect(screen.queryByText('role auth page')).toBeNull();
         expect(screen.queryByText('not found page')).toBeNull();
+    });
+
+    it('redirects an unprivileged PD account deep link before Account mounts', () => {
+        isPdEnabled.mockReturnValue(true);
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'viewer',
+            user_nickname: 'viewer',
+            is_superadmin: false,
+            resSpaces: [{name: 'SPACE'}],
+            adminSpaces: [],
+        }));
+
+        renderRoutes('/account');
+
+        expect(screen.getByText('my page')).toBeTruthy();
+        expect(screen.queryByText('account page')).toBeNull();
+        expect(mockAccountRender).not.toHaveBeenCalled();
+    });
+
+    it('allows an authorized-space administrator to open the PD account route', () => {
+        isPdEnabled.mockReturnValue(true);
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'space-admin',
+            user_nickname: 'space-admin',
+            is_superadmin: false,
+            adminSpaces: [{name: 'SPACE'}],
+        }));
+
+        renderRoutes('/account');
+
+        expect(screen.getByText('account page')).toBeTruthy();
+        expect(mockAccountRender).toHaveBeenCalledTimes(1);
     });
 
     it.each([
@@ -143,6 +181,7 @@ describe('route guard', () => {
         sessionStorage.setItem('user_', JSON.stringify({
             id: 'admin',
             user_nickname: 'admin',
+            is_superadmin: true,
         }));
 
         renderRoutes(route);

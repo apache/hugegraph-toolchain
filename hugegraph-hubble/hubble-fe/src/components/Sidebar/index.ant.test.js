@@ -1,0 +1,96 @@
+/*
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+import {render, screen, waitFor} from '@testing-library/react';
+import {MemoryRouter} from 'react-router-dom';
+import Sidebar from './index.ant';
+import '../../i18n';
+
+beforeEach(() => {
+    sessionStorage.clear();
+    localStorage.clear();
+    sessionStorage.setItem('user_', JSON.stringify({
+        id: 'admin',
+        user_nickname: 'admin',
+        is_superadmin: false,
+    }));
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
+});
+
+test('exposes the application menu as named primary navigation', async () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/gremlin/DEFAULT/hugegraph']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    const navigation = await screen.findByRole('navigation', {name: '主导航'});
+    expect(screen.getByText('理解图')).toBeInTheDocument();
+    expect(screen.getByText('准备数据')).toBeInTheDocument();
+    expect(screen.getByText('查询与分析')).toBeInTheDocument();
+    expect(screen.getByText('系统与运维')).toBeInTheDocument();
+    expect(navigation).toContainElement(screen.getByRole('link', {name: '图语言分析'}));
+    expect(screen.queryByRole('link', {name: '账号管理'})).not.toBeInTheDocument();
+    await waitFor(() => expect(navigation).toBeVisible());
+});
+
+test('shows Account for the same authorized-space user accepted by its route', async () => {
+    sessionStorage.setItem('user_', JSON.stringify({
+        id: 'space-admin',
+        user_nickname: 'space-admin',
+        is_superadmin: false,
+        adminSpaces: [{name: 'SPACE'}],
+    }));
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+
+    render(
+        <MemoryRouter
+            initialEntries={['/my']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('link', {name: '账号管理'})).toBeInTheDocument();
+});
+
+test('hides Account from an analyst who can read a space but cannot administer it', async () => {
+    sessionStorage.setItem('user_', JSON.stringify({
+        id: 'analyst',
+        user_nickname: 'analyst',
+        is_superadmin: false,
+        resSpaces: [{name: 'SPACE'}],
+        adminSpaces: [],
+    }));
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+
+    render(
+        <MemoryRouter
+            initialEntries={['/my']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect(screen.queryByRole('link', {name: '账号管理'})).not.toBeInTheDocument();
+});

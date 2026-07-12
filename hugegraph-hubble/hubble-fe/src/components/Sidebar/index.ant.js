@@ -43,11 +43,7 @@ const items = t => {
     if (!pdMode) {
         systemList = [MY];
     }
-    else if (userInfo.is_superadmin) {
-        // systemList = [MY, ACCOUNT, RESOURCE, ROLE];
-        systemList = [MY, ACCOUNT];
-    }
-    else if (userInfo.resSpaces && userInfo.resSpaces.length > 0) {
+    else if (user.canAccessAccount(pdMode, userInfo)) {
         // systemList = [MY, RESOURCE, ROLE];
         systemList = [MY, ACCOUNT];
     }

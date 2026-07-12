@@ -71,6 +71,14 @@ const PdOnlyRoute = ({children, fallback = '/navigation'}) => {
     return isPdEnabled() ? children : <Navigate to={fallback} replace />;
 };
 
+const AccountRoute = () => {
+    const pdEnabled = isPdEnabled();
+
+    return user.canAccessAccount(pdEnabled, user.getUser())
+        ? <Account />
+        : <Navigate to='/my' replace />;
+};
+
 const GraphSpaceListRoute = () => {
     return isPdEnabled()
         ? <GraphSpace />
@@ -148,7 +156,7 @@ const RouteList = ({element}) => {
                 <Route path='/role' element={<Navigate to='/navigation' replace />} />
                 <Route
                     path='/account'
-                    element={<PdOnlyRoute fallback='/my'><Account /></PdOnlyRoute>}
+                    element={<AccountRoute />}
                 />
                 {/* <Route path='/role' element={<Role />} /> */}
                 <Route

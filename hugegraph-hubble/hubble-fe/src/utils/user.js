@@ -64,4 +64,19 @@ const isAdmin = () => {
     return Boolean(user.is_superadmin);
 };
 
-export {setUser, getUser, clearUser, clearLogin, getDefaultGraphspace, isAdmin};
+const canAccessAccount = (pdEnabled, user = {}) => {
+    return Boolean(pdEnabled && (
+        user.is_superadmin
+        || (Array.isArray(user.adminSpaces) && user.adminSpaces.length > 0)
+    ));
+};
+
+export {
+    canAccessAccount,
+    setUser,
+    getUser,
+    clearUser,
+    clearLogin,
+    getDefaultGraphspace,
+    isAdmin,
+};

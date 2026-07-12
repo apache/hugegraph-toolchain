@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {clearUser, getUser, isAdmin} from './user';
+import {canAccessAccount, clearUser, getUser, isAdmin} from './user';
 
 describe('user storage helpers', () => {
     beforeEach(() => {
@@ -29,5 +29,22 @@ describe('user storage helpers', () => {
 
     test('treats missing session user as a non-admin user', () => {
         expect(isAdmin()).toBe(false);
+    });
+});
+
+describe('account access', () => {
+    test.each([
+        [false, {is_superadmin: true}, false],
+        [true, {is_superadmin: true}, true],
+        [true, {is_superadmin: false, adminSpaces: [{name: 'SPACE'}]}, true],
+        [true, {is_superadmin: false, adminSpaces: []}, false],
+        [true, {
+            is_superadmin: false,
+            resSpaces: [{name: 'SPACE'}],
+            adminSpaces: [],
+        }, false],
+        [true, {}, false],
+    ])('evaluates PD mode and user authorization together', (pdEnabled, value, expected) => {
+        expect(canAccessAccount(pdEnabled, value)).toBe(expected);
     });
 });
