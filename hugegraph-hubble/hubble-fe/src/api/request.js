@@ -40,7 +40,8 @@ const parseResponse = (data, headers) => {
 const redirectToLogin = () => {
     user.clearLogin();
     if (window.location.pathname !== '/login') {
-        const redirect = `${window.location.pathname}${window.location.search}`;
+        const redirect = `${window.location.pathname}${window.location.search}`
+                         + window.location.hash;
         sessionStorage.setItem('redirect', redirect);
         window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
     }

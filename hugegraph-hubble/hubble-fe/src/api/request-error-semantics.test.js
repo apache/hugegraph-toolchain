@@ -74,8 +74,9 @@ describe.each(['./request'])('%s error semantics', modulePath => {
     beforeEach(() => {
         delete window.location;
         window.location = {
-            pathname: '/navigation',
-            search: '?from=test',
+            pathname: '/gremlin/DEFAULT/hugegraph',
+            search: '?x=1',
+            hash: '#result',
             href: '',
         };
     });
@@ -114,7 +115,7 @@ describe.each(['./request'])('%s error semantics', modulePath => {
     });
 
     it('rejects HTTP 401 and redirects to login', async () => {
-        const {reject, clearLogin} = loadResponseHandlers(modulePath);
+        const {reject, clearLogin, instance} = loadResponseHandlers(modulePath);
         const error = {
             response: {
                 status: 401,
@@ -127,12 +128,19 @@ describe.each(['./request'])('%s error semantics', modulePath => {
 
         await expect(reject(error)).rejects.toBe(error);
         expect(clearLogin).toHaveBeenCalledTimes(1);
-        expect(sessionStorage.getItem('redirect')).toBe('/navigation?from=test');
-        expect(window.location.href).toBe('/login?redirect=%2Fnavigation%3Ffrom%3Dtest');
+        expect(sessionStorage.getItem('redirect'))
+            .toBe('/gremlin/DEFAULT/hugegraph?x=1#result');
+        expect(window.location.href).toBe(
+            '/login?redirect=%2Fgremlin%2FDEFAULT%2Fhugegraph%3Fx%3D1%23result'
+        );
+        expect(instance.get).not.toHaveBeenCalled();
+        expect(instance.post).not.toHaveBeenCalled();
+        expect(instance.put).not.toHaveBeenCalled();
+        expect(instance.delete).not.toHaveBeenCalled();
     });
 
     it('rejects business 401 and redirects to login', async () => {
-        const {resolve, clearLogin} = loadResponseHandlers(modulePath);
+        const {resolve, clearLogin, instance} = loadResponseHandlers(modulePath);
         const response = {
             status: 200,
             data: {
@@ -143,7 +151,15 @@ describe.each(['./request'])('%s error semantics', modulePath => {
 
         await expect(resolve(response)).rejects.toBe(response);
         expect(clearLogin).toHaveBeenCalledTimes(1);
-        expect(window.location.href).toBe('/login?redirect=%2Fnavigation%3Ffrom%3Dtest');
+        expect(sessionStorage.getItem('redirect'))
+            .toBe('/gremlin/DEFAULT/hugegraph?x=1#result');
+        expect(window.location.href).toBe(
+            '/login?redirect=%2Fgremlin%2FDEFAULT%2Fhugegraph%3Fx%3D1%23result'
+        );
+        expect(instance.get).not.toHaveBeenCalled();
+        expect(instance.post).not.toHaveBeenCalled();
+        expect(instance.put).not.toHaveBeenCalled();
+        expect(instance.delete).not.toHaveBeenCalled();
     });
 
     it('shows a modal warning for throttled login attempts', () => {

@@ -48,10 +48,10 @@ jest.mock('react-i18next', () => ({
     }),
 }));
 
-const submitLoginForm = async () => {
+const submitLoginForm = async (redirect = '%2Fnavigation') => {
     render(
         <MemoryRouter
-            initialEntries={['/login?redirect=%2Fnavigation']}
+            initialEntries={[`/login?redirect=${redirect}`]}
             future={{
                 v7_relativeSplatPath: true,
                 v7_startTransition: true,
@@ -143,5 +143,27 @@ describe('Login request errors', () => {
         });
         expect(configUtil.setConfig).not.toHaveBeenCalled();
         expect(window.location.replace).toHaveBeenCalledWith('/navigation');
+    });
+
+    it('restores the full query and hash location after login', async () => {
+        api.auth.login.mockResolvedValue({
+            status: 200,
+            data: {
+                user_name: 'admin',
+            },
+        });
+        api.config.getConfig.mockResolvedValue({status: 200, data: {}});
+
+        await submitLoginForm(
+            '%2Fgremlin%2FDEFAULT%2Fhugegraph%3Fx%3D1%23result'
+        );
+
+        await waitFor(() => {
+            expect(window.location.replace).toHaveBeenCalledWith(
+                '/gremlin/DEFAULT/hugegraph?x=1#result'
+            );
+        });
+        expect(api.auth.login).toHaveBeenCalledTimes(1);
+        expect(api.config.getConfig).toHaveBeenCalledTimes(1);
     });
 });
