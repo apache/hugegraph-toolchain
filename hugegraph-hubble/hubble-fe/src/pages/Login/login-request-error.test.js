@@ -45,6 +45,9 @@ const configUtil = require('../../utils/config');
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({
         t: key => key,
+        i18n: {
+            changeLanguage: jest.fn(),
+        },
     }),
 }));
 
@@ -105,6 +108,24 @@ describe('Login request errors', () => {
         expect(screen.getByText('login.subtitle')).toBeInTheDocument();
         expect(screen.getByRole('img', {name: 'Apache HugeGraph'}))
             .toBeInTheDocument();
+        expect(screen.getByText('HugeGraph')).toBeInTheDocument();
+        expect(screen.getByRole('combobox', {name: 'login.language'}))
+            .toBeInTheDocument();
+    });
+
+    it('lets users choose a language before authentication', async () => {
+        render(
+            <MemoryRouter future={{v7_relativeSplatPath: true, v7_startTransition: true}}>
+                <Login />
+            </MemoryRouter>
+        );
+
+        await userEvent.selectOptions(
+            screen.getByRole('combobox', {name: 'login.language'}),
+            'en-US'
+        );
+
+        expect(localStorage.getItem('languageType')).toBe('en-US');
     });
 
     it('keeps rejected login requests from escaping the submit handler', async () => {

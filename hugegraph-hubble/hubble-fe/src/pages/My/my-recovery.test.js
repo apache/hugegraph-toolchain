@@ -100,6 +100,24 @@ test('shows a persistent profile error and retries without stale identity', asyn
     expect(screen.queryByText('my.load.unavailable')).not.toBeInTheDocument();
 });
 
+test('renders localized placeholders for empty profile fields', async () => {
+    api.auth.getPersonal.mockResolvedValue({
+        status: 200,
+        data: {
+            user_name: 'admin',
+            user_nickname: 'Administrator',
+            user_description: '',
+            adminSpaces: [],
+            user_create: null,
+        },
+    });
+
+    render(<My />);
+
+    expect(await screen.findByText('Administrator')).toBeInTheDocument();
+    expect(screen.getAllByText('my.empty_value')).toHaveLength(3);
+});
+
 test('ignores an old profile response after a newer refresh', async () => {
     const oldRequest = deferred();
     api.auth.getPersonal

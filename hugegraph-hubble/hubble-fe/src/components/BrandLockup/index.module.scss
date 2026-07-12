@@ -1,0 +1,42 @@
+/*!
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0.
+ */
+
+.lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    color: inherit;
+    white-space: nowrap;
+
+    img {
+        display: block;
+        width: 34px;
+        height: 34px;
+        flex: none;
+    }
+}
+
+.wordmark {
+    font-size: 24px;
+    font-style: normal;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.compact {
+    gap: 8px;
+
+    img {
+        width: 28px;
+        height: 28px;
+    }
+
+    .wordmark {
+        font-size: 20px;
+    }
+}

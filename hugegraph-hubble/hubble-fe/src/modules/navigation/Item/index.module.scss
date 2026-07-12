@@ -17,19 +17,47 @@
  */
 
 .container {
-    display: inline-block;
-    min-height: 230px;
-    vertical-align: top;
+    min-width: 0;
+    padding: 20px;
+    border: 1px solid var(--workbench-color-border);
+    border-radius: var(--workbench-radius);
+    background: var(--workbench-color-surface);
 }
 
 .itemList {
-    margin-left: 20px;
-    text-align: center;
+    display: grid;
+    gap: 10px;
 }
 
 .item {
-    width: 160px;
-    margin-bottom: 10px;
+    min-width: 0;
+
+    :global(.ant-btn) {
+        display: flex;
+        min-height: 38px;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        border-radius: 6px;
+        text-align: left;
+    }
+
+    :global(.ant-btn[disabled]) {
+        border-color: var(--workbench-color-border);
+        background: #f7f9fc;
+        color: var(--workbench-color-text-secondary);
+    }
+}
+
+.badge {
+    flex: none;
+    padding: 1px 7px;
+    border-radius: 999px;
+    background: #e8edf5;
+    color: #667085;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 18px;
 }
 
 .reason {

@@ -17,31 +17,24 @@
  */
 
 .button {
-    width: 200px;
-    height: 40px;
-    line-height: 40px;
+    display: flex;
+    min-height: 32px;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+    color: var(--workbench-color-text);
     font-size: 16px;
-    text-align: center;
-    color: #389e0d;
-    background: #f6ffed;
-    border-color: #b7eb8f;
-    margin-bottom: 20px;
-}
-
-.arrow {
-    width: 7px;
-    height: 7px;
-    border-top: 2px solid #000;
-    border-bottom: 2px solid #000;
-    transform: rotate(45deg);
+    font-weight: 600;
 }
 
 .index {
-    margin-right: 5px;
-    display: inline-block;
-    height: 20px;
-    line-height: 18px;
-    width: 20px;
-    border: 1px solid #389e0d;
-    border-radius: 10px;
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #e8f1fd;
+    color: var(--workbench-color-brand-strong);
+    font-size: 12px;
 }

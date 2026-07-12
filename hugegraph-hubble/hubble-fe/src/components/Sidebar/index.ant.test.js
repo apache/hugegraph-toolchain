@@ -43,8 +43,8 @@ test('exposes the application menu as named primary navigation', async () => {
     );
 
     const navigation = await screen.findByRole('navigation', {name: '主导航'});
-    expect(screen.getByText('理解图')).toBeInTheDocument();
-    expect(screen.getByText('准备数据')).toBeInTheDocument();
+    expect(screen.getByText('图概览')).toBeInTheDocument();
+    expect(screen.getByText('数据准备')).toBeInTheDocument();
     expect(screen.getByText('查询与分析')).toBeInTheDocument();
     expect(screen.getByText('系统与运维')).toBeInTheDocument();
     expect(navigation).toContainElement(screen.getByRole('link', {name: '图语言分析'}));

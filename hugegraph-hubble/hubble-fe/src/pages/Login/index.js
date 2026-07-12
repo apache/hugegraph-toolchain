@@ -18,13 +18,13 @@
 
 import {LockOutlined, UserOutlined} from '@ant-design/icons';
 import {Button, Form, Input} from 'antd';
-import Logo from '../../assets/logo.png';
+import BrandLockup from '../../components/BrandLockup';
 import style from './index.module.scss';
 import * as api from '../../api';
 import {useLocation} from 'react-router-dom';
 import * as user from '../../utils/user';
 import * as configUtil from '../../utils/config';
-import {useCallback, useEffect} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 
 const LOGIN_PATH = '/login';
@@ -50,7 +50,10 @@ const getSafeRedirect = redirect => {
 const Login = () => {
     const [form] = Form.useForm();
     const location = useLocation();
-    const {t} = useTranslation();
+    const {t, i18n} = useTranslation();
+    const [languageType, setLanguageType] = useState(
+        localStorage.getItem('languageType') || 'zh-CN'
+    );
 
     useEffect(() => {
         const queryRedirect = new URLSearchParams(location.search).get('redirect');
@@ -96,6 +99,13 @@ const Login = () => {
         }
     }, [navigateAfterLogin]);
 
+    const handleLanguageChange = useCallback(event => {
+        const nextLanguage = event.target.value;
+        localStorage.setItem('languageType', nextLanguage);
+        setLanguageType(nextLanguage);
+        i18n.changeLanguage(nextLanguage);
+    }, [i18n]);
+
     return (
         <div className={`${style.loginContainer} workbench-login`}>
             <main className={style.loginShell}>
@@ -103,7 +113,7 @@ const Login = () => {
                     className={style.brandPanel}
                     aria-label={t('login.brand_label')}
                 >
-                    <img src={Logo} alt='Apache HugeGraph' />
+                    <BrandLockup className={style.brandLockup} />
                     <div className={style.brandCopy}>
                         <span className={style.eyebrow}>Hubble Desktop Workbench</span>
                         <p>{t('login.subtitle')}</p>
@@ -115,6 +125,18 @@ const Login = () => {
                     onFinish={onFinish}
                     form={form}
                 >
+                    <div className={style.formTools}>
+                        <label htmlFor='login-language'>{t('login.language')}</label>
+                        <select
+                            id='login-language'
+                            aria-label={t('login.language')}
+                            value={languageType}
+                            onChange={handleLanguageChange}
+                        >
+                            <option value='zh-CN'>中文</option>
+                            <option value='en-US'>English</option>
+                        </select>
+                    </div>
                     <header className={style.formHeader}>
                         <span className={style.formEyebrow}>Apache HugeGraph</span>
                         <h1 className={style.title}>{t('login.title')}</h1>

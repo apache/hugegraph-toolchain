@@ -17,10 +17,11 @@
  */
 
 .loginContainer {
-    display: grid;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
     min-height: 100vh;
-    place-items: center;
-    padding: 48px;
+    padding: clamp(72px, 11vh, 128px) 48px 48px;
     background:
         radial-gradient(circle at 15% 15%, rgba(23, 105, 224, 0.10), transparent 30%),
         #f3f6fb;
@@ -28,9 +29,9 @@
 
 .loginShell {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
-    width: min(920px, 100%);
-    min-height: 520px;
+    grid-template-columns: minmax(360px, 0.92fr) minmax(420px, 1.08fr);
+    width: min(1040px, 100%);
+    min-height: 500px;
     overflow: hidden;
     border: 1px solid #d8e0ec;
     border-radius: 16px;
@@ -42,17 +43,16 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 52px;
+    padding: 48px;
     color: #fff;
     background:
         radial-gradient(circle at 85% 20%, rgba(55, 211, 170, 0.20), transparent 32%),
         linear-gradient(145deg, #061c38, #0b3f78 72%, #1769e0);
 
-    img {
-        width: 176px;
-        height: auto;
-        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
-    }
+}
+
+.brandLockup {
+    color: #fff;
 }
 
 .brandCopy {
@@ -78,14 +78,46 @@
     font-weight: 600;
 }
 
-.loginForm {
+form.loginForm {
+    position: relative;
     align-self: center;
     width: 100%;
-    padding: 56px 52px;
+    padding: 72px 64px 56px;
 
     :global(.ant-input-affix-wrapper) {
         min-height: 44px;
         border-radius: 8px;
+    }
+}
+
+.formTools {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+
+    label {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+    }
+
+    select {
+        min-width: 104px;
+        height: 32px;
+        padding: 0 28px 0 10px;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        background: #fff;
+        color: #344054;
+        cursor: pointer;
+    }
+
+    select:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(23, 105, 224, 0.18);
     }
 }
 
@@ -140,7 +172,7 @@
         font-size: 16px;
     }
 
-    .loginForm {
-        padding: 40px 32px;
+    form.loginForm {
+        padding: 72px 32px 40px;
     }
 }

@@ -49,8 +49,8 @@
     },
     "nav": {
       "home": "Workbench",
-      "understand": "Understand graphs",
-      "prepare": "Prepare data",
+      "understand": "Graph Overview",
+      "prepare": "Data Preparation",
       "query": "Query and analyze",
       "support": "System and operations"
     },

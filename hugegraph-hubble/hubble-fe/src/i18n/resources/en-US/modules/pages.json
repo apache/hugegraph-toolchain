@@ -312,6 +312,7 @@
     }
   },
   "my": {
+    "empty_value": "No information",
     "title": "My Profile",
     "edit_profile_title": "Edit Profile",
     "load": {
@@ -847,6 +848,7 @@
     "monitor_manage": "Monitoring",
     "node_manage": "Node Operations",
     "alert_manage": "Alert Management",
+    "coming_soon": "Coming Soon",
     "dashboard_checking": "Checking Dashboard availability...",
     "dashboard_unavailable": "Dashboard is unavailable. Check dashboard.address and service health.",
     "dashboard_popup_blocked": "The Dashboard window was blocked. Allow pop-ups and retry."
@@ -864,6 +866,7 @@
     "title": "Sign in to HugeGraph",
     "brand_label": "About HugeGraph Hubble",
     "subtitle": "A focused workspace to understand, prepare, and analyze graph data.",
-    "form_hint": "Continue with your HugeGraph account."
+    "form_hint": "Continue with your HugeGraph account.",
+    "language": "Language"
   }
 }

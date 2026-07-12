@@ -59,6 +59,7 @@ const Item = props => {
                 url,
                 disabled = false,
                 reason = '',
+                badge = '',
                 onClick,
             } = item;
             const content = (
@@ -70,8 +71,12 @@ const Item = props => {
                         onClick={onClick || onItemClick}
                         disabled={disabled}
                         title={reason}
+                        aria-label={title}
                     >
                         {title}
+                        {badge && (
+                            <span className={style.badge} aria-hidden='true'>{badge}</span>
+                        )}
                     </Button>
                 </div>
             );

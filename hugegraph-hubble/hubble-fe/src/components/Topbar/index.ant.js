@@ -19,7 +19,7 @@
 import {Layout, Space, Avatar, Dropdown, message, Modal, Select} from 'antd';
 import {UserOutlined} from '@ant-design/icons';
 import style from './index.module.scss';
-import Logo from '../../assets/logo.png';
+import BrandLockup from '../BrandLockup';
 import {useNavigate, useLocation} from 'react-router-dom';
 import * as api from '../../api/index';
 import * as user from '../../utils/user';
@@ -108,7 +108,7 @@ const Topbar = () => {
 
     return (
         <Layout.Header className={`${style.header} workbench-topbar`}>
-            <div className={style.logo}><img src={Logo} alt='' /></div>
+            <div className={style.logo}><BrandLockup compact /></div>
             <GraphContextSwitcher />
             <div className={style.rightContainer}>
                 <Select

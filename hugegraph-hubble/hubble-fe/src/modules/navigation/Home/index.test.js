@@ -60,10 +60,35 @@ test('uses DEFAULT graph context and hides PD-only support in non-PD mode', () =
     })).toHaveAttribute('href', '/graphspace/DEFAULT');
     expect(screen.getByText('home.workbench.mode.non_pd')).toBeInTheDocument();
     expect(screen.getByAltText('Apache HugeGraph')).toHaveAttribute(
-        'src', 'logo.png'
+        'src', 'hugegraph-mark.svg'
     );
+    expect(screen.getByText('HugeGraph')).toBeInTheDocument();
     expect(screen.queryByText('admin-support')).not.toBeInTheDocument();
     expect(screen.queryByText('operations-support')).not.toBeInTheDocument();
+});
+
+test('ships every rendered secondary action in both languages', () => {
+    const zh = require('../../../i18n/resources/zh-CN/modules/home.json');
+    const en = require('../../../i18n/resources/en-US/modules/home.json');
+
+    expect(zh.home.workbench.journeys.prepare.secondary_2).toBe('查看导入任务');
+    expect(en.home.workbench.journeys.prepare.secondary_2).toBe('View import tasks');
+});
+
+test('uses the same journey names as the global navigation in both languages', () => {
+    const zhHome = require('../../../i18n/resources/zh-CN/modules/home.json');
+    const enHome = require('../../../i18n/resources/en-US/modules/home.json');
+    const zhCommon = require('../../../i18n/resources/zh-CN/components/common.json');
+    const enCommon = require('../../../i18n/resources/en-US/components/common.json');
+
+    expect(zhHome.home.workbench.journeys.understand.title).toBe('图概览');
+    expect(zhHome.home.workbench.journeys.prepare.title).toBe('数据准备');
+    expect(enHome.home.workbench.journeys.understand.title).toBe('Graph Overview');
+    expect(enHome.home.workbench.journeys.prepare.title).toBe('Data Preparation');
+    expect(zhCommon.workbench.nav.understand).toBe('图概览');
+    expect(zhCommon.workbench.nav.prepare).toBe('数据准备');
+    expect(enCommon.workbench.nav.understand).toBe('Graph Overview');
+    expect(enCommon.workbench.nav.prepare).toBe('Data Preparation');
 });
 
 test('keeps GraphSpace and support capabilities available to a PD superadmin', () => {

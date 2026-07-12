@@ -15,7 +15,7 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {render, screen} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 
 import * as api from '../../../api';
@@ -49,7 +49,7 @@ beforeEach(() => {
     });
 });
 
-test('probes the configured Dashboard only after an explicit user click', async () => {
+test('keeps unimplemented operations visibly disabled without loading Dashboard', () => {
     render(
         <MemoryRouter
             future={{
@@ -61,46 +61,20 @@ test('probes the configured Dashboard only after an explicit user click', async 
         </MemoryRouter>
     );
 
-    const button = await screen.findByRole('button', {
-        name: 'navigation_page.cluster_manage',
+    const buttons = [
+        'navigation_page.cluster_manage',
+        'navigation_page.monitor_manage',
+        'navigation_page.node_manage',
+        'navigation_page.alert_manage',
+    ].map(name => screen.getByRole('button', {name}));
+
+    buttons.forEach(button => {
+        expect(button).toBeDisabled();
+        expect(button).toHaveAttribute('title', 'navigation_page.coming_soon');
     });
-    await waitFor(() => expect(button).not.toBeDisabled());
+    expect(api.auth.getDashboard).not.toHaveBeenCalled();
     expect(window.fetch).not.toHaveBeenCalled();
-
-    fireEvent.click(button);
-
-    await waitFor(() => expect(window.fetch).toHaveBeenCalledTimes(1));
-    expect(window.open).toHaveBeenCalledWith('about:blank', '_blank');
-    const popup = window.open.mock.results[0].value;
-    await waitFor(() => expect(popup.location.replace).toHaveBeenCalledWith(
-        'http://127.0.0.1:8092'
-    ));
-});
-
-test('reports a blocked popup without probing the Dashboard', async () => {
-    window.open.mockReturnValue(null);
-    render(
-        <MemoryRouter
-            future={{
-                v7_relativeSplatPath: true,
-                v7_startTransition: true,
-            }}
-        >
-            <ConsoleItem />
-        </MemoryRouter>
-    );
-
-    const button = await screen.findByRole('button', {
-        name: 'navigation_page.cluster_manage',
-    });
-    await waitFor(() => expect(button).not.toBeDisabled());
-    fireEvent.click(button);
-
-    expect(window.fetch).not.toHaveBeenCalled();
-    expect(mockMessageError).toHaveBeenCalledTimes(1);
-    expect(mockMessageError).toHaveBeenCalledWith(
-        'navigation_page.dashboard_popup_blocked'
-    );
+    expect(window.open).not.toHaveBeenCalled();
 });
 
 test('shows why operations are disabled when Dashboard is unavailable', async () => {

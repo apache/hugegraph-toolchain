@@ -35,6 +35,16 @@ const My = () => {
     const [profileError, setProfileError] = useState(false);
     const profileRequest = useRef(null);
     const [form] = Form.useForm();
+    const emptyValue = <span className={style.emptyValue}>{t('my.empty_value')}</span>;
+    const displayValue = value => {
+        if (Array.isArray(value)) {
+            return value.length > 0 ? value.join(', ') : emptyValue;
+        }
+        if (value === null || value === undefined || String(value).trim() === '') {
+            return emptyValue;
+        }
+        return value;
+    };
 
     const handleForm = useCallback(async () => {
         try {
@@ -167,19 +177,19 @@ const My = () => {
                             ? (
                                 <Spin spinning={spinning}>
                                     <Form.Item label={t('my.col.id')} className={style.item}>
-                                        {data.user_name}
+                                        {displayValue(data.user_name)}
                                     </Form.Item>
                                     <Form.Item label={t('my.col.name')} className={style.item}>
-                                        {data.user_nickname}
+                                        {displayValue(data.user_nickname)}
                                     </Form.Item>
                                     <Form.Item label={t('my.col.remark')} className={style.item}>
-                                        {data.user_description}
+                                        {displayValue(data.user_description)}
                                     </Form.Item>
                                     <Form.Item label={t('my.col.permission_roles')} className={style.item}>
-                                        {data.adminSpaces && data.adminSpaces.join(',')}
+                                        {displayValue(data.adminSpaces)}
                                     </Form.Item>
                                     <Form.Item label={t('my.col.create_time')} className={style.item}>
-                                        {data.user_create}
+                                        {displayValue(data.user_create)}
                                     </Form.Item>
                                 </Spin>
                             )

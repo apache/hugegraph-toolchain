@@ -312,6 +312,7 @@
     }
   },
   "my": {
+    "empty_value": "暂无信息",
     "title": "个人中心",
     "edit_profile_title": "编辑信息",
     "load": {
@@ -847,6 +848,7 @@
     "monitor_manage": "监控管理",
     "node_manage": "节点运维",
     "alert_manage": "报警管理",
+    "coming_soon": "即将推出",
     "dashboard_checking": "正在检查 Dashboard 可用性……",
     "dashboard_unavailable": "Dashboard 不可用，请检查 dashboard.address 配置和服务健康状态。",
     "dashboard_popup_blocked": "Dashboard 窗口被拦截，请允许弹出式窗口后重试。"
@@ -864,6 +866,7 @@
     "title": "登录 HugeGraph",
     "brand_label": "HugeGraph Hubble 产品介绍",
     "subtitle": "面向图数据使用者的一站式理解、准备与分析工作台。",
-    "form_hint": "使用 HugeGraph 账号继续进入工作台。"
+    "form_hint": "使用 HugeGraph 账号继续进入工作台。",
+    "language": "语言"
   }
 }

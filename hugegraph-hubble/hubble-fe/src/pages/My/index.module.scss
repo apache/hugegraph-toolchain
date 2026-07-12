@@ -40,6 +40,10 @@ form.form {
     }
 }
 
+.emptyValue {
+    color: var(--workbench-color-text-tertiary, #98a2b3);
+}
+
 .desc {
     color: #848484;
     margin-top: 5px;
