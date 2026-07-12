@@ -117,7 +117,8 @@ test('disables a configured but unavailable Dashboard capability', async () => {
         'title', 'navigation_page.dashboard_unavailable'
     ));
     expect(monitor).toBeDisabled();
-    expect(screen.getAllByText('navigation_page.coming_soon')).toHaveLength(4);
+    expect(screen.getAllByText('navigation_page.unavailable')).toHaveLength(4);
+    expect(screen.queryByText('navigation_page.coming_soon')).not.toBeInTheDocument();
     expect(window.open).not.toHaveBeenCalled();
 });
 

@@ -911,6 +911,7 @@
     "dashboard_checking": "正在检查 Dashboard 可用性……",
     "dashboard_unconfigured": "Dashboard 尚未配置；设置 dashboard.address 后可使用这些运维能力。",
     "not_configured": "未配置",
+    "unavailable": "暂不可用",
     "dashboard_unavailable": "Dashboard 不可用，请检查 dashboard.address 配置和服务健康状态。",
     "dashboard_popup_blocked": "Dashboard 窗口被拦截，请允许弹出式窗口后重试。"
   },

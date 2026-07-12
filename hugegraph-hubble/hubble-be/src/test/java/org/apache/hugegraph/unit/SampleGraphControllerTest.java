@@ -28,6 +28,7 @@ import org.apache.hugegraph.api.gremlin.GremlinRequest;
 import org.apache.hugegraph.driver.GremlinManager;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.driver.SchemaManager;
+import org.apache.hugegraph.structure.schema.VertexLabel;
 import org.apache.hugegraph.testutil.Assert;
 
 public class SampleGraphControllerTest {
@@ -103,6 +104,11 @@ public class SampleGraphControllerTest {
         GremlinManager gremlin = Mockito.mock(GremlinManager.class);
         SchemaManager schema = Mockito.mock(SchemaManager.class,
                                             Mockito.RETURNS_DEEP_STUBS);
+        VertexLabel.Builder vertex = Mockito.mock(VertexLabel.Builder.class);
+        Mockito.when(schema.vertexLabel("人物")).thenReturn(vertex);
+        Mockito.when(vertex.properties("name", "gender", "age", "title",
+                                       "feature")).thenReturn(vertex);
+        Mockito.when(vertex.primaryKeys("name")).thenReturn(vertex);
         Mockito.when(client.gremlin()).thenReturn(gremlin);
         Mockito.when(client.schema()).thenReturn(schema);
         Mockito.when(gremlin.gremlin(Mockito.anyString()))
@@ -117,7 +123,10 @@ public class SampleGraphControllerTest {
                 ArgumentCaptor.forClass(GremlinRequest.class);
         Mockito.verify(schema).propertyKey("name");
         Mockito.verify(schema).propertyKey("age");
-        Mockito.verify(schema).vertexLabel("人物");
+        Mockito.verify(vertex).properties("name", "gender", "age", "title",
+                                          "feature");
+        Mockito.verify(vertex).primaryKeys("name");
+        Mockito.verify(vertex, Mockito.never()).useCustomizeStringId();
         Mockito.verify(schema).edgeLabel("关系");
         Mockito.verify(gremlin).execute(requests.capture());
         Assert.assertEquals(SampleGraphController.HLM_DATA,

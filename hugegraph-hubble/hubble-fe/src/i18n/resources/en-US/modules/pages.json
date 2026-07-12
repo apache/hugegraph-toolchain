@@ -911,6 +911,7 @@
     "dashboard_checking": "Checking Dashboard availability...",
     "dashboard_unconfigured": "Dashboard is not configured. Set dashboard.address to enable these operations.",
     "not_configured": "Not configured",
+    "unavailable": "Unavailable",
     "dashboard_unavailable": "Dashboard is unavailable. Check dashboard.address and service health.",
     "dashboard_popup_blocked": "The Dashboard window was blocked. Allow pop-ups and retry."
   },

@@ -86,7 +86,7 @@ const ConsoleItem = () => {
         badge: dashboard.status === 'unconfigured'
             ? t('navigation_page.not_configured')
             : dashboard.status === 'unavailable'
-                ? t('navigation_page.coming_soon') : '',
+                ? t('navigation_page.unavailable') : '',
         onClick: configured && dashboard.status === 'configured'
             ? () => openDashboard(dashboard.url + path)
             : undefined,

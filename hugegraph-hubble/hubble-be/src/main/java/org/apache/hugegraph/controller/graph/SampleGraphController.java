@@ -277,8 +277,8 @@ public class SampleGraphController extends BaseController {
                 schema.propertyKey("intimacy").asText().create());
         createVertexIfMissing(schema, vertexLabels, "人物", () ->
                 schema.vertexLabel("人物")
-              .useCustomizeStringId()
               .properties("name", "gender", "age", "title", "feature")
+              .primaryKeys("name")
               .create());
         createEdgeIfMissing(schema, edgeLabels, "关系", () ->
                 schema.edgeLabel("关系")
