@@ -27,6 +27,7 @@ import org.apache.hugegraph.controller.graph.SampleGraphController;
 import org.apache.hugegraph.api.gremlin.GremlinRequest;
 import org.apache.hugegraph.driver.GremlinManager;
 import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.driver.SchemaManager;
 import org.apache.hugegraph.testutil.Assert;
 
 public class SampleGraphControllerTest {
@@ -35,7 +36,10 @@ public class SampleGraphControllerTest {
     public void testLoadExecutesSchemaBeforeIdempotentData() {
         HugeClient client = Mockito.mock(HugeClient.class);
         GremlinManager gremlin = Mockito.mock(GremlinManager.class);
+        SchemaManager schema = Mockito.mock(SchemaManager.class,
+                                            Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(client.gremlin()).thenReturn(gremlin);
+        Mockito.when(client.schema()).thenReturn(schema);
         Mockito.when(gremlin.gremlin(Mockito.anyString()))
                .thenAnswer(invocation -> new GremlinRequest.Builder(
                        invocation.getArgument(0), gremlin));
@@ -46,11 +50,12 @@ public class SampleGraphControllerTest {
 
         ArgumentCaptor<GremlinRequest> requests =
                 ArgumentCaptor.forClass(GremlinRequest.class);
-        Mockito.verify(gremlin, Mockito.times(2)).execute(requests.capture());
-        Assert.assertEquals(SampleGraphController.LOADER_SCHEMA,
-                            requests.getAllValues().get(0).gremlin);
+        Mockito.verify(schema).propertyKey("name");
+        Mockito.verify(schema).vertexLabel("person");
+        Mockito.verify(schema).edgeLabel("knows");
+        Mockito.verify(gremlin).execute(requests.capture());
         Assert.assertEquals(SampleGraphController.LOADER_DATA,
-                            requests.getAllValues().get(1).gremlin);
+                            requests.getValue().gremlin);
         Assert.assertEquals("hugegraph", result.get("graph"));
         Assert.assertEquals(true, result.get("idempotent"));
         Assert.assertEquals(false, result.get("clears_existing_data"));
@@ -90,7 +95,10 @@ public class SampleGraphControllerTest {
     public void testLoadRedChamberDataset() {
         HugeClient client = Mockito.mock(HugeClient.class);
         GremlinManager gremlin = Mockito.mock(GremlinManager.class);
+        SchemaManager schema = Mockito.mock(SchemaManager.class,
+                                            Mockito.RETURNS_DEEP_STUBS);
         Mockito.when(client.gremlin()).thenReturn(gremlin);
+        Mockito.when(client.schema()).thenReturn(schema);
         Mockito.when(gremlin.gremlin(Mockito.anyString()))
                .thenAnswer(invocation -> new GremlinRequest.Builder(
                        invocation.getArgument(0), gremlin));
@@ -101,11 +109,13 @@ public class SampleGraphControllerTest {
 
         ArgumentCaptor<GremlinRequest> requests =
                 ArgumentCaptor.forClass(GremlinRequest.class);
-        Mockito.verify(gremlin, Mockito.times(2)).execute(requests.capture());
-        Assert.assertEquals(SampleGraphController.HLM_SCHEMA,
-                            requests.getAllValues().get(0).gremlin);
+        Mockito.verify(schema).propertyKey("姓名");
+        Mockito.verify(schema).propertyKey("年龄");
+        Mockito.verify(schema).vertexLabel("人物");
+        Mockito.verify(schema).edgeLabel("关系");
+        Mockito.verify(gremlin).execute(requests.capture());
         Assert.assertEquals(SampleGraphController.HLM_DATA,
-                            requests.getAllValues().get(1).gremlin);
+                            requests.getValue().gremlin);
         Assert.assertEquals(41, result.get("vertices"));
         Assert.assertEquals(51, result.get("edges"));
     }

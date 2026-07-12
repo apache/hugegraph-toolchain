@@ -37,6 +37,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.apache.hugegraph.common.Constant;
 import org.apache.hugegraph.controller.BaseController;
 import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.driver.SchemaManager;
 import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.util.Ex;
 
@@ -150,7 +151,7 @@ public class SampleGraphController extends BaseController {
                  "dataset", "[loader, hlm, rank]");
         HugeClient client = this.authGremlinClient(graphSpace, graph);
         try {
-            client.gremlin().gremlin(schema(dataset)).execute();
+            createSchema(client, dataset);
             client.gremlin().gremlin(data(dataset)).execute();
         } catch (RuntimeException e) {
             log.warn("Failed to load sample dataset '{}' into {}/{}",
@@ -169,6 +170,78 @@ public class SampleGraphController extends BaseController {
         result.put("idempotent", true);
         result.put("clears_existing_data", false);
         return result;
+    }
+
+    private static void createSchema(HugeClient client, String dataset) {
+        SchemaManager schema = client.schema();
+        if ("loader".equals(dataset)) {
+            createLoaderSchema(schema);
+        } else if ("rank".equals(dataset)) {
+            createRankSchema(schema);
+        } else {
+            createHlmSchema(schema);
+        }
+    }
+
+    private static void createLoaderSchema(SchemaManager schema) {
+        schema.propertyKey("name").asText().ifNotExist().create();
+        schema.propertyKey("age").asInt().ifNotExist().create();
+        schema.propertyKey("city").asText().ifNotExist().create();
+        schema.propertyKey("weight").asDouble().ifNotExist().create();
+        schema.propertyKey("lang").asText().ifNotExist().create();
+        schema.propertyKey("date").asText().ifNotExist().create();
+        schema.propertyKey("price").asDouble().ifNotExist().create();
+        schema.vertexLabel("person")
+              .properties("name", "age", "city")
+              .primaryKeys("name")
+              .nullableKeys("age", "city")
+              .ifNotExist().create();
+        schema.vertexLabel("software")
+              .useCustomizeNumberId()
+              .properties("name", "lang", "price")
+              .ifNotExist().create();
+        schema.edgeLabel("knows")
+              .sourceLabel("person").targetLabel("person")
+              .properties("date", "weight")
+              .ifNotExist().create();
+        schema.edgeLabel("created")
+              .sourceLabel("person").targetLabel("software")
+              .properties("date", "weight")
+              .ifNotExist().create();
+    }
+
+    private static void createRankSchema(SchemaManager schema) {
+        schema.propertyKey("name").asText().ifNotExist().create();
+        schema.vertexLabel("person").properties("name")
+              .useCustomizeStringId().ifNotExist().create();
+        schema.vertexLabel("movie").properties("name")
+              .useCustomizeStringId().ifNotExist().create();
+        schema.edgeLabel("follow")
+              .sourceLabel("person").targetLabel("person")
+              .ifNotExist().create();
+        schema.edgeLabel("like")
+              .sourceLabel("person").targetLabel("movie")
+              .ifNotExist().create();
+        schema.edgeLabel("directedBy")
+              .sourceLabel("movie").targetLabel("person")
+              .ifNotExist().create();
+    }
+
+    private static void createHlmSchema(SchemaManager schema) {
+        schema.propertyKey("姓名").asText().ifNotExist().create();
+        schema.propertyKey("性别").asText().ifNotExist().create();
+        schema.propertyKey("年龄").asInt().ifNotExist().create();
+        schema.propertyKey("职称").asText().ifNotExist().create();
+        schema.propertyKey("特点").asText().ifNotExist().create();
+        schema.propertyKey("亲疏").asText().ifNotExist().create();
+        schema.vertexLabel("人物")
+              .useCustomizeStringId()
+              .properties("姓名", "性别", "年龄", "职称", "特点")
+              .ifNotExist().create();
+        schema.edgeLabel("关系")
+              .sourceLabel("人物").targetLabel("人物")
+              .properties("亲疏")
+              .ifNotExist().create();
     }
 
     private static String vertex(String variable, String name, int age,

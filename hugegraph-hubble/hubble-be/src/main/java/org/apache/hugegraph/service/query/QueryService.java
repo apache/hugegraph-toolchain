@@ -551,7 +551,11 @@ public class QueryService {
             // The edges count for per vertex
             Map<Object, Integer> degrees = new HashMap<>(resultSet.size());
             for (Iterator<Result> iter = resultSet.iterator(); iter.hasNext();) {
-                Edge edge = iter.next().getEdge();
+                Object object = iter.next().getObject();
+                if (!(object instanceof Edge)) {
+                    continue;
+                }
+                Edge edge = (Edge) object;
                 Object source = edge.sourceId();
                 Object target = edge.targetId();
                 // only add the interconnected edges of the found vertices

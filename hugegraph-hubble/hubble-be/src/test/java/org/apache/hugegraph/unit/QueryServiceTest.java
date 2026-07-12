@@ -31,6 +31,8 @@ import org.apache.hugegraph.driver.GraphManager;
 import org.apache.hugegraph.driver.GremlinManager;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.query.AdjacentQuery;
+import org.apache.hugegraph.entity.query.GremlinQuery;
+import org.apache.hugegraph.entity.query.GremlinResult;
 import org.apache.hugegraph.entity.schema.VertexLabelEntity;
 import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.options.HubbleOptions;
@@ -38,10 +40,27 @@ import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.service.schema.VertexLabelService;
 import org.apache.hugegraph.structure.constant.Direction;
 import org.apache.hugegraph.structure.constant.IdStrategy;
+import org.apache.hugegraph.structure.graph.Vertex;
 import org.apache.hugegraph.structure.gremlin.ResultSet;
 import org.apache.hugegraph.testutil.Assert;
 
 public class QueryServiceTest {
+
+    @Test
+    public void testQueryIgnoresNonEdgeAdjacentResults() throws Exception {
+        Vertex vertex = new Vertex("person");
+        vertex.id("isolated");
+        GremlinManager gremlin = this.mockGremlin(this.resultSet(vertex),
+                                                  this.resultSet(vertex));
+        HugeClient client = this.mockClient(gremlin);
+        QueryService service = this.serviceWithConfig();
+
+        GremlinResult result = service.executeGremlinQuery(
+                               client, new GremlinQuery("g.V('isolated')"));
+
+        Assert.assertEquals(1, result.getGraphView().getVertices().size());
+        Assert.assertEquals(0, result.getGraphView().getEdges().size());
+    }
 
     @Test
     public void testExpandVertexEscapesGremlinLiterals() throws Exception {
@@ -126,8 +145,14 @@ public class QueryServiceTest {
     private QueryService serviceWithConfig() throws Exception {
         QueryService service = new QueryService();
         HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.GREMLIN_SUFFIX_LIMIT))
+               .thenReturn(250);
         Mockito.when(config.get(HubbleOptions.GREMLIN_VERTEX_DEGREE_LIMIT))
                .thenReturn(100);
+        Mockito.when(config.get(HubbleOptions.GREMLIN_BATCH_QUERY_IDS))
+               .thenReturn(100);
+        Mockito.when(config.get(HubbleOptions.GREMLIN_EDGES_TOTAL_LIMIT))
+               .thenReturn(500);
         this.setField(service, "config", config);
         VertexLabelService vlService = Mockito.mock(VertexLabelService.class);
         Mockito.when(vlService.get(Mockito.eq("person"), Mockito.any()))
@@ -146,18 +171,23 @@ public class QueryServiceTest {
     }
 
     private GremlinManager mockGremlin() throws Exception {
+        return this.mockGremlin(this.resultSet());
+    }
+
+    private GremlinManager mockGremlin(ResultSet... resultSets) throws Exception {
         GremlinManager gremlin = Mockito.mock(GremlinManager.class);
         Mockito.when(gremlin.gremlin(Mockito.anyString()))
                .thenAnswer(invocation -> new GremlinRequest.Builder(
                        invocation.getArgument(0), gremlin));
         Mockito.when(gremlin.execute(Mockito.any()))
-               .thenReturn(this.resultSet());
+               .thenReturn(resultSets[0], Arrays.copyOfRange(resultSets, 1,
+                                                              resultSets.length));
         return gremlin;
     }
 
-    private ResultSet resultSet() throws Exception {
+    private ResultSet resultSet(Object... data) throws Exception {
         ResultSet resultSet = new ResultSet();
-        this.setField(resultSet, "data", Arrays.asList());
+        this.setField(resultSet, "data", Arrays.asList(data));
         resultSet.graphManager(Mockito.mock(GraphManager.class));
         return resultSet;
     }
