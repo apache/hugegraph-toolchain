@@ -32,6 +32,7 @@ import * as user from '../../utils/user';
 import {isPdEnabled} from '../../utils/config';
 import {getGraphspacePath} from '../../utils/productMode';
 import {getPreparationSchemaPath} from '../../utils/dataPreparationNavigation';
+import {getSidebarMenuKey} from '../../utils/sidebarNavigation';
 import {useTranslation} from 'react-i18next';
 
 const items = (t, pathname) => {
@@ -128,7 +129,7 @@ const Sidebar = () => {
     const [collapsed, setCollapsed] = useState(false);
     const href = useLocation();
     const {t} = useTranslation();
-    const menuKey = href.pathname.split('/')[1] || 'navigation';
+    const menuKey = getSidebarMenuKey(href.pathname, isPdEnabled());
 
     return (
         <nav className="workbench-navigation" aria-label={t('workbench.navigation')}>

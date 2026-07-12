@@ -55,6 +55,40 @@ test('exposes the application menu as named primary navigation', async () => {
     await waitFor(() => expect(navigation).toBeVisible());
 });
 
+test('highlights the dedicated Schema entry on its PD route', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+
+    render(
+        <MemoryRouter
+            initialEntries={['/graphspace/SPACE/schema']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect((await screen.findByRole('link', {name: 'Schema 模板'})).closest('li'))
+        .toHaveClass('ant-menu-item-selected');
+    expect(screen.getByRole('link', {name: '图管理'}).closest('li'))
+        .not.toHaveClass('ant-menu-item-selected');
+});
+
+test('keeps graph metadata under Understand graph in non-PD mode', async () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/graphspace/DEFAULT/graph/hugegraph/meta']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect((await screen.findByRole('link', {name: '图管理'})).closest('li'))
+        .toHaveClass('ant-menu-item-selected');
+    expect(screen.getByRole('link', {name: '图 Schema'}).closest('li'))
+        .not.toHaveClass('ant-menu-item-selected');
+});
+
 test.each([
     [true, '/gremlin/SPACE_NEW/GRAPH_NEW', 'Schema 模板',
         '/graphspace/SPACE_NEW/schema'],
