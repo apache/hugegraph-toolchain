@@ -71,4 +71,18 @@ const createTaskOnce = async (manage, payload, pendingRef) => {
     }
 };
 
-export {TaskFlowError, createTask, createTaskOnce, loadTaskBaseContext};
+const getTaskSubmissionError = error => {
+    if (!error || typeof error.message !== 'string') {
+        return '';
+    }
+    const detail = error.message.trim();
+    return detail === error.reason ? '' : detail;
+};
+
+export {
+    TaskFlowError,
+    createTask,
+    createTaskOnce,
+    getTaskSubmissionError,
+    loadTaskBaseContext,
+};

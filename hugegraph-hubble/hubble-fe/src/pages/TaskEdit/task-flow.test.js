@@ -16,7 +16,13 @@
  * under the License.
  */
 
-import {createTask, createTaskOnce, loadTaskBaseContext} from './taskFlow';
+import {
+    TaskFlowError,
+    createTask,
+    createTaskOnce,
+    getTaskSubmissionError,
+    loadTaskBaseContext,
+} from './taskFlow';
 
 const values = {
     datasource_id: 9,
@@ -78,4 +84,11 @@ it('atomically prevents duplicate task creation and releases after failure', asy
     manage.addTask.mockResolvedValueOnce({status: 200, data: {task_id: 8}});
     await expect(createTaskOnce(manage, '{}', pending)).resolves.toEqual({task_id: 8});
     expect(manage.addTask).toHaveBeenCalledTimes(2);
+});
+
+it('exposes actionable backend details without displaying internal reason tokens', () => {
+    expect(getTaskSubmissionError(new TaskFlowError('business', 'invalid graph_id')))
+        .toBe('invalid graph_id');
+    expect(getTaskSubmissionError(new TaskFlowError('business'))).toBe('');
+    expect(getTaskSubmissionError(null)).toBe('');
 });

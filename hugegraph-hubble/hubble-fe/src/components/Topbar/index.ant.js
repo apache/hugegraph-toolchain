@@ -38,11 +38,11 @@ const Topbar = () => {
     const [languageType, setLanguageType] = useState(getCurrentLanguage);
 
     const redirectToLogin = useCallback(() => {
-        const redirect = `${location.pathname}${location.search}`;
+        const redirect = `${location.pathname}${location.search}${location.hash}`;
         user.clearLogin();
         sessionStorage.setItem('redirect', redirect);
         window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
-    }, [location.pathname, location.search]);
+    }, [location.hash, location.pathname, location.search]);
 
     useEffect(() => {
         let cancelled = false;

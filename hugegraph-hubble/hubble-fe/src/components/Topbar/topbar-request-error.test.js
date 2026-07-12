@@ -116,4 +116,26 @@ describe('Topbar request errors', () => {
         });
         expect(catchHandler).toHaveBeenCalledTimes(1);
     });
+
+    it('preserves query and hash when auth status expires', async () => {
+        api.auth.status.mockResolvedValue({status: 401});
+
+        render(
+            <MemoryRouter
+                initialEntries={['/gremlin/DEFAULT/hugegraph?tab=graph#result']}
+                future={{
+                    v7_relativeSplatPath: true,
+                    v7_startTransition: true,
+                }}
+            >
+                <Topbar />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(sessionStorage.getItem('redirect')).toBe(
+                '/gremlin/DEFAULT/hugegraph?tab=graph#result'
+            );
+        });
+    });
 });

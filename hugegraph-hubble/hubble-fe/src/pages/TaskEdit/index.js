@@ -36,7 +36,11 @@ import {useNavigate} from 'react-router-dom';
 import * as api from '../../api';
 import JSONbig from 'json-bigint';
 import DataPreparationNav from '../../components/DataPreparationNav';
-import {createTaskOnce, loadTaskBaseContext} from './taskFlow';
+import {
+    createTaskOnce,
+    getTaskSubmissionError,
+    loadTaskBaseContext,
+} from './taskFlow';
 
 const TaskEdit = () => {
     const {t} = useTranslation();
@@ -56,7 +60,7 @@ const TaskEdit = () => {
     const [baseLoading, setBaseLoading] = useState(false);
     const [baseError, setBaseError] = useState(null);
     const [pendingBase, setPendingBase] = useState(null);
-    const [submitError, setSubmitError] = useState(false);
+    const [submitError, setSubmitError] = useState(null);
     const baseRequest = useRef(null);
     const basePending = useRef(false);
     const submitPending = useRef(false);
@@ -183,7 +187,7 @@ const TaskEdit = () => {
         const scheduleValues = schedule_form.getFieldsValue();
 
         setLoading(true);
-        setSubmitError(false);
+        setSubmitError(null);
 
         const values = {
             ...baseValues,
@@ -221,7 +225,7 @@ const TaskEdit = () => {
         catch (error) {
             if (mounted.current) {
                 setLoading(false);
-                setSubmitError(true);
+                setSubmitError(getTaskSubmissionError(error) || true);
             }
         }
     }, [datasource, header, navigate, t]);
@@ -314,6 +318,8 @@ const TaskEdit = () => {
                         showIcon
                         type='error'
                         message={t('task.edit.submit_failed')}
+                        description={typeof submitError === 'string'
+                            ? submitError : undefined}
                     />
                 )}
                 <Steps labelPlacement='vertical' current={current}>
