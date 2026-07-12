@@ -18,8 +18,11 @@
 
 package org.apache.hugegraph.unit;
 
+import java.io.IOException;
+import java.net.InetSocketAddress;
 import java.util.Map;
 
+import com.sun.net.httpserver.HttpServer;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -32,23 +35,51 @@ import org.apache.hugegraph.testutil.Assert;
 public class DashboardControllerTest {
 
     @Test
-    public void testReturnsConfiguredProtocolAndHostPortWithoutProbing() {
+    public void testReturnsConfiguredHealthyDashboard() throws IOException {
+        HttpServer server = dashboardServer(204);
         HugeConfig config = Mockito.mock(HugeConfig.class);
         Mockito.when(config.get(HubbleOptions.DASHBOARD_ADDRESS))
-               .thenReturn("127.0.0.1:8092");
+               .thenReturn("127.0.0.1:" + server.getAddress().getPort());
         Mockito.when(config.get(HubbleOptions.SERVER_PROTOCOL))
-               .thenReturn("https");
+               .thenReturn("http");
         DashboardController controller = new DashboardController();
         ReflectionTestUtils.setField(controller, "config", config);
 
-        Map<String, Object> result = controller.listOperations();
+        Map<String, Object> result;
+        try {
+            result = controller.listOperations();
+        } finally {
+            server.stop(0);
+        }
 
         Assert.assertEquals(true, result.get("configured"));
-        Assert.assertEquals("127.0.0.1:8092", result.get("address"));
-        Assert.assertEquals("https", result.get("protocol"));
+        Assert.assertEquals(true, result.get("available"));
+        Assert.assertEquals("http", result.get("protocol"));
         Mockito.verify(config).get(HubbleOptions.DASHBOARD_ADDRESS);
         Mockito.verify(config).get(HubbleOptions.SERVER_PROTOCOL);
         Mockito.verifyNoMoreInteractions(config);
+    }
+
+    @Test
+    public void testReportsHttpFailureAsUnavailable() throws IOException {
+        HttpServer server = dashboardServer(500);
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.DASHBOARD_ADDRESS))
+               .thenReturn("127.0.0.1:" + server.getAddress().getPort());
+        Mockito.when(config.get(HubbleOptions.SERVER_PROTOCOL))
+               .thenReturn("http");
+        DashboardController controller = new DashboardController();
+        ReflectionTestUtils.setField(controller, "config", config);
+
+        Map<String, Object> result;
+        try {
+            result = controller.listOperations();
+        } finally {
+            server.stop(0);
+        }
+
+        Assert.assertEquals(true, result.get("configured"));
+        Assert.assertEquals(false, result.get("available"));
     }
 
     @Test
@@ -65,5 +96,15 @@ public class DashboardControllerTest {
         Assert.assertFalse(result.containsKey("protocol"));
         Mockito.verify(config).get(HubbleOptions.DASHBOARD_ADDRESS);
         Mockito.verifyNoMoreInteractions(config);
+    }
+
+    private static HttpServer dashboardServer(int status) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        server.createContext("/", exchange -> {
+            exchange.sendResponseHeaders(status, -1L);
+            exchange.close();
+        });
+        server.start();
+        return server;
     }
 }

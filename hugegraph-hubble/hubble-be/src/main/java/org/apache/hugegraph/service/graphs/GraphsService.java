@@ -49,6 +49,8 @@ import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.service.schema.SchemaService;
 import org.apache.hugegraph.structure.Task;
 import org.apache.hugegraph.structure.constant.GraphReadMode;
+import org.apache.hugegraph.structure.graph.Edge;
+import org.apache.hugegraph.structure.graph.Vertex;
 import org.apache.hugegraph.structure.gremlin.ResultSet;
 import org.apache.hugegraph.util.Ex;
 import org.apache.hugegraph.util.HubbleUtil;
@@ -98,6 +100,7 @@ public class GraphsService {
             "g.V().groupCount().by(label)";
     private static final String GREMLIN_STATISTICS_EDGE =
             "g.E().groupCount().by(label)";
+    private static final int SMALL_STATISTICS_LIMIT = 10000;
     private static final String GRAPH_HLM = "hlm";
     private static final String GRAPH_COVID19 = "covid19";
 
@@ -551,6 +554,16 @@ public class GraphsService {
     public GraphStatisticsEntity postSmallStatistics(HugeClient client,
                                                      String graphSpace,
                                                      String graph) {
+        try {
+            return this.postSmallGremlinStatistics(client);
+        } catch (RuntimeException e) {
+            log.warn("Gremlin statistics failed for {}/{}, falling back " +
+                     "to bounded graph reads", graphSpace, graph, e);
+            return this.postSmallGraphStatistics(client);
+        }
+    }
+
+    private GraphStatisticsEntity postSmallGremlinStatistics(HugeClient client) {
         GraphStatisticsEntity result = GraphStatisticsEntity.emptyEntity();
         ResultSet vertexResult =
                 queryService.executeQueryCount(client,
@@ -572,6 +585,34 @@ public class GraphsService {
         }
         result.setUpdateTime(HubbleUtil.dateFormat());
         return result;
+    }
+
+    private GraphStatisticsEntity postSmallGraphStatistics(HugeClient client) {
+        List<Vertex> vertices = client.graph()
+                                      .listVertices(SMALL_STATISTICS_LIMIT + 1);
+        List<Edge> edges = client.graph().listEdges(SMALL_STATISTICS_LIMIT + 1);
+        Ex.check(vertices.size() <= SMALL_STATISTICS_LIMIT &&
+                 edges.size() <= SMALL_STATISTICS_LIMIT,
+                 "Small graph statistics fallback exceeds %s elements",
+                 SMALL_STATISTICS_LIMIT);
+
+        Map<String, Object> vertexCounts = new HashMap<>();
+        vertices.forEach(vertex -> incrementLabel(vertexCounts, vertex.label()));
+        Map<String, Object> edgeCounts = new HashMap<>();
+        edges.forEach(edge -> incrementLabel(edgeCounts, edge.label()));
+
+        GraphStatisticsEntity result = GraphStatisticsEntity.emptyEntity();
+        result.setVertices(vertexCounts);
+        result.setVertexCount(String.valueOf(vertices.size()));
+        result.setEdges(edgeCounts);
+        result.setEdgeCount(String.valueOf(edges.size()));
+        result.setUpdateTime(HubbleUtil.dateFormat());
+        return result;
+    }
+
+    private static void incrementLabel(Map<String, Object> counts, String label) {
+        Integer count = (Integer) counts.getOrDefault(label, 0);
+        counts.put(label, count + 1);
     }
 
     public String getCountFromLabels(Map<String, Object> labels) {

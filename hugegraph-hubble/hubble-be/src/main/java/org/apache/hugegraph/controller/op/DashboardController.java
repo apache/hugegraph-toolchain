@@ -18,6 +18,9 @@
 
 package org.apache.hugegraph.controller.op;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -35,6 +38,9 @@ import org.apache.hugegraph.options.HubbleOptions;
 @RestController
 @RequestMapping(Constant.API_VERSION + "dashboard")
 public class DashboardController extends BaseController {
+
+    private static final int HEALTH_TIMEOUT_MILLIS = 1500;
+
     @Autowired
     private HugeConfig config;
 
@@ -47,7 +53,29 @@ public class DashboardController extends BaseController {
             return result;
         }
         result.put("address", address);
-        result.put("protocol", config.get(HubbleOptions.SERVER_PROTOCOL));
+        String protocol = config.get(HubbleOptions.SERVER_PROTOCOL);
+        result.put("protocol", protocol);
+        result.put("available", this.isAvailable(protocol, address));
         return result;
+    }
+
+    private boolean isAvailable(String protocol, String address) {
+        HttpURLConnection connection = null;
+        try {
+            connection = (HttpURLConnection) new URL(
+                    protocol + "://" + address).openConnection();
+            connection.setConnectTimeout(HEALTH_TIMEOUT_MILLIS);
+            connection.setReadTimeout(HEALTH_TIMEOUT_MILLIS);
+            connection.setRequestMethod("GET");
+            connection.setInstanceFollowRedirects(false);
+            int status = connection.getResponseCode();
+            return status >= 200 && status < 400;
+        } catch (IOException e) {
+            return false;
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
     }
 }

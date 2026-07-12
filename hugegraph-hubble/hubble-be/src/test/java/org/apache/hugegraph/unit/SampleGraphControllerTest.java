@@ -85,9 +85,9 @@ public class SampleGraphControllerTest {
                                            "coalesce(unfold(),addV"));
         Assert.assertEquals(6, occurrences(SampleGraphController.LOADER_DATA,
                                            ".addEdge("));
-        Assert.assertEquals(41, occurrences(SampleGraphController.HLM_DATA,
+        Assert.assertEquals(14, occurrences(SampleGraphController.HLM_DATA,
                                             "coalesce(unfold(),addV"));
-        Assert.assertEquals(51, occurrences(SampleGraphController.HLM_DATA,
+        Assert.assertEquals(15, occurrences(SampleGraphController.HLM_DATA,
                                             ".addEdge("));
     }
 
@@ -116,8 +116,8 @@ public class SampleGraphControllerTest {
         Mockito.verify(gremlin).execute(requests.capture());
         Assert.assertEquals(SampleGraphController.HLM_DATA,
                             requests.getValue().gremlin);
-        Assert.assertEquals(41, result.get("vertices"));
-        Assert.assertEquals(51, result.get("edges"));
+        Assert.assertEquals(14, result.get("vertices"));
+        Assert.assertEquals(15, result.get("edges"));
     }
 
     private static int occurrences(String value, String token) {

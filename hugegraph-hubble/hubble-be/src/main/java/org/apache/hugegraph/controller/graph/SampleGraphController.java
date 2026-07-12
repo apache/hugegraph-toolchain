@@ -168,8 +168,8 @@ public class SampleGraphController extends BaseController {
         result.put("source", source(dataset));
         result.put("graphspace", graphSpace);
         result.put("graph", graph);
-        result.put("vertices", hlm ? 41 : rank ? 14 : 8);
-        result.put("edges", hlm ? 51 : rank ? 15 : 6);
+        result.put("vertices", hlm ? 14 : rank ? 14 : 8);
+        result.put("edges", hlm ? 15 : rank ? 15 : 6);
         result.put("idempotent", true);
         result.put("clears_existing_data", false);
         return result;

@@ -27,11 +27,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
 
+import org.apache.hugegraph.driver.GraphManager;
 import org.apache.hugegraph.driver.GraphsManager;
 import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.entity.graphs.GraphStatisticsEntity;
 import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.service.graphs.GraphsService;
+import org.apache.hugegraph.service.query.QueryService;
+import org.apache.hugegraph.structure.graph.Edge;
+import org.apache.hugegraph.structure.graph.Vertex;
 
 public class GraphsServiceDefaultTest {
 
@@ -136,5 +142,35 @@ public class GraphsServiceDefaultTest {
         }
 
         Mockito.verify(this.graphs, Mockito.never()).unSetDefault(Mockito.anyString());
+    }
+
+    @Test
+    public void testSmallStatisticsFallsBackToBoundedGraphReads() {
+        QueryService query = Mockito.mock(QueryService.class);
+        Mockito.when(query.executeQueryCount(Mockito.eq(this.client),
+                                             Mockito.anyString()))
+               .thenThrow(new ExternalException("gremlin.execute.failed"));
+        ReflectionTestUtils.setField(this.service, "queryService", query);
+
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        Mockito.when(this.client.graph()).thenReturn(graph);
+        Vertex personA = Mockito.mock(Vertex.class);
+        Vertex personB = Mockito.mock(Vertex.class);
+        Edge relation = Mockito.mock(Edge.class);
+        Mockito.when(personA.label()).thenReturn("人物");
+        Mockito.when(personB.label()).thenReturn("人物");
+        Mockito.when(relation.label()).thenReturn("关系");
+        Mockito.when(graph.listVertices(10001))
+               .thenReturn(Arrays.asList(personA, personB));
+        Mockito.when(graph.listEdges(10001))
+               .thenReturn(Collections.singletonList(relation));
+
+        GraphStatisticsEntity result =
+                this.service.postSmallStatistics(this.client, "DEFAULT", "demo");
+
+        Assert.assertEquals("2", result.getVertexCount());
+        Assert.assertEquals("1", result.getEdgeCount());
+        Assert.assertEquals(2, result.getVertices().get("人物"));
+        Assert.assertEquals(1, result.getEdges().get("关系"));
     }
 }

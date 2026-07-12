@@ -1,54 +1,32 @@
-# Source: HugeGraph public demo dataset, hlm.zip
-# https://hugegraph.feishu.cn/wiki/L7I4wkDtAiIkqAklJeicW9Iznwc
-# Original package also contains schema_hlm.groovy and struct_hlm.json.
-贾太公,男,0,-,o-l5,贾演,男,0,-,o-l6,父子
-贾太公,男,0,-,o-l5,贾源,男,0,-,o-l4,父子
-贾演,男,0,-,o-l6,贾代化,男,0,-,o-l5,父子
-贾源,男,0,-,o-l4,贾代善,男,0,-,o-l3,父子
-贾代善,男,0,-,o-l3,贾母,女,0,史太君，老祖宗,o-l3,妻
-贾代化,男,0,-,o-l5,贾敬,男,0,-,o-l5,父子
-贾敬,男,0,-,o-l5,贾珍,男,0,-,m-l4,父子
-贾珍,男,0,-,m-l4,贾蓉,男,0,-,y-l3,父子
-贾珍,男,0,-,m-l4,尤氏,女,0,-,m-l4,妾
-贾蓉,男,0,-,y-l3,秦可卿,女,0,-,y-l3,妻
-贾赦,男,0,-,o-l4,贾琏,男,0,-,m-l3,父子
-贾琏,男,0,-,m-l3,王熙凤,女,0,-,m-l2,妻
-贾琏,男,0,-,m-l3,尤二姐,女,0,-,m-l3,妾
-贾琏,男,0,-,m-l3,平儿,女,0,-,y-l3,妾
-贾琏,男,0,-,m-l3,秋桐,女,0,-,y-l3,妾
-王熙凤,女,0,-,m-l2,平儿,女,0,-,y-l3,丫头
-贾赦,男,0,-,o-l4,秋桐,女,0,-,y-l3,丫头
-尤氏,女,0,-,m-l4,尤二姐,女,0,-,m-l3,姐妹
-贾赦,男,0,-,o-l4,贾迎春,女,0,-,y-l3,父女
-孙绍祖,男,0,-,y-l3,贾迎春,女,0,-,y-l3,妻
-贾政,男,0,-,m-l2,王夫人,女,0,-,m-l2,妻
-贾政,男,0,-,m-l2,赵姨娘,女,0,-,m-l4,妾
-赵姨娘,女,0,-,m-l4,贾环,男,0,-,y-l4,母子
-赵姨娘,女,0,-,m-l4,贾探春,女,0,-,y-l4,母女
-王夫人,女,0,-,m-l2,贾元春,女,0,-,y-l3,母女
-王夫人,女,0,-,m-l2,贾珠,男,0,-,y-l3,母子
-贾珠,男,0,-,y-l3,李纨,女,0,-,m-l3,妻
-贾珠,男,0,-,y-l3,贾兰,男,0,-,b-l4,父子
-李纨,女,0,-,m-l3,贾兰,男,0,-,b-l4,母子
-王夫人,女,0,-,m-l2,贾宝玉,男,0,-,y-l1,母子
-贾宝玉,男,0,-,y-l1,薛宝钗,女,0,-,y-l2,妻
-林如海,男,0,-,m-l3,贾敏,女,0,-,m-l3,妻
-林如海,男,0,-,m-l3,林黛玉,女,0,-,y-l1,父女
-贾敏,女,0,-,m-l3,林黛玉,女,0,-,y-l1,母女
-贾宝玉,男,0,-,y-l1,林黛玉,女,0,-,y-l1,相恋
-贾母,女,0,史太君，老祖宗,o-l3,贾赦,男,0,-,o-l4,母子
-贾母,女,0,史太君，老祖宗,o-l3,贾政,男,0,-,m-l2,母子
-贾母,女,0,史太君，老祖宗,o-l3,贾敏,女,0,-,m-l3,母女
-贾代善,男,0,-,o-l3,贾赦,男,0,-,o-l4,父子
-贾代善,男,0,-,o-l3,贾政,男,0,-,m-l2,父子
-贾代善,男,0,-,o-l3,贾敏,女,0,-,m-l3,父女
-史候,男,0,-,o-l6,史公,男,0,-,o-l5,父子
-史公,男,0,-,o-l5,史氏,男,0,-,o-l4,父子
-史公,男,0,-,o-l5,史鼐,男,0,保龄侯,o-l4,父子
-史公,男,0,-,o-l5,史鼎,男,0,忠靖侯,o-l4,父子
-史公,男,0,-,o-l5,贾母,女,0,史太君，老祖宗,o-l3,父女
-史氏,男,0,-,o-l4,史湘云,女,0,-,y-l3,父女
-卫若兰,男,0,-,m-l4,史湘云,女,0,-,y-l3,妻
-贾宝玉,男,0,-,y-l1,史湘云,女,0,-,y-l3,朋友
-薛姨妈,女,0,-,m-l3,王夫人,女,0,-,m-l2,姐妹
-薛姨妈,女,0,-,m-l3,薛宝钗,女,0,-,y-l2,母女
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements. See the NOTICE file distributed with this
+# work for additional information regarding copyright ownership. The ASF
+# licenses this file to You under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# This small original demo was authored for Apache HugeGraph from
+# public-domain characters and relationships in Dream of the Red Chamber.
+贾宝玉,男,19,怡红公子,衔玉而生,林黛玉,女,17,潇湘妃子,敏感聪慧,知己
+贾宝玉,男,19,怡红公子,衔玉而生,薛宝钗,女,18,蘅芜君,端庄博学,夫妻
+贾宝玉,男,19,怡红公子,衔玉而生,贾母,女,70,老祖宗,慈爱威严,祖孙
+贾宝玉,男,19,怡红公子,衔玉而生,王夫人,女,45,荣国府夫人,持家守礼,母子
+贾宝玉,男,19,怡红公子,衔玉而生,贾政,男,50,工部员外郎,严谨端方,父子
+林黛玉,女,17,潇湘妃子,敏感聪慧,贾母,女,70,老祖宗,慈爱威严,外祖孙
+薛宝钗,女,18,蘅芜君,端庄博学,薛姨妈,女,45,薛家夫人,慈和稳重,母女
+薛宝钗,女,18,蘅芜君,端庄博学,薛蟠,男,24,薛家公子,豪爽任性,兄妹
+王熙凤,女,25,凤辣子,精明能干,贾琏,男,28,荣府公子,善于交际,夫妻
+王熙凤,女,25,凤辣子,精明能干,贾母,女,70,老祖宗,慈爱威严,孙媳
+贾元春,女,26,贤德妃,端庄仁厚,贾宝玉,男,19,怡红公子,衔玉而生,姐弟
+贾探春,女,18,蕉下客,果断有才,贾宝玉,男,19,怡红公子,衔玉而生,兄妹
+贾迎春,女,20,菱洲,温柔沉静,贾宝玉,男,19,怡红公子,衔玉而生,兄妹
+贾惜春,女,16,藕榭,清冷善画,贾宝玉,男,19,怡红公子,衔玉而生,兄妹
+贾母,女,70,老祖宗,慈爱威严,贾政,男,50,工部员外郎,严谨端方,母子
