@@ -30,6 +30,7 @@ import {
     Badge,
     Spin,
     Alert,
+    Typography,
 } from 'antd';
 import {
     EditOutlined,
@@ -51,6 +52,8 @@ import {StatusField} from '../../components/Status';
 import {sourceType, syncType} from './config';
 import TableHeader from '../../components/TableHeader';
 import DataPreparationNav from '../../components/DataPreparationNav';
+
+const {Text} = Typography;
 
 const DetailTip = ({row}) => {
     const {t} = useTranslation();
@@ -339,6 +342,16 @@ const Task = () => {
         {
             title: t('task.col.name'),
             dataIndex: 'task_name',
+            width: 220,
+            ellipsis: true,
+            render: task_name => (
+                <Text
+                    style={{display: 'block', maxWidth: '100%'}}
+                    ellipsis={{tooltip: task_name}}
+                >
+                    {task_name}
+                </Text>
+            ),
         },
         {
             title: t('task.col.source_type'),

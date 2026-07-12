@@ -149,7 +149,17 @@ const FieldForm = ({visible, prev, datasourceID}) => {
                 <div style={{margin: 5}}>
                     <Input
                         value={inputData}
-                        addonAfter={<PlusOutlined onClick={addField} />}
+                        addonAfter={(
+                            <Button
+                                type='text'
+                                size='small'
+                                aria-label={t('task.edit.add_field')}
+                                title={t('task.edit.add_field')}
+                                icon={<PlusOutlined />}
+                                disabled={!inputData || status === 'error'}
+                                onClick={addField}
+                            />
+                        )}
                         placeholder={t('task.edit.add_field_placeholder')}
                         onChange={handleInputData}
                         status={status}

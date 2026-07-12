@@ -519,6 +519,7 @@
       "source_available_fields": "源端可选字段",
       "selected_fields": "已选字段",
       "delete_field_confirm": "确定要删除这个字段吗？",
+      "add_field": "添加字段",
       "add_field_placeholder": "添加字段,仅允许字母、数字、-、_",
       "add_vertex_mapping": "新增顶点映射",
       "add_edge_mapping": "新增边映射",

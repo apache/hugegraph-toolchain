@@ -38,6 +38,18 @@ const collectSourceFiles = directory => fs.readdirSync(directory, {withFileTypes
             ? [target] : [];
     });
 
+const hasDirectIconClick = source => {
+    const iconImports = [...source.matchAll(
+        /import\s*\{([^}]+)\}\s*from\s*['"]@ant-design\/icons['"]/gs
+    )].flatMap(match => match[1].split(',').map(name => name.trim()))
+        .filter(name => /^[A-Z][A-Za-z]+Outlined$/.test(name));
+
+    return iconImports.some(iconName => {
+        const iconPattern = new RegExp(`<${iconName}\\b[^>]*\\bonClick=[^>]*>`, 'gs');
+        return iconPattern.test(source);
+    });
+};
+
 test('reachable workbench actions do not use click-only anchors or containers', () => {
     const offenders = roots.flatMap(root => collectSourceFiles(path.join(__dirname, root)))
         .filter(file => {
@@ -45,12 +57,28 @@ test('reachable workbench actions do not use click-only anchors or containers', 
             if (/<a\b[^>]*\bonClick=/s.test(source)) {
                 return true;
             }
-            return [...source.matchAll(/<(?:span|div)\b[^>]*\bonClick=[^>]*>/gs)]
+            const inaccessibleContainer = [...source.matchAll(
+                /<(?:span|div)\b[^>]*\bonClick=[^>]*>/gs
+            )]
                 .some(match => !/\bonKeyDown=/.test(match[0])
                     || !/\brole=/.test(match[0])
                     || !/\btabIndex=/.test(match[0]));
+            return inaccessibleContainer || hasDirectIconClick(source);
         })
         .map(file => path.relative(__dirname, file));
 
     expect(offenders).toEqual([]);
+});
+
+test('task-name columns constrain long values and preserve the full name', () => {
+    const taskList = fs.readFileSync(path.join(__dirname, 'pages/Task/index.js'), 'utf8');
+    const asyncList = fs.readFileSync(
+        path.join(__dirname, 'modules/asyncTasks/Detail/index.js'),
+        'utf8'
+    );
+
+    [taskList, asyncList].forEach(source => {
+        expect(source).toMatch(/dataIndex:\s*['"]task_name['"][\s\S]{0,200}width:\s*\d+/);
+        expect(source).toMatch(/ellipsis=\{\{tooltip:\s*task_name\}\}/);
+    });
 });

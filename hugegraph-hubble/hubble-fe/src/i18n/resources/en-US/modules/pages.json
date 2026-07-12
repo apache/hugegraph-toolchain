@@ -519,6 +519,7 @@
       "source_available_fields": "Available Source Fields",
       "selected_fields": "Selected Fields",
       "delete_field_confirm": "Delete this field?",
+      "add_field": "Add field",
       "add_field_placeholder": "Add field: letters, numbers, hyphen, and underscore only",
       "add_vertex_mapping": "Add Vertex Mapping",
       "add_edge_mapping": "Add Edge Mapping",

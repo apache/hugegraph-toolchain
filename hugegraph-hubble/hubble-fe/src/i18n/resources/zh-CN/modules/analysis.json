@@ -802,6 +802,7 @@
       "batch_delete_title": "批量删除",
       "batch_delete_content": "确认删除以下任务？删除后无法恢复，请谨慎操作",
       "selected_count": "已选{{count}}项",
+      "clear_selection": "清除选择",
       "batch_delete": "批量删除",
       "column": {
         "task_id": "任务ID",
