@@ -178,7 +178,7 @@
       "title": "Confirm graph clear",
       "graphspace": "GraphSpace: {{graphspace}}",
       "graph": "Graph: {{graph}}",
-      "scope_data": "Deletion scope: graph data. Back up schema before clearing.",
+      "scope": "Deletion scope: graph schema and data. Back up both before clearing.",
       "irreversible": "This operation is irreversible.",
       "input_label": "Enter the graph name to confirm",
       "input_placeholder": "Graph name",
@@ -197,7 +197,7 @@
     "menu": {
       "enter_analysis": "Open Graph Studio",
       "meta_config": "Metadata Config",
-      "clear_data": "Clear Data",
+      "clear_graph": "Clear Schema and Data",
       "set_default": "Set Default",
       "view_schema": "View Schema",
       "clone": "Clone Graph"

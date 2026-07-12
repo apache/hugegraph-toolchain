@@ -178,7 +178,7 @@
       "title": "确认清空图",
       "graphspace": "GraphSpace：{{graphspace}}",
       "graph": "图：{{graph}}",
-      "scope_data": "删除范围：图数据。清空前请先备份 Schema。",
+      "scope": "删除范围：图 Schema 与数据。清空前请先完整备份。",
       "irreversible": "此操作不可恢复。",
       "input_label": "输入图名以确认",
       "input_placeholder": "图名",
@@ -197,7 +197,7 @@
     "menu": {
       "enter_analysis": "进入图分析平台",
       "meta_config": "元数据配置",
-      "clear_data": "清空数据",
+      "clear_graph": "清空 Schema 与数据",
       "set_default": "设为默认",
       "view_schema": "查看schema",
       "clone": "克隆图"

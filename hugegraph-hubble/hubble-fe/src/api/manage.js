@@ -116,7 +116,7 @@ const getDefaultGraph = (graphspace, config) => {
     return config ? request.get(path, config) : request.get(path);
 };
 
-const clearGraphData = (graphspace, graph) => {
+const clearGraph = (graphspace, graph) => {
     return request.post(`/graphspaces/${graphspace}/graphs/${graph}/clear`);
 };
 
@@ -133,7 +133,7 @@ const cloneGraph = (graphspace, graph, params) => {
 };
 
 export {getGraphList, getGraph, addGraph, updateGraph, delGraph, getDefaultGraph,
-    getGraphView, setDefaultGraph, clearGraphData,
+    getGraphView, setDefaultGraph, clearGraph,
     getGraphStatistic, updateGraphStatistic, cloneGraph};
 
 // meta property

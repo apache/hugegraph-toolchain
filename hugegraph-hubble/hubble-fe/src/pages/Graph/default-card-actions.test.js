@@ -39,7 +39,7 @@ jest.mock('../../api', () => ({
     manage: {
         getGraphSpace: jest.fn(),
         getGraphList: jest.fn(),
-        clearGraphData: jest.fn(),
+        clearGraph: jest.fn(),
     },
 }));
 
@@ -113,7 +113,7 @@ test('disables every clear action for the default graph card', async () => {
     render(<Graph />);
 
     const menu = await screen.findByTestId('graph-card-menu');
-    const clearSchemaData = screen.getByText('graph.menu.clear_data');
+    const clearSchemaData = screen.getByText('graph.menu.clear_graph');
     const setDefault = screen.getByText('graph.menu.set_default');
 
     expect(menu).toContainElement(clearSchemaData);
@@ -125,10 +125,10 @@ test('disables every clear action for the default graph card', async () => {
     await waitFor(() => {
         expect(screen.queryByTestId('clear-confirm-modal')).not.toBeInTheDocument();
     });
-    expect(api.manage.clearGraphData).not.toHaveBeenCalled();
+    expect(api.manage.clearGraph).not.toHaveBeenCalled();
 });
 
-test('offers one data clear action and calls its canonical API', async () => {
+test('offers one conservative graph clear action and calls its canonical API', async () => {
     api.manage.getGraphList.mockResolvedValue({
         status: 200,
         data: {
@@ -141,18 +141,18 @@ test('offers one data clear action and calls its canonical API', async () => {
             total: 1,
         },
     });
-    api.manage.clearGraphData.mockResolvedValue({status: 200});
+    api.manage.clearGraph.mockResolvedValue({status: 200});
     render(<Graph />);
 
     const menu = await screen.findByTestId('graph-card-menu');
-    const clearActions = screen.getAllByText('graph.menu.clear_data');
+    const clearActions = screen.getAllByText('graph.menu.clear_graph');
     expect(menu).toContainElement(clearActions[0]);
     expect(clearActions).toHaveLength(1);
 
     fireEvent.click(clearActions[0]);
     fireEvent.click(await screen.findByTestId('clear-confirm-modal'));
 
-    await waitFor(() => expect(api.manage.clearGraphData)
+    await waitFor(() => expect(api.manage.clearGraph)
         .toHaveBeenCalledWith('space', 'graph-a'));
 });
 

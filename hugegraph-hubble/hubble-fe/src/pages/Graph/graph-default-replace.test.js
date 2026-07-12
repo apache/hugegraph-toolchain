@@ -31,10 +31,10 @@ test('default graph flow handles arrays and owns one actionable error', () => {
     expect(defaultFlow).not.toContain('message.error(res.message)');
 });
 
-test('does not retain the obsolete schema-clear contract', () => {
+test('uses a conservative graph-clear contract', () => {
     const source = fs.readFileSync(path.join(__dirname, 'index.js'), 'utf8');
 
-    expect(source).toContain('const clearData =');
+    expect(source).toContain('const clearGraph =');
     expect(source).not.toContain('clearSchema');
-    expect(source).not.toContain('clearGraphDataAndSchema');
+    expect(source).not.toContain('clearGraphData');
 });

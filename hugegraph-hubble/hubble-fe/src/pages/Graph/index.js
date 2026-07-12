@@ -107,7 +107,7 @@ const Graph = () => {
         setEditLayer(true);
     }, []);
 
-    const clearData = useCallback(graph => {
+    const clearGraph = useCallback(graph => {
         setClearSelection({graph});
     }, []);
 
@@ -122,7 +122,7 @@ const Graph = () => {
     }, []);
 
     const handleClearConfirm = useCallback(() => {
-        return api.manage.clearGraphData(graphspace, clearSelection.graph);
+        return api.manage.clearGraph(graphspace, clearSelection.graph);
     }, [clearSelection, graphspace]);
 
     const showSchema = useCallback(graph => {
@@ -272,10 +272,10 @@ const Graph = () => {
                             {t('graph.menu.meta_config')}
                         </Link>
                         {(row.default)
-                            ? <span className={style.disable}>{t('graph.menu.clear_data')}</span>
+                            ? <span className={style.disable}>{t('graph.menu.clear_graph')}</span>
                             : (
-                                <GraphRowAction onAction={clearData} graph={row.name}>
-                                    {t('graph.menu.clear_data')}
+                                <GraphRowAction onAction={clearGraph} graph={row.name}>
+                                    {t('graph.menu.clear_graph')}
                                 </GraphRowAction>
                             )}
                         {(row.graphspace === 'neizhianli')
@@ -338,9 +338,9 @@ const Graph = () => {
             key: '2',
             disabled: item.default,
             label: item.default
-                ? <span className={style.disable}>{t('graph.menu.clear_data')}</span>
-                : t('graph.menu.clear_data'),
-            onClick: item.default ? undefined : () => clearData(item.name),
+                ? <span className={style.disable}>{t('graph.menu.clear_graph')}</span>
+                : t('graph.menu.clear_graph'),
+            onClick: item.default ? undefined : () => clearGraph(item.name),
         },
         graphDefaultMutationEnabled && {
             key: '4',

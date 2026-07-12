@@ -27,7 +27,7 @@ const mockMessages = {
     'graph.clear_confirm.title': mockClearMessages.title,
     'graph.clear_confirm.graphspace': mockClearMessages.graphspace,
     'graph.clear_confirm.graph': mockClearMessages.graph,
-    'graph.clear_confirm.scope_data': mockClearMessages.scope_data,
+    'graph.clear_confirm.scope': mockClearMessages.scope,
     'graph.clear_confirm.irreversible': mockClearMessages.irreversible,
     'graph.clear_confirm.input_label': mockClearMessages.input_label,
     'graph.clear_confirm.input_placeholder': mockClearMessages.input_placeholder,
@@ -85,13 +85,13 @@ const createDeferred = () => {
     return {promise, resolve, reject};
 };
 
-test('requires exact graph-name confirmation for data clear', async () => {
+test('requires exact graph-name confirmation for graph clear', async () => {
     renderModal();
 
     expect(screen.getByText('GraphSpace: DEFAULT')).toBeInTheDocument();
     expect(screen.getByText('Graph: hugegraph')).toBeInTheDocument();
     expect(screen.getByText(
-        'Deletion scope: graph data. Back up schema before clearing.'
+        'Deletion scope: graph schema and data. Back up both before clearing.'
     )).toBeInTheDocument();
     expect(screen.getByText('This operation is irreversible.')).toBeInTheDocument();
 
@@ -107,12 +107,12 @@ test('requires exact graph-name confirmation for data clear', async () => {
     expect(confirm).toBeEnabled();
 });
 
-test('states the observed data-clear scope without overclaiming schema behavior', () => {
-    expect(enPages.graph.clear_confirm.scope_data).toBe(
-        'Deletion scope: graph data. Back up schema before clearing.'
+test('uses a conservative schema-and-data scope for destructive clear', () => {
+    expect(enPages.graph.clear_confirm.scope).toBe(
+        'Deletion scope: graph schema and data. Back up both before clearing.'
     );
-    expect(zhPages.graph.clear_confirm.scope_data).toBe(
-        '删除范围：图数据。清空前请先备份 Schema。'
+    expect(zhPages.graph.clear_confirm.scope).toBe(
+        '删除范围：图 Schema 与数据。清空前请先完整备份。'
     );
 });
 
