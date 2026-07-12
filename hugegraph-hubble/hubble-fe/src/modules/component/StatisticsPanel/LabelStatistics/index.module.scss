@@ -18,7 +18,7 @@
 
 .labelStatistics {
     border-top: none;
-    height: calc(100vh - 75px);
+    height: calc(var(--analysis-result-height, 100vh) - 35px);
 
     :global(.ant-collapse >.ant-collapse-item >.ant-collapse-header) {
         padding: 5px;

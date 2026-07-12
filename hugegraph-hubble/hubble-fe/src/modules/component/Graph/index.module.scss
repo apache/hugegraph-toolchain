@@ -20,14 +20,14 @@
     position: relative;
     border: 1px solid #E7E8E9;
     margin-left: -1px;
-    height: calc(100vh - 40px);
+    height: var(--analysis-result-height, calc(100vh - 40px));
     width: auto;
     overflow: hidden;
     background-image: url('/assets/canvas_bg.png');
 
     :global(.g6-legend-container) {
         top: 0px !important;
-        max-height: calc(100vh - 200px);
+        max-height: calc(var(--analysis-result-height, 100vh) - 160px);
         overflow-y: auto;
     }
 
@@ -53,7 +53,13 @@
     }
 
     &:fullscreen {
+        width: 100vw;
+        height: 100vh;
         background-color: #FFF;
+
+        :global(.g6-legend-container) {
+            max-height: calc(100vh - 160px);
+        }
     }
 }
 

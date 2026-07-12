@@ -17,6 +17,8 @@
  */
 
 .queryResult {
+    --analysis-result-height: clamp(360px, calc(100vh - 305px), 640px);
+
     margin-top: 10px;
 
     :global(.ant-tabs) {
@@ -90,7 +92,7 @@
 
     .graphContainer {
         position: relative;
-        height: calc(100vh - 305px);
+        height: var(--analysis-result-height);
         display: flex;
         flex-direction: column;
         justify-content: center;

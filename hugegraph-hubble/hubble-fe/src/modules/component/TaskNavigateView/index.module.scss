@@ -19,7 +19,7 @@
 .graphView {
     position: relative;
     width: 100%;
-    height: calc(100vh - 40px);
+    height: var(--analysis-result-height, calc(100vh - 40px));
     display: flex;
     flex-direction: column;
     justify-content: center;

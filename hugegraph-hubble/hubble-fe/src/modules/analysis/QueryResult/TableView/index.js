@@ -134,6 +134,10 @@ const TableView = props => {
                             dataSource={queryResultTable?.rows || []}
                             columns={tableColums}
                             pagination={{position: ['bottomCenter']}}
+                            scroll={{
+                                x: 'max-content',
+                                y: 'calc(var(--analysis-result-height, 100vh) - 120px)',
+                            }}
                         />
                     </div>
                 );

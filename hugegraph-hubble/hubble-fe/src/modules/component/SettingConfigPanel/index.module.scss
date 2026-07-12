@@ -24,7 +24,7 @@
     flex: 1;  
     width: 250px;
     padding: 15px 30px 15px 15px; 
-    height: calc(100vh - 40px);
+    height: var(--analysis-result-height, calc(100vh - 40px));
     overflow-y: auto;
     border: 1px solid #E7E8E9;
     margin: -1px 0  0 -1px;

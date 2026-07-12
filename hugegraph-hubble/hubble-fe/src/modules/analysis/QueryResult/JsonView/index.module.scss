@@ -19,6 +19,6 @@
 .jsonWrapper {
     position: relative;
     padding: 10px;
-    height: 100vh;
+    height: var(--analysis-result-height, calc(100vh - 40px));
     overflow: auto;
 }

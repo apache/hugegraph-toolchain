@@ -21,10 +21,15 @@
         position: relative;
         border: 1px solid #E7E8E9;    
         margin-left: -1px;
-        height: calc(100vh - 40px);
+        height: var(--analysis-result-height, calc(100vh - 40px));
         width: auto;
         overflow: hidden;
         background-image: url('/assets/canvas_bg.png');
+
+        &:fullscreen {
+            width: 100vw;
+            height: 100vh;
+        }
     }
 
     .tooltip{

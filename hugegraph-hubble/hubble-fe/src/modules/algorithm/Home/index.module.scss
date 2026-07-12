@@ -17,8 +17,10 @@
  */
 
 .algorithmContent {
+    --analysis-result-height: clamp(360px, calc(100vh - 305px), 640px);
+
     display: flex;
     flex-direction: row;
     margin-top: 10px;
-    height: calc(100vh - 1px);
+    height: calc(var(--analysis-result-height) + 40px);
 }
