@@ -1,4 +1,3 @@
-#
 # Licensed to the Apache Software Foundation (ASF) under one or more
 # contributor license agreements.  See the NOTICE file distributed with
 # this work for additional information regarding copyright ownership.
@@ -13,35 +12,28 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
 
-FROM --platform=$BUILDPLATFORM maven:3.9.0-eclipse-temurin-11 AS build
+# Version-control and local development metadata
+.git
+.github
+.idea
+.vscode
+.codex-task
+**/.DS_Store
 
-COPY . /pkg
-WORKDIR /pkg
+# Build outputs and dependency caches
+**/target
+**/node_modules
+**/.cache
 
-ARG MAVEN_ARGS
-
-RUN set -x \
-    && mvn clean package $MAVEN_ARGS -pl hugegraph-client,hugegraph-loader -am \
-       -Dmaven.javadoc.skip=true -DskipTests -ntp
-
-FROM eclipse-temurin:11-jre-jammy
-
-RUN set -x \
-    && apt-get -q update \
-    && apt-get -q install -y --no-install-recommends --no-install-suggests \
-       dumb-init \
-       procps \
-       curl \
-       lsof \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY --from=build /pkg/hugegraph-loader/apache-hugegraph-loader-*/ /loader
-WORKDIR /loader/
-
-VOLUME /loader
-
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["tail","-f","/dev/null"]
+# Modules not used by the Hubble image build. Keep the Maven module POMs so
+# the root reactor can still be parsed, and keep release docs used by hubble-dist.
+hugegraph-client-go
+hugegraph-spark-connector/**
+!hugegraph-spark-connector/pom.xml
+hugegraph-tools/**
+!hugegraph-tools/pom.xml
+hugegraph-dist/**
+!hugegraph-dist/pom.xml
+!hugegraph-dist/release-docs/
+!hugegraph-dist/release-docs/**

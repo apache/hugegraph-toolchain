@@ -178,6 +178,7 @@ describe('rules i18n defaults', () => {
             [rules.isNoramlName(), '只能包含中文、字母、数字、_，最多 48 个字符'],
             [rules.isJDBC(), '请输入正确的jdbc url, 例如：jdbc:mysql://127.0.0.1:3306/db_name'],
             [rules.isAccountName(), '账号名不超过16个字符，且不能以下划线开始和结尾'],
+            [rules.isFavoriteName(), '只能包含中文、字母、数字、_, 不能超过48个字符'],
             [rules.isUUID(), '非法的数据格式'],
             [rules.isInt(), '非法的数据格式'],
         ];

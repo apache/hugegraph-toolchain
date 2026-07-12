@@ -22,12 +22,13 @@
 
 import React, {useCallback, useState, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Button, Tooltip, Dropdown, Input, Popover, message, Space} from 'antd';
+import {Button, Tooltip, Dropdown, Popover, message, Space} from 'antd';
 import {UpOutlined, DownOutlined, QuestionCircleOutlined} from '@ant-design/icons';
 import {GREMLIN_EXECUTES_MODE} from '../../../../utils/constants';
 import GraphAnalysisContext from '../../../Context';
 import classnames from 'classnames';
 import {isValidFavoriteName} from '../../../../utils/rules';
+import FavoriteNameInput from '../../../../components/FavoriteNameInput';
 import c from './index.module.scss';
 import * as api from '../../../../api/index';
 import KeyboardAction from '../../../../components/KeyboardAction';
@@ -148,14 +149,10 @@ const ContentCommon = props => {
 
     const favoriteContent = (
         <>
-            <Input
+            <FavoriteNameInput
                 placeholder={t('analysis.query.favorite_name_placeholder')}
-                showCount
-                maxLength={48}
                 value={favoriteName}
                 onChange={onChangeFavoraiteName}
-                status={favoriteName && !isValidFavoriteName(favoriteName)
-                    ? 'error' : undefined}
             />
             <Space style={{marginTop: '24px'}}>
                 <Button type='primary' onClick={onOkFavorite} disabled={disabledFavorite}>

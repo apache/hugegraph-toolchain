@@ -22,8 +22,10 @@
 
 import React, {useState, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Button, Table, Space, Tag, Input, Popconfirm} from 'antd';
+import {Button, Table, Space, Tag, Popconfirm} from 'antd';
 import ExecutionContent from '../../../../components/ExecutionContent';
+import FavoriteNameInput from '../../../../components/FavoriteNameInput';
+import {isValidFavoriteName} from '../../../../utils/rules';
 import c from './index.module.scss';
 
 const EXECUTE_TYPE_KEY = {
@@ -67,17 +69,14 @@ const ExecuteLog = props => {
     } = props;
 
     const [favoriteName, setFavoriteName] = useState();
-    const [disabledFavorite, setDisabledFavorite]  = useState(true);
 
     const onFavoraiteName = useCallback(
         e => {
             setFavoriteName(e.target.value);
-            e.target.value ? setDisabledFavorite(false) : setDisabledFavorite(true);
         }, []);
 
     const onFavoriteCard = useCallback(() => {
         setFavoriteName('');
-        setDisabledFavorite(true);
     }, []);
 
     const updateAddCollection = useCallback(
@@ -97,11 +96,9 @@ const ExecuteLog = props => {
             <div style={{marginBottom: '16px'}}>
                 {t('analysis.logs.favorite_statement')}
             </div>
-            <Input
+            <FavoriteNameInput
                 style={{marginBottom: '18px'}}
                 placeholder={t('analysis.logs.favorite_name_placeholder')}
-                showCount
-                maxLength={48}
                 value={favoriteName}
                 onChange={onFavoraiteName}
             />
@@ -169,7 +166,7 @@ const ExecuteLog = props => {
                             placement="left"
                             title={favoriteContent(rowData)}
                             onConfirm={createValueHandler(onAddFavorite, rowData.content)}
-                            okButtonProps={{disabled: disabledFavorite}}
+                            okButtonProps={{disabled: !isValidFavoriteName(favoriteName)}}
                             okText={t('analysis.logs.action.favorite')}
                             cancelText={t('common.action.cancel')}
                         >

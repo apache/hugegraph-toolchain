@@ -484,6 +484,7 @@ See licenses/ for text of these licenses.
 	hugegraph-hubble/ui/favicon.ico
 	(Apache License, Version 2.0) * kotlin-stdlib (org.jetbrains.kotlin:kotlin-stdlib:1.6.20 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * kotlin-stdlib-common (org.jetbrains.kotlin:kotlin-stdlib-common:1.5.31 - https://github.com/JetBrains/kotlin)
+	(Apache License, Version 2.0) * kotlin-stdlib-common (org.jetbrains.kotlin:kotlin-stdlib-common:1.6.20 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * kotlin-stdlib-jdk7 (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.71 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * kotlin-stdlib-jdk7 (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.6.10 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * kotlin-stdlib-jdk8 (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.2.71 - https://github.com/JetBrains/kotlin)
