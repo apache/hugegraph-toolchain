@@ -72,6 +72,12 @@ public class SampleGraphControllerTest {
         Assert.assertTrue(data.contains("fold().coalesce(unfold(),addV"));
         Assert.assertTrue(data.contains(".addEdge("));
         Assert.assertTrue(data.contains(".hasNext()"));
+        Assert.assertTrue(SampleGraphController.HLM_SCHEMA.contains(
+                          ".primaryKeys('name')"));
+        Assert.assertTrue(SampleGraphController.HLM_DATA.contains(
+                          ".has('name','贾宝玉')"));
+        Assert.assertFalse(SampleGraphController.HLM_DATA.contains(
+                           "property(T.id"));
         Assert.assertFalse((schema + data).contains("clear"));
         Assert.assertFalse((schema + data).contains("drop("));
         Assert.assertFalse((schema + data).contains("remove("));

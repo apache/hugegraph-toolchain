@@ -132,8 +132,8 @@ public class SampleGraphController extends BaseController {
             "schema.propertyKey('title').asText().ifNotExist().create();\n" +
             "schema.propertyKey('feature').asText().ifNotExist().create();\n" +
             "schema.propertyKey('intimacy').asText().ifNotExist().create();\n" +
-            "schema.vertexLabel('人物').useCustomizeStringId()" +
-            ".properties('name','gender','age','title','feature')" +
+            "schema.vertexLabel('人物').properties('name','gender','age'," +
+            "'title','feature').primaryKeys('name')" +
             ".ifNotExist().create();\n" +
             "schema.edgeLabel('关系').sourceLabel('人物')" +
             ".targetLabel('人物').properties('intimacy')" +
@@ -468,8 +468,8 @@ public class SampleGraphController extends BaseController {
     }
 
     private static String hlmVertex(String[] person) {
-        return String.format("g.V('%1$s').hasLabel('人物').fold()" +
-                             ".coalesce(unfold(),addV('人物').property(T.id,'%1$s')" +
+        return String.format("g.V().hasLabel('人物').has('name','%1$s').fold()" +
+                             ".coalesce(unfold(),addV('人物')" +
                              ".property('name','%1$s').property('gender','%2$s')" +
                              ".property('age',%3$s).property('title','%4$s')" +
                              ".property('feature','%5$s')).next();\n",
@@ -478,10 +478,14 @@ public class SampleGraphController extends BaseController {
     }
 
     private static String hlmEdge(String[] edge) {
-        return String.format("if (!g.V('%1$s').outE('关系')" +
-                             ".where(inV().hasId('%2$s')).has('intimacy','%3$s')" +
-                             ".hasNext()) { g.V('%1$s').next().addEdge('关系'," +
-                             "g.V('%2$s').next(),'intimacy','%3$s'); };\n",
+        return String.format("if (!g.V().hasLabel('人物')" +
+                             ".has('name','%1$s').outE('关系')" +
+                             ".where(inV().has('name','%2$s'))" +
+                             ".has('intimacy','%3$s').hasNext()) { g.V()" +
+                             ".hasLabel('人物').has('name','%1$s').next()" +
+                             ".addEdge('关系',g.V().hasLabel('人物')" +
+                             ".has('name','%2$s').next()," +
+                             "'intimacy','%3$s'); };\n",
                              escape(edge[0]), escape(edge[1]), escape(edge[2]));
     }
 
