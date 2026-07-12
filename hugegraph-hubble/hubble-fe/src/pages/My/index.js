@@ -36,20 +36,26 @@ const My = () => {
     const profileRequest = useRef(null);
     const [form] = Form.useForm();
 
-    const handleForm = useCallback(() => {
-        setLoading(true);
-        form.validateFields().then(values => {
+    const handleForm = useCallback(async () => {
+        try {
+            const values = await form.validateFields();
             const {old_password, user_password} = values;
-            api.auth.updatePwd(data.user_name, old_password, user_password).then(res => {
-                if (res.status === 200) {
-                    message.success(t('common.msg.update_success'));
-                    setChangePass(false);
-                    return;
-                }
+            setLoading(true);
+            const res = await api.auth.updatePwd(data.user_name, old_password, user_password);
+            if (res.status === 200) {
+                message.success(t('common.msg.update_success'));
+                setChangePass(false);
+                return;
+            }
 
-                message.error(res.message);
-            });
-        });
+            message.error(res.message);
+        }
+        catch (error) {
+            // Validation errors render inline; request errors are owned by the API layer.
+        }
+        finally {
+            setLoading(false);
+        }
     }, [data.user_name, form, t]);
 
     const handleChange = useCallback(() => {

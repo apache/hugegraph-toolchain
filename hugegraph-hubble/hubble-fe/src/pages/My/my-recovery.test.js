@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {render, screen} from '@testing-library/react';
+import {render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import My from './index';
 import * as api from '../../api';
@@ -56,6 +56,25 @@ const deferred = () => {
         resolve = resolvePromise;
     });
     return {promise, resolve};
+};
+
+const openPasswordForm = async () => {
+    api.auth.getPersonal.mockResolvedValue({
+        status: 200,
+        data: {user_name: 'admin', user_nickname: 'Administrator'},
+    });
+
+    render(<My />);
+    const changePassword = await screen.findByRole('button', {name: 'my.edit.title'});
+    await waitFor(() => expect(changePassword).toBeEnabled());
+    await userEvent.click(changePassword);
+    return screen.getByRole('button', {name: 'common.action.confirm'});
+};
+
+const fillValidPasswords = async () => {
+    await userEvent.type(screen.getByPlaceholderText('my.edit.old_password_placeholder'), 'old-pass');
+    await userEvent.type(screen.getByPlaceholderText('my.edit.new_password_placeholder'), 'new-pass');
+    await userEvent.type(screen.getByPlaceholderText('my.edit.confirm_password_placeholder'), 'new-pass');
 };
 
 test('shows a persistent profile error and retries without stale identity', async () => {
@@ -99,4 +118,62 @@ test('ignores an old profile response after a newer refresh', async () => {
 
     expect(await screen.findByText('New profile')).toBeInTheDocument();
     expect(screen.queryByText('Old profile')).not.toBeInTheDocument();
+});
+
+test('stops password submit loading when form validation rejects', async () => {
+    const confirm = await openPasswordForm();
+
+    await userEvent.click(confirm);
+
+    await waitFor(() => expect(document.querySelector('.ant-form-item-has-error')).not.toBeNull());
+    await waitFor(() => expect(confirm).not.toHaveClass('ant-btn-loading'));
+    expect(api.auth.updatePwd).not.toHaveBeenCalled();
+    expect(screen.getByPlaceholderText('my.edit.new_password_placeholder')).toBeInTheDocument();
+});
+
+test('stops password submit loading when the request rejects', async () => {
+    api.auth.updatePwd.mockRejectedValue(new Error('down'));
+    const confirm = await openPasswordForm();
+    await fillValidPasswords();
+
+    await userEvent.click(confirm);
+
+    await waitFor(() => expect(api.auth.updatePwd).toHaveBeenCalledWith(
+        'admin', 'old-pass', 'new-pass'
+    ));
+    await waitFor(() => expect(confirm).not.toHaveClass('ant-btn-loading'));
+    expect(screen.getByPlaceholderText('my.edit.new_password_placeholder')).toBeInTheDocument();
+});
+
+test('stops password submit loading and preserves the form on a non-200 response', async () => {
+    api.auth.updatePwd.mockResolvedValue({status: 400, message: 'invalid old password'});
+    const confirm = await openPasswordForm();
+    await fillValidPasswords();
+
+    await userEvent.click(confirm);
+
+    await waitFor(() => expect(api.auth.updatePwd).toHaveBeenCalledWith(
+        'admin', 'old-pass', 'new-pass'
+    ));
+    await waitFor(() => expect(confirm).not.toHaveClass('ant-btn-loading'));
+    expect(screen.getByPlaceholderText('my.edit.old_password_placeholder')).toHaveValue('old-pass');
+});
+
+test('keeps loading during a password request and closes the form only on success', async () => {
+    const request = deferred();
+    api.auth.updatePwd.mockReturnValue(request.promise);
+    const confirm = await openPasswordForm();
+    await fillValidPasswords();
+
+    await userEvent.click(confirm);
+
+    await waitFor(() => expect(api.auth.updatePwd).toHaveBeenCalledWith(
+        'admin', 'old-pass', 'new-pass'
+    ));
+    await waitFor(() => expect(confirm).toHaveClass('ant-btn-loading'));
+
+    request.resolve({status: 200});
+
+    expect(await screen.findByText('Administrator')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('my.edit.new_password_placeholder')).not.toBeInTheDocument();
 });
