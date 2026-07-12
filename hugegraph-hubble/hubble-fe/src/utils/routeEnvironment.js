@@ -1,5 +1,4 @@
 /*
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -16,20 +15,6 @@
  * under the License.
  */
 
-import Route from './routes';
-import 'antd/dist/antd.css';
-import './App.scss';
-import './App.css';
-import './styles/workbench.scss';
-import Layout from './layout.ant';
+const isDevelopmentBuild = environment => environment === 'development';
 
-function App() {
-
-    return (
-        <div>
-            <Route element={<Layout />} />
-        </div>
-    );
-};
-
-export default App;
+export {isDevelopmentBuild};

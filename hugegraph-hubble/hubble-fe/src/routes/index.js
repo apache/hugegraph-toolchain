@@ -42,6 +42,7 @@ import {
     shouldUseNonPdDefaultGraphspace,
 } from '../utils/productMode';
 import * as user from '../utils/user';
+import {isDevelopmentBuild} from '../utils/routeEnvironment';
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
 
 const LOGIN_PATH = '/login';
@@ -212,7 +213,9 @@ const RouteList = ({element}) => {
             </Route>
 
 
-            <Route path="/test" element={<Test />} />
+            {isDevelopmentBuild(process.env.NODE_ENV) && (
+                <Route path="/test" element={<Test />} />
+            )}
         </Routes>
     );
 };

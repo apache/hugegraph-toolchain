@@ -180,58 +180,6 @@ const TaskActions = ({row, onView, onEdit, onEnable, onDisable, onDelete}) => {
     );
 };
 
-const TaskActions = ({row, onView, onEdit, onEnable, onDisable, onDelete}) => {
-    const {t} = useTranslation();
-    const canEditOrDelete = row.task_schedule_status === 'DISABLE';
-    const handleView = useCallback(() => onView(row), [onView, row]);
-    const handleEdit = useCallback(() => onEdit(row), [onEdit, row]);
-    const handleDelete = useCallback(() => {
-        Modal.confirm({
-            title: t('common.confirm.delete'),
-            content: t('common.confirm.delete_irrecoverable'),
-            onOk: () => onDelete(row.task_id),
-        });
-    }, [onDelete, row.task_id, t]);
-
-    return (
-        <Space>
-            <DetailTip row={row} />
-            <Button
-                type='link'
-                aria-label={t('task.action.config')}
-                title={t('task.action.config')}
-                icon={<FileTextOutlined />}
-                onClick={handleView}
-            />
-            <Button
-                type='link'
-                aria-label={t('task.action.edit')}
-                title={t('task.action.edit')}
-                icon={<EditOutlined />}
-                disabled={!canEditOrDelete}
-                onClick={handleEdit}
-            />
-            {row.task_schedule_status === 'ENABLE'
-                ? (
-                    <RunningText
-                        status='enable'
-                        data={row.task_id}
-                        onClick={onDisable}
-                    />)
-                : <RunningText data={row.task_id} onClick={onEnable} />}
-            <Button
-                type='link'
-                aria-label={t('common.action.delete')}
-                title={t('common.action.delete')}
-                icon={<DeleteOutlined />}
-                disabled={!canEditOrDelete}
-                onClick={handleDelete}
-            />
-        </Space>
-    );
-};
-
-
 const Task = () => {
     const {t} = useTranslation();
     const [data, setData] = useState([]);
