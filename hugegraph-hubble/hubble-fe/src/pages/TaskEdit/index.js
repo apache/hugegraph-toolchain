@@ -215,7 +215,7 @@ const TaskEdit = () => {
                 JSONbig.stringify(values),
                 submitPending
             );
-            if (result.skipped || !mounted.current) {
+            if (!result || result.skipped || !mounted.current) {
                 return;
             }
             setLoading(false);

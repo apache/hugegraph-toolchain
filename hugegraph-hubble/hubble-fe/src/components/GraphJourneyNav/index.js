@@ -26,13 +26,11 @@ const GraphJourneyNav = ({graphspace, graph, active}) => {
         {
             key: 'overview',
             label: t('graph.detail.overview'),
-            path: `/graphspace/${graphspace}/graph/${graph}/detail`,
-        },
+            path: `/graphspace/${encodeURIComponent(graphspace)}/graph/${encodeURIComponent(graph)}/detail`,
         {
             key: 'schema',
             label: t('graph.detail.schema'),
-            path: `/graphspace/${graphspace}/graph/${graph}/meta`,
-        },
+            path: `/graphspace/${encodeURIComponent(graphspace)}/graph/${encodeURIComponent(graph)}/meta`,
     ];
 
     return (

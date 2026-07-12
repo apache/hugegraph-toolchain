@@ -42,7 +42,7 @@ const hasDirectIconClick = source => {
     const iconImports = [...source.matchAll(
         /import\s*\{([^}]+)\}\s*from\s*['"]@ant-design\/icons['"]/gs
     )].flatMap(match => match[1].split(',').map(name => name.trim()))
-        .filter(name => /^[A-Z][A-Za-z]+Outlined$/.test(name));
+        .filter(name => /^[A-Z][A-Za-z]+(Outlined|Filled|TwoTone)$/.test(name));
 
     return iconImports.some(iconName => {
         const iconPattern = new RegExp(`<${iconName}\\b[^>]*\\bonClick=[^>]*>`, 'gs');
