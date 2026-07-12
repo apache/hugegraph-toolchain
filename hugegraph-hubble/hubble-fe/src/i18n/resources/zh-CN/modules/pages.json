@@ -131,13 +131,28 @@
       "admin_placeholder": "选择图空间管理员",
       "description": "描述",
       "description_placeholder": "图空间描述，可选",
-      "cpu_placeholder": "核",
-      "memory_placeholder": "G",
+      "cpu_placeholder": "例如：64",
+      "memory_placeholder": "例如：128",
+      "storage_placeholder": "例如：1000000",
+      "max_graph_placeholder": "例如：100",
+      "image_placeholder": "例如：example.com/hugegraph/image:1.0.0",
       "id_placeholder": "以字母开头,只能包含小写字母、数字、_, 最长48位",
-      "name_placeholder": "只能包含中文、字母、数字、_，最长12位",
+      "name_placeholder": "例如：演示图空间（最长 48 位）",
       "k8s_placeholder": "以字母开头,只能包含小写字母、数字、-,最长48位",
+      "id_help": "图空间 ID 是 API 和 URL 中使用的稳定标识，创建后不可修改。例如：demo_space。",
+      "name_help": "显示给用户看的图空间名称，可使用中文。例如：演示图空间。",
+      "auth_help": "开启后，该图空间内的访问需要通过 HugeGraph 权限校验；创建后不可修改。",
+      "max_graph_help": "该图空间允许创建的图数量上限。留空时使用服务端默认值 100。",
+      "graph_cpu_help": "图查询与写入服务可使用的 CPU 上限。留空时使用服务端默认值 64 核。",
+      "graph_memory_help": "图查询与写入服务可使用的内存上限。留空时使用服务端默认值 128 GB。",
+      "compute_cpu_help": "异步计算任务可使用的 CPU 上限。留空时使用服务端默认值 64 核。",
+      "compute_memory_help": "异步计算任务可使用的内存上限。留空时使用服务端默认值 128 GB。",
+      "oltp_namespace_help": "部署图查询与写入服务的 Kubernetes 命名空间；非 Kubernetes 环境可留空。",
+      "olap_namespace_help": "部署异步计算任务的 Kubernetes 命名空间；不运行计算任务时可留空。",
+      "storage_limit_help": "该图空间可使用的存储容量上限。留空时使用服务端默认值 1000000 GB。",
       "image_format_error": "请输入正确的镜像地址格式(ie: example.com/org_1/xx_img:1.0.0)!",
       "id_rule": "以字母开头,只能包含小写字母、数字、_, 最长48位",
+      "name_rule": "必须以中文或字母开头，可包含常用符号，最长 48 位",
       "k8s_rule": "以字母开头,只能包含小写字母、数字、-,最长48位"
     },
     "card": {
@@ -723,7 +738,11 @@
       "form": {
         "name": "属性名称：",
         "type": "数据类型：",
-        "cardinality": "基数："
+        "cardinality": "基数：",
+        "name_placeholder": "例如：created_at",
+        "name_help": "点或边在读写时使用的属性键。例如 created_at、age。创建后不可修改。",
+        "type_help": "属性值的存储类型。TEXT 适合文本；INT/LONG 适合整数；DATE 适合日期时间。类型必须与导入数据一致。",
+        "cardinality_help": "单个元素可保存的值数量：SINGLE 为一个值，LIST 为可重复的有序多值，SET 为去重的多值。"
       }
     },
     "vertex": {

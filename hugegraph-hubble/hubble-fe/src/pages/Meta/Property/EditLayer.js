@@ -16,7 +16,8 @@
  * under the License.
  */
 
-import {Modal, Form, Input, Select, message} from 'antd';
+import {Modal, Form, Input, Select, message, Space, Tooltip} from 'antd';
+import {QuestionCircleOutlined} from '@ant-design/icons';
 import {useCallback, useState} from 'react';
 import * as api from '../../../api';
 import * as rules from '../../../utils/rules';
@@ -26,6 +27,14 @@ import {
 } from '../common/config';
 import {useTranslation} from 'react-i18next';
 
+const FieldLabel = ({label, help}) => (
+    <Space size={4}>
+        <span>{label}</span>
+        <Tooltip title={help}>
+            <QuestionCircleOutlined aria-label={help} />
+        </Tooltip>
+    </Space>
+);
 
 const EditPropertyLayer = ({visible, onCancle, graphspace, graph, refresh}) => {
     const {t} = useTranslation();
@@ -67,14 +76,20 @@ const EditPropertyLayer = ({visible, onCancle, graphspace, graph, refresh}) => {
                 initialValues={{data_type: 'TEXT', cardinality: 'SINGLE'}}
             >
                 <Form.Item
-                    label={t('schema.property.form.name')}
+                    label={<FieldLabel
+                        label={t('schema.property.form.name')}
+                        help={t('schema.property.form.name_help')}
+                    />}
                     name='name'
                     rules={[rules.required(), rules.isPropertyName, {type: 'string', max: 128}]}
                 >
-                    <Input placeholder={t('schema.common.name_placeholder')} max={128} />
+                    <Input placeholder={t('schema.property.form.name_placeholder')} max={128} />
                 </Form.Item>
                 <Form.Item
-                    label={t('schema.property.form.type')}
+                    label={<FieldLabel
+                        label={t('schema.property.form.type')}
+                        help={t('schema.property.form.type_help')}
+                    />}
                     name='data_type'
                     rules={[rules.required()]}
                     wrapperCol={{span: 6}}
@@ -82,7 +97,10 @@ const EditPropertyLayer = ({visible, onCancle, graphspace, graph, refresh}) => {
                     <Select options={dataTypeOptions} />
                 </Form.Item>
                 <Form.Item
-                    label={t('schema.property.form.cardinality')}
+                    label={<FieldLabel
+                        label={t('schema.property.form.cardinality')}
+                        help={t('schema.property.form.cardinality_help')}
+                    />}
                     name='cardinality'
                     rules={[rules.required()]}
                     wrapperCol={{span: 6}}

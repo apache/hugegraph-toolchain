@@ -21,6 +21,7 @@ package org.apache.hugegraph.unit;
 import org.apache.hugegraph.controller.ingest.IngestControllerTest;
 import org.apache.hugegraph.controller.langchain.LangChainControllerSecurityTest;
 import org.apache.hugegraph.controller.schema.SchemaControllerSecurityTest;
+import org.apache.hugegraph.controller.space.GraphSpaceControllerTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -38,6 +39,7 @@ import org.junit.runners.Suite;
     FileUtilTest.class,
     GraphServiceImportTest.class,
     GraphMetricsControllerTest.class,
+    GraphSpaceControllerTest.class,
     GraphsControllerCanonicalTest.class,
     GremlinHistoryFailureTest.class,
     HubbleOptionsTest.class,

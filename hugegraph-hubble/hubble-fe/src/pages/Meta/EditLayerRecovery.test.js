@@ -19,6 +19,7 @@
 import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {EditVertexLayer} from './Vertex/EditLayer';
 import {EditEdgeLayer} from './Edge/EditLayer';
+import {EditPropertyLayer} from './Property/EditLayer';
 import * as api from '../../api';
 
 jest.mock('react-i18next', () => ({
@@ -31,6 +32,7 @@ jest.mock('../../api', () => ({
         getMetaVertex: jest.fn(),
         getMetaEdge: jest.fn(),
         getMetaEdgeList: jest.fn(),
+        addMetaProperty: jest.fn(),
     },
 }));
 
@@ -111,4 +113,23 @@ test('edge detail failure ends loading, disables submit and retries', async () =
     fireEvent.click(screen.getByRole('button', {name: 'schema.retry'}));
     await waitFor(() => expect(api.manage.getMetaEdge).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.getByRole('button', {name: 'OK'})).toBeEnabled());
+});
+
+test('property form explains its read and write contract with examples', () => {
+    render(
+        <EditPropertyLayer
+            visible
+            onCancle={jest.fn()}
+            graphspace='DEFAULT'
+            graph='hugegraph'
+            refresh={jest.fn()}
+        />
+    );
+
+    expect(screen.getByPlaceholderText('schema.property.form.name_placeholder'))
+        .toBeInTheDocument();
+    expect(screen.getByLabelText('schema.property.form.name_help')).toBeInTheDocument();
+    expect(screen.getByLabelText('schema.property.form.type_help')).toBeInTheDocument();
+    expect(screen.getByLabelText('schema.property.form.cardinality_help'))
+        .toBeInTheDocument();
 });

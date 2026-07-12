@@ -54,6 +54,9 @@ import java.util.List;
 @RestController
 @RequestMapping(Constant.API_VERSION + "graphspaces")
 public class GraphSpaceController extends BaseController {
+    private static final int DEFAULT_MAX_GRAPH_NUMBER = 100;
+    private static final int DEFAULT_MAX_ROLE_NUMBER = 100;
+    private static final int DEFAULT_STORAGE_VALUE = 1000000;
     private static final int DEFAULT_MEMORY_VALUE = 128;
     private static final int DEFAULT_CPU_VALUE = 64;
 
@@ -137,18 +140,7 @@ public class GraphSpaceController extends BaseController {
                 "GraphSpace management is not supported in standalone mode");
         // Create GraphSpace
         HugeClient client = this.authClient(null, null);
-        if (graphSpaceEntity.getCpuLimit() <= 0) {
-            graphSpaceEntity.setCpuLimit(DEFAULT_CPU_VALUE);
-        }
-        if (graphSpaceEntity.getMemoryLimit() <= 0) {
-            graphSpaceEntity.setMemoryLimit(DEFAULT_MEMORY_VALUE);
-        }
-        if (graphSpaceEntity.getComputeCpuLimit() <= 0) {
-            graphSpaceEntity.setComputeCpuLimit(DEFAULT_CPU_VALUE);
-        }
-        if (graphSpaceEntity.getComputeMemoryLimit() <= 0) {
-            graphSpaceEntity.setComputeCpuLimit(DEFAULT_MEMORY_VALUE);
-        }
+        applyResourceDefaults(graphSpaceEntity);
 
         graphSpaceService.create(client, graphSpaceEntity.convertGraphSpace());
 
@@ -160,6 +152,30 @@ public class GraphSpaceController extends BaseController {
         return get(graphSpaceEntity.getName());
     }
 
+    static void applyResourceDefaults(GraphSpaceEntity graphSpaceEntity) {
+        if (graphSpaceEntity.getMaxGraphNumber() <= 0) {
+            graphSpaceEntity.setMaxGraphNumber(DEFAULT_MAX_GRAPH_NUMBER);
+        }
+        if (graphSpaceEntity.getMaxRoleNumber() <= 0) {
+            graphSpaceEntity.setMaxRoleNumber(DEFAULT_MAX_ROLE_NUMBER);
+        }
+        if (graphSpaceEntity.getCpuLimit() <= 0) {
+            graphSpaceEntity.setCpuLimit(DEFAULT_CPU_VALUE);
+        }
+        if (graphSpaceEntity.getMemoryLimit() <= 0) {
+            graphSpaceEntity.setMemoryLimit(DEFAULT_MEMORY_VALUE);
+        }
+        if (graphSpaceEntity.getComputeCpuLimit() <= 0) {
+            graphSpaceEntity.setComputeCpuLimit(DEFAULT_CPU_VALUE);
+        }
+        if (graphSpaceEntity.getComputeMemoryLimit() <= 0) {
+            graphSpaceEntity.setComputeMemoryLimit(DEFAULT_MEMORY_VALUE);
+        }
+        if (graphSpaceEntity.getStorageLimit() <= 0) {
+            graphSpaceEntity.setStorageLimit(DEFAULT_STORAGE_VALUE);
+        }
+    }
+
     @PutMapping("{graphspace}")
     public GraphSpace update(@PathVariable("graphspace") String graphspace,
                              @RequestBody GraphSpaceEntity graphSpaceEntity) {
@@ -167,6 +183,7 @@ public class GraphSpaceController extends BaseController {
                 "GraphSpace management is not supported in standalone mode");
 
         graphSpaceEntity.setName(graphspace);
+        applyResourceDefaults(graphSpaceEntity);
 
         HugeClient client = this.authClient(null, null);
 

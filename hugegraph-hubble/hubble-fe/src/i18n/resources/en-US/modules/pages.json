@@ -131,13 +131,28 @@
       "admin_placeholder": "Select space admin",
       "description": "Description",
       "description_placeholder": "Graph space description (optional)",
-      "cpu_placeholder": "vCPU",
-      "memory_placeholder": "GB",
+      "cpu_placeholder": "e.g. 64",
+      "memory_placeholder": "e.g. 128",
+      "storage_placeholder": "e.g. 1000000",
+      "max_graph_placeholder": "e.g. 100",
+      "image_placeholder": "e.g. example.com/hugegraph/image:1.0.0",
       "id_placeholder": "Start with a letter, lowercase letters/digits/underscore, max 48 chars",
-      "name_placeholder": "Letters, digits, underscore, max 12 chars",
+      "name_placeholder": "e.g. Demo Space (max 48 characters)",
       "k8s_placeholder": "Start with a letter, lowercase letters/digits/hyphen, max 48 chars",
+      "id_help": "The stable identifier used in APIs and URLs. It cannot be changed after creation. Example: demo_space.",
+      "name_help": "The user-facing GraphSpace name. Example: Demo Space.",
+      "auth_help": "When enabled, access within this GraphSpace is checked by HugeGraph authorization. It cannot be changed after creation.",
+      "max_graph_help": "The maximum number of graphs allowed in this GraphSpace. Leave blank to use the server default of 100.",
+      "graph_cpu_help": "CPU limit for graph read and write services. Leave blank to use the server default of 64 vCPU.",
+      "graph_memory_help": "Memory limit for graph read and write services. Leave blank to use the server default of 128 GB.",
+      "compute_cpu_help": "CPU limit for asynchronous compute tasks. Leave blank to use the server default of 64 vCPU.",
+      "compute_memory_help": "Memory limit for asynchronous compute tasks. Leave blank to use the server default of 128 GB.",
+      "oltp_namespace_help": "Kubernetes namespace for graph read and write services. Leave blank outside Kubernetes.",
+      "olap_namespace_help": "Kubernetes namespace for asynchronous compute tasks. Leave blank when compute tasks are not used.",
+      "storage_limit_help": "Storage capacity limit for this GraphSpace. Leave blank to use the server default of 1000000 GB.",
       "image_format_error": "Please enter a valid image address (e.g. example.com/org_1/xx_img:1.0.0)",
       "id_rule": "Start with a letter, lowercase letters/digits/underscore, max 48 chars",
+      "name_rule": "Start with a letter or Chinese character; common symbols are allowed; max 48 characters",
       "k8s_rule": "Start with a letter, lowercase letters/digits/hyphen, max 48 chars"
     },
     "card": {
@@ -723,7 +738,11 @@
       "form": {
         "name": "Property Name: ",
         "type": "Data Type: ",
-        "cardinality": "Cardinality: "
+        "cardinality": "Cardinality: ",
+        "name_placeholder": "e.g. created_at",
+        "name_help": "The property key used when reading or writing vertices and edges. Examples: created_at and age. It cannot be changed after creation.",
+        "type_help": "How values are stored. Use TEXT for text, INT/LONG for integers, and DATE for date-time values. It must match imported data.",
+        "cardinality_help": "Values allowed per element: SINGLE stores one value, LIST stores ordered values with duplicates, and SET stores unique values."
       }
     },
     "vertex": {
