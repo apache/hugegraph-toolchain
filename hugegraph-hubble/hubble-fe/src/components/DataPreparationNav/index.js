@@ -18,28 +18,17 @@
 
 import {Link} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
-import {
-    readWorkbenchGraphContext,
-    resolveWorkbenchGraphContext,
-} from '../../utils/workbenchGraphContext';
+import {getPreparationSchemaPath} from '../../utils/dataPreparationNavigation';
 import {isPdEnabled} from '../../utils/config';
 import style from './index.module.scss';
 
 const DataPreparationNav = ({active, graphspace}) => {
     const {t} = useTranslation();
     const pdEnabled = isPdEnabled();
-    const context = resolveWorkbenchGraphContext({
-        pdEnabled,
-        storedContext: readWorkbenchGraphContext(),
-    });
-    const currentGraphspace = graphspace || context.graphspace;
-    const schemaTarget = pdEnabled
-        ? (currentGraphspace
-            ? `/graphspace/${encodeURIComponent(currentGraphspace)}/schema`
-            : '/graphspace')
-        : (context.graph
-            ? `/graphspace/DEFAULT/graph/${encodeURIComponent(context.graph)}/meta`
-            : '/graphspace/DEFAULT');
+    const currentGraphspace = graphspace;
+    const schemaTarget = currentGraphspace && pdEnabled
+        ? `/graphspace/${encodeURIComponent(currentGraphspace)}/schema`
+        : getPreparationSchemaPath(pdEnabled);
     const schemaLabel = pdEnabled
         ? t('data_preparation.schema')
         : t('data_preparation.graph_schema');
@@ -50,7 +39,9 @@ const DataPreparationNav = ({active, graphspace}) => {
             to: schemaTarget,
             title: pdEnabled
                 ? (currentGraphspace ? undefined : t('data_preparation.choose_graphspace'))
-                : (context.graph ? undefined : t('data_preparation.choose_graph')),
+                : (schemaTarget.includes('/graph/')
+                    ? undefined
+                    : t('data_preparation.choose_graph')),
         },
         {key: 'datasource', label: t('data_preparation.datasource'), to: '/source'},
         {key: 'task', label: t('data_preparation.import'), to: '/task'},

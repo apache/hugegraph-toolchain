@@ -1,0 +1,109 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+import {render, screen} from '@testing-library/react';
+import {MemoryRouter} from 'react-router-dom';
+
+import NavigationHome from './index';
+import {isPdEnabled} from '../../../utils/config';
+import * as user from '../../../utils/user';
+
+jest.mock('../../../utils/config', () => ({
+    isPdEnabled: jest.fn(),
+}));
+jest.mock('../../../utils/user', () => ({
+    getUser: jest.fn(),
+}));
+jest.mock('react-i18next', () => ({
+    useTranslation: () => ({t: key => key}),
+}));
+jest.mock('../AdminItem', () => () => <div>admin-support</div>);
+jest.mock('../ConsoleItem', () => () => <div>operations-support</div>);
+
+const renderHome = () => render(
+    <MemoryRouter
+        future={{
+            v7_relativeSplatPath: true,
+            v7_startTransition: true,
+        }}
+    >
+        <NavigationHome />
+    </MemoryRouter>
+);
+
+beforeEach(() => {
+    jest.clearAllMocks();
+    localStorage.clear();
+    user.getUser.mockReturnValue({is_superadmin: false});
+});
+
+test('uses DEFAULT graph context and hides PD-only support in non-PD mode', () => {
+    isPdEnabled.mockReturnValue(false);
+    renderHome();
+
+    expect(screen.getByRole('link', {
+        name: /home\.workbench\.journeys\.understand\.primary/,
+    })).toHaveAttribute('href', '/graphspace/DEFAULT');
+    expect(screen.getByText('home.workbench.mode.non_pd')).toBeInTheDocument();
+    expect(screen.getByAltText('Apache HugeGraph')).toHaveAttribute(
+        'src', 'logo.png'
+    );
+    expect(screen.queryByText('admin-support')).not.toBeInTheDocument();
+    expect(screen.queryByText('operations-support')).not.toBeInTheDocument();
+});
+
+test('keeps GraphSpace and support capabilities available to a PD superadmin', () => {
+    isPdEnabled.mockReturnValue(true);
+    user.getUser.mockReturnValue({is_superadmin: true});
+    renderHome();
+
+    expect(screen.getByRole('link', {
+        name: /home\.workbench\.journeys\.understand\.primary/,
+    })).toHaveAttribute('href', '/graphspace');
+    expect(screen.getByText('admin-support')).toBeInTheDocument();
+    expect(screen.getByText('operations-support')).toBeInTheDocument();
+});
+
+test('exposes every journey action as a real route link', () => {
+    isPdEnabled.mockReturnValue(true);
+    renderHome();
+
+    const hrefs = screen.getAllByRole('link').map(link => link.getAttribute('href'));
+    expect(hrefs).toEqual(expect.arrayContaining([
+        '/graphspace',
+        '/source',
+        '/task',
+        '/gremlin',
+        '/algorithms',
+        '/asyncTasks',
+    ]));
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+});
+
+test('starts the preparation journey at the current PD Schema', () => {
+    isPdEnabled.mockReturnValue(true);
+    localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'space-a',
+        graph: 'graph-a',
+    }));
+
+    renderHome();
+
+    expect(screen.getByRole('link', {
+        name: /home\.workbench\.journeys\.prepare\.primary/,
+    })).toHaveAttribute('href', '/graphspace/space-a/schema');
+});

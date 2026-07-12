@@ -48,8 +48,57 @@ test('exposes the application menu as named primary navigation', async () => {
     expect(screen.getByText('查询与分析')).toBeInTheDocument();
     expect(screen.getByText('系统与运维')).toBeInTheDocument();
     expect(navigation).toContainElement(screen.getByRole('link', {name: '图语言分析'}));
+    expect(screen.getByRole('link', {name: '图 Schema'})).toHaveAttribute(
+        'href', '/graphspace/DEFAULT/graph/hugegraph/meta'
+    );
     expect(screen.queryByRole('link', {name: '账号管理'})).not.toBeInTheDocument();
     await waitFor(() => expect(navigation).toBeVisible());
+});
+
+test.each([
+    [true, '/gremlin/SPACE_NEW/GRAPH_NEW', 'Schema 模板',
+        '/graphspace/SPACE_NEW/schema'],
+    [false, '/gremlin/DEFAULT/GRAPH_NEW', '图 Schema',
+        '/graphspace/DEFAULT/graph/GRAPH_NEW/meta'],
+])('prefers route context for the preparation Schema entry', async (
+    pdEnabled, route, name, expected
+) => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: pdEnabled}));
+    localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: pdEnabled ? 'SPACE_OLD' : 'DEFAULT',
+        graph: 'GRAPH_OLD',
+    }));
+
+    render(
+        <MemoryRouter
+            initialEntries={[route]}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('link', {name})).toHaveAttribute('href', expected);
+});
+
+test.each([
+    [true, 'Schema 模板', '/graphspace'],
+    [false, '图 Schema', '/graphspace/DEFAULT'],
+])('uses a safe Schema fallback without graph context', async (
+    pdEnabled, name, expected
+) => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: pdEnabled}));
+
+    render(
+        <MemoryRouter
+            initialEntries={['/navigation']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('link', {name})).toHaveAttribute('href', expected);
 });
 
 test('shows Account for the same authorized-space user accepted by its route', async () => {

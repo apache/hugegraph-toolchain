@@ -22,17 +22,19 @@ import {
     HomeOutlined,
     DatabaseOutlined,
     AlertOutlined,
-    FundViewOutlined,
+    ApartmentOutlined,
+    CloudUploadOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
 } from '@ant-design/icons';
 import {Link, useLocation} from 'react-router-dom';
 import * as user from '../../utils/user';
 import {isPdEnabled} from '../../utils/config';
-import {getManageNavItems} from '../../utils/productMode';
+import {getGraphspacePath} from '../../utils/productMode';
+import {getPreparationSchemaPath} from '../../utils/dataPreparationNavigation';
 import {useTranslation} from 'react-i18next';
 
-const items = t => {
+const items = (t, pathname) => {
     const userInfo = user.getUser();
     const pdMode = isPdEnabled();
     const MY = {label: <Link to='/my'>{t('home.my')}</Link>, key: 'my'};
@@ -48,27 +50,53 @@ const items = t => {
         systemList = [MY, ACCOUNT];
     }
 
-    // Dynamic manage menu based on deployment mode
-    const manageChildren = getManageNavItems(pdMode).map(item => ({
-        label: <Link to={item.url}>{t(`manage.${item.key}`)}</Link>,
-        key: item.key,
-    }));
-
     const menu = [
         {
-            label: <Link to='/navigation'>{t('navigation.name')}</Link>,
+            label: <Link to='/navigation'>{t('workbench.nav.home')}</Link>,
             key: 'navigation',
             icon: <HomeOutlined />,
         },
         {
-            label: t('manage.name'),
-            key: 'manage',
-            icon: <FundViewOutlined />,
-            children: manageChildren,
+            label: t('workbench.nav.understand'),
+            key: 'understand',
+            icon: <ApartmentOutlined />,
+            children: [{
+                label: (
+                    <Link to={getGraphspacePath(pdMode)}>
+                        {t('manage.graphspace')}
+                    </Link>
+                ),
+                key: 'graphspace',
+            }],
         },
         {
-            label: t('analysis.name'),
-            key: 'analysis',
+            label: t('workbench.nav.prepare'),
+            key: 'prepare',
+            icon: <CloudUploadOutlined />,
+            children: [
+                {
+                    label: (
+                        <Link to={getPreparationSchemaPath(pdMode, pathname)}>
+                            {t(pdMode
+                                ? 'data_preparation.schema'
+                                : 'data_preparation.graph_schema')}
+                        </Link>
+                    ),
+                    key: 'schema',
+                },
+                {
+                    label: <Link to='/source'>{t('manage.source')}</Link>,
+                    key: 'source',
+                },
+                {
+                    label: <Link to='/task'>{t('manage.task')}</Link>,
+                    key: 'task',
+                },
+            ],
+        },
+        {
+            label: t('workbench.nav.query'),
+            key: 'query',
             icon: <DatabaseOutlined />,
             children: [
                 {
@@ -86,8 +114,8 @@ const items = t => {
             ],
         },
         {
-            label: t('home.name'),
-            key: 'system',
+            label: t('workbench.nav.support'),
+            key: 'support',
             icon: <AlertOutlined />,
             children: [...systemList],
         },
@@ -103,23 +131,25 @@ const Sidebar = () => {
     const menuKey = href.pathname.split('/')[1] || 'navigation';
 
     return (
-        <Layout.Sider
-            collapsible
-            collapsed={collapsed}
-            onCollapse={setCollapsed}
-            theme='light'
-            trigger={
-                collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
-            }
-        >
-            <Menu
-                defaultSelectedKeys={['graphspace']}
-                defaultOpenKeys={['manage', 'analysis', 'system']}
-                mode="inline"
-                items={items(t)}
-                selectedKeys={[menuKey]}
-            />
-        </Layout.Sider>
+        <nav className="workbench-navigation" aria-label={t('workbench.navigation')}>
+            <Layout.Sider
+                collapsible
+                collapsed={collapsed}
+                onCollapse={setCollapsed}
+                theme='light'
+                trigger={
+                    collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+                }
+            >
+                <Menu
+                    defaultSelectedKeys={['graphspace']}
+                    defaultOpenKeys={['understand', 'prepare', 'query', 'support']}
+                    mode="inline"
+                    items={items(t, href.pathname)}
+                    selectedKeys={[menuKey]}
+                />
+            </Layout.Sider>
+        </nav>
     );
 };
 
