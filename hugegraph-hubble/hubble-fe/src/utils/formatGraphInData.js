@@ -72,7 +72,7 @@ import {iconsMap} from './constants';
  * @param {object} hugeData
  * @returns
  */
-const formatToGraphInData = hugeData => {
+const formatToGraphInData = (hugeData, showLabel = true) => {
 
     const nodes = [];
     const edges = [];
@@ -85,7 +85,7 @@ const formatToGraphInData = hugeData => {
             // label: item.label,
             style: {
                 label: {
-                    value: item.label,
+                    value: showLabel ? item.label : '',
                 },
                 keyshape: {
                     fill: color,
@@ -124,7 +124,7 @@ const formatToGraphInData = hugeData => {
             style: {
                 ...item.style,
                 label: {
-                    value: item.label,
+                    value: showLabel ? item.label : '',
                     fill: '#000',
                 },
                 keyshape: {

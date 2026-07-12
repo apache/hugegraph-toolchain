@@ -17,7 +17,7 @@
  */
 
 import {LockOutlined, UserOutlined} from '@ant-design/icons';
-import {Button, Form, Input, Row, Col} from 'antd';
+import {Button, Form, Input} from 'antd';
 import Logo from '../../assets/logo.png';
 import style from './index.module.scss';
 import * as api from '../../api';
@@ -98,51 +98,57 @@ const Login = () => {
 
     return (
         <div className={style.loginContainer}>
-            <Form
-                name="normal_login"
-                className={style.loginForm}
-                onFinish={onFinish}
-                form={form}
-            >
-                <Row>
-                    <Col span={24}>
-                        <h1 className={style.title}>
-                            <img src={Logo} alt='' /> | {t('login.title')}
-                        </h1>
-                    </Col>
-                </Row>
-                <Form.Item
-                    name="user_name"
-                    rules={[{required: true, message: t('login.username_required')}]}
+            <main className={style.loginShell}>
+                <section
+                    className={style.brandPanel}
+                    aria-label={t('login.brand_label')}
                 >
-                    <Input
-                        prefix={<UserOutlined className="site-form-item-icon" />}
-                        aria-label={t('login.username')}
-                        placeholder={t('login.username')}
-                    />
-                </Form.Item>
-                <Form.Item
-                    name="user_password"
-                    rules={[{required: true, message: t('login.password_required')}]}
+                    <img src={Logo} alt='Apache HugeGraph' />
+                    <div className={style.brandCopy}>
+                        <span className={style.eyebrow}>Hubble Desktop Workbench</span>
+                        <p>{t('login.subtitle')}</p>
+                    </div>
+                </section>
+                <Form
+                    name="normal_login"
+                    className={style.loginForm}
+                    onFinish={onFinish}
+                    form={form}
                 >
-                    <Input
-                        prefix={<LockOutlined className="site-form-item-icon" />}
-                        aria-label={t('login.password')}
-                        type="password"
-                        placeholder={t('login.password')}
-                    />
-                </Form.Item>
-
-                <Form.Item>
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        style={{width: '100%'}}
+                    <header className={style.formHeader}>
+                        <span className={style.formEyebrow}>Apache HugeGraph</span>
+                        <h1 className={style.title}>{t('login.title')}</h1>
+                        <p>{t('login.form_hint')}</p>
+                    </header>
+                    <Form.Item
+                        name="user_name"
+                        rules={[{required: true, message: t('login.username_required')}]}
                     >
-                        {t('login.submit')}
-                    </Button>
-                </Form.Item>
-            </Form>
+                        <Input
+                            prefix={<UserOutlined className="site-form-item-icon" />}
+                            aria-label={t('login.username')}
+                            placeholder={t('login.username')}
+                        />
+                    </Form.Item>
+                    <Form.Item
+                        name="user_password"
+                        rules={[{required: true, message: t('login.password_required')}]}
+                    >
+                        <Input
+                            prefix={<LockOutlined className="site-form-item-icon" />}
+                            aria-label={t('login.password')}
+                            type="password"
+                            placeholder={t('login.password')}
+                        />
+                    </Form.Item>
+
+                    <Form.Item className={style.submitItem}>
+                        <Button type="primary" htmlType="submit" block size='large'>
+                            {t('login.submit')}
+                        </Button>
+                    </Form.Item>
+                </Form>
+            </main>
         </div>
     );
 };

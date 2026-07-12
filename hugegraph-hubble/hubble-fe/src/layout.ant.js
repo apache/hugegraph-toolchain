@@ -19,17 +19,32 @@
 import {Layout} from 'antd';
 import Sidebar from './components/Sidebar/index.ant';
 import Topbar from './components/Topbar/index.ant';
-import {Outlet} from 'react-router-dom';
+import {Outlet, useLocation} from 'react-router-dom';
+import {useTranslation} from 'react-i18next';
+import {getWorkbenchPageTitleKey} from './utils/workbenchNavigation';
 import 'antd/dist/antd.css';
 
 const LayoutAnt = () => {
+    const location = useLocation();
+    const {t} = useTranslation();
+    const pageTitle = t(getWorkbenchPageTitleKey(location.pathname));
+    const routeSection = location.pathname.split('/')[1] || 'navigation';
+
     return (
         <Layout>
+            <a className="workbench-skip-link" href="#workbench-main">
+                {t('workbench.skip_to_workspace')}
+            </a>
             <Topbar />
             <Layout className="main">
                 <Sidebar />
                 <Layout>
-                    <Layout.Content className='content'>
+                    <Layout.Content
+                        id="workbench-main"
+                        className={`content workbench-route-${routeSection}`}
+                        tabIndex={-1}
+                    >
+                        <h1 className="workbench-page-title">{pageTitle}</h1>
                         <Outlet />
                     </Layout.Content>
                 </Layout>

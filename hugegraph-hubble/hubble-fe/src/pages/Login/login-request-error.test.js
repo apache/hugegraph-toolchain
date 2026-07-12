@@ -100,6 +100,11 @@ describe('Login request errors', () => {
         expect(screen.getByRole('textbox', {name: 'login.username'}))
             .toBeInTheDocument();
         expect(screen.getByLabelText('login.password')).toHaveAttribute('type', 'password');
+        expect(screen.getByRole('region', {name: 'login.brand_label'}))
+            .toBeInTheDocument();
+        expect(screen.getByText('login.subtitle')).toBeInTheDocument();
+        expect(screen.getByRole('img', {name: 'Apache HugeGraph'}))
+            .toBeInTheDocument();
     });
 
     it('keeps rejected login requests from escaping the submit handler', async () => {

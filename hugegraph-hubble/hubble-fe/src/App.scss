@@ -21,20 +21,22 @@ iframe {
 }
 
 .main {
-    min-height: calc(100vh - 60px);
+    min-height: calc(100vh - var(--workbench-header-height));
 
     .content {
         display: flex;
         flex-direction: column;
-        padding: 10px;
+        min-width: 0;
+        padding: 18px;
+        background: var(--workbench-color-canvas);
 
         .container {
-            background: #fff;
-            padding-left: 25px;
-            margin-top: 10px;
-
-            padding: 10px;
+            padding: 20px;
             flex: 1 auto;
+            border: 1px solid var(--workbench-color-border);
+            border-radius: var(--workbench-radius-lg);
+            background: var(--workbench-color-surface);
+            box-shadow: var(--workbench-shadow-surface);
         }
     }
 

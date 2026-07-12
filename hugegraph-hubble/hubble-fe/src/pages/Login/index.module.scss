@@ -17,35 +17,130 @@
  */
 
 .loginContainer {
-    text-align: center;
-    padding-top: 200px;
+    display: grid;
+    min-height: 100vh;
+    place-items: center;
+    padding: 48px;
+    background:
+        radial-gradient(circle at 15% 15%, rgba(23, 105, 224, 0.10), transparent 30%),
+        #f3f6fb;
+}
+
+.loginShell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(360px, 0.82fr);
+    width: min(920px, 100%);
+    min-height: 520px;
+    overflow: hidden;
+    border: 1px solid #d8e0ec;
+    border-radius: 16px;
+    background: #fff;
+    box-shadow: 0 24px 64px rgba(15, 36, 68, 0.14);
+}
+
+.brandPanel {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 52px;
+    color: #fff;
+    background:
+        radial-gradient(circle at 85% 20%, rgba(55, 211, 170, 0.20), transparent 32%),
+        linear-gradient(145deg, #061c38, #0b3f78 72%, #1769e0);
+
+    img {
+        width: 176px;
+        height: auto;
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.16));
+    }
+}
+
+.brandCopy {
+    max-width: 360px;
+
+    p {
+        margin: 16px 0 0;
+        color: rgba(255, 255, 255, 0.82);
+        font-size: 20px;
+        line-height: 1.55;
+    }
+}
+
+.eyebrow,
+.formEyebrow {
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.eyebrow {
+    color: #7de1c4;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.loginForm {
+    align-self: center;
+    width: 100%;
+    padding: 56px 52px;
+
+    :global(.ant-input-affix-wrapper) {
+        min-height: 44px;
+        border-radius: 8px;
+    }
+}
+
+.formHeader {
+    margin-bottom: 32px;
+}
+
+.formEyebrow {
+    color: #1769e0;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.title {
+    margin: 8px 0 8px;
+    color: #172033;
+    font-size: 30px;
+    line-height: 1.25;
+}
+
+.formHeader p {
+    margin: 0;
+    color: #68758a;
+}
+
+.submitItem {
+    margin-top: 28px;
+    margin-bottom: 0;
+
+    :global(.ant-btn) {
+        border-radius: 8px;
+        font-weight: 600;
+        box-shadow: 0 8px 18px rgba(23, 105, 224, 0.20);
+    }
+}
+
+@media (max-width: 760px) {
+    .loginContainer {
+        padding: 24px;
+    }
+
+    .loginShell {
+        grid-template-columns: 1fr;
+    }
+
+    .brandPanel {
+        min-height: 180px;
+        padding: 32px;
+    }
+
+    .brandCopy p {
+        font-size: 16px;
+    }
 
     .loginForm {
-        text-align: left;
-        width: 400px;
-        padding: 25px;
-        border: 1px solid #d9d9d9;
-        border-radius: 8px;
-        display: inline-block;
-        // background-color: #8c8c8c;
-
-        .title {
-            text-align: center;
-        }
-
-        .loginFormButton {
-            width: 350px;
-            margin-bottom: 10px;
-        }
-
-        .left {
-            text-align: left;
-            color: #1890ff;
-        }
-
-        .right {
-            text-align: right;
-            color: #8c8c8c;
-        }
+        padding: 40px 32px;
     }
 }

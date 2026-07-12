@@ -860,6 +860,9 @@
     "password": "Password",
     "username_required": "Please enter your username.",
     "password_required": "Please enter your password.",
-    "title": "Sign in to HugeGraph"
+    "title": "Sign in to HugeGraph",
+    "brand_label": "About HugeGraph Hubble",
+    "subtitle": "A focused workspace to understand, prepare, and analyze graph data.",
+    "form_hint": "Continue with your HugeGraph account."
   }
 }

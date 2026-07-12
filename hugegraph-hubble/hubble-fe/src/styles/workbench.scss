@@ -1,0 +1,140 @@
+/*
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+:root {
+    --workbench-color-brand: #1769e0;
+    --workbench-color-brand-strong: #0f56bd;
+    --workbench-color-text: #172033;
+    --workbench-color-text-secondary: #536179;
+    --workbench-color-border: #d8dee9;
+    --workbench-color-surface: #ffffff;
+    --workbench-color-canvas: #f2f5f9;
+    --workbench-color-surface-muted: #f7f9fc;
+    --workbench-space-1: 4px;
+    --workbench-space-2: 8px;
+    --workbench-space-3: 12px;
+    --workbench-space-4: 16px;
+    --workbench-header-height: 64px;
+    --workbench-radius: 6px;
+    --workbench-radius-lg: 10px;
+    --workbench-shadow-surface: 0 1px 2px rgba(16, 36, 64, 0.04),
+        0 8px 24px rgba(16, 36, 64, 0.05);
+    --workbench-focus-ring: 0 0 0 3px rgba(23, 105, 224, 0.28);
+}
+
+.workbench-skip-link {
+    position: fixed;
+    top: var(--workbench-space-2);
+    left: var(--workbench-space-2);
+    z-index: 1100;
+    padding: var(--workbench-space-2) var(--workbench-space-3);
+    border-radius: var(--workbench-radius);
+    background: var(--workbench-color-surface);
+    color: var(--workbench-color-brand-strong);
+    box-shadow: var(--workbench-focus-ring);
+    transform: translateY(-160%);
+
+    &:focus {
+        transform: translateY(0);
+    }
+}
+
+.workbench-navigation {
+    display: flex;
+    flex: none;
+    background: var(--workbench-color-surface);
+    border-right: 1px solid var(--workbench-color-border);
+
+    .ant-layout-sider {
+        background: var(--workbench-color-surface);
+    }
+
+    .ant-menu-inline {
+        border-right: 0;
+    }
+
+    .ant-menu-item,
+    .ant-menu-submenu-title {
+        width: calc(100% - 16px);
+        margin: 4px 8px;
+        border-radius: var(--workbench-radius);
+    }
+
+    .ant-menu-item-selected {
+        color: var(--workbench-color-brand-strong);
+        background: #eaf2ff;
+        font-weight: 600;
+    }
+}
+
+#workbench-main {
+    color: var(--workbench-color-text);
+
+    .ant-btn,
+    .ant-input,
+    .ant-input-affix-wrapper,
+    .ant-select-selector,
+    .ant-picker {
+        border-radius: var(--workbench-radius);
+    }
+
+    .ant-table {
+        color: var(--workbench-color-text);
+    }
+
+    .ant-table-thead > tr > th {
+        color: #43516a;
+        background: var(--workbench-color-surface-muted);
+        font-weight: 600;
+    }
+
+    .ant-tabs-nav::before {
+        border-bottom-color: var(--workbench-color-border);
+    }
+
+    .ant-empty-description {
+        color: var(--workbench-color-text-secondary);
+    }
+}
+
+.workbench-page-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+#workbench-main:focus {
+    outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}

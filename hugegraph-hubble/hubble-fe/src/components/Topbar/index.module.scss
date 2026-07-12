@@ -35,6 +35,10 @@ div.nav {
   position: relative;
   display: flex;
   align-items: center;
+  height: var(--workbench-header-height);
+  padding: 0 24px;
+  background: #061c38;
+  box-shadow: 0 2px 14px rgba(2, 17, 35, 0.22);
 }
 
 .logo {
@@ -56,6 +60,16 @@ div.nav {
   margin-left: auto;
   color: #fff;
   cursor: pointer;
+
+  :global(.ant-select-selector) {
+    border-color: rgba(255, 255, 255, 0.24) !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #fff;
+  }
+
+  :global(.ant-select-arrow) {
+    color: rgba(255, 255, 255, 0.72);
+  }
 }
 
 .right {
