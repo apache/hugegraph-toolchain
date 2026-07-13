@@ -56,7 +56,7 @@ const getWorkbenchPageTitleKey = pathname => {
     if (/^\/account\/?$/.test(pathname)) {
         return 'workbench.page.account';
     }
-    if (/^\/my\/?$/.test(pathname)) {
+    if (/^\/(?:profile|my)\/?$/.test(pathname)) {
         return 'workbench.page.profile';
     }
     return 'workbench.page.not_found';

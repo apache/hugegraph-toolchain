@@ -21,7 +21,8 @@
  */
 
 import React, {useState, useCallback, useContext} from 'react';
-import {Form, Collapse, Select, InputNumber} from 'antd';
+import {Collapse, Select, InputNumber} from 'antd';
+import Form from '../../../PersistentForm';
 import {ProfileOutlined} from '@ant-design/icons';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../../../../api';

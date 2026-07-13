@@ -29,10 +29,12 @@ import org.apache.hugegraph.common.Constant;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.GraphConnection;
+import org.apache.hugegraph.entity.enums.JobStatus;
 import org.apache.hugegraph.entity.enums.LoadStatus;
 import org.apache.hugegraph.entity.load.EdgeMapping;
 import org.apache.hugegraph.entity.load.FileMapping;
 import org.apache.hugegraph.entity.load.FileSetting;
+import org.apache.hugegraph.entity.load.JobManager;
 import org.apache.hugegraph.entity.load.ListFormat;
 import org.apache.hugegraph.entity.load.LoadParameter;
 import org.apache.hugegraph.entity.load.LoadTask;
@@ -51,16 +53,23 @@ import org.apache.hugegraph.loader.source.file.FileFormat;
 import org.apache.hugegraph.loader.source.file.FileSource;
 import org.apache.hugegraph.loader.util.MappingUtil;
 import org.apache.hugegraph.loader.util.Printer;
+import org.apache.hugegraph.mapper.load.JobManagerMapper;
 import org.apache.hugegraph.mapper.load.LoadTaskMapper;
 import org.apache.hugegraph.service.schema.EdgeLabelService;
 import org.apache.hugegraph.service.schema.VertexLabelService;
 import org.apache.hugegraph.util.Ex;
+import org.apache.hugegraph.util.HubbleUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.io.File;
 import java.io.IOException;
@@ -82,6 +91,8 @@ public class LoadTaskService {
     @Autowired
     private LoadTaskMapper mapper;
     @Autowired
+    private JobManagerMapper jobManagerMapper;
+    @Autowired
     private VertexLabelService vlService;
     @Autowired
     private EdgeLabelService elService;
@@ -89,6 +100,8 @@ public class LoadTaskService {
     private LoadTaskExecutor taskExecutor;
     @Autowired
     private HugeConfig config;
+    @Autowired
+    private PlatformTransactionManager transactionManager;
 
 
     private Map<Integer, LoadTask> runningTaskContainer;
@@ -183,11 +196,80 @@ public class LoadTaskService {
                           HugeClient client) {
         LoadTask task = this.buildLoadTask(connection, fileMapping, client);
         this.save(task);
+        this.executeAfterCommit(task);
+        return task;
+    }
+
+    protected void executeAfterCommit(LoadTask task) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            this.executeSafely(task);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        executeSafely(task);
+                    }
+                });
+    }
+
+    private void executeSafely(LoadTask task) {
+        try {
+            this.execute(task);
+        } catch (RuntimeException e) {
+            this.markDispatchFailed(task, e);
+        }
+    }
+
+    private void markDispatchFailed(LoadTask task, RuntimeException cause) {
+        log.error("Failed to dispatch load task {}, marking task and job " +
+                  "as FAILED", task.getId(), cause);
+        task.setStatus(LoadStatus.FAILED);
+        this.runningTaskContainer.remove(task.getId());
+
+        try {
+            TransactionTemplate transaction =
+                    new TransactionTemplate(this.transactionManager);
+            transaction.setPropagationBehavior(
+                    TransactionDefinition.PROPAGATION_REQUIRES_NEW);
+            transaction.execute(status -> {
+                int updated = this.mapper.update(
+                        null, Wrappers.<LoadTask>update()
+                                      .eq("id", task.getId())
+                                      .set("load_status",
+                                           LoadStatus.FAILED.getValue()));
+                if (updated != 1) {
+                    throw new InternalException("entity.update.failed", task);
+                }
+                if (task.getJobId() == null) {
+                    return null;
+                }
+                JobManager job = this.jobManagerMapper.selectById(
+                        task.getJobId());
+                if (job == null) {
+                    return null;
+                }
+                job.setJobStatus(JobStatus.FAILED);
+                job.setUpdateTime(HubbleUtil.nowDate());
+                if (this.jobManagerMapper.updateById(job) != 1) {
+                    throw new InternalException("entity.update.failed", job);
+                }
+                return null;
+            });
+        } catch (RuntimeException e) {
+            // The ingest transaction is already committed. Never turn a
+            // dispatch failure into a retryable request failure.
+            log.error("Failed to persist dispatch failure for load task {}",
+                      task.getId(), e);
+        }
+    }
+
+    private void execute(LoadTask task) {
         // Executed in other threads
         this.taskExecutor.execute(task, () -> this.update(task));
         // Save current load task
         this.runningTaskContainer.put(task.getId(), task);
-        return task;
     }
 
     public LoadTask pause(int taskId) {

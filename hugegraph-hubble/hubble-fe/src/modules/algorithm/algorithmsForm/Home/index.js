@@ -33,6 +33,7 @@ import {
 import c from './index.module.scss';
 import _ from 'lodash';
 import {useTranslation} from 'react-i18next';
+import {clearPersistedAlgorithmForms} from '../algorithmFormPersistence';
 
 const AlgorithmFormHome = props => {
     const {
@@ -53,7 +54,10 @@ const AlgorithmFormHome = props => {
     const handleSearch = useCallback(value => {
         setSearch(value);
     }, []);
-    const resetParameters = useCallback(() => setFormVersion(value => value + 1), []);
+    const resetParameters = useCallback(() => {
+        clearPersistedAlgorithmForms(graphSpace, graph);
+        setFormVersion(value => value + 1);
+    }, [graph, graphSpace]);
 
     const isListEmpty = _.isEmpty(
         Object.values(ALGORITHM_NAME).filter(item => isAlgorithmNameMatched(item, search, t))

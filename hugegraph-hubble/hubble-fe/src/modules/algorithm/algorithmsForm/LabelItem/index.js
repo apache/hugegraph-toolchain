@@ -21,7 +21,8 @@
  */
 
 import React from 'react';
-import {Form, Input} from 'antd';
+import {Input} from 'antd';
+import Form from '../PersistentForm';
 import {useTranslation} from 'react-i18next';
 
 const LabelItem = props => {

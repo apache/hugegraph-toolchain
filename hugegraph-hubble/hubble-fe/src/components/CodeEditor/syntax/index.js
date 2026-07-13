@@ -18,5 +18,13 @@
 
 import * as gremlin from './gremlin';
 import * as cypher from './cypher';
+import {groovyLanguage} from './groovy';
 
-export default {gremlin, cypher, default: {hint: [], highlight: []}};
+const groovy = {...gremlin, language: groovyLanguage};
+
+export default {
+    gremlin: groovy,
+    groovy,
+    cypher,
+    default: {hint: [], highlight: [], language: []},
+};

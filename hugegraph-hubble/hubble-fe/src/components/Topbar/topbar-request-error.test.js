@@ -40,6 +40,7 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('@ant-design/icons', () => ({
     UserOutlined: () => <span>user icon</span>,
+    QuestionCircleOutlined: () => <span>question icon</span>,
 }));
 
 jest.mock('antd', () => {
@@ -75,6 +76,7 @@ jest.mock('antd', () => {
         },
         Space: ({children}) => <div>{children}</div>,
         Avatar: () => <span>avatar</span>,
+        Button: ({children, icon, ...props}) => <button {...props}>{icon}{children}</button>,
         Dropdown: ({children}) => <div>{children}</div>,
         Menu: ({items}) => (
             <div>
@@ -138,6 +140,11 @@ describe('Topbar request errors', () => {
 
     it('preserves query and hash when auth status expires', async () => {
         api.auth.status.mockResolvedValue({status: 401});
+        localStorage.setItem('user', 'admin');
+        localStorage.setItem(
+            'hubble.algorithm.v1.admin.DEFAULT.hugegraph.K-out',
+            '{"source":"1:marko"}'
+        );
 
         render(
             <MemoryRouter
@@ -156,6 +163,9 @@ describe('Topbar request errors', () => {
                 '/gremlin/DEFAULT/hugegraph?tab=graph#result'
             );
         });
+        expect(localStorage.getItem(
+            'hubble.algorithm.v1.admin.DEFAULT.hugegraph.K-out'
+        )).toBeNull();
     });
 
     it('localizes the built-in admin nickname instead of leaking Chinese', () => {
@@ -179,5 +189,10 @@ describe('Topbar request errors', () => {
         expect(screen.getByRole('link', {name: 'workbench.back_home'}))
             .toHaveAttribute('href', '/navigation');
         expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'CN'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: 'EN'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {
+            name: 'workbench.shortcuts.open_button',
+        })).toBeInTheDocument();
     });
 });

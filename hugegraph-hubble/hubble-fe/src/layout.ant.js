@@ -23,6 +23,7 @@ import {Outlet, useLocation} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getWorkbenchPageTitleKey} from './utils/workbenchNavigation';
 import {useCallback} from 'react';
+import ShortcutHelp from './components/ShortcutHelp';
 import 'antd/dist/antd.css';
 
 const LayoutAnt = () => {
@@ -48,6 +49,7 @@ const LayoutAnt = () => {
                 {t('workbench.skip_to_workspace')}
             </a>
             <Topbar />
+            <ShortcutHelp />
             <Layout className="main">
                 <Sidebar />
                 <Layout>

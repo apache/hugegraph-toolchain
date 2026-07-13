@@ -55,8 +55,8 @@ const addSchema = (graphspace, data, config) => {
     return request.post(`/graphspaces/${graphspace}/schematemplates`, data, config);
 };
 
-const getSchema = (graphspace, name) => {
-    return request.get(`graphspaces/${graphspace}/schematemplates/${name}`);
+const getSchema = (graphspace, name, config) => {
+    return request.get(`graphspaces/${graphspace}/schematemplates/${name}`, config);
 };
 
 const getGraphSchema = (graphspace, graph) => {

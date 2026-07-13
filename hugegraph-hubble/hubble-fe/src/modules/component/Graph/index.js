@@ -47,7 +47,7 @@ import {
     isSemanticZoomCandidate,
     setItemLabelVisibility,
 } from '../../../utils/graphSemanticZoom';
-import {preserveNodePositions, shouldRestartGraphLayout} from './data';
+import {applyGraphDataUpdate} from './data';
 
 const Graph = (props, ref) => {
     const {t} = useTranslation();
@@ -59,6 +59,7 @@ const Graph = (props, ref) => {
         onNodeClick,
         onEdgeClick,
         onNodedbClick,
+        layoutRevision,
     } = props;
 
     useCustomGrid();
@@ -68,9 +69,13 @@ const Graph = (props, ref) => {
     const container = useRef(null);
     const graph = useRef(null);
     const graphData = useRef(data);
+    const graphDataRevision = useRef(layoutRevision);
     const hoveredItem = useRef(null);
     const semanticZoomVisibility = useRef();
     const semanticZoomHandler = useRef();
+    const layoutName = layoutOptions?.layout;
+    const layoutNodeCount = layoutOptions?.nodeCount;
+    const layoutStartId = layoutOptions?.startId;
 
     const recordSemanticZoom = useCallback(
         visibility => {
@@ -86,7 +91,19 @@ const Graph = (props, ref) => {
         []
     );
 
-    const [layout, setLayout] = useState();
+    const layout = useMemo(
+        () => ({
+            ...mapLayoutNameToLayoutDetails({
+                layout: layoutName,
+                nodeCount: layoutNodeCount,
+                startId: layoutStartId,
+            }),
+            // G6 reads this option from cfg.layout in changeData(). Passing it
+            // at the graph root or as changeData's second argument has no effect.
+            relayoutAtChangeData: false,
+        }),
+        [layoutName, layoutNodeCount, layoutStartId]
+    );
     const [context, setContext] = useState({
         graph: graph.current,
     });
@@ -123,17 +140,16 @@ const Graph = (props, ref) => {
                 return;
             }
             const nextData = data || {nodes: [], edges: []};
-            const shouldRestartLayout = shouldRestartGraphLayout(
-                graphData.current,
-                nextData
-            );
-            const renderedData = shouldRestartLayout ? nextData
-                : preserveNodePositions(nextData, graphInstance.getNodes?.());
-            graphInstance.changeData(renderedData, true);
-            if (layout && shouldRestartLayout) {
-                graphInstance.updateLayout(layout);
-            }
+            applyGraphDataUpdate({
+                graph: graphInstance,
+                previousData: graphData.current,
+                nextData,
+                layout,
+                previousRevision: graphDataRevision.current,
+                nextRevision: layoutRevision,
+            });
             graphData.current = nextData;
+            graphDataRevision.current = layoutRevision;
             graphInstance.refresh();
             semanticZoomVisibility.current = applySemanticZoom(graphInstance, data, {
                 excludedItem: hoveredItem.current,
@@ -142,7 +158,7 @@ const Graph = (props, ref) => {
             });
             recordSemanticZoom(semanticZoomVisibility.current);
         },
-        [data, layout, recordSemanticZoom]
+        [data, layout, layoutRevision, recordSemanticZoom]
     );
 
     useEffect(
@@ -159,14 +175,6 @@ const Graph = (props, ref) => {
             };
         },
         [throttledContainerResize]
-    );
-
-    useEffect(
-        () => {
-            const layoutDetailInfo = mapLayoutNameToLayoutDetails(layoutOptions);
-            setLayout(layoutDetailInfo);
-        },
-        [layoutOptions]
     );
 
     let clickount = 0;
@@ -190,6 +198,7 @@ const Graph = (props, ref) => {
             if (!hasGraphInstance && shouldLayout) {
                 const graphOptions = {
                     container: container.current,
+                    layout,
                     enabledStack: true,
                     maxStep: 11,
                     modes: {
@@ -198,7 +207,10 @@ const Graph = (props, ref) => {
                             'zoom-canvas',
                             'drag-node'],
                     },
-                    animate: true,
+                    // Force2 already computes the final positions synchronously.
+                    // G6's graph-level positionsAnimate() can race repeated result
+                    // refreshes and restore stale grid coordinates afterwards.
+                    animate: false,
                     defaultNode: {
                         labelCfg: {
                             position: 'bottom',
@@ -281,7 +293,6 @@ const Graph = (props, ref) => {
                     onNodedbClick && onNodedbClick(item, graphInstance);
                 });
                 graphInstance.on('afterrender', evt => {
-                    fitView(graphInstance);
                     applyCurrentSemanticZoom(true);
                     onGraphRender && onGraphRender(graphInstance);
                 });
@@ -301,7 +312,6 @@ const Graph = (props, ref) => {
                     graph: graphInstance,
                 });
                 graphInstance.data(data);
-                graphInstance.updateLayout(layout);
                 graphInstance.render();
             };
         },

@@ -41,6 +41,20 @@
     }
 }
 
+.editorShell {
+    position: relative;
+}
+
+.editorShortcutHint {
+    position: absolute;
+    right: 14px;
+    bottom: 8px;
+    z-index: 2;
+    color: #98A2B3;
+    font-size: 11px;
+    pointer-events: none;
+}
+
 .text2gqlPlaceholder {
     display: grid;
     gap: 16px;

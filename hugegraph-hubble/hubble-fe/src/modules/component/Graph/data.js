@@ -25,8 +25,14 @@ const topologySignature = data => {
     return JSON.stringify([nodes, edges]);
 };
 
-export const shouldRestartGraphLayout = (previousData, nextData) => {
-    return topologySignature(previousData) !== topologySignature(nextData);
+export const shouldRestartGraphLayout = (
+    previousData,
+    nextData,
+    previousRevision,
+    nextRevision
+) => {
+    return previousRevision !== nextRevision
+        || topologySignature(previousData) !== topologySignature(nextData);
 };
 
 export const shouldKeepGraphCanvas = (isQueryMode, queryStatus, data) => {
@@ -51,4 +57,41 @@ export const preserveNodePositions = (data, graphItems = []) => {
         })),
         edges: data?.edges || [],
     };
+};
+
+export const disableChangeDataRelayout = layout => (
+    layout ? {...layout, relayoutAtChangeData: false} : layout
+);
+
+export const ensureChangeDataRelayoutDisabled = graph => {
+    const currentLayout = graph.get?.('layout');
+    if (currentLayout && currentLayout.relayoutAtChangeData !== false) {
+        graph.set?.('layout', disableChangeDataRelayout(currentLayout));
+    }
+};
+
+export const applyGraphDataUpdate = ({
+    graph,
+    previousData,
+    nextData,
+    layout,
+    previousRevision,
+    nextRevision,
+}) => {
+    const restartLayout = shouldRestartGraphLayout(
+        previousData,
+        nextData,
+        previousRevision,
+        nextRevision
+    );
+    const renderedData = restartLayout ? nextData
+        : preserveNodePositions(nextData, graph.getNodes?.());
+    // Layout panels can replace cfg.layout. Reassert the G6 changeData
+    // invariant without running a layout before updating the result data.
+    ensureChangeDataRelayoutDisabled(graph);
+    graph.changeData(renderedData, false);
+    if (layout && restartLayout) {
+        graph.updateLayout(disableChangeDataRelayout(layout));
+    }
+    return restartLayout;
 };

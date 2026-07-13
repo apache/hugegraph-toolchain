@@ -22,8 +22,17 @@ import {useTranslation} from 'react-i18next';
 import * as api from '../../api';
 import * as rules from '../../utils/rules';
 import style from './index.module.scss';
+import FormHelpLabel from '../../components/FormHelpLabel';
+import {getAccountLevel} from './level';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
+
+const HelpLabel = ({t, labelKey}) => (
+    <FormHelpLabel
+        label={t(labelKey)}
+        help={t(`${labelKey}_help`)}
+    />
+);
 
 const EditLayer = ({visible, onCancel, data, op, refresh}) => {
     const {t} = useTranslation();
@@ -210,6 +219,9 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
                             <Form.Item label={t('account.form.is_superadmin')} className={style.item}>
                                 {detail.is_superadmin ? t('common.yes') : t('common.no')}
                             </Form.Item>
+                            <Form.Item label={t('account.form.level')} className={style.item}>
+                                {t(`account.level.${getAccountLevel(detail)}`)}
+                            </Form.Item>
                             <Form.Item label={t('account.form.remark')} className={style.item}>
                                 {detail.user_description}
                             </Form.Item>
@@ -243,7 +255,7 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
                             {(op === 'create' || op === 'edit') && (
                                 <>
                                     <Form.Item
-                                        label={t('account.form.id')}
+                                        label={<HelpLabel t={t} labelKey='account.form.id' />}
                                         name="user_name"
                                         validateFirst
                                         rules={[{type: 'string', min: 5, max: 16}, rules.isName, rules.required()]}
@@ -254,7 +266,7 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
                                         />
                                     </Form.Item>
                                     <Form.Item
-                                        label={t('account.form.name')}
+                                        label={<HelpLabel t={t} labelKey='account.form.name' />}
                                         name="user_nickname"
                                         rules={[rules.required(), rules.isAccountName]}
                                         validateFirst
@@ -262,17 +274,20 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
                                         <Input placeholder={t('account.form.name_placeholder')} />
                                     </Form.Item>
                                     <Form.Item
-                                        label={t('account.form.is_superadmin')}
+                                        label={<HelpLabel t={t} labelKey='account.form.is_superadmin' />}
                                         name="is_superadmin"
                                         valuePropName="checked"
                                     >
                                         <Switch />
                                     </Form.Item>
-                                    <Form.Item label={t('account.form.remark')} name="user_description">
+                                    <Form.Item
+                                        label={<HelpLabel t={t} labelKey='account.form.remark' />}
+                                        name="user_description"
+                                    >
                                         <Input placeholder={t('account.form.remark_placeholder')} />
                                     </Form.Item>
                                     <Form.Item
-                                        label={t('account.form.default_password')}
+                                        label={<HelpLabel t={t} labelKey='account.form.default_password' />}
                                         name="user_password"
                                         rules={[{type: 'string', min: 5, max: 16}]}
                                     >
@@ -281,13 +296,19 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
                                             autoComplete="new-password"
                                         />
                                     </Form.Item>
-                                    <Form.Item label={t('account.form.permission')} name="adminSpaces">
+                                    <Form.Item
+                                        label={<HelpLabel t={t} labelKey='account.form.permission' />}
+                                        name="adminSpaces"
+                                    >
                                         <Select options={graphspaceList} mode="multiple" />
                                     </Form.Item>
                                 </>
                             )}
                             {op === 'auth' && (
-                                <Form.Item label={t('account.form.permission')} name="adminSpaces">
+                                <Form.Item
+                                    label={<HelpLabel t={t} labelKey='account.form.permission' />}
+                                    name="adminSpaces"
+                                >
                                     <Select options={graphspaceList} mode="multiple" />
                                 </Form.Item>
                             )}

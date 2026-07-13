@@ -21,18 +21,23 @@ package org.apache.hugegraph.unit;
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.util.Arrays;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.Test;
 
 import org.apache.hugegraph.entity.GraphConnection;
 import org.apache.hugegraph.entity.load.FileMapping;
 import org.apache.hugegraph.entity.load.LoadParameter;
+import org.apache.hugegraph.entity.load.LoadTask;
+import org.apache.hugegraph.handler.LoadTaskExecutor;
 import org.apache.hugegraph.loader.executor.LoadOptions;
 import org.apache.hugegraph.service.load.LoadTaskService;
 import org.apache.hugegraph.mapper.load.LoadTaskMapper;
 import org.apache.hugegraph.testutil.Assert;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 
@@ -66,6 +71,34 @@ public class LoadTaskServiceTest {
         Assert.assertEquals("admin", options.username);
         Assert.assertEquals("admin-pass", options.password);
         Assert.assertNull(options.token);
+    }
+
+    @Test
+    public void testLoadExecutionWaitsForOuterTransactionCommit()
+           throws Exception {
+        LoadTaskService service = new LoadTaskService();
+        LoadTaskExecutor executor = Mockito.mock(LoadTaskExecutor.class);
+        this.setField(service, "taskExecutor", executor);
+        this.setField(service, "runningTaskContainer", new ConcurrentHashMap<>());
+        LoadTask task = LoadTask.builder().id(9).build();
+        Method method = LoadTaskService.class.getDeclaredMethod(
+                "executeAfterCommit", LoadTask.class);
+        method.setAccessible(true);
+
+        TransactionSynchronizationManager.initSynchronization();
+        try {
+            method.invoke(service, task);
+            Mockito.verify(executor, Mockito.never())
+                   .execute(Mockito.any(), Mockito.any());
+
+            TransactionSynchronization synchronization =
+                    TransactionSynchronizationManager.getSynchronizations()
+                                                     .get(0);
+            synchronization.afterCommit();
+            Mockito.verify(executor).execute(Mockito.eq(task), Mockito.any());
+        } finally {
+            TransactionSynchronizationManager.clearSynchronization();
+        }
     }
 
     @Test
@@ -127,6 +160,13 @@ public class LoadTaskServiceTest {
         method.setAccessible(true);
         return (LoadOptions) method.invoke(service, connection,
                                            this.fileMapping());
+    }
+
+    private void setField(Object object, String name, Object value)
+                          throws Exception {
+        Field field = object.getClass().getDeclaredField(name);
+        field.setAccessible(true);
+        field.set(object, value);
     }
 
     private GraphConnection connection(String password, String token) {

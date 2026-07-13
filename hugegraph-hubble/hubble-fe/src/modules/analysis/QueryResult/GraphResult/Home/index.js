@@ -46,7 +46,11 @@ import {GRAPH_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE} from '../../../../../utils/
 import {formatToGraphData, formatToLegendData, formatToDownloadData,
     formatToStyleData, updateGraphDataStyle} from '../../../../../utils/formatGraphResultData';
 import {mapLayoutNameToLayoutDetails} from '../../../../../utils/graph';
-import {shouldKeepGraphCanvas} from '../../../../component/Graph/data';
+import {
+    disableChangeDataRelayout,
+    shouldKeepGraphCanvas,
+} from '../../../../component/Graph/data';
+import {nextResultRevision} from './data';
 import {fetchExpandInfo, handleAddGraphNode, handleAddGraphEdge, handleExpandGraph} from '../utils';
 import {filterData} from '../../../../../utils/filter';
 import c from './index.module.scss';
@@ -82,6 +86,8 @@ const GraphResult = props => {
     const graphSpaceInfo = useContext(GraphAnalysisContext);
 
     const [graphData, setGraphData] = useState({nodes: [], edges: []});
+    const [resultRevision, setResultRevision] = useState(0);
+    const queryResultRef = useRef(data);
     const [legendData, setLegendData] = useState();
     const [styleConfigData, setStyleConfigData] = useState({nodes: {}, edges: {}});
     const [showEditElement, setShowEditElement] = useState(false);
@@ -105,6 +111,12 @@ const GraphResult = props => {
         () => {
             const graphData = formatToGraphData(data, metaData, {});
             setGraphData(graphData);
+            setResultRevision(revision => nextResultRevision(
+                queryResultRef.current,
+                data,
+                revision
+            ));
+            queryResultRef.current = data;
         },
         [data, metaData]
     );
@@ -173,7 +185,12 @@ const GraphResult = props => {
     const handleLayoutChange = useCallback(
         layout => {
             graph.destroyLayout();
-            graph.updateLayout(layout, 'center', undefined, false);
+            graph.updateLayout(
+                disableChangeDataRelayout(layout),
+                'center',
+                undefined,
+                false
+            );
         },
         [graph]
     );
@@ -438,6 +455,7 @@ const GraphResult = props => {
         <Graph
             data={graphData}
             layout={defaultLayout}
+            layoutRevision={resultRevision}
             onGraphRender={onGraphRender}
             onNodeClick={handleClickGraphNode}
             onEdgeClick={handleClickGraphEdge}

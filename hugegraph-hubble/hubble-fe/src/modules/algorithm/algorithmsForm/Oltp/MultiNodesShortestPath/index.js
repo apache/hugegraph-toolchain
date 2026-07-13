@@ -21,7 +21,8 @@
  */
 
 import React, {useState, useCallback, useContext} from 'react';
-import {Input, Form, Collapse, Select, Tooltip, InputNumber} from 'antd';
+import {Input, Collapse, Select, Tooltip, InputNumber} from 'antd';
+import Form from '../../PersistentForm';
 import {DownOutlined, RightOutlined, SubnodeOutlined, QuestionCircleOutlined} from '@ant-design/icons';
 import {useTranslation} from 'react-i18next';
 import VerticesItems from '../../VerticesItems';

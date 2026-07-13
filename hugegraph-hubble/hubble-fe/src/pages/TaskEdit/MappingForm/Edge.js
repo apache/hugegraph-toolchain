@@ -20,6 +20,8 @@ import {Space, Button, Form, Select, Input, Drawer} from 'antd';
 import {useCallback, useMemo, useState, useEffect} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as rules from '../../../utils/rules';
+import FormHelpLabel from '../../../components/FormHelpLabel';
+import {completeRowsRule, duplicateSourceRule} from './mappingRules';
 
 const ListAction = ({index, action, children, ...props}) => {
     const handleClick = useCallback(() => action(index), [action, index]);
@@ -34,7 +36,6 @@ const AddAction = ({action, children, ...props}) => {
 const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) => {
     const {t} = useTranslation();
     const [selectLabel, setSelectLabel] = useState({});
-    const [errorList, setErrorList] = useState({});
     const [edgeForm] = Form.useForm();
     const targetOptions = useMemo(() => targetField.map(item => ({label: item, value: item})),
         [targetField]);
@@ -68,29 +69,6 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
         // }
     }, [edgeForm, selectLabel, targetField]);
 
-    const checkDuplicate = () => ({
-        validator(_, value) {
-            const existName = [];
-            if (value === undefined) {
-                return Promise.resolve();
-            }
-
-            for (let item of value) {
-                if (item === undefined || !item.key) {
-                    return Promise.resolve();
-                }
-
-                if (existName.includes(item.key)) {
-                    return Promise.reject(new Error(t('task.edit.duplicate_property')));
-                }
-
-                existName.push(item.key);
-            }
-
-            return Promise.resolve();
-        },
-    });
-
     const attrFormList = (fields, {add, remove}, {errors}) => (
         <>
             {fields.map((field, index) => (
@@ -101,7 +79,7 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
                     >
                         <Select
                             options={targetOptions}
-                            placeholder={t('task.edit.select_schema_field')}
+                            placeholder={t('task.edit.select_source_field')}
                         />
                     </Form.Item>
                     <span className={'form_attr_split'}>-</span>
@@ -111,7 +89,7 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
                     >
                         <Select
                             options={propertyOptions}
-                            placeholder={t('task.edit.select_mapping_field')}
+                            placeholder={t('task.edit.select_schema_property')}
                         />
                     </Form.Item>
                     <ListAction type='link' action={remove} index={index}>
@@ -129,7 +107,7 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
         </>
     );
 
-    const valueFormList = (fields, {add, remove}) => (
+    const valueFormList = (fields, {add, remove}, {errors}) => (
         <>
             {fields.map((field, index) => (
                 <div key={field.key}>
@@ -137,21 +115,24 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
                         className={'form_attr_select'}
                         name={[field.name, 'key']}
                     >
-                        <Select options={targetOptions} />
+                        <Select
+                            options={targetOptions}
+                            placeholder={t('task.edit.select_source_field')}
+                        />
                     </Form.Item>
                     <span className={'form_attr_split'}>:</span>
                     <Form.Item
                         className={'form_attr_val'}
                         name={[field.name, 'origin']}
                     >
-                        <Input />
+                        <Input placeholder={t('task.edit.original_value_placeholder')} />
                     </Form.Item>
                     <span className={'form_attr_split'}>{'->'}</span>
                     <Form.Item
                         className={'form_attr_val'}
                         name={[field.name, 'replace']}
                     >
-                        <Input />
+                        <Input placeholder={t('task.edit.replacement_value_placeholder')} />
                     </Form.Item>
                     <ListAction type='link' action={remove} index={index}>
                         {t('common.action.delete')}
@@ -160,6 +141,7 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
             )
 
             )}
+            <Form.ErrorList errors={errors} />
             <AddAction type='link' className='form_attr_add' action={add}>
                 +{t('common.action.add')}
             </AddAction>
@@ -168,75 +150,14 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
 
     const handleLabel = useCallback((_, option) => {
         setSelectLabel(option.info);
-        setErrorList({...errorList, label: ''});
-    }, [errorList]);
-
-    const handleSource = useCallback(() => {
-        setErrorList({...errorList, source: ''});
-    }, [errorList]);
-
-    const handleTarget = useCallback(() => {
-        setErrorList({...errorList, target: ''});
-    }, [errorList]);
+    }, []);
 
     const handleCancel = useCallback(() => {
-        setErrorList({});
         setSelectLabel({});
         onCancel();
     }, [onCancel]);
 
-    const addEdge = useCallback(() => {
-        // const info = form.getFieldValue('edge_form') || {};
-        // const edges = form.getFieldValue('edges') || [];
-        // const error = {};
-        // let flag = true;
-        // if (!info.label) {
-        //     error.label = 'error';
-        //     flag = false;
-        // }
-
-        // if (!info.source) {
-        //     error.source = 'error';
-        //     flag = false;
-        // }
-
-        // if (!info.target) {
-        //     error.target = 'error';
-        //     flag = false;
-        // }
-
-        // if (!flag) {
-        //     setErrorList({...errorList, ...error});
-        //     return;
-        // }
-        // setErrorList({});
-
-        // const field_mapping = fieldMapping(info.attr);
-        // const value_mapping = valueMapping(info.value);
-
-        // edges.push({
-        //     label: info.label,
-        //     skip: false,
-        //     source: [info.source],
-        //     unfold_source: false,
-        //     target: [info.target],
-        //     unfold_target: false,
-        //     field_mapping,
-        //     value_mapping,
-        //     selected: Object.keys(field_mapping).concat(info.source, info.target),
-        //     ignored: [],
-        //     null_values: [''],
-        //     update_strategies: {},
-        // });
-
-        // form.setFieldsValue({edges: edges});
-        // form.resetFields(['edge_form']);
-        // onCancel();
-        edgeForm.validateFields().then(() => {
-            edgeForm.submit();
-            onCancel();
-        });
-    }, [edgeForm, onCancel]);
+    const onFinish = useCallback(() => onCancel(), [onCancel]);
 
     useEffect(() => {
         if (!open) {
@@ -262,56 +183,102 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
             width={580}
             open={open}
         >
-            <Form form={edgeForm} name='edge_form' labelCol={{span: 4}}>
+            <Form
+                form={edgeForm}
+                name='edge_form'
+                labelCol={{span: 4}}
+                onFinish={onFinish}
+            >
                 <Form.Item
                     required
-                    label={t('task.edit.edge_type')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.edge_type')}
+                            help={t('task.edit.edge_type_help')}
+                        />
+                    )}
                     name={['label']}
                     rules={[rules.required()]}
                 >
                     <Select
                         options={labelOptions}
                         onChange={handleLabel}
+                        placeholder={t('task.edit.select_edge_label')}
                     />
                 </Form.Item>
                 <Form.Item
                     required
-                    label={t('task.edit.source_id')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.source_id')}
+                            help={t('task.edit.edge_id_help')}
+                        />
+                    )}
                     name='source'
-                    extra={t('task.edit.edge_id_help')}
                     rules={[rules.required()]}
                 >
                     <Select
                         options={targetOptions}
-                        onChange={handleSource}
+                        placeholder={t('task.edit.select_id_field')}
                     />
                 </Form.Item>
                 <Form.Item
                     required
-                    label={t('task.edit.target_id')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.target_id')}
+                            help={t('task.edit.edge_id_help')}
+                        />
+                    )}
                     name='target'
-                    extra={t('task.edit.edge_id_help')}
                     rules={[rules.required()]}
                 >
                     <Select
                         options={targetOptions}
-                        onChange={handleTarget}
+                        placeholder={t('task.edit.select_id_field')}
                     />
                 </Form.Item>
-                <Form.Item label={t('task.edit.property_mapping')}>
-                    <Form.List name='attr' rules={[checkDuplicate]}>
+                <Form.Item
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.property_mapping')}
+                            help={t('task.edit.property_mapping_help')}
+                        />
+                    )}
+                >
+                    <Form.List
+                        name='attr'
+                        rules={[
+                            completeRowsRule(t, ['key', 'val'],
+                                'task.edit.incomplete_property_mapping'),
+                            duplicateSourceRule(t),
+                        ]}
+                    >
                         {attrFormList}
                     </Form.List>
                 </Form.Item>
-                <Form.Item label={t('task.edit.value_mapping')}>
-                    <Form.List name='value'>
+                <Form.Item
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.value_mapping')}
+                            help={t('task.edit.value_mapping_help')}
+                        />
+                    )}
+                >
+                    <Form.List
+                        name='value'
+                        rules={[
+                            completeRowsRule(t, ['key', 'origin', 'replace'],
+                                'task.edit.incomplete_value_mapping'),
+                        ]}
+                    >
                         {valueFormList}
                     </Form.List>
                 </Form.Item>
-                <Form.Item name='index' hidden />
+                <Form.Item name='index' hidden><Input type='hidden' /></Form.Item>
                 <Form.Item wrapperCol={{offset: 4}}>
                     <Space>
-                        <Button type='primary' onClick={addEdge}>
+                        <Button type='primary' htmlType='submit'>
                             {t('common.action.confirm')}
                         </Button>
                         <Button onClick={handleCancel}>{t('common.action.cancel')}</Button>

@@ -22,7 +22,8 @@
 
 import React, {useState, useCallback, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Input, Form, Collapse, Select, InputNumber} from 'antd';
+import {Input, Collapse, Select, InputNumber} from 'antd';
+import Form from '../../../PersistentForm';
 import {BranchesOutlined} from '@ant-design/icons';
 import * as api from '../../../../../../api';
 import AlgorithmNameHeader from '../../../AlgorithmNameHeader';

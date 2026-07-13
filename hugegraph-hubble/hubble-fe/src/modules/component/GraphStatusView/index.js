@@ -20,8 +20,10 @@
  * @file GraphStatusView
  */
 
-import React from 'react';
+import React, {useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
+import {Button, message as antdMessage} from 'antd';
+import {CopyOutlined} from '@ant-design/icons';
 import {GRAPH_STATUS} from '../../../utils/constants';
 import EmptyIcon from '../../../assets/ic_sousuo_empty.svg';
 import LoadingBackIcon from '../../../assets/ic_loading_back.svg';
@@ -43,6 +45,16 @@ const GraphStatusView = props => {
         status,
         message,
     } = props;
+
+    const copyError = useCallback(async () => {
+        try {
+            await navigator.clipboard.writeText(message);
+            antdMessage.success(t('analysis.query_result.copy_error_success'));
+        }
+        catch {
+            antdMessage.error(t('analysis.query_result.copy_error_failed'));
+        }
+    }, [message, t]);
 
     const emptyContent = message => {
         const displayMessage = message || t('analysis.query_result.no_data');
@@ -83,12 +95,28 @@ const GraphStatusView = props => {
     const failedContent = message => {
         const displayMessage = message || t('analysis.query_result.run_failed');
         return (
-            <div className={c.noneGraphStatus}>
+            <div className={`${c.noneGraphStatus} ${c.failureStatus}`} role='alert'>
                 <img
+                    className={c.failureIcon}
                     src={FailedIcon}
-                    alt={displayMessage}
+                    alt=''
                 />
-                <span>{displayMessage}</span>
+                <h3 className={c.failureTitle}>
+                    {t('analysis.query_result.query_failed_title')}
+                </h3>
+                <pre className={c.failureMessage}>{displayMessage}</pre>
+                <p className={c.failureAction}>
+                    {t('analysis.query_result.retry_action')}
+                </p>
+                {message && (
+                    <Button
+                        aria-label={t('analysis.query_result.copy_error')}
+                        icon={<CopyOutlined />}
+                        onClick={copyError}
+                    >
+                        {t('analysis.query_result.copy_error')}
+                    </Button>
+                )}
             </div>
         );
     };

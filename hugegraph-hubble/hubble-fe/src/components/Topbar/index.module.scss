@@ -70,6 +70,17 @@ div.nav {
   margin-left: 10px;
 }
 
+.shortcutHelp {
+  margin-left: 8px;
+  color: rgba(255, 255, 255, 0.88) !important;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+}
+
 @media (max-width: 900px) {
   .header {
     padding: 0 12px 0 56px;

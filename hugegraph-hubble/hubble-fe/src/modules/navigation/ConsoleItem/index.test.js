@@ -20,6 +20,7 @@ import {MemoryRouter} from 'react-router-dom';
 
 import * as api from '../../../api';
 import ConsoleItem from './index';
+import itemStyle from '../Item/index.module.scss';
 
 const mockMessageError = jest.fn();
 
@@ -118,6 +119,10 @@ test('disables a configured but unavailable Dashboard capability', async () => {
     ));
     expect(monitor).toBeDisabled();
     expect(screen.getAllByText('navigation_page.unavailable')).toHaveLength(4);
+    expect(screen.getByRole('status')).toHaveClass(itemStyle.reason);
+    expect(screen.getByRole('status')).toHaveTextContent(
+        'navigation_page.dashboard_unavailable'
+    );
     expect(screen.queryByText('navigation_page.coming_soon')).not.toBeInTheDocument();
     expect(window.open).not.toHaveBeenCalled();
 });

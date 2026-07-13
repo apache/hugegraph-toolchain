@@ -287,6 +287,7 @@ const LayoutConfigPanel = props => {
             >
                 <Form.Item
                     name='enableLayout'
+                    initialValue
                     label={t('analysis.canvas.layout_panel.enable_layout')}
                     valuePropName='checked'
                     labelCol={{span: 20}}

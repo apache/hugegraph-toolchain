@@ -56,3 +56,42 @@
         }
     }
 }
+
+.failureStatus {
+    justify-content: flex-start;
+    padding-top: clamp(48px, 10vh, 120px);
+    word-break: normal;
+}
+
+.failureIcon {
+    width: 64px;
+    height: 64px;
+}
+
+.failureTitle {
+    margin: 16px 0 8px;
+    color: #262626;
+    font-size: 20px;
+}
+
+.failureMessage {
+    width: min(720px, 100%);
+    max-height: 220px;
+    margin: 0;
+    padding: 14px 16px;
+    overflow: auto;
+    border: 1px solid #FFD8D6;
+    border-radius: 4px;
+    background: #FFF2F0;
+    color: #A8071A;
+    font-family: inherit;
+    line-height: 1.6;
+    text-align: left;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.failureAction {
+    margin: 12px 0 8px;
+    color: #595959;
+}

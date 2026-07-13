@@ -65,6 +65,8 @@ public class GraphSpaceServiceTest {
         Assert.assertEquals("public", view.get("name"));
         Assert.assertFalse(view.containsKey("dp_username"));
         Assert.assertFalse(view.containsKey("dp_password"));
+        Assert.assertFalse(view.containsKey("dpUserName"));
+        Assert.assertFalse(view.containsKey("dpPassWord"));
         Assert.assertFalse(view.containsKey("configs"));
     }
 
@@ -76,6 +78,8 @@ public class GraphSpaceServiceTest {
         profile.put("create_time", "20260712");
         profile.put("dp_username", "dp-user");
         profile.put("dp_password", "dp-secret");
+        profile.put("dpUserName", "dp-user-camel");
+        profile.put("dpPassWord", "dp-secret-camel");
         profile.put("configs", new HashMap<>());
         Mockito.when(this.client.graphSpace()).thenReturn(manager);
         Mockito.when(manager.listProfile("")).thenReturn(
@@ -94,6 +98,8 @@ public class GraphSpaceServiceTest {
         Assert.assertEquals("public", response.get(0).get("name"));
         Assert.assertFalse(response.get(0).containsKey("dp_username"));
         Assert.assertFalse(response.get(0).containsKey("dp_password"));
+        Assert.assertFalse(response.get(0).containsKey("dpUserName"));
+        Assert.assertFalse(response.get(0).containsKey("dpPassWord"));
         Assert.assertFalse(response.get(0).containsKey("configs"));
     }
 

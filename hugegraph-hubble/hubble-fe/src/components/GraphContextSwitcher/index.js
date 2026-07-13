@@ -30,6 +30,7 @@ import {
     writeWorkbenchGraphContext,
 } from '../../utils/workbenchGraphContext';
 import style from './index.module.scss';
+import {getResourceDisplayName} from '../../utils/displayName';
 
 const {Option} = Select;
 const GRAPHSPACE_LIST_PARAMS = {all: true};
@@ -266,7 +267,7 @@ const GraphContextSwitcher = () => {
                         <Option key={item.name} value={item.name}>
                             {item.name === DEFAULT_GRAPHSPACE
                                 ? t('workbench.context.default_graphspace')
-                                : item.nickname || item.name}
+                                : getResourceDisplayName(item.name, item.nickname)}
                         </Option>
                     ))}
                 </Select>
@@ -282,7 +283,7 @@ const GraphContextSwitcher = () => {
                 >
                     {graphs.map(item => (
                         <Option key={item.name} value={item.name}>
-                            {item.nickname || item.name}
+                            {getResourceDisplayName(item.name, item.nickname)}
                         </Option>
                     ))}
                 </Select>

@@ -20,6 +20,7 @@ import {Alert, Typography, Form, Radio, Input, Space, Button, Select} from 'antd
 import {useCallback, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as rules from '../../../utils/rules';
+import FormHelpLabel from '../../../components/FormHelpLabel';
 
 const ScheduleForm = ({prev, visible, datasource, loading}) => {
     const {t} = useTranslation();
@@ -59,7 +60,16 @@ const ScheduleForm = ({prev, visible, datasource, loading}) => {
                     message={t('task.edit.schedule_help_title')}
                     description={t('task.edit.schedule_help')}
                 />
-                <Form.Item label={t('task.edit.sync_type')} required name='task_schedule_type'>
+                <Form.Item
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.sync_type')}
+                            help={t('task.edit.sync_type_help')}
+                        />
+                    )}
+                    required
+                    name='task_schedule_type'
+                >
                     <Radio.Group
                         options={scheduleOptions}
                         onChange={handleSyncTypeChange}
@@ -69,8 +79,13 @@ const ScheduleForm = ({prev, visible, datasource, loading}) => {
                 && (
                     <>
                         <Form.Item
-                            wrapperCol={{offset: 4, span: 14}}
-                            extra={t('task.edit.cron_extra')}
+                            label={(
+                                <FormHelpLabel
+                                    label={t('task.edit.cron_expression')}
+                                    help={t('task.edit.cron_extra')}
+                                />
+                            )}
+                            wrapperCol={{span: 14}}
                             name='task_schedule_extend'
                             rules={[
                                 rules.required(t('task.edit.cron_required')),
@@ -84,8 +99,12 @@ const ScheduleForm = ({prev, visible, datasource, loading}) => {
                 }
                 {showLoadType ? (
                     <Form.Item
-                        label={t('task.edit.load_type')}
-                        extra={t('task.edit.load_type_help')}
+                        label={(
+                            <FormHelpLabel
+                                label={t('task.edit.load_type')}
+                                help={t('task.edit.load_type_help')}
+                            />
+                        )}
                         name='task_load_type'
                         wrapperCol={{span: 4}}
                     >

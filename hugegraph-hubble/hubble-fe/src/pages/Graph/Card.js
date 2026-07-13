@@ -18,8 +18,8 @@
 
 import {useCallback} from 'react';
 import {Button, Card, Dropdown, Space, Typography, Tooltip} from 'antd';
-import {UnorderedListOutlined, EyeOutlined} from '@ant-design/icons';
-import {useNavigate} from 'react-router-dom';
+import {UnorderedListOutlined} from '@ant-design/icons';
+import {Link, useNavigate} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import GraphView from '../../components/GraphinView';
 import moment from 'moment';
@@ -28,17 +28,24 @@ import {formatToGraphInData} from '../../utils/formatGraphInData';
 import {isPdEnabled} from '../../utils/config';
 import style from './index.module.scss';
 import {byteConvert} from '../../utils/format';
+import {getResourceDisplayName} from '../../utils/displayName';
 
 const TitleField = ({item, onClick, onKeyDown, schemaTypeCounts}) => {
     const {t} = useTranslation();
     const pdMode = isPdEnabled();
-    const graphName = item.nickname || item.name;
+    const graphName = getResourceDisplayName(item.name, item.nickname);
+    const graphspaceName = item.graphspace === 'DEFAULT'
+        ? t('graphspace.default_name')
+        : getResourceDisplayName(item.graphspace, item.graphspace_nickname);
     const displayName = pdMode
-        ? `${_.truncate(item.graphspace_nickname, {length: 12})}-${_.truncate(graphName, {length: 12})}`
+        ? `${_.truncate(graphspaceName, {length: 12})}-${_.truncate(graphName, {length: 12})}`
         : graphName;
     const fullTitle = pdMode
-        ? `${item.graphspace_nickname}-${graphName}`
+        ? `${graphspaceName}-${graphName}`
         : graphName;
+    const createdAt = item.create_time
+        ? moment(item.create_time).format('YYYY-MM-DD')
+        : '--';
 
     return (
         <>
@@ -56,7 +63,9 @@ const TitleField = ({item, onClick, onKeyDown, schemaTypeCounts}) => {
             {item.default && <span className={style.default}>{t('common.label.default')}</span>}
             <div className={style.subtitle}>
                 {t('graph.card.storage')}: {item.storage >= 0 ? byteConvert(item.storage) : '--'}
-                {' · '}
+                {' / '}
+                {t('graph.col.create_time')}: {createdAt}
+                {' / '}
                 {t('graph.card.schema_types', schemaTypeCounts)}
             </div>
         </>
@@ -66,22 +75,28 @@ const TitleField = ({item, onClick, onKeyDown, schemaTypeCounts}) => {
 const GraphCard = ({item, menus}) => {
     const {t} = useTranslation();
     const navigate = useNavigate();
-    const graphName = item.nickname || item.name;
+    const graphName = getResourceDisplayName(item.name, item.nickname);
     const schemaView = item.schemaview || {vertices: [], edges: []};
-    const graphinData = formatToGraphInData(schemaView, false);
+    const graphinData = formatToGraphInData(schemaView, true);
     const schemaIsEmpty = graphinData.nodes.length === 0 && graphinData.edges.length === 0;
+    const hasElementCounts = item.statistic
+        && item.statistic.vertex !== null
+        && item.statistic.vertex !== undefined
+        && item.statistic.edge !== null
+        && item.statistic.edge !== undefined
+        && Number.isFinite(Number(item.statistic.vertex))
+        && Number.isFinite(Number(item.statistic.edge));
+    const graphspace = item.graphspace || 'DEFAULT';
+    const overviewPath = `/graphspace/${graphspace}/graph/${item.name}/detail`;
+    const schemaPath = `/graphspace/${graphspace}/graph/${item.name}/meta`;
 
     const handleGotoAnalysis = useCallback(() => {
         navigate(`/gremlin/${item.graphspace || 'DEFAULT'}/${item.name}`);
     }, [item, navigate]);
 
-    const handleGotoDetail = useCallback(() => {
-        navigate(`/graphspace/${item.graphspace || 'DEFAULT'}/graph/${item.name}/detail`);
-    }, [item, navigate]);
-
     const handleGotoSchema = useCallback(() => {
-        navigate(`/graphspace/${item.graphspace || 'DEFAULT'}/graph/${item.name}/meta`);
-    }, [item, navigate]);
+        navigate(schemaPath);
+    }, [navigate, schemaPath]);
 
     const handleAnalysisKeyDown = useCallback(event => {
         if (event.key === 'Enter' || event.key === ' ') {
@@ -89,13 +104,6 @@ const GraphCard = ({item, menus}) => {
             handleGotoAnalysis();
         }
     }, [handleGotoAnalysis]);
-
-    const handleDetailKeyDown = useCallback(event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            handleGotoDetail();
-        }
-    }, [handleGotoDetail]);
 
     return (
         <Card
@@ -127,24 +135,19 @@ const GraphCard = ({item, menus}) => {
                 </Dropdown>
             )}
             actions={[
-                <span
-                    key='created'
-                    className={style.created}
-                >
-                    {t('graph.col.create_time')}: {moment(item.create_time).format('YYYY-MM-DD')}
-                </span>,
-                <span
-                    key='statistic'
-                    onClick={handleGotoDetail}
-                    onKeyDown={handleDetailKeyDown}
-                    role='button'
-                    tabIndex={0}
-                >
-                    <Tooltip title={t('graph.card.detail_tooltip')}>
-                        <EyeOutlined />{t('graph.detail.title')}
+                hasElementCounts && (
+                    <Tooltip key='counts' title={t('graph.card.counts_tooltip')}>
+                        <span className={style.element_counts}>
+                            {t('graph.card.element_counts', {
+                                vertices: item.statistic.vertex,
+                                edges: item.statistic.edge,
+                            })}
+                        </span>
                     </Tooltip>
-                </span>,
-            ]}
+                ),
+                <Link key='overview' to={overviewPath}>{t('graph.card.overview')}</Link>,
+                <Link key='schema' to={schemaPath}>{t('graph.card.schema_info')}</Link>,
+            ].filter(Boolean)}
         >
             {schemaIsEmpty ? (
                 <div className={style.empty_schema}>

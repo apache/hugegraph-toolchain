@@ -46,6 +46,16 @@ beforeEach(() => {
     }));
 });
 
+test('uses the shared keyboard-focusable help affordance for every field label', () => {
+    render(
+        <EditLayer visible detail={{}} onCancel={jest.fn()} refresh={jest.fn()} />
+    );
+
+    const nameHelp = screen.getByRole('img', {name: /graphspace\.form\.id_help/});
+    expect(nameHelp).toHaveAttribute('tabindex', '0');
+    expect(nameHelp).toHaveAttribute('role', 'img');
+});
+
 test('creates a GraphSpace with only ID and display name', async () => {
     render(
         <EditLayer
@@ -78,6 +88,19 @@ test('creates a GraphSpace with only ID and display name', async () => {
     expect(values.storage_limit).toBeUndefined();
 });
 
+test('creates without an alias and never copies the GraphSpace name into nickname', async () => {
+    render(
+        <EditLayer visible detail={{}} onCancel={jest.fn()} refresh={jest.fn()} />
+    );
+    fireEvent.change(screen.getByPlaceholderText('graphspace.form.id_placeholder'), {
+        target: {value: 'demo_space'},
+    });
+    fireEvent.click(screen.getByRole('button', {name: 'common.action.create'}));
+
+    await waitFor(() => expect(api.manage.addGraphSpace).toHaveBeenCalled());
+    expect(api.manage.addGraphSpace.mock.calls[0][0].nickname).not.toBe('demo_space');
+});
+
 test('keeps validation failures inline without calling the API', async () => {
     render(
         <EditLayer
@@ -96,6 +119,46 @@ test('keeps validation failures inline without calling the API', async () => {
 
     expect(await screen.findByText('graphspace.form.id_rule')).toBeInTheDocument();
     expect(api.manage.addGraphSpace).not.toHaveBeenCalled();
+});
+
+test('keeps the path name immutable while allowing display-name edits', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({
+        status: 200,
+        data: {name: 'demo_space', nickname: 'demo_space'},
+    });
+    render(
+        <EditLayer
+            visible
+            detail={{name: 'demo_space'}}
+            onCancel={jest.fn()}
+            refresh={jest.fn()}
+        />
+    );
+
+    const pathName = screen.getByPlaceholderText('graphspace.form.id_placeholder');
+    const displayName = screen.getByPlaceholderText('graphspace.form.name_placeholder');
+    await waitFor(() => expect(pathName).toHaveValue('demo_space'));
+    expect(pathName).toBeDisabled();
+    expect(displayName).toBeEnabled();
+    expect(displayName).toHaveValue('');
+});
+
+test('preserves a real GraphSpace alias while editing', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({
+        status: 200,
+        data: {name: 'demo_space', nickname: 'Demo Space'},
+    });
+    render(
+        <EditLayer
+            visible
+            detail={{name: 'demo_space'}}
+            onCancel={jest.fn()}
+            refresh={jest.fn()}
+        />
+    );
+    await waitFor(() => expect(
+        screen.getByPlaceholderText('graphspace.form.name_placeholder')
+    ).toHaveValue('Demo Space'));
 });
 
 test('resource fields are optional and expose examples and field help', async () => {
@@ -118,9 +181,12 @@ test('resource fields are optional and expose examples and field help', async ()
     expect(screen.getAllByPlaceholderText('graphspace.form.memory_placeholder')).toHaveLength(2);
     expect(screen.getByPlaceholderText('graphspace.form.max_graph_placeholder'))
         .toBeInTheDocument();
-    expect(screen.getByLabelText('graphspace.form.id_help')).toBeInTheDocument();
-    expect(screen.getByLabelText('graphspace.form.graph_cpu_help')).toBeInTheDocument();
-    expect(screen.getByLabelText('graphspace.form.oltp_namespace_help')).toBeInTheDocument();
+    expect(screen.getByRole('img', {name: /graphspace\.form\.id_help/}))
+        .toBeInTheDocument();
+    expect(screen.getByRole('img', {name: /graphspace\.form\.graph_cpu_help/}))
+        .toBeInTheDocument();
+    expect(screen.getByRole('img', {name: /graphspace\.form\.oltp_namespace_help/}))
+        .toBeInTheDocument();
 
     fireEvent.change(screen.getAllByPlaceholderText('graphspace.form.cpu_placeholder')[0], {
         target: {value: '4'},

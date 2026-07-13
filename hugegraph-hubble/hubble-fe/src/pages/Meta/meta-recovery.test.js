@@ -93,3 +93,20 @@ test('defaults to image mode and preserves manual list switching', async () => {
     expect(screen.getByText('schema list')).toBeInTheDocument();
     expect(screen.queryByText('schema image')).not.toBeInTheDocument();
 });
+
+test('falls back to path names when aliases are empty or echoed', async () => {
+    api.manage.getGraph.mockResolvedValue({
+        status: 200,
+        data: {name: 'graph-a', nickname: ''},
+    });
+    api.manage.getGraphSpace.mockResolvedValue({
+        status: 200,
+        data: {name: 'space-a', nickname: 'space-a'},
+    });
+
+    render(<Meta />);
+
+    await screen.findByText('schema image');
+    await waitFor(() => expect(screen.getByText('space-a - graph-a - schema.title'))
+        .toBeInTheDocument());
+});

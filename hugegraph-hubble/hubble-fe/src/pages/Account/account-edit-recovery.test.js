@@ -150,3 +150,18 @@ test('loads graphspaces into the visible create account form', async () => {
 
     expect(await screen.findByRole('option', {name: 'analytics'})).toBeInTheDocument();
 });
+
+test('shows the derived space administrator level in account details', async () => {
+    api.auth.getUserInfo.mockResolvedValue({
+        status: 200,
+        data: {
+            user_name: 'space-admin',
+            is_superadmin: false,
+            adminSpaces: [{name: 'SPACE'}],
+        },
+    });
+
+    render(<EditLayer {...props} data={{id: 'space-admin'}} op='detail' />);
+
+    expect(await screen.findByText('account.level.SPACEADMIN')).toBeInTheDocument();
+});

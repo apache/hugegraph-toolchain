@@ -17,7 +17,7 @@
  */
 
 import {LockOutlined, UserOutlined} from '@ant-design/icons';
-import {Button, Form, Input} from 'antd';
+import {Button, Form, Input, Radio} from 'antd';
 import BrandLockup from '../../components/BrandLockup';
 import style from './index.module.scss';
 import * as api from '../../api';
@@ -125,16 +125,20 @@ const Login = () => {
                     form={form}
                 >
                     <div className={style.formTools}>
-                        <label htmlFor='login-language'>{t('login.language')}</label>
-                        <select
-                            id='login-language'
+                        <span>{t('login.language')}</span>
+                        <Radio.Group
+                            role='radiogroup'
                             aria-label={t('login.language')}
                             value={languageType}
                             onChange={handleLanguageChange}
-                        >
-                            <option value='zh-CN'>中文</option>
-                            <option value='en-US'>English</option>
-                        </select>
+                            optionType='button'
+                            buttonStyle='solid'
+                            size='small'
+                            options={[
+                                {label: 'CN', value: 'zh-CN'},
+                                {label: 'EN', value: 'en-US'},
+                            ]}
+                        />
                     </div>
                     <header className={style.formHeader}>
                         <span className={style.formEyebrow}>Apache HugeGraph</span>

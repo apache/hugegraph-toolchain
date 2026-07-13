@@ -48,6 +48,7 @@ import org.apache.hugegraph.entity.load.Datasource;
 import org.apache.hugegraph.entity.load.FileMapping;
 import org.apache.hugegraph.entity.load.JobManager;
 import org.apache.hugegraph.entity.load.LoadTask;
+import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.load.DatasourceService;
 import org.apache.hugegraph.service.load.FileMappingService;
@@ -93,26 +94,29 @@ public class IngestControllerTest {
         Mockito.when(datasourceService.get(1)).thenReturn(datasource);
         Mockito.when(fileMappingService.requirePathUnderUploadRoot(
                 dataFile.toString())).thenReturn(dataFile.toFile());
-        Mockito.doAnswer(invocation -> {
-            invocation.getArgument(0, JobManager.class).setId(7);
-            return null;
-        }).when(jobService).save(Mockito.any(JobManager.class));
-        Mockito.doAnswer(invocation -> {
-            invocation.getArgument(0, FileMapping.class).setId(8);
-            return null;
-        }).when(fileMappingService).save(Mockito.any(FileMapping.class));
-        Mockito.when(loadTaskService.start(Mockito.any(GraphConnection.class),
-                                          Mockito.any(FileMapping.class),
-                                          Mockito.any(HugeClient.class)))
-               .thenReturn(LoadTask.builder().id(9).build());
-        this.bindRequestSession();
+        Mockito.when(jobService.createIngestTask(
+                Mockito.any(JobManager.class), Mockito.any(FileMapping.class),
+                Mockito.any(GraphConnection.class), Mockito.any(HugeClient.class)))
+               .thenAnswer(invocation -> {
+                   JobManager job = invocation.getArgument(0);
+                   FileMapping mapping = invocation.getArgument(1);
+                   job.setId(7);
+                   mapping.setJobId(7);
+                   mapping.setId(8);
+                   return LoadTask.builder().id(9).build();
+               });
+        this.bindRequestSession("alice");
 
         Response response = controller.createTask(this.request(dataFile));
 
         Assert.assertEquals(Constant.STATUS_OK, response.getStatus());
+        ArgumentCaptor<JobManager> jobCaptor =
+                ArgumentCaptor.forClass(JobManager.class);
         ArgumentCaptor<FileMapping> mappingCaptor =
                 ArgumentCaptor.forClass(FileMapping.class);
-        Mockito.verify(fileMappingService).save(mappingCaptor.capture());
+        Mockito.verify(jobService).createIngestTask(
+                jobCaptor.capture(), mappingCaptor.capture(),
+                Mockito.any(GraphConnection.class), Mockito.any(HugeClient.class));
         FileMapping mapping = mappingCaptor.getValue();
         Assert.assertEquals(7, mapping.getJobId().intValue());
         Assert.assertEquals(FileMappingStatus.COMPLETED,
@@ -122,14 +126,69 @@ public class IngestControllerTest {
         Assert.assertEquals(Collections.singletonList("name"),
                             mapping.getVertexMappings().iterator().next()
                                    .getIdFields());
-        Mockito.verify(loadTaskService).start(Mockito.any(GraphConnection.class),
-                                             Mockito.eq(mapping),
-                                             Mockito.any(HugeClient.class));
-        ArgumentCaptor<JobManager> jobCaptor =
-                ArgumentCaptor.forClass(JobManager.class);
-        Mockito.verify(jobService).update(jobCaptor.capture());
         Assert.assertEquals(JobStatus.LOADING, jobCaptor.getValue()
                                                         .getJobStatus());
+    }
+
+    @Test
+    public void testCreateFileTaskRejectsEmptyMappingBeforePersistence()
+           throws Exception {
+        Path uploadRoot = Files.createTempDirectory("hubble-ingest-empty");
+        Path dataFile = uploadRoot.resolve("data.csv");
+        Files.write(dataFile, Collections.singletonList("marko"));
+
+        TestIngestController controller = new TestIngestController();
+        DatasourceService datasourceService = Mockito.mock(DatasourceService.class);
+        JobManagerService jobService = Mockito.mock(JobManagerService.class);
+        FileMappingService fileMappingService = Mockito.mock(FileMappingService.class);
+        this.setField(controller, "config", this.mockConfig(uploadRoot));
+        this.setField(controller, "datasourceService", datasourceService);
+        this.setField(controller, "jobManagerService", jobService);
+        this.setField(controller, "fileMappingService", fileMappingService);
+
+        Datasource datasource = new Datasource();
+        datasource.setId(1);
+        Map<String, Object> datasourceConfig = new HashMap<>();
+        datasourceConfig.put("type", "FILE");
+        datasourceConfig.put("path", dataFile.toString());
+        datasourceConfig.put("format", "CSV");
+        datasourceConfig.put("header", Collections.singletonList("name"));
+        datasource.setDatasourceConfig(datasourceConfig);
+        Mockito.when(datasourceService.get(1)).thenReturn(datasource);
+        Mockito.when(fileMappingService.requirePathUnderUploadRoot(
+                dataFile.toString())).thenReturn(dataFile.toFile());
+
+        IngestController.IngestTaskRequest request = this.request(dataFile);
+        IngestController.IngestStruct struct =
+                request.ingestionMapping.structs.get(0);
+        struct.vertices = Collections.emptyList();
+
+        Assert.assertThrows(ExternalException.class, () -> {
+            controller.createTask(request);
+        });
+        Mockito.verify(jobService, Mockito.never()).createIngestTask(
+                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testOrdinaryAuthenticatedUserCanCreateDatasource()
+            throws Exception {
+        IngestController controller = new IngestController();
+        DatasourceService datasourceService =
+                Mockito.mock(DatasourceService.class);
+        this.setField(controller, "datasourceService", datasourceService);
+        Datasource datasource = new Datasource();
+        datasource.setDatasourceName("alice-file");
+        Mockito.doAnswer(invocation -> {
+            invocation.getArgument(0, Datasource.class).setId(1);
+            return null;
+        }).when(datasourceService).save(Mockito.any(Datasource.class));
+        this.bindRequestSession("alice");
+
+        Response response = controller.datasourceCreate(datasource);
+
+        Assert.assertEquals(Constant.STATUS_OK, response.getStatus());
+        Mockito.verify(datasourceService).save(datasource);
     }
 
     @Test
@@ -216,10 +275,10 @@ public class IngestControllerTest {
         return config;
     }
 
-    private void bindRequestSession() {
+    private void bindRequestSession(String username) {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.getSession().setAttribute(Constant.TOKEN_KEY, "token");
-        request.getSession().setAttribute(Constant.USERNAME_KEY, "admin");
+        request.getSession().setAttribute(Constant.USERNAME_KEY, username);
         request.getSession().setAttribute(Constant.CREDENTIAL_PASSWORD_KEY, "pa");
         request.getSession().setAttribute(Constant.CREDENTIAL_EXPIRES_AT_KEY,
                                           System.currentTimeMillis() + 10000L);

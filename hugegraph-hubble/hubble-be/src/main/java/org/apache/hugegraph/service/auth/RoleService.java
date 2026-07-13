@@ -36,28 +36,28 @@ import org.springframework.stereotype.Service;
 public class RoleService extends AuthService {
 
     public Role get(HugeClient client, String roleId) {
-        return this.get(client, null, roleId);
-    }
-
-    public Role get(HugeClient client, String graphSpace, String roleId) {
         AuthManager auth = client.auth();
         Group group = auth.getGroup(roleId);
         if (group == null) {
             throw new ExternalException("auth.role.get.not-exist", roleId);
         }
-        return toRole(graphSpace, group);
+        return toRole(null, group);
+    }
+
+    public Role get(HugeClient client, String graphSpace, String roleId) {
+        return this.get(client, roleId);
     }
 
     public List<Role> list(HugeClient client) {
-        return this.list(client, null);
+        List<Role> roles = new ArrayList<>();
+        client.auth().listGroups().forEach(group -> {
+            roles.add(toRole(null, group));
+        });
+        return roles;
     }
 
     public List<Role> list(HugeClient client, String graphSpace) {
-        List<Role> roles = new ArrayList<>();
-        client.auth().listGroups().forEach(group -> {
-            roles.add(toRole(graphSpace, group));
-        });
-        return roles;
+        return this.list(client);
     }
 
     public IPage<Role> queryPage(HugeClient client, String query,
@@ -83,14 +83,14 @@ public class RoleService extends AuthService {
         }
         group.name(firstNonNull(role.name(), role.nickname(), group.name()));
         group.description(role.description());
-        return toRole(role.graphSpace(), auth.updateGroup(group));
+        return toRole(null, auth.updateGroup(group));
     }
 
     public Role insert(HugeClient client, Role role) {
         Group group = new Group();
         group.name(firstNonNull(role.name(), role.nickname()));
         group.description(role.description());
-        return toRole(role.graphSpace(), client.auth().createGroup(group));
+        return toRole(null, client.auth().createGroup(group));
     }
 
     public void delete(HugeClient client, String roleId) {

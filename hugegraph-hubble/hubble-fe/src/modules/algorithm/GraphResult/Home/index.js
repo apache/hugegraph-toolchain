@@ -55,6 +55,7 @@ import {
 } from '../../../../utils/constants';
 import c from './index.module.scss';
 import _ from 'lodash';
+import {disableChangeDataRelayout} from '../../../component/Graph/data';
 
 const GraphResult = props => {
     const {t} = useTranslation();
@@ -209,7 +210,12 @@ const GraphResult = props => {
     const handleLayoutChange = useCallback(
         layout => {
             graph.destroyLayout();
-            graph.updateLayout(layout, 'center', undefined, false);
+            graph.updateLayout(
+                disableChangeDataRelayout(layout),
+                'center',
+                undefined,
+                false
+            );
         },
         [graph]
     );

@@ -168,6 +168,28 @@ test('shows clone as unavailable instead of exposing a failing action', async ()
     expect(clone.closest('a')).toBeNull();
 });
 
+test('keeps exactly the five requested graph card actions', async () => {
+    render(<Graph />);
+
+    const menu = await screen.findByTestId('graph-card-menu');
+    expect(within(menu).getAllByRole('menuitem')).toHaveLength(5);
+    expect(within(menu).getByText('graph.menu.clear_graph')).toBeInTheDocument();
+    expect(within(menu).getByText('graph.menu.set_default')).toBeInTheDocument();
+    expect(within(menu).getByText('common.action.edit')).toBeInTheDocument();
+    expect(within(menu).getByText('common.action.delete')).toBeInTheDocument();
+    expect(within(menu).getByText('graph.menu.clone')).toBeInTheDocument();
+});
+
+test('places the new-graph card after existing graphs', async () => {
+    render(<Graph />);
+
+    const graphCard = await screen.findByTestId('graph-card-menu');
+    const create = screen.getByRole('button', {name: 'graph.create'});
+
+    expect(graphCard.compareDocumentPosition(create)
+        & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
 test('explains an empty GraphSpace and distinguishes filtered results', async () => {
     api.manage.getGraphList.mockResolvedValue({
         status: 200,
@@ -185,4 +207,48 @@ test('explains an empty GraphSpace and distinguishes filtered results', async ()
     expect(await screen.findByText('graph.empty.filtered_description')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: 'graph.empty.clear_filters'}));
     expect(search).toHaveValue('');
+});
+
+test('falls back to the real GraphSpace name in list mode when alias is empty', async () => {
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {
+            records: [{
+                name: 'graph-a',
+                nickname: 'Graph A',
+                graphspace: 'space-name',
+                graphspace_nickname: '',
+            }],
+            total: 1,
+        },
+    });
+    render(<Graph />);
+    await screen.findByTestId('graph-card-menu');
+
+    fireEvent.click(screen.getByLabelText('common.label.list_mode'));
+
+    expect(await screen.findByText('space-name')).toBeInTheDocument();
+});
+
+test('keeps the eleven-card image page size fixed without a size selector', async () => {
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {
+            records: [{
+                name: 'graph-a',
+                nickname: 'Graph A',
+                graphspace: 'space',
+            }],
+            total: 100,
+        },
+    });
+    render(<Graph />);
+
+    await screen.findByTestId('graph-card-menu');
+    expect(document.querySelector('.ant-pagination-options-size-changer')).toBeNull();
+    expect(api.manage.getGraphList).toHaveBeenLastCalledWith(
+        'space',
+        expect.objectContaining({page_size: 11}),
+        expect.anything()
+    );
 });

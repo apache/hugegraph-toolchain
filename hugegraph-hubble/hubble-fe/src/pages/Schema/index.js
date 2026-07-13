@@ -19,26 +19,62 @@
 import {useCallback, useState, useEffect, useRef} from 'react';
 import {
     Alert, Table, Space, PageHeader, Row, Col, Input, Button, message, Modal, Spin, Empty,
+    Card, Typography, Tag, Divider,
 } from 'antd';
 import EditLayer from './EditLayer';
 import {useParams, useNavigate} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../api/index';
 import DataPreparationNav from '../../components/DataPreparationNav';
+import {getResourceDisplayName} from '../../utils/displayName';
+import CodeEditor from '../../components/CodeEditor';
+import {BUILTIN_SCHEMA_TEMPLATES} from './builtinSchemaTemplates';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
+const HIDDEN_BUILTINS_KEY = 'hubble.schema.hiddenBuiltinStartingPoints.v1';
+const SCHEMA_DESIGN_URL = 'https://hugegraph.apache.org/docs/guides/desgin-concept/';
 
-const SchemaActions = ({row, onView, onEdit, onDelete}) => {
+const loadHiddenBuiltins = () => {
+    try {
+        const stored = JSON.parse(window.localStorage.getItem(HIDDEN_BUILTINS_KEY));
+        return Array.isArray(stored) ? stored : [];
+    }
+    catch (error) {
+        return [];
+    }
+};
+
+const saveHiddenBuiltins = names => {
+    try {
+        window.localStorage.setItem(HIDDEN_BUILTINS_KEY, JSON.stringify(names));
+    }
+    catch (error) {
+        // The starting points still work when browser storage is unavailable.
+    }
+};
+
+const SchemaActions = ({row, onEdit, onDelete}) => {
     const {t} = useTranslation();
-    const handleView = useCallback(() => onView(row), [onView, row]);
     const handleEdit = useCallback(() => onEdit(row), [onEdit, row]);
     const handleDelete = useCallback(() => onDelete(row), [onDelete, row]);
+    const stopPropagation = useCallback(event => event.stopPropagation(), []);
 
     return (
-        <Space>
-            <Button type='link' onClick={handleView}>{t('schema_template.action.view')}</Button>
-            <Button type='link' onClick={handleEdit}>{t('schema_template.action.edit')}</Button>
-            <Button type='link' onClick={handleDelete}>{t('schema_template.action.delete')}</Button>
+        <Space onClick={stopPropagation}>
+            <Button
+                type='link'
+                aria-label={t('schema_template.action.edit_named', {name: row.name})}
+                onClick={handleEdit}
+            >
+                {t('schema_template.action.edit')}
+            </Button>
+            <Button
+                type='link'
+                aria-label={t('schema_template.action.delete_named', {name: row.name})}
+                onClick={handleDelete}
+            >
+                {t('schema_template.action.delete')}
+            </Button>
         </Space>
     );
 };
@@ -47,7 +83,7 @@ const Schema = () => {
     const {t} = useTranslation();
     const [data, setData] = useState([]);
     const [detail, setDetail] = useState({});
-    const [mode, setMode] = useState('view');
+    const [mode, setMode] = useState('create');
     const [editLayer, setEditLayer] = useState(false);
     const [refresh, setRefresh] = useState(false);
     const [pagination, setPagination] = useState({current: 1, pageSize: 10});
@@ -62,6 +98,7 @@ const Schema = () => {
     const [listRetry, setListRetry] = useState(0);
     const [graphspaceDataKey, setGraphspaceDataKey] = useState(null);
     const [listDataKey, setListDataKey] = useState(null);
+    const [hiddenBuiltins, setHiddenBuiltins] = useState(loadHiddenBuiltins);
     const graphspaceRequest = useRef(null);
     const listRequest = useRef(null);
     const {graphspace} = useParams();
@@ -69,23 +106,48 @@ const Schema = () => {
     const {current} = pagination;
     const listKey = JSON.stringify([graphspace, query, current]);
 
-    const viewSchema = useCallback(data => {
-        setMode('view');
-        setDetail(data);
-        setEditLayer(true);
-    }, []);
-
     const editSchema = useCallback(data => {
         setMode('edit');
         setDetail(data);
         setEditLayer(true);
     }, []);
 
-    const createSchema = useCallback(() => {
+    const createSchema = useCallback((startingPoint = {}) => {
         setMode('create');
-        setDetail({});
+        setDetail(startingPoint);
         setEditLayer(true);
     }, []);
+
+    const applyBuiltin = useCallback(name => {
+        createSchema({name, schema: BUILTIN_SCHEMA_TEMPLATES[name]});
+    }, [createSchema]);
+
+    const hideBuiltin = useCallback(name => {
+        setHiddenBuiltins(value => {
+            const next = [...new Set([...value, name])];
+            saveHiddenBuiltins(next);
+            return next;
+        });
+    }, []);
+
+    const restoreBuiltins = useCallback(() => {
+        saveHiddenBuiltins([]);
+        setHiddenBuiltins([]);
+    }, []);
+    const openCreate = useCallback(() => createSchema(), [createSchema]);
+    const applyBuiltinFromEvent = useCallback(event => {
+        applyBuiltin(event.currentTarget.dataset.template);
+    }, [applyBuiltin]);
+    const hideBuiltinFromEvent = useCallback(event => {
+        hideBuiltin(event.currentTarget.dataset.template);
+    }, [hideBuiltin]);
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('create') === 'true') {
+            createSchema();
+        }
+    }, [createSchema]);
 
     const handleTable = useCallback(newPagination => {
         setPagination(newPagination);
@@ -150,7 +212,6 @@ const Schema = () => {
             render: row => (
                 <SchemaActions
                     row={row}
-                    onView={viewSchema}
                     onEdit={editSchema}
                     onDelete={deleteSchema}
                 />
@@ -239,6 +300,9 @@ const Schema = () => {
         ? graphspaceInfo
         : {};
     const visibleData = listDataKey === listKey ? data : [];
+    const visibleBuiltins = Object.entries(BUILTIN_SCHEMA_TEMPLATES).filter(
+        ([name]) => !hiddenBuiltins.includes(name)
+    );
 
     return (
         <>
@@ -247,13 +311,16 @@ const Schema = () => {
                     ghost={false}
                     onBack={handleBack}
                     title={t('schema_template.title', {
-                        name: visibleGraphspaceInfo.nickname ?? graphspace,
+                        name: getResourceDisplayName(
+                            graphspace,
+                            visibleGraphspaceInfo.nickname
+                        ),
                     })}
                 >
                     <Row justify='space-between'>
                         <Col>
                             <Space>
-                                <Button type='primary' onClick={createSchema}>
+                                <Button type='primary' onClick={openCreate}>
                                     {t('schema_template.create')}
                                 </Button>
                             </Space>
@@ -297,13 +364,100 @@ const Schema = () => {
                             )}
                         />
                     )}
+                    <section aria-labelledby='schema-builtins-heading'>
+                        <Row justify='space-between' align='middle'>
+                            <Col>
+                                <Typography.Title level={4} id='schema-builtins-heading'>
+                                    {t('schema_template.builtin_section.title')}
+                                </Typography.Title>
+                                <Typography.Paragraph type='secondary'>
+                                    {t('schema_template.builtin_section.description')}
+                                </Typography.Paragraph>
+                            </Col>
+                            {hiddenBuiltins.length > 0 && (
+                                <Col>
+                                    <Button onClick={restoreBuiltins}>
+                                        {t('schema_template.builtin_section.restore')}
+                                    </Button>
+                                </Col>
+                            )}
+                        </Row>
+                        <Row gutter={[16, 16]}>
+                            {visibleBuiltins.map(([name]) => (
+                                <Col xs={24} lg={12} key={name}>
+                                    <Card
+                                        size='small'
+                                        title={t(`schema_template.builtin.${name}`)}
+                                        extra={<Tag>{t('schema_template.builtin_section.unsaved')}</Tag>}
+                                        actions={[
+                                            <Button
+                                                key='use'
+                                                type='link'
+                                                data-template={name}
+                                                aria-label={t(
+                                                    'schema_template.builtin_section.use_named',
+                                                    {name: t(`schema_template.builtin.${name}`)}
+                                                )}
+                                                onClick={applyBuiltinFromEvent}
+                                            >
+                                                {t('schema_template.builtin_section.use')}
+                                            </Button>,
+                                            <Button
+                                                key='hide'
+                                                type='link'
+                                                data-template={name}
+                                                aria-label={t(
+                                                    'schema_template.builtin_section.remove_named',
+                                                    {name: t(`schema_template.builtin.${name}`)}
+                                                )}
+                                                onClick={hideBuiltinFromEvent}
+                                            >
+                                                {t('schema_template.builtin_section.remove')}
+                                            </Button>,
+                                        ]}
+                                    >
+                                        <Typography.Paragraph type='secondary'>
+                                            {t(`schema_template.builtin_description.${name}`)}
+                                        </Typography.Paragraph>
+                                    </Card>
+                                </Col>
+                            ))}
+                        </Row>
+                    </section>
+
+                    <Divider />
+                    <Typography.Title level={4} id='schema-user-templates-heading'>
+                        {t('schema_template.user_section.title')}
+                    </Typography.Title>
+                    <Typography.Paragraph type='secondary'>
+                        {t('schema_template.user_section.description')}
+                    </Typography.Paragraph>
                     <Table
+                        aria-labelledby='schema-user-templates-heading'
                         columns={columns}
                         dataSource={visibleData}
+                        rowKey='name'
                         bordered
                         size='small'
                         pagination={pagination}
                         onChange={handleTable}
+                        expandable={{
+                            expandRowByClick: true,
+                            expandedRowRender: row => (
+                                <div style={{padding: '16px 24px'}}>
+                                    <CodeEditor
+                                        value={row.schema || ''}
+                                        lang='groovy'
+                                        readOnly
+                                        minHeight={240}
+                                        ariaLabel={t('schema_template.row.expand', {
+                                            name: row.name,
+                                        })}
+                                    />
+                                </div>
+                            ),
+                            rowExpandable: row => Boolean(row.schema),
+                        }}
                         locale={{
                             emptyText: query ? (
                                 <Empty description={t('schema_template.no_matches')}>
@@ -313,13 +467,19 @@ const Schema = () => {
                                 </Empty>
                             ) : (
                                 <Empty description={t('schema_template.empty')}>
-                                    <Button type='primary' onClick={createSchema}>
+                                    <Button type='primary' onClick={openCreate}>
                                         {t('schema_template.create')}
                                     </Button>
                                 </Empty>
                             ),
                         }}
                     />
+                    <Typography.Paragraph style={{marginTop: 20}}>
+                        {t('schema_template.docs.intro')}{' '}
+                        <a href={SCHEMA_DESIGN_URL} target='_blank' rel='noreferrer'>
+                            {t('schema_template.docs.link')}
+                        </a>
+                    </Typography.Paragraph>
                     <EditLayer
                         visible={editLayer}
                         detail={detail}

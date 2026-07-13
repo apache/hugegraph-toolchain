@@ -21,7 +21,8 @@
  */
 
 import React, {useState, useCallback, useContext, useEffect} from 'react';
-import {Form, Collapse, InputNumber} from 'antd';
+import {Collapse, InputNumber} from 'antd';
+import Form from '../../PersistentForm';
 import {TagsOutlined} from '@ant-design/icons';
 import _ from 'lodash';
 import * as api from '../../../../../api';

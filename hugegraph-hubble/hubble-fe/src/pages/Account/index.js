@@ -25,6 +25,7 @@ import {
     message,
     Tooltip,
     Modal,
+    Tag,
 } from 'antd';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'react-i18next';
@@ -32,6 +33,7 @@ import TableHeader from '../../components/TableHeader';
 import EditLayer from './EditLayer';
 import * as api from '../../api';
 import {getUser} from '../../utils/user';
+import {getAccountLevel} from './level';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
@@ -43,6 +45,8 @@ const RowAction = ({onAction, row, children}) => {
 
 const Account = () => {
     const {t} = useTranslation();
+    const currentUser = getUser();
+    const canManageAccounts = Boolean(currentUser.is_superadmin);
     const [editLayerVisible, setEditLayerVisible] = useState(false);
     const [op, setOp] = useState('detail');
     const [detail, setDetail] = useState({});
@@ -121,6 +125,16 @@ const Account = () => {
             render: val => <Tooltip title={val} placement='bottomLeft'>{val}</Tooltip>,
         },
         {
+            title: t('account.col.level'),
+            width: 140,
+            render: row => {
+                const level = getAccountLevel(row);
+                const color = level === 'ADMIN' ? 'red'
+                    : level === 'SPACEADMIN' ? 'blue' : 'default';
+                return <Tag color={color}>{t(`account.level.${level}`)}</Tag>;
+            },
+        },
+        {
             title: t('account.col.resource'),
             dataIndex: 'spacenum',
             width: 120,
@@ -133,26 +147,30 @@ const Account = () => {
         },
         {
             title: t('common.operation'),
-            width: 300,
+            width: canManageAccounts ? 300 : 100,
             align: 'center',
             render: row => (
                 <Space>
                     <RowAction onAction={showDetail} row={row}>
                         {t('common.action.detail')}
                     </RowAction>
-                    <RowAction onAction={showEdit} row={row}>
-                        {t('common.action.edit')}
-                    </RowAction>
-                    <RowAction onAction={showAuth} row={row}>
-                        {t('common.action.assign_permission')}
-                    </RowAction>
-                    {row.user_name !== 'admin'
-                        && row.user_name !== getUser().id
-                        && (
-                            <RowAction onAction={handleDelete} row={row}>
-                                {t('common.action.delete')}
+                    {canManageAccounts && (
+                        <>
+                            <RowAction onAction={showEdit} row={row}>
+                                {t('common.action.edit')}
                             </RowAction>
-                        )}
+                            <RowAction onAction={showAuth} row={row}>
+                                {t('common.action.assign_permission')}
+                            </RowAction>
+                        </>
+                    )}
+                    {canManageAccounts
+                        && row.user_name !== 'admin'
+                        && row.user_name !== currentUser.id && (
+                        <RowAction onAction={handleDelete} row={row}>
+                            {t('common.action.delete')}
+                        </RowAction>
+                    )}
                 </Space>
             ),
         },

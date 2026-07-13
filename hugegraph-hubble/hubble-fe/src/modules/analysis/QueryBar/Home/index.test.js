@@ -19,24 +19,37 @@ import {useState} from 'react';
 import {fireEvent, render, screen, within} from '@testing-library/react';
 import QueryBar, {isFavoritePopoverOpen} from './index';
 
-jest.mock('../../../../components/CodeEditor', () => () => <div>editor</div>);
+jest.mock('../../../../components/CodeEditor', () => props => (
+    <div
+        data-testid={`editor-${props.lang}`}
+        data-placeholder={props.placeholder}
+    >
+        editor
+    </div>
+));
 jest.mock('../ContentCommon', () => ({
     children,
     favoriteCardVisible,
     setFavoriteCardVisible,
     isEmptyQuery,
+    shortcutHint,
 }) => (
     <div>
         <button onClick={() => setFavoriteCardVisible(true)}>open favorite</button>
         <span>{favoriteCardVisible ? 'favorite open' : 'favorite closed'}</span>
         <span>{isEmptyQuery ? 'query empty' : 'query ready'}</span>
+        <span>{shortcutHint}</span>
         {children}
     </div>
 ));
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => ({
         'analysis.query.gremlin_tab': 'Gremlin',
+        'analysis.query.gremlin_placeholder': 'For example: g.V().limit(10)',
         'analysis.query.cypher_tab': 'Cypher',
+        'analysis.query.cypher_placeholder': 'For example: MATCH (n) RETURN n LIMIT 10',
+        'analysis.query.shortcut_hint_ctrl': 'Ctrl + Enter to run',
+        'analysis.query.shortcut_hint_command': 'Command + Enter to run',
         'analysis.query.text2gql_tab': 'Natural language',
         'analysis.query.text2gql_title': 'Natural-language graph query',
         'analysis.query.text2gql_description': 'This preview is not connected.',
@@ -108,4 +121,34 @@ it('does not transfer an open favorite popover when query tabs change', () => {
     fireEvent.click(screen.getByRole('tab', {name: 'Cypher'}));
     expect(within(screen.getByRole('tabpanel', {name: 'Cypher'}))
         .getByText('favorite closed')).toBeInTheDocument();
+});
+
+it('matches the editor placeholder to the active query language without promotional help', () => {
+    const ControlledQueryBar = () => {
+        const [activeTab, setActiveTab] = useState('Gremlin');
+        return (
+            <QueryBar
+                activeTab={activeTab}
+                onTabsChange={setActiveTab}
+                codeEditorContent=''
+                setCodeEditorContent={jest.fn()}
+            />
+        );
+    };
+
+    render(<ControlledQueryBar />);
+    expect(screen.getByTestId('editor-gremlin')).toHaveAttribute(
+        'data-placeholder',
+        'For example: g.V().limit(10)'
+    );
+    expect(screen.queryByText(/safe example/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Ctrl + Enter to run')).toBeInTheDocument();
+    expect(screen.getByText('Command + Enter to run')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('tab', {name: 'Cypher'}));
+    expect(screen.getByTestId('editor-cypher')).toHaveAttribute(
+        'data-placeholder',
+        'For example: MATCH (n) RETURN n LIMIT 10'
+    );
+    expect(screen.queryByText(/safe example/i)).not.toBeInTheDocument();
 });

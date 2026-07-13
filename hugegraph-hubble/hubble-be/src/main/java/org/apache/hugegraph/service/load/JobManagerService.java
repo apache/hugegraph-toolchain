@@ -29,6 +29,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.google.common.collect.ImmutableMap;
 import lombok.extern.log4j.Log4j2;
 
+import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.entity.GraphConnection;
 import org.apache.hugegraph.entity.enums.JobStatus;
 import org.apache.hugegraph.entity.enums.LoadStatus;
 import org.apache.hugegraph.entity.load.FileMapping;
@@ -159,6 +161,16 @@ public class JobManagerService {
         if (this.mapper.insert(entity) != 1) {
             throw new InternalException("entity.insert.failed", entity);
         }
+    }
+
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    public LoadTask createIngestTask(JobManager job, FileMapping mapping,
+                                     GraphConnection connection,
+                                     HugeClient client) {
+        this.save(job);
+        mapping.setJobId(job.getId());
+        this.fileMappingService.save(mapping);
+        return this.taskService.start(connection, mapping, client);
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)

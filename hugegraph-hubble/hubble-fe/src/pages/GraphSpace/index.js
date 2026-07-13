@@ -18,6 +18,7 @@
 
 import {
     Alert,
+    Card,
     Table,
     Space,
     Row,
@@ -27,11 +28,13 @@ import {
     Input,
     Radio,
     DatePicker,
+    Empty,
     message,
     Modal,
     Pagination,
     Spin,
 } from 'antd';
+import {PlusOutlined} from '@ant-design/icons';
 import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import {EditLayer} from './EditLayer';
@@ -40,6 +43,7 @@ import GraphSpaceCard from './Card';
 import style from './index.module.scss';
 import * as api from '../../api/index';
 import * as user from '../../utils/user';
+import {getResourceDisplayName} from '../../utils/displayName';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
@@ -61,7 +65,7 @@ const GraphSpace = () => {
     const [refresh, setRefresh] = useState('false');
     const [dateData, setDateData] = useState('');
     const [graphspacename, setGraphspacename] = useState('');
-    const [pagination, setPagination] = useState({toatal: 0, current: 1, pageSize: 12});
+    const [pagination, setPagination] = useState({total: 0, current: 1, pageSize: 11});
     const [loading, setLoading] = useState(false);
     const [listError, setListError] = useState(false);
     const listRequest = useRef(null);
@@ -80,6 +84,13 @@ const GraphSpace = () => {
         setDetail({});
     }, []);
 
+    const handleCreateKeyDown = useCallback(event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleCreate();
+        }
+    }, [handleCreate]);
+
     const editGraphspace = useCallback(detail => {
         setDetail(detail);
         setEditLayer(true);
@@ -90,7 +101,7 @@ const GraphSpace = () => {
         setPagination(value => ({
             ...value,
             current: 1,
-            pageSize: e.target.value === 'image' ? 12 : 10,
+            pageSize: 11,
         }));
     }, []);
 
@@ -152,7 +163,9 @@ const GraphSpace = () => {
             title: t('graphspace.col.name'),
             render: row => (
                 <>
-                    <Link to={`/graphspace/${row.name}`}>{row.nickname}</Link>
+                    <Link to={`/graphspace/${row.name}`}>
+                        {getResourceDisplayName(row.name, row.nickname)}
+                    </Link>
                     {row.default && <span className={style.default}>{t('common.label.default')}</span>}
                 </>
             ),
@@ -293,8 +306,14 @@ const GraphSpace = () => {
                 <Row justify='space-between'>
                     <Col>
                         <Space>
-                            {!listError && isSuperAdmin && (
-                                <Button type='primary' onClick={handleCreate}>
+                            {listType === 'list' && isSuperAdmin
+                                && !loading && !listError && (
+                                <Button
+                                    type='primary'
+                                    icon={<PlusOutlined />}
+                                    onClick={handleCreate}
+                                    aria-label={t('graphspace.create')}
+                                >
                                     {t('graphspace.create')}
                                 </Button>
                             )}
@@ -341,6 +360,15 @@ const GraphSpace = () => {
                         ? (
                             <>
                                 <Row gutter={[10, 10]} justify='start'>
+                                    {!loading && !listError && data.length === 0 && (
+                                        <Col span={isSuperAdmin ? 16 : 24}>
+                                            <Empty
+                                                description={t(graphspacename || dateData
+                                                    ? 'graphspace.no_matches'
+                                                    : 'graphspace.empty')}
+                                            />
+                                        </Col>
+                                    )}
                                     {data.map(item => {
                                         return (
                                             <Col span={8} key={item.name}>
@@ -354,6 +382,23 @@ const GraphSpace = () => {
                                             </Col>
                                         );
                                     })}
+                                    {!loading && !listError && isSuperAdmin && (
+                                        <Col span={8} key='add'>
+                                            <Card
+                                                className={style.add_card}
+                                                onClick={handleCreate}
+                                                role='button'
+                                                aria-label={t('graphspace.create')}
+                                                tabIndex={0}
+                                                onKeyDown={handleCreateKeyDown}
+                                            >
+                                                <Space>
+                                                    <PlusOutlined />
+                                                    {t('graphspace.create')}
+                                                </Space>
+                                            </Card>
+                                        </Col>
+                                    )}
                                 </Row>
                                 <br />
                                 <Row justify='end'>
@@ -363,6 +408,7 @@ const GraphSpace = () => {
                                             total={pagination.total}
                                             pageSize={pagination.pageSize}
                                             current={pagination.current}
+                                            showSizeChanger={false}
                                         />
                                     </Col>
                                 </Row>
@@ -372,6 +418,7 @@ const GraphSpace = () => {
                                 <Table
                                     columns={columns}
                                     dataSource={data}
+                                    rowKey='name'
                                     pagination={pagination}
                                     onChange={handleTable}
                                 />

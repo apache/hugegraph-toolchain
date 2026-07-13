@@ -46,7 +46,11 @@ import KCore from '../KCore';
 import KCoreVermeer from '../KCoreVermeer';
 import PersonalPageRank from '../PersonalPageRank';
 import SSSPVermeer from '../SSSPVermeer';
-import {useTranslatedConstants} from '../../../../../utils/constants';
+import {
+    getCanonicalAlgorithmName,
+    useTranslatedConstants,
+} from '../../../../../utils/constants';
+import {AlgorithmPersistenceContext} from '../../algorithmFormPersistence';
 
 
 
@@ -146,7 +150,11 @@ const OlapItem = props => {
         }
     };
 
-    return renderItem();
+    return (
+        <AlgorithmPersistenceContext.Provider value={getCanonicalAlgorithmName(algorithmName)}>
+            {renderItem()}
+        </AlgorithmPersistenceContext.Provider>
+    );
 };
 
 export default OlapItem;

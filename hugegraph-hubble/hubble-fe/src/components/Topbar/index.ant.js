@@ -16,8 +16,8 @@
  * under the License.
  */
 
-import {Layout, Space, Avatar, Dropdown, message, Modal, Radio} from 'antd';
-import {UserOutlined} from '@ant-design/icons';
+import {Layout, Space, Avatar, Button, Dropdown, message, Modal, Radio} from 'antd';
+import {QuestionCircleOutlined, UserOutlined} from '@ant-design/icons';
 import style from './index.module.scss';
 import BrandLockup from '../BrandLockup';
 import {Link, useNavigate, useLocation} from 'react-router-dom';
@@ -27,6 +27,9 @@ import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import GraphContextSwitcher from '../GraphContextSwitcher';
 import {getCurrentLanguage} from '../../utils/language';
+import {
+    clearPersistedAlgorithmFormsForUser,
+} from '../../modules/algorithm/algorithmsForm/algorithmFormPersistence';
 
 const Topbar = () => {
     const userInfo = user.getUser();
@@ -37,6 +40,7 @@ const Topbar = () => {
 
     const redirectToLogin = useCallback(() => {
         const redirect = `${location.pathname}${location.search}${location.hash}`;
+        clearPersistedAlgorithmFormsForUser();
         user.clearLogin();
         sessionStorage.setItem('redirect', redirect);
         window.location.href = `/login?redirect=${encodeURIComponent(redirect)}`;
@@ -77,12 +81,16 @@ const Topbar = () => {
         event => i18Change(event.target.value),
         [i18Change]
     );
+    const showShortcutHelp = useCallback(() => {
+        window.dispatchEvent(new CustomEvent('hubble:shortcut-help'));
+    }, []);
 
     const logout = useCallback(() => {
 
         api.auth.logout().then(res => {
             if (res.status === 200) {
                 sessionStorage.removeItem('redirect');
+                clearPersistedAlgorithmFormsForUser();
                 user.clearLogin();
                 message.success(t('Topbar.exit.success'));
                 navigate('/login');
@@ -131,9 +139,17 @@ const Topbar = () => {
                     buttonStyle='solid'
                     onChange={handleLanguageChange}
                     options={[
-                        {label: '中', value: 'zh-CN'},
+                        {label: 'CN', value: 'zh-CN'},
                         {label: 'EN', value: 'en-US'},
                     ]}
+                />
+                <Button
+                    type='text'
+                    className={style.shortcutHelp}
+                    icon={<QuestionCircleOutlined />}
+                    aria-label={t('workbench.shortcuts.open_button')}
+                    title={t('workbench.shortcuts.open_button')}
+                    onClick={showShortcutHelp}
                 />
                 <Dropdown menu={userMenu}>
                     <Space className={style.right}>

@@ -59,10 +59,10 @@ test('uses DEFAULT graph context and hides PD-only support in non-PD mode', () =
         name: /home\.workbench\.journeys\.understand\.primary/,
     })).toHaveAttribute('href', '/graphspace/DEFAULT');
     expect(screen.getByText('home.workbench.mode.non_pd')).toBeInTheDocument();
-    expect(screen.getByAltText('Apache HugeGraph')).toHaveAttribute(
-        'src', 'hugegraph-mark.svg'
-    );
-    expect(screen.getByText('HugeGraph')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {
+        name: 'home.workbench.title',
+    })).toBeInTheDocument();
+    expect(screen.queryByAltText('Apache HugeGraph')).not.toBeInTheDocument();
     expect(screen.queryByText('admin-support')).not.toBeInTheDocument();
     expect(screen.queryByText('operations-support')).not.toBeInTheDocument();
 });
@@ -73,6 +73,20 @@ test('ships every rendered secondary action in both languages', () => {
 
     expect(zh.home.workbench.journeys.prepare.secondary_2).toBe('查看导入任务');
     expect(en.home.workbench.journeys.prepare.secondary_2).toBe('View import tasks');
+    expect(zh.home.workbench.journeys.prepare.secondary_1).toBe('导入数据源');
+    expect(en.home.workbench.journeys.prepare.secondary_1).toBe('Import data sources');
+    expect(zh.home.workbench.journeys.query.secondary_2).toBe('查看异步任务');
+    expect(en.home.workbench.journeys.query.secondary_2).toBe('View async tasks');
+    expect(zh.home.workbench.intro).toBe('Hubble 面向图可视化人群。');
+    expect(en.home.workbench.intro).toBe(
+        'Hubble is designed for graph visualization users.'
+    );
+    expect(zh.home.workbench.mode.pd).toBe('PD / 集群模式');
+    expect(en.home.workbench.mode.pd).toBe('PD / cluster mode');
+    expect(zh.home.workbench.journeys.understand.primary)
+        .toBe('查看图空间和图');
+    expect(en.home.workbench.journeys.understand.primary)
+        .toBe('View GraphSpaces and graphs');
 });
 
 test('uses the same journey names as the global navigation in both languages', () => {
@@ -93,15 +107,17 @@ test('uses the same journey names as the global navigation in both languages', (
     expect(enCommon.workbench.nav.understand).toBe('Graph Overview');
     expect(enCommon.workbench.nav.prepare).toBe('Graph Import');
     expect(enCommon.workbench.nav.query).toBe('Graph Query');
+    expect(zhCommon.workbench.nav.home).toBe('首页');
+    expect(enCommon.workbench.nav.home).toBe('Home');
 });
 
-test('orders graph query before graph import in the main journey', () => {
+test('orders graph import before graph query in the main journey', () => {
     isPdEnabled.mockReturnValue(false);
     renderHome();
 
     const queryTitle = screen.getByText('home.workbench.journeys.query.title');
     const importTitle = screen.getByText('home.workbench.journeys.prepare.title');
-    expect(queryTitle.compareDocumentPosition(importTitle)
+    expect(importTitle.compareDocumentPosition(queryTitle)
         & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });
 

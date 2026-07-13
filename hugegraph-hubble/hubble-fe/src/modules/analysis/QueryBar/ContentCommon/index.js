@@ -55,7 +55,7 @@ const ContentCommon = props => {
         favoriteCardVisible,
         setFavoriteCardVisible,
         isExecuting,
-        onResetQuery,
+        shortcutHint,
     } = props;
 
     const context = useContext(GraphAnalysisContext);
@@ -208,7 +208,7 @@ const ContentCommon = props => {
         onClick: onSwitchExecuteMenu,
         items: [
             {label: t('analysis.query.execute_query'), key: QUERY},
-            {label: t('analysis.query.execute_task'), key: TASK},
+            {label: t('analysis.query.switch_async_task'), key: TASK},
         ],
     };
 
@@ -216,51 +216,53 @@ const ContentCommon = props => {
         <div className={tabClassName} onKeyDown={onQueryKeyDown}>
             <div className={c.leftHeader}>
                 {props.children}
-                <div className={c.btnGroup}>
-                    <Tooltip
-                        placement="bottom"
-                        title={isEmptyQuery
-                            ? emptyDesc
-                            : t('analysis.query.execute_shortcut')}
-                    >
-                        <Dropdown.Button
-                            menu={executeMenu}
-                            disabled={isEmptyQuery || isExecuting}
-                            onClick={onExecution}
-                            size='small'
-                            title={t('analysis.query.execute_shortcut')}
+                <div className={c.actionBar}>
+                    <div className={c.secondaryActions}>
+                        <Popover
+                            placement="bottom"
+                            trigger='click'
+                            overlayClassName={c.favoriteModel}
+                            title={t('analysis.query.favorite_statement')}
+                            content={favoriteContent}
+                            open={favoriteCardVisible}
                         >
-                            {isQueryMode ? t('analysis.query.execute_query') : t('analysis.query.execute_task')}
-                        </Dropdown.Button>
-                    </Tooltip>
-                    <Tooltip placement="bottom" title={queryDesc} className={c.questionCircleIcon}>
-                        <QuestionCircleOutlined />
-                    </Tooltip>
-                    <Popover
-                        placement="bottom"
-                        trigger='click'
-                        overlayClassName={c.favoriteModel}
-                        title={t('analysis.query.favorite_statement')}
-                        content={favoriteContent}
-                        open={favoriteCardVisible}
-                    >
-                        <Tooltip placement="bottom" title={isEmptyQuery ? emptyDesc : ''}>
-                            <Button
-                                className={c.btn}
-                                disabled={isEmptyQuery}
-                                onClick={onFavoriteCard}
-                                size='small'
+                            <Tooltip placement="bottom" title={isEmptyQuery ? emptyDesc : ''}>
+                                <Button
+                                    className={c.btn}
+                                    disabled={isEmptyQuery}
+                                    onClick={onFavoriteCard}
+                                    size='small'
+                                >
+                                    {t('analysis.query.favorite')}
+                                </Button>
+                            </Tooltip>
+                        </Popover>
+                        <Button className={c.btn} onClick={onClear} size='small'>
+                            {t('common.action.clear')}
+                        </Button>
+                        <span className={c.shortcutHint}>{shortcutHint}</span>
+                    </div>
+                    <div className={c.primaryActions}>
+                        <Tooltip
+                            placement="top"
+                            title={isEmptyQuery
+                                ? emptyDesc
+                                : t('analysis.query.execute_shortcut')}
+                        >
+                            <Dropdown.Button
+                                menu={executeMenu}
+                                disabled={isEmptyQuery || isExecuting}
+                                onClick={onExecution}
+                                placement="topRight"
+                                title={t('analysis.query.execute_shortcut')}
                             >
-                                {t('analysis.query.favorite')}
-                            </Button>
+                                {isQueryMode ? t('analysis.query.execute_query') : t('analysis.query.execute_task')}
+                            </Dropdown.Button>
                         </Tooltip>
-                    </Popover>
-                    <Button className={c.btn} onClick={onClear} size='small'>
-                        {t('common.action.clear')}
-                    </Button>
-                    <Button className={c.btn} onClick={onResetQuery} size='small'>
-                        {t('analysis.query.reset_example')}
-                    </Button>
+                        <Tooltip placement="top" title={queryDesc} className={c.questionCircleIcon}>
+                            <QuestionCircleOutlined />
+                        </Tooltip>
+                    </div>
                 </div>
             </div>
             <KeyboardAction

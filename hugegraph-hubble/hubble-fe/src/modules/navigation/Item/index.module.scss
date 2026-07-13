@@ -61,15 +61,11 @@
 }
 
 .reason {
-    width: 160px;
+    width: 100%;
+    min-width: 0;
     color: #8c8c8c;
     font-size: 12px;
     line-height: 18px;
-}
-
-.reason {
-    width: 160px;
-    color: #8c8c8c;
-    font-size: 12px;
-    line-height: 18px;
+    overflow-wrap: anywhere;
+    white-space: normal;
 }

@@ -22,7 +22,8 @@
 
 import React, {useState, useCallback, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Form, Collapse, InputNumber} from 'antd';
+import {Collapse, InputNumber} from 'antd';
+import Form from '../../../PersistentForm';
 import {ReconciliationOutlined} from '@ant-design/icons';
 import GraphAnalysisContext from '../../../../../Context';
 import * as api from '../../../../../../api';

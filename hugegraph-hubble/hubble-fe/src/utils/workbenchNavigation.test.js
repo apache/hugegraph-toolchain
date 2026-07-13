@@ -32,6 +32,7 @@ test.each([
     ['/asyncTasks/result/DEFAULT/hugegraph/2', 'workbench.page.async_result'],
     ['/account', 'workbench.page.account'],
     ['/my', 'workbench.page.profile'],
+    ['/profile', 'workbench.page.profile'],
     ['/unknown', 'workbench.page.not_found'],
     ['/source-unknown', 'workbench.page.not_found'],
     ['/source/unknown', 'workbench.page.not_found'],

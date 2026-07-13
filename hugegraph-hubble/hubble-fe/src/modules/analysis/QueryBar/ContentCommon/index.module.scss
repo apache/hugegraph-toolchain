@@ -22,23 +22,61 @@
     padding: 10px 10px;
 
     .leftHeader {
-        width: 90%;
+        flex: 1;
+        min-width: 0;
 
-        .btnGroup {
-            width: 600px;
+        .actionBar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 16px;
+            margin: 12px 0 4px;
+
+            .secondaryActions,
+            .primaryActions {
+                display: flex;
+                align-items: center;
+                min-height: 32px;
+            }
+
+            .secondaryActions {
+                flex-wrap: wrap;
+                gap: 8px;
+            }
+
+            .primaryActions {
+                flex: 0 0 auto;
+                margin-left: auto;
+            }
 
             .questionCircleIcon {
-                margin: 0 24px 0 10px;
+                margin-left: 10px;
             }
 
             .btn {
                 position: relative;
-                margin: 10px 10px 6px 0px;
+            }
+
+            .shortcutHint {
+                color: #667085;
+                font-size: 12px;
+                white-space: nowrap;
+            }
+
+            :global(.ant-dropdown-button) {
+                min-width: 180px;
+            }
+
+            :global(.ant-dropdown-button > .ant-btn:first-child) {
+                min-width: 138px;
             }
         }
     }
 
     .showMoreButton {
+        flex: 0 0 auto;
+        margin-left: 8px;
         cursor: pointer;
         user-select: none;
     }

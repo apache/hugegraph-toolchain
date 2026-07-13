@@ -24,6 +24,7 @@ import {useParams, useNavigate} from 'react-router-dom';
 import * as api from '../../api';
 import {useTranslation} from 'react-i18next';
 import GraphJourneyNav from '../../components/GraphJourneyNav';
+import {getResourceDisplayName} from '../../utils/displayName';
 
 const Meta = () => {
     const [viewType, setViewType] = useState('image');
@@ -89,8 +90,8 @@ const Meta = () => {
     }, [graphspace, graph, loadIdentity]);
 
     const hasIdentityError = errors.graph || errors.graphspace;
-    const pageTitle = `${graphspaceInfo.nickname ?? graphspace} - `
-        + `${graphIno.nickname ?? graph} - ${t('schema.title')}`;
+    const pageTitle = `${getResourceDisplayName(graphspace, graphspaceInfo.nickname)} - `
+        + `${getResourceDisplayName(graph, graphIno.nickname)} - ${t('schema.title')}`;
 
     return (
         <>

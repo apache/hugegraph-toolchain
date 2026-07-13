@@ -172,7 +172,7 @@ public class QueryService {
                 throw new IllegalGremlinException("gremlin.illegal-statemnt", e,
                         e.message());
             }
-            throw new ExternalException("gremlin.execute.failed", e, e.message());
+            throw this.serverQueryException(e);
         } catch (ClientException e) {
             Throwable cause = e.getCause();
             if (cause != null) {
@@ -265,7 +265,7 @@ public class QueryService {
                 throw new IllegalGremlinException("gremlin.illegal-statemnt", e,
                                                   e.message());
             }
-            throw new ExternalException("gremlin.execute.failed", e, e.message());
+            throw this.serverQueryException(e);
         } catch (ClientException e) {
             Throwable cause = e.getCause();
             if (cause != null) {
@@ -285,6 +285,26 @@ public class QueryService {
             throw new ExternalException("gremlin.execute.failed", e,
                                         e.getMessage());
         }
+    }
+
+    private ExternalException serverQueryException(ServerException exception) {
+        int status = exception.status() > 0 ? exception.status() : 400;
+        String detail = exception.message();
+        if (StringUtils.isBlank(detail)) {
+            detail = exception.cause();
+        }
+        if (StringUtils.isBlank(detail)) {
+            detail = exception.exception();
+        }
+        if (StringUtils.isBlank(detail) && status == 503) {
+            return new ExternalException(status, "gremlin.server.unavailable",
+                                         exception);
+        }
+        if (StringUtils.isBlank(detail)) {
+            detail = "HTTP " + status;
+        }
+        return new ExternalException(status, "gremlin.execute.failed",
+                                     exception, detail);
     }
 
     private TypedResult parseResults(ResultSet resultSet) {

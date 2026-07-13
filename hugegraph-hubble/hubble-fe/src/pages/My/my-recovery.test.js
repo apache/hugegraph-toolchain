@@ -137,6 +137,22 @@ test('shows the authoritative capability level instead of an empty role placehol
     expect(api.auth.status).toHaveBeenCalledTimes(1);
 });
 
+test('shows the authoritative space administrator capability level', async () => {
+    api.auth.status.mockResolvedValue({status: 200, data: {level: 'SPACEADMIN'}});
+    api.auth.getPersonal.mockResolvedValue({
+        status: 200,
+        data: {
+            user_name: 'space-admin',
+            user_nickname: 'Space administrator',
+            adminSpaces: [{name: 'SPACE'}],
+        },
+    });
+
+    render(<My />);
+
+    expect(await screen.findByText('my.level.SPACEADMIN')).toBeInTheDocument();
+});
+
 test('ignores an old profile response after a newer refresh', async () => {
     const oldRequest = deferred();
     api.auth.getPersonal

@@ -236,7 +236,26 @@ const MappingForm = ({prev,
                 showIcon
                 type='info'
                 message={t('task.edit.mapping_help_title')}
-                description={t('task.edit.mapping_help')}
+                description={(
+                    <Space direction='vertical' size={2}>
+                        <Typography.Text>{t('task.edit.mapping_help')}</Typography.Text>
+                        <Typography.Text strong>
+                            {t('task.edit.mapping_example_title')}
+                        </Typography.Text>
+                        <Typography.Text>
+                            {t('task.edit.mapping_example_vertex_source')}
+                        </Typography.Text>
+                        <Typography.Text>
+                            {t('task.edit.mapping_example_vertex_target')}
+                        </Typography.Text>
+                        <Typography.Text>
+                            {t('task.edit.mapping_example_edge_source')}
+                        </Typography.Text>
+                        <Typography.Text>
+                            {t('task.edit.mapping_example_edge_target')}
+                        </Typography.Text>
+                    </Space>
+                )}
             />
             {metaError && (
                 <Alert

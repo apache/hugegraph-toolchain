@@ -36,7 +36,7 @@ import style from '../index.module.scss';
 
 const HiddenFormValue = () => null;
 
-const FieldTitle = ({fieldKey, onDelete, confirmTitle, okText, cancelText}) => {
+const FieldTitle = ({fieldKey, onDelete, confirmTitle, deleteLabel, okText, cancelText}) => {
     const handleConfirm = useCallback(() => onDelete(fieldKey), [fieldKey, onDelete]);
     return (
         <Space>
@@ -47,7 +47,13 @@ const FieldTitle = ({fieldKey, onDelete, confirmTitle, okText, cancelText}) => {
                 okText={okText}
                 cancelText={cancelText}
             >
-                <MinusSquareOutlined />
+                <Button
+                    type='text'
+                    size='small'
+                    aria-label={deleteLabel}
+                    title={deleteLabel}
+                    icon={<MinusSquareOutlined />}
+                />
             </Popconfirm>
         </Space>
     );
@@ -139,6 +145,7 @@ const FieldForm = ({visible, prev, datasourceID}) => {
                 fieldKey={props.key}
                 onDelete={handleDelete}
                 confirmTitle={t('task.edit.delete_field_confirm')}
+                deleteLabel={t('task.edit.delete_field', {field: props.key})}
                 okText={t('common.action.confirm')}
                 cancelText={t('common.action.cancel')}
             />,

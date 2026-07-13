@@ -46,7 +46,7 @@ public class TargetController extends AuthController {
     @GetMapping("list")
     public List<Target> list(@PathVariable("graphspace") String graphSpace) {
         HugeClient client = this.authClient(graphSpace, null);
-        return this.targetService.list(client);
+        return this.targetService.list(client, graphSpace);
     }
 
     @GetMapping
@@ -59,38 +59,39 @@ public class TargetController extends AuthController {
             @RequestParam(name = "page_size", required = false,
                           defaultValue = "10") int pageSize) {
         HugeClient client = this.authClient(graphSpace, null);
-        return this.targetService.queryPage(client, query, pageNo, pageSize);
+        return this.targetService.queryPage(client, graphSpace, query, pageNo,
+                                            pageSize);
     }
 
     @GetMapping("{id}")
     public Target get(@PathVariable("graphspace") String graphSpace,
                       @PathVariable("id") String targetId) {
         HugeClient client = this.authClient(graphSpace, null);
-        return this.targetService.get(client, targetId);
+        return this.targetService.get(client, graphSpace, targetId);
     }
 
     @PostMapping
     public Target add(@PathVariable("graphspace") String graphSpace,
                       @RequestBody Target target) {
-        HugeClient client = this.authClient(graphSpace, null);
-        return this.targetService.add(client, target);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
+        return this.targetService.add(client, graphSpace, target);
     }
 
     @PutMapping("{id}")
     public Target update(@PathVariable("graphspace") String graphSpace,
                          @PathVariable("id") String targetId,
                          @RequestBody Target target) {
-        HugeClient client = this.authClient(graphSpace, null);
-        Target current = this.targetService.get(client, targetId);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
+        Target current = this.targetService.get(client, graphSpace, targetId);
         current.resources(target.resources());
         current.description(target.description());
-        return this.targetService.update(client, current);
+        return this.targetService.update(client, graphSpace, current);
     }
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable("graphspace") String graphSpace,
                        @PathVariable("id") String targetId) {
-        HugeClient client = this.authClient(graphSpace, null);
-        this.targetService.delete(client, targetId);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
+        this.targetService.delete(client, graphSpace, targetId);
     }
 }

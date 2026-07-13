@@ -77,4 +77,16 @@ describe('product mode helpers', () => {
             {label: 'Default Name', value: 'DEFAULT'},
         ]);
     });
+
+    test('falls back to GraphSpace names when aliases are empty or echoed', () => {
+        expect(getTaskGraphspaceOptions(true, [
+            {name: 'empty', nickname: ''},
+            {name: 'echoed', nickname: 'echoed'},
+            {name: 'aliased', nickname: 'Aliased'},
+        ])).toEqual([
+            {label: 'empty', value: 'empty'},
+            {label: 'echoed', value: 'echoed'},
+            {label: 'Aliased', value: 'aliased'},
+        ]);
+    });
 });

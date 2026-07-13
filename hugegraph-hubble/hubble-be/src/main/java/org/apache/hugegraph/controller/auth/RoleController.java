@@ -46,8 +46,8 @@ public class RoleController extends AuthController {
 
     @GetMapping("list")
     public List<Role> listName(@PathVariable("graphspace") String graphSpace) {
-        HugeClient client = this.authClient(graphSpace, null);
-        return this.roleService.list(client, graphSpace);
+        HugeClient client = this.requireAccountManager();
+        return this.roleService.list(client);
     }
 
     @GetMapping
@@ -59,23 +59,22 @@ public class RoleController extends AuthController {
                           defaultValue = "1") int pageNo,
             @RequestParam(name = "page_size", required = false,
                           defaultValue = "10") int pageSize) {
-        HugeClient client = this.authClient(graphSpace, null);
-        return this.roleService.queryPage(client, graphSpace, query, pageNo,
-                                          pageSize);
+        HugeClient client = this.requireAccountManager();
+        return this.roleService.queryPage(client, query, pageNo, pageSize);
     }
 
     @GetMapping("{id}")
     public Role get(@PathVariable("graphspace") String graphSpace,
                     @PathVariable("id") String roleId) {
-        HugeClient client = this.authClient(graphSpace, null);
-        return this.roleService.get(client, graphSpace, roleId);
+        HugeClient client = this.requireAccountManager();
+        return this.roleService.get(client, roleId);
     }
 
     @PostMapping
     public Role add(@PathVariable("graphspace") String graphSpace,
                     @RequestBody Role role) {
-        HugeClient client = this.authClient(graphSpace, null);
-        role.graphSpace(graphSpace);
+        HugeClient client = this.requireAccountManager();
+        role.graphSpace(null);
         return this.roleService.insert(client, role);
     }
 
@@ -83,8 +82,8 @@ public class RoleController extends AuthController {
     public Role update(@PathVariable("graphspace") String graphSpace,
                        @PathVariable("id") String id,
                        @RequestBody Map<String, Object> body) {
-        HugeClient client = this.authClient(graphSpace, null);
-        Role current = this.roleService.get(client, graphSpace, id);
+        HugeClient client = this.requireAccountManager();
+        Role current = this.roleService.get(client, id);
         String name = firstNonBlank(body, "role_name", "group_name",
                                     "new_group_name");
         if (name != null) {
@@ -102,7 +101,7 @@ public class RoleController extends AuthController {
     @DeleteMapping("{id}")
     public void delete(@PathVariable("graphspace") String graphSpace,
                        @PathVariable("id") String id) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireAccountManager();
         this.roleService.delete(client, id);
     }
 

@@ -34,6 +34,21 @@ const mockTranslate = (key, values) => ({
     'schema_template.column.updated_at': 'Updated',
     'schema_template.column.creator': 'Creator',
     'schema_template.column.operation': 'Actions',
+    'schema_template.builtin_section.title': 'Built-in starting points',
+    'schema_template.builtin_section.unsaved': 'Not saved',
+    'schema_template.builtin_section.use': 'Use starting point',
+    'schema_template.builtin_section.use_named': `Use ${values?.name}`,
+    'schema_template.builtin_section.remove': 'Hide this starting point',
+    'schema_template.builtin_section.remove_named': `Hide ${values?.name}`,
+    'schema_template.builtin_section.restore': 'Restore built-in starting points',
+    'schema_template.user_section.title': 'Saved user templates',
+    'schema_template.row.expand': `Expand ${values?.name}`,
+    'schema_template.docs.intro': 'Need help designing a schema?',
+    'schema_template.docs.link': 'Read the Schema design documentation',
+    'schema_template.action.edit': 'Edit',
+    'schema_template.action.edit_named': `Edit ${values?.name}`,
+    'schema_template.action.delete': 'Delete',
+    'schema_template.action.delete_named': `Delete ${values?.name}`,
     'schema_template.no_matches': 'No matching templates',
     'schema_template.clear_search': 'Clear search',
     'schema_template.empty': 'No templates yet',
@@ -43,10 +58,23 @@ jest.mock('../../api', () => ({
     manage: {
         getGraphSpace: jest.fn(),
         getSchemaList: jest.fn(),
+        addSchema: jest.fn(),
+        updateSchema: jest.fn(),
         delSchema: jest.fn(),
     },
 }));
-jest.mock('./EditLayer', () => () => null);
+jest.mock('./EditLayer', () => ({visible, mode, detail}) => (
+    visible ? (
+        <div data-testid='schema-edit-layer'>
+            {mode}:{detail?.name}:{detail?.schema}
+        </div>
+    ) : null
+));
+jest.mock('../../components/CodeEditor', () => props => (
+    <div role='region' aria-label={props.ariaLabel} data-readonly={props.readOnly}>
+        {props.value}
+    </div>
+));
 jest.mock('../../components/DataPreparationNav', () => () => null);
 jest.mock('react-router-dom', () => ({
     useNavigate: () => jest.fn(),
@@ -55,6 +83,10 @@ jest.mock('react-router-dom', () => ({
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: mockTranslate}),
 }));
+
+const waitForLoadingToFinish = () => waitFor(() => {
+    expect(document.querySelector('.ant-spin-spinning')).not.toBeInTheDocument();
+});
 
 beforeAll(() => {
     window.matchMedia = window.matchMedia || (() => ({
@@ -65,8 +97,137 @@ beforeAll(() => {
 });
 
 afterEach(() => {
+    window.history.replaceState({}, '', '/');
     mockGraphspace = 'SPACE';
     jest.clearAllMocks();
+    window.localStorage.clear();
+});
+
+it('keeps unsaved built-in starting points separate from saved user templates', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(<Schema />);
+
+    expect(await screen.findByText('Built-in starting points')).toBeInTheDocument();
+    await waitForLoadingToFinish();
+    expect(screen.getAllByText('Not saved').length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Saved user templates')).toBeInTheDocument();
+    expect(api.manage.addSchema).not.toHaveBeenCalled();
+    expect(api.manage.updateSchema).not.toHaveBeenCalled();
+    expect(api.manage.delSchema).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getAllByRole('button', {name: /^Use /})[0]);
+    expect(screen.getByTestId('schema-edit-layer')).toHaveTextContent(
+        'create:people_network:schema.propertyKey'
+    );
+    expect(api.manage.addSchema).not.toHaveBeenCalled();
+    expect(api.manage.updateSchema).not.toHaveBeenCalled();
+    expect(api.manage.delSchema).not.toHaveBeenCalled();
+});
+
+it('hides built-in starting points locally and offers an explicit restore action', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    const {unmount} = render(<Schema />);
+    expect(await screen.findAllByText('Not saved')).toHaveLength(2);
+    await waitForLoadingToFinish();
+
+    fireEvent.click(screen.getAllByRole('button', {name: /^Hide /})[0]);
+    expect(screen.getAllByText('Not saved')).toHaveLength(1);
+    expect(screen.getByRole('button', {name: 'Restore built-in starting points'}))
+        .toBeInTheDocument();
+    expect(api.manage.addSchema).not.toHaveBeenCalled();
+    expect(api.manage.updateSchema).not.toHaveBeenCalled();
+    expect(api.manage.delSchema).not.toHaveBeenCalled();
+
+    unmount();
+    render(<Schema />);
+    expect(await screen.findAllByText('Not saved')).toHaveLength(1);
+    await waitForLoadingToFinish();
+
+    fireEvent.click(screen.getByRole('button', {name: 'Restore built-in starting points'}));
+    expect(screen.getAllByText('Not saved')).toHaveLength(2);
+    expect(api.manage.addSchema).not.toHaveBeenCalled();
+    expect(api.manage.updateSchema).not.toHaveBeenCalled();
+    expect(api.manage.delSchema).not.toHaveBeenCalled();
+});
+
+it('expands a saved template row into a wide read-only Groovy code block', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'custom_schema',
+            schema: 'schema.propertyKey("name").asText().create()',
+        }], total: 1},
+    });
+
+    render(<Schema />);
+    const rowName = await screen.findByText('custom_schema');
+    await waitForLoadingToFinish();
+    expect(screen.queryByRole('button', {name: 'View'})).not.toBeInTheDocument();
+
+    fireEvent.click(rowName);
+    const code = screen.getByRole('region', {name: 'Expand custom_schema'});
+    expect(code).toHaveAttribute('data-readonly', 'true');
+    expect(code).toHaveTextContent('schema.propertyKey');
+});
+
+it('links to the Schema design documentation below the template list', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(<Schema />);
+
+    const link = await screen.findByRole('link', {
+        name: 'Read the Schema design documentation',
+    });
+    await waitForLoadingToFinish();
+    expect(link).toHaveAttribute(
+        'href',
+        'https://hugegraph.apache.org/docs/guides/desgin-concept/'
+    );
+});
+
+it('opens create mode when reached from the new-graph shortcut', async () => {
+    window.history.replaceState({}, '', '/graphspace/SPACE/schema?create=true');
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(<Schema />);
+
+    expect(await screen.findByTestId('schema-edit-layer')).toHaveTextContent('create');
+    await waitForLoadingToFinish();
+});
+
+it('uses the GraphSpace name when its alias is empty', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({
+        status: 200,
+        data: {name: 'SPACE', nickname: ''},
+    });
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(<Schema />);
+
+    expect(await screen.findByText('SPACE - Schema templates')).toBeInTheDocument();
+    await waitForLoadingToFinish();
 });
 
 it('does not present a failed schema-template request as an empty list', async () => {
@@ -80,10 +241,12 @@ it('does not present a failed schema-template request as an empty list', async (
     expect(await screen.findByRole('alert')).toHaveTextContent(
         'Could not load schema templates.'
     );
+    await waitForLoadingToFinish();
     fireEvent.click(screen.getByRole('button', {name: 'Retry schema templates'}));
 
     await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    await waitForLoadingToFinish();
 });
 
 it('distinguishes search no-results and clears the search', async () => {
@@ -106,6 +269,7 @@ it('distinguishes search no-results and clears the search', async () => {
     fireEvent.click(screen.getByRole('button', {name: 'Clear search'}));
     expect(await screen.findByText('No templates yet')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search')).toHaveValue('');
+    await waitForLoadingToFinish();
 });
 
 it('ignores graph-space detail returned after the route has changed', async () => {
@@ -140,6 +304,7 @@ it('ignores graph-space detail returned after the route has changed', async () =
     });
     expect(screen.queryByText('Space A - Schema templates')).not.toBeInTheDocument();
     expect(screen.getByText('Space B - Schema templates')).toBeInTheDocument();
+    await waitForLoadingToFinish();
 });
 
 it('hides graph-space A identity and rows while graph-space B is pending', async () => {
@@ -177,4 +342,5 @@ it('hides graph-space A identity and rows while graph-space B is pending', async
         resolveListB({status: 200, data: {records: [], total: 0}});
         await Promise.resolve();
     });
+    await waitForLoadingToFinish();
 });

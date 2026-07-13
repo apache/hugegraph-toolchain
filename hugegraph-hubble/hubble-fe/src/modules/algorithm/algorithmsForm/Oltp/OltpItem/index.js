@@ -21,7 +21,7 @@
  */
 
 import React from 'react';
-import {ALGORITHM_NAME} from '../../../../../utils/constants';
+import {ALGORITHM_NAME, getCanonicalAlgorithmName} from '../../../../../utils/constants';
 import KoutGet from '../KoutGet';
 import KneighborGet from '../KneighborGet';
 import SameNeighbors from '../SameNeighbors';
@@ -49,6 +49,7 @@ import ResourceAllocation from '../ResourceAllocation';
 import SameNeighborsBatch from '../SameNeighborsBatch';
 import Egonet from '../Egonet';
 import Paths from '../Paths';
+import {AlgorithmPersistenceContext} from '../../algorithmFormPersistence';
 
 const {
     K_OUT,
@@ -147,7 +148,11 @@ const OltpItem = props => {
         }
     };
 
-    return renderItem();
+    return (
+        <AlgorithmPersistenceContext.Provider value={getCanonicalAlgorithmName(algorithmName)}>
+            {renderItem()}
+        </AlgorithmPersistenceContext.Provider>
+    );
 };
 
 export default OltpItem;

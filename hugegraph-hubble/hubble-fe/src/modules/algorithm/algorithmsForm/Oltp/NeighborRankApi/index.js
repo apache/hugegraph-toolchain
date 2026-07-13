@@ -21,7 +21,8 @@
  */
 
 import React, {useState, useCallback, useContext} from 'react';
-import {Input, Form, Collapse, Select, InputNumber, Button, Tooltip} from 'antd';
+import {Input, Collapse, Select, InputNumber, Button, Tooltip} from 'antd';
+import Form from '../../PersistentForm';
 import {ScheduleOutlined, DownOutlined, RightOutlined, PlusOutlined, QuestionCircleOutlined} from '@ant-design/icons';
 import {useTranslation} from 'react-i18next';
 import AlgorithmNameHeader from '../../AlgorithmNameHeader';

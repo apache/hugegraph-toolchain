@@ -21,6 +21,8 @@ import userEvent from '@testing-library/user-event';
 import Account from './index';
 import * as api from '../../api';
 
+let mockCurrentUser;
+
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => key}),
 }));
@@ -32,11 +34,12 @@ jest.mock('../../api', () => ({
     },
 }));
 
-jest.mock('../../utils/user', () => ({getUser: () => ({id: 'admin'})}));
+jest.mock('../../utils/user', () => ({getUser: () => mockCurrentUser}));
 jest.mock('./EditLayer', () => () => null);
 
 beforeEach(() => {
     jest.clearAllMocks();
+    mockCurrentUser = {id: 'admin', is_superadmin: true};
     window.matchMedia = jest.fn().mockImplementation(query => ({
         matches: false,
         media: query,
@@ -63,4 +66,71 @@ test('does not present a failed account request as an empty user table', async (
     expect(await screen.findByText('analyst')).toBeInTheDocument();
     expect(screen.queryByText('account.load.unavailable')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'common.action.detail'})).toBeInTheDocument();
+});
+
+test('labels administrators, space administrators, and regular users in the list', async () => {
+    api.auth.getAllUserList.mockResolvedValue({
+        status: 200,
+        data: {
+            records: [
+                {user_name: 'root', is_superadmin: true, adminSpaces: []},
+                {user_name: 'space-admin', is_superadmin: false, adminSpaces: ['SPACE']},
+                {user_name: 'analyst', is_superadmin: false, adminSpaces: []},
+            ],
+            total: 3,
+        },
+    });
+
+    render(<Account />);
+
+    expect(await screen.findByText('account.level.ADMIN')).toBeInTheDocument();
+    expect(screen.getByText('account.level.SPACEADMIN')).toBeInTheDocument();
+    expect(screen.getByText('account.level.USER')).toBeInTheDocument();
+});
+
+test('space administrators only see account actions allowed by the backend', async () => {
+    mockCurrentUser = {
+        id: 'space-admin',
+        is_superadmin: false,
+        adminSpaces: ['SPACE'],
+    };
+    api.auth.getAllUserList.mockResolvedValue({
+        status: 200,
+        data: {
+            records: [{user_name: 'analyst', is_superadmin: false, adminSpaces: []}],
+            total: 1,
+        },
+    });
+
+    render(<Account />);
+
+    expect(await screen.findByText('analyst')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'account.create'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'common.action.detail'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'common.action.edit'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {
+        name: 'common.action.assign_permission',
+    })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'common.action.delete'})).not.toBeInTheDocument();
+});
+
+test('super administrators retain all account management actions', async () => {
+    api.auth.getAllUserList.mockResolvedValue({
+        status: 200,
+        data: {
+            records: [{user_name: 'analyst', is_superadmin: false, adminSpaces: []}],
+            total: 1,
+        },
+    });
+
+    render(<Account />);
+
+    expect(await screen.findByText('analyst')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'account.create'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'common.action.detail'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'common.action.edit'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {
+        name: 'common.action.assign_permission',
+    })).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'common.action.delete'})).toBeInTheDocument();
 });

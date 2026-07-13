@@ -35,6 +35,7 @@ import org.apache.hugegraph.entity.query.GremlinQuery;
 import org.apache.hugegraph.entity.query.GremlinResult;
 import org.apache.hugegraph.entity.schema.VertexLabelEntity;
 import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.service.schema.VertexLabelService;
@@ -142,6 +143,44 @@ public class QueryServiceTest {
         Mockito.verify(gremlin, Mockito.never()).gremlin(Mockito.anyString());
     }
 
+    @Test
+    public void testGremlinPreservesServerUnavailableStatus() throws Exception {
+        ServerException server = new ServerException((String) null);
+        server.status(503);
+        GremlinManager gremlin = this.mockGremlinFailure(server);
+        QueryService service = this.serviceWithConfig();
+
+        ExternalException error = (ExternalException)
+                                  Assert.assertThrows(ExternalException.class,
+                                                      () -> {
+            service.executeGremlinQuery(this.mockClient(gremlin),
+                                        new GremlinQuery("g.V()"));
+        });
+
+        Assert.assertEquals(503, error.status());
+        Assert.assertEquals("gremlin.server.unavailable", error.getMessage());
+    }
+
+    @Test
+    public void testGremlinPreservesServerErrorDetail() throws Exception {
+        String detail = "The server is too busy to process the request";
+        ServerException server = new ServerException(detail);
+        server.status(503);
+        GremlinManager gremlin = this.mockGremlinFailure(server);
+        QueryService service = this.serviceWithConfig();
+
+        ExternalException error = (ExternalException)
+                                  Assert.assertThrows(ExternalException.class,
+                                                      () -> {
+            service.executeGremlinQuery(this.mockClient(gremlin),
+                                        new GremlinQuery("g.V()"));
+        });
+
+        Assert.assertEquals(503, error.status());
+        Assert.assertEquals("gremlin.execute.failed", error.getMessage());
+        Assert.assertEquals(detail, error.args()[0]);
+    }
+
     private QueryService serviceWithConfig() throws Exception {
         QueryService service = new QueryService();
         HugeConfig config = Mockito.mock(HugeConfig.class);
@@ -182,6 +221,15 @@ public class QueryServiceTest {
         Mockito.when(gremlin.execute(Mockito.any()))
                .thenReturn(resultSets[0], Arrays.copyOfRange(resultSets, 1,
                                                               resultSets.length));
+        return gremlin;
+    }
+
+    private GremlinManager mockGremlinFailure(ServerException failure) {
+        GremlinManager gremlin = Mockito.mock(GremlinManager.class);
+        Mockito.when(gremlin.gremlin(Mockito.anyString()))
+               .thenAnswer(invocation -> new GremlinRequest.Builder(
+                       invocation.getArgument(0), gremlin));
+        Mockito.when(gremlin.execute(Mockito.any())).thenThrow(failure);
         return gremlin;
     }
 

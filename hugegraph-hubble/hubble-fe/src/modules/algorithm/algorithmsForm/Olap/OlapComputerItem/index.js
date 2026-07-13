@@ -17,7 +17,8 @@
  */
 
 import React, {useContext} from 'react';
-import {Form, Input, InputNumber} from 'antd';
+import {Input, InputNumber} from 'antd';
+import Form from '../../PersistentForm';
 import GraphAnalysisContext from '../../../../Context';
 import {TEXT_PATH} from '../../../../../utils/constants';
 import {useTranslation} from 'react-i18next';

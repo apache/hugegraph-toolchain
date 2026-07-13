@@ -96,6 +96,13 @@ describe('graph view limits', () => {
     });
 });
 
+it('labels the structured result tab as JSON', () => {
+    render(<QueryResult queryResult={{}} />);
+
+    expect(screen.getByRole('tab', {name: 'JSON'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Json'})).not.toBeInTheDocument();
+});
+
 it('marks circular display values without throwing', () => {
     const circular = {name: 'loop'};
     circular.self = circular;

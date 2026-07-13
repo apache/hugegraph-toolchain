@@ -21,7 +21,8 @@
  */
 
 import React from 'react';
-import {Form, InputNumber} from 'antd';
+import {InputNumber} from 'antd';
+import Form from '../PersistentForm';
 import {useTranslation} from 'react-i18next';
 
 const MaxDegreeItem = props => {

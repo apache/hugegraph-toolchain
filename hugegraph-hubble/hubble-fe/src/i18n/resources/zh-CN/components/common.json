@@ -32,11 +32,19 @@
     }
   },
   "workbench": {
-    "back_home": "返回工作台",
+    "back_home": "返回首页",
     "skip_to_workspace": "跳到主工作区",
     "navigation": "主导航",
     "navigation_open": "打开主导航",
     "navigation_close": "关闭主导航",
+    "shortcuts": {
+      "title": "快捷键总览",
+      "description": "在非输入区域按 ? 可随时打开或关闭此总览。",
+      "open_button": "查看快捷键",
+      "open_help": "打开或关闭快捷键总览",
+      "run_query": "在图查询编辑器中执行当前语句",
+      "fullscreen_graph": "画布获得焦点后切换全屏"
+    },
     "context": {
       "name": "当前图上下文",
       "graphspace": "当前 GraphSpace",
@@ -54,7 +62,7 @@
       "retry_graphs": "重试图列表"
     },
     "nav": {
-      "home": "工作台",
+      "home": "首页",
       "understand": "图概览",
       "graphs": "图",
       "graph_list": "图列表",

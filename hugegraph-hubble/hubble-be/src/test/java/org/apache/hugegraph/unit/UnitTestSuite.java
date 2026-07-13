@@ -18,15 +18,21 @@
 
 package org.apache.hugegraph.unit;
 
+import org.apache.hugegraph.controller.auth.AccountMutationAuthorizationTest;
+import org.apache.hugegraph.controller.auth.GraphSpaceAuthMutationAuthorizationTest;
+import org.apache.hugegraph.controller.auth.GraphSpaceAuthOwnershipTest;
 import org.apache.hugegraph.controller.ingest.IngestControllerTest;
 import org.apache.hugegraph.controller.langchain.LangChainControllerSecurityTest;
 import org.apache.hugegraph.controller.schema.SchemaControllerSecurityTest;
 import org.apache.hugegraph.controller.space.GraphSpaceControllerTest;
+import org.apache.hugegraph.service.load.IngestTransactionIntegrationTest;
+import org.apache.hugegraph.service.space.GraphSpaceServiceTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
+    AccountMutationAuthorizationTest.class,
     AuthSecurityTest.class,
     AppTypeTest.class,
     AuthzRouteRegistrationTest.class,
@@ -40,10 +46,14 @@ import org.junit.runners.Suite;
     GraphServiceImportTest.class,
     GraphMetricsControllerTest.class,
     GraphSpaceControllerTest.class,
+    GraphSpaceAuthMutationAuthorizationTest.class,
+    GraphSpaceAuthOwnershipTest.class,
+    GraphSpaceServiceTest.class,
     GraphsControllerCanonicalTest.class,
     GremlinHistoryFailureTest.class,
     HubbleOptionsTest.class,
     IngestControllerTest.class,
+    IngestTransactionIntegrationTest.class,
     LangChainControllerSecurityTest.class,
     LegacyFacadeRemovalTest.class,
     MessageSourceHandlerTest.class,

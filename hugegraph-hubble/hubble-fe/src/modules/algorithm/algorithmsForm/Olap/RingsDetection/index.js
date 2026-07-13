@@ -21,7 +21,8 @@
  */
 
 import React, {useState, useCallback, useContext} from 'react';
-import {Form, Collapse, InputNumber} from 'antd';
+import {Collapse, InputNumber} from 'antd';
+import Form from '../../PersistentForm';
 import {PropertySafetyOutlined} from '@ant-design/icons';
 import GraphAnalysisContext from '../../../../Context';
 import AlgorithmNameHeader from '../../AlgorithmNameHeader';

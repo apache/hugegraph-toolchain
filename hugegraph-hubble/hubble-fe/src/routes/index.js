@@ -77,13 +77,24 @@ const AccountRoute = () => {
 
     return user.canAccessAccount(pdEnabled, user.getUser())
         ? <Account />
-        : <Navigate to='/my' replace />;
+        : <Navigate to='/profile' replace />;
 };
 
 const GraphSpaceListRoute = () => {
     return isPdEnabled()
         ? <GraphSpace />
         : <Navigate to={`/graphspace/${DEFAULT_GRAPHSPACE}`} replace />;
+};
+
+const LegacyProfileRedirect = () => {
+    const location = useLocation();
+
+    return (
+        <Navigate
+            to={{pathname: '/profile', search: location.search, hash: location.hash}}
+            replace
+        />
+    );
 };
 
 const GraphRoute = () => {
@@ -152,19 +163,18 @@ const RouteList = ({element}) => {
                 <Route path="/task/edit" element={<TaskEdit />} />
                 <Route path="/task/detail/:taskid" element={<TaskDetail />} />
 
-                <Route path='/my' element={<My />} />
+                <Route path='/profile' element={<My />} />
+                <Route path='/my' element={<LegacyProfileRedirect />} />
                 <Route path='/resource' element={<Navigate to='/navigation' replace />} />
                 <Route path='/role' element={<Navigate to='/navigation' replace />} />
                 <Route
                     path='/account'
                     element={<AccountRoute />}
                 />
-                {/* <Route path='/role' element={<Role />} /> */}
                 <Route
                     path='/role/graphspace/:graphspace/:role'
                     element={<Navigate to='/navigation' replace />}
                 />
-                {/* <Route path='/resource' element={<Resource />} /> */}
                 {/* <Route path="/:moduleName" element={<GraphAnalysis />} /> */}
                 <Route path="/gremlin" element={<GraphAnalysis moduleName={'gremlin'} />} />
                 <Route path="/algorithms" element={<GraphAnalysis moduleName={'algorithms'} />} />

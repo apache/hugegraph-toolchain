@@ -17,7 +17,7 @@
  */
 
 import {render, screen} from '@testing-library/react';
-import {MemoryRouter, Outlet} from 'react-router-dom';
+import {MemoryRouter, Outlet, useLocation} from 'react-router-dom';
 import RouteList from './index';
 import {isPdEnabled} from '../utils/config';
 
@@ -46,7 +46,6 @@ jest.mock('../pages/Account', () => () => {
     mockAccountRender();
     return <div>account page</div>;
 });
-jest.mock('../pages/Role/Auth', () => () => <div>role auth page</div>);
 jest.mock('../pages/Navigation', () => () => <div>navigation page</div>);
 jest.mock('../pages/Error404', () => () => <div>not found page</div>);
 jest.mock('../pages/Test', () => () => <div>test page</div>);
@@ -57,12 +56,19 @@ jest.mock('../utils/config', () => ({
 }));
 
 const renderRoutes = initialEntry => {
-    const TestLayout = () => (
-        <div>
-            <div>protected layout</div>
-            <Outlet />
-        </div>
-    );
+    const TestLayout = () => {
+        const location = useLocation();
+
+        return (
+            <div>
+                <div>protected layout</div>
+                <div data-testid='current-route'>
+                    {location.pathname}{location.search}{location.hash}
+                </div>
+                <Outlet />
+            </div>
+        );
+    };
 
     return render(
         <MemoryRouter
@@ -110,6 +116,16 @@ describe('route guard', () => {
         expect(sessionStorage.getItem('redirect')).toBeNull();
     });
 
+    it('redirects the legacy profile deep link to the semantic route', () => {
+        sessionStorage.setItem('user_', JSON.stringify({id: 'admin'}));
+
+        renderRoutes('/my?tab=security#password');
+
+        expect(screen.getByText('my page')).toBeTruthy();
+        expect(screen.getByTestId('current-route').textContent)
+            .toBe('/profile?tab=security#password');
+    });
+
     it.each(['/resource', '/role'])(
         'redirects unavailable legacy route %s to navigation',
         route => {
@@ -136,7 +152,6 @@ describe('route guard', () => {
         renderRoutes('/role/graphspace/DEFAULT/admin');
 
         expect(screen.getByText('navigation page')).toBeTruthy();
-        expect(screen.queryByText('role auth page')).toBeNull();
         expect(screen.queryByText('not found page')).toBeNull();
     });
 

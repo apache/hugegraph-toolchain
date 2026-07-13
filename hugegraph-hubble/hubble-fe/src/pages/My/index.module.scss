@@ -19,6 +19,7 @@
 .pageCanvas {
     display: grid;
     align-content: start;
+    justify-items: center;
     gap: var(--workbench-space-4);
 }
 

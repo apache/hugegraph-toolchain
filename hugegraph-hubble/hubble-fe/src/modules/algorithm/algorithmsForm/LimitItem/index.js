@@ -21,7 +21,8 @@
  */
 
 import React from 'react';
-import {Form, InputNumber} from 'antd';
+import {InputNumber} from 'antd';
+import Form from '../PersistentForm';
 import {limitValidator} from '../utils';
 
 const LimitItem = props => {

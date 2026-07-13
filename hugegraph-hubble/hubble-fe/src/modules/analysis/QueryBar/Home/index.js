@@ -74,6 +74,7 @@ const QueryBar = props => {
             children: (
                 <ContentCommon
                     {...args}
+                    shortcutHint={t('analysis.query.shortcut_hint_ctrl')}
                     isEmptyQuery={isEmptyQuery}
                     favoriteCardVisible={isFavoritePopoverOpen(
                         favoriteCardVisible,
@@ -82,11 +83,17 @@ const QueryBar = props => {
                     )}
                     setFavoriteCardVisible={setFavoriteCardVisible}
                 >
-                    <CodeEditor
-                        value={codeEditorContent}
-                        onChange={handleCodeEditorChange}
-                        lang={'gremlin'}
-                    />
+                    <div className={c.editorShell}>
+                        <CodeEditor
+                            value={codeEditorContent}
+                            onChange={handleCodeEditorChange}
+                            lang={'gremlin'}
+                            placeholder={t('analysis.query.gremlin_placeholder')}
+                        />
+                        <span className={c.editorShortcutHint}>
+                            {t('analysis.query.shortcut_hint_command')}
+                        </span>
+                    </div>
                 </ContentCommon>
             ),
         },
@@ -96,6 +103,7 @@ const QueryBar = props => {
             children: (
                 <ContentCommon
                     {...args}
+                    shortcutHint={t('analysis.query.shortcut_hint_ctrl')}
                     isEmptyQuery={isEmptyQuery}
                     favoriteCardVisible={isFavoritePopoverOpen(
                         favoriteCardVisible,
@@ -104,11 +112,17 @@ const QueryBar = props => {
                     )}
                     setFavoriteCardVisible={setFavoriteCardVisible}
                 >
-                    <CodeEditor
-                        value={codeEditorContent}
-                        onChange={handleCodeEditorChange}
-                        lang={'cypher'}
-                    />
+                    <div className={c.editorShell}>
+                        <CodeEditor
+                            value={codeEditorContent}
+                            onChange={handleCodeEditorChange}
+                            lang={'cypher'}
+                            placeholder={t('analysis.query.cypher_placeholder')}
+                        />
+                        <span className={c.editorShortcutHint}>
+                            {t('analysis.query.shortcut_hint_command')}
+                        </span>
+                    </div>
                 </ContentCommon>
             ),
         },

@@ -25,6 +25,7 @@ jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => ({
         'analysis.query.execute_query': 'Run Query',
         'analysis.query.execute_task': 'Run Task',
+        'analysis.query.switch_async_task': 'Switch to Async Task',
         'analysis.query.execute_shortcut': 'Run Query (Ctrl/Command + Enter)',
     })[key] || key}),
 }));
@@ -89,6 +90,20 @@ it('does not run for plain Enter, IME composition, or a pending request', () => 
 
     expect(props.onExecute).not.toHaveBeenCalled();
     expect(screen.getByRole('button', {name: /Run Query/})).toBeDisabled();
+});
+
+it('offers async execution with explicit wording next to the primary action', async () => {
+    renderContent();
+
+    fireEvent.mouseEnter(screen.getByRole('img', {name: 'ellipsis'}).closest('button'));
+
+    expect(await screen.findByText('Switch to Async Task')).toBeInTheDocument();
+});
+
+it('keeps the keyboard shortcut visible beside the secondary actions', () => {
+    renderContent({shortcutHint: 'Ctrl / Command + Enter to run'});
+
+    expect(screen.getByText('Ctrl / Command + Enter to run')).toBeInTheDocument();
 });
 
 it('keeps favorite submission disabled until the name is backend-compatible', () => {

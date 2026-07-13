@@ -47,6 +47,7 @@ import java.util.Comparator;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -182,9 +183,13 @@ public class GraphSpaceService {
     }
 
     private static void removeSensitiveFields(Map<String, Object> info) {
-        info.remove("dp_username");
-        info.remove("dp_password");
-        info.remove("configs");
+        info.keySet().removeIf(key -> {
+            String normalized = key.replace("_", "")
+                                   .toLowerCase(Locale.ROOT);
+            return "dpusername".equals(normalized) ||
+                   "dppassword".equals(normalized) ||
+                   "configs".equals(normalized);
+        });
     }
 
     /**

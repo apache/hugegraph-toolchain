@@ -34,6 +34,16 @@ jest.mock('react-i18next', () => ({
     },
 }));
 
+jest.mock('../../components/CodeEditor', () => props => (
+    <textarea
+        aria-label='schema-code-editor'
+        value={props.value || ''}
+        placeholder={props.placeholder}
+        onChange={event => props.onChange?.(event.target.value)}
+        data-min-height={props.minHeight}
+    />
+));
+
 beforeAll(() => {
     window.matchMedia = window.matchMedia || (() => ({
         matches: false,
@@ -64,6 +74,46 @@ test('offers built-in starting points in create mode and fills an empty draft', 
     expect(screen.getByPlaceholderText('schema_template.form.schema_placeholder'))
         .toHaveValue(BUILTIN_SCHEMA_TEMPLATES.people_network);
     expect(startingPoint).toBeDisabled();
+});
+
+test('opens a wide create dialog with a tall highlighted Schema editor', () => {
+    render(
+        <EditLayer
+            visible
+            mode='create'
+            detail={{}}
+            graphspace='DEFAULT'
+            onCancel={jest.fn()}
+            refresh={jest.fn()}
+        />
+    );
+
+    expect(screen.getByRole('dialog')).toHaveStyle({width: '960px'});
+    expect(screen.getByLabelText('schema-code-editor')).toHaveAttribute(
+        'data-min-height',
+        '360'
+    );
+});
+
+test('uses a selected built-in starting point passed in from the Schema page', () => {
+    render(
+        <EditLayer
+            visible
+            mode='create'
+            detail={{
+                name: 'product_catalog',
+                schema: BUILTIN_SCHEMA_TEMPLATES.product_catalog,
+            }}
+            graphspace='DEFAULT'
+            onCancel={jest.fn()}
+            refresh={jest.fn()}
+        />
+    );
+
+    expect(screen.getByPlaceholderText('schema_template.form.name_placeholder'))
+        .toHaveValue('product_catalog');
+    expect(screen.getByLabelText('schema-code-editor'))
+        .toHaveValue(BUILTIN_SCHEMA_TEMPLATES.product_catalog);
 });
 
 test('does not show the starting-point selector while editing', () => {

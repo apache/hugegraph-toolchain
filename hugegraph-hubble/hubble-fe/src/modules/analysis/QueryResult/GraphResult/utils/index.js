@@ -23,6 +23,7 @@ import {formatToDownloadData, formatToGraphData} from '../../../../../utils/form
 import {processParallelEdges} from '../../../../../utils/graph';
 import {clearSelectedStates} from '../../../../../utils/handleGraphState';
 import _ from 'lodash';
+import {disableChangeDataRelayout} from '../../../../component/Graph/data';
 
 const fetchExpandInfo = async (params, graphInstance, graphSpaceInfo) => {
     const {graphSpace, graph} = graphSpaceInfo;
@@ -66,7 +67,7 @@ const handleAddGraphNode = (data, metaData, styleConfigData, graph) => {
     const {layout} = graph.cfg;
     if (layout) {
         graph.destroyLayout();
-        graph.updateLayout(layout);
+        graph.updateLayout(disableChangeDataRelayout(layout));
         graph.refresh();
     }
     clearSelectedStates(graph);

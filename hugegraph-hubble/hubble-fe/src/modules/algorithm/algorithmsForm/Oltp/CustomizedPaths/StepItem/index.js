@@ -21,7 +21,8 @@
  */
 
 import React, {useState, useCallback} from 'react';
-import {Input, Form, Select, Button, Tooltip, InputNumber} from 'antd';
+import {Input, Select, Button, Tooltip, InputNumber} from 'antd';
+import Form from '../../../PersistentForm';
 import {DownOutlined, RightOutlined, PlusOutlined, QuestionCircleOutlined} from '@ant-design/icons';
 import {useTranslation} from 'react-i18next';
 import {integerValidator, propertiesValidator} from '../../../utils';

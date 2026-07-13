@@ -32,11 +32,19 @@
     }
   },
   "workbench": {
-    "back_home": "Back to workbench",
+    "back_home": "Back to home",
     "skip_to_workspace": "Skip to main workspace",
     "navigation": "Primary navigation",
     "navigation_open": "Open primary navigation",
     "navigation_close": "Close primary navigation",
+    "shortcuts": {
+      "title": "Keyboard shortcuts",
+      "description": "Press ? outside an editor to open or close this overview.",
+      "open_button": "View keyboard shortcuts",
+      "open_help": "Open or close the shortcut overview",
+      "run_query": "Run the current statement in the graph query editor",
+      "fullscreen_graph": "Toggle full screen after focusing the canvas"
+    },
     "context": {
       "name": "Current graph context",
       "graphspace": "Current GraphSpace",
@@ -54,7 +62,7 @@
       "retry_graphs": "Retry graphs"
     },
     "nav": {
-      "home": "Workbench",
+      "home": "Home",
       "understand": "Graph Overview",
       "graphs": "Graphs",
       "graph_list": "Graph list",

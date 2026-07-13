@@ -28,6 +28,8 @@ import {
     getTaskGraphspaceOptions,
 } from '../../../utils/productMode';
 import {readWorkbenchGraphContext} from '../../../utils/workbenchGraphContext';
+import FormHelpLabel from '../../../components/FormHelpLabel';
+import {getResourceDisplayName} from '../../../utils/displayName';
 
 const BaseForm = ({cancel, visible, loading}) => {
     const {t} = useTranslation();
@@ -94,7 +96,7 @@ const BaseForm = ({cancel, visible, loading}) => {
             }
             if (res.status === 200) {
                 const options = res.data.records.map(item => ({
-                    label: item.nickname,
+                    label: getResourceDisplayName(item.name, item.nickname),
                     value: item.name,
                     disabled: (item.schemaview && item.schemaview.vertices.length === 0
                         && item.schemaview.edges.length === 0),
@@ -176,7 +178,17 @@ const BaseForm = ({cancel, visible, loading}) => {
                 return;
             }
             if (res.status === 200) {
-                setGraphsapceOptions(getTaskGraphspaceOptions(pdMode, res.data.records));
+                const options = getTaskGraphspaceOptions(pdMode, res.data.records);
+                setGraphsapceOptions(options);
+                const current = readWorkbenchGraphContext();
+                const currentOption = options.find(option => option.value === current.graphspace);
+                if (currentOption
+                    && !baseForm.getFieldValue(['ingestion_option', 'graphspace'])) {
+                    setSelectGraphspace(currentOption.value);
+                    baseForm.setFieldsValue({
+                        ingestion_option: {graphspace: currentOption.value},
+                    });
+                }
 
                 return;
             }
@@ -186,7 +198,7 @@ const BaseForm = ({cancel, visible, loading}) => {
         return () => {
             active = false;
         };
-    }, [graphspaceRetry, pdMode]);
+    }, [baseForm, graphspaceRetry, pdMode]);
 
     useEffect(() => {
         if (pdMode) {
@@ -253,9 +265,13 @@ const BaseForm = ({cancel, visible, loading}) => {
                     />
                 )}
                 <Form.Item
-                    label={t('task.edit.name')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.name')}
+                            help={t('task.edit.name_help')}
+                        />
+                    )}
                     name='task_name'
-                    extra={t('task.edit.name_help')}
                     validateTrigger={['onBlur', 'onChange']}
                     rules={[
                         rules.required(),
@@ -266,10 +282,14 @@ const BaseForm = ({cancel, visible, loading}) => {
                     <Input placeholder={t('task.edit.name_placeholder')} showCount maxLength={48} />
                 </Form.Item>
                 <Form.Item
-                    label={t('task.edit.source')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.source')}
+                            help={t('task.edit.source_help')}
+                        />
+                    )}
                     wrapperCol={{span: 6}}
                     name='datasource_id'
-                    extra={t('task.edit.source_help')}
                     rules={[rules.required()]}
                 >
                     <Select
@@ -286,7 +306,15 @@ const BaseForm = ({cancel, visible, loading}) => {
                         }
                     />
                 </Form.Item>
-                <Form.Item label={t('task.edit.target')} required>
+                <Form.Item
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.target')}
+                            help={t('task.edit.target_help')}
+                        />
+                    )}
+                    required
+                >
                     <Space>
                         <Form.Item
                             name={['ingestion_option', 'graphspace']}
@@ -313,7 +341,7 @@ const BaseForm = ({cancel, visible, loading}) => {
                     </Space>
                 </Form.Item>
                 <Typography.Paragraph type="secondary" style={{marginLeft: '12.5%'}}>
-                    {t('task.edit.target_help')}{' '}
+                    {t('task.edit.loader_docs_intro')}{' '}
                     <a
                         href="https://hugegraph.apache.org/docs/quickstart/toolchain/hugegraph-loader/"
                         target="_blank"

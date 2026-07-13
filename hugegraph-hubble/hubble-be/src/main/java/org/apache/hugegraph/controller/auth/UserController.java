@@ -25,6 +25,8 @@ import org.apache.hugegraph.controller.BaseController;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.auth.PasswordEntity;
 import org.apache.hugegraph.entity.auth.UserEntity;
+import org.apache.hugegraph.exception.ForbiddenException;
+import org.apache.hugegraph.exception.ParameterizedException;
 import org.apache.hugegraph.service.auth.UserService;
 import org.apache.hugegraph.exception.UnauthorizedException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,7 +41,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @RestController
 @RequestMapping(Constant.API_VERSION + "auth/users")
@@ -68,13 +73,14 @@ public class UserController extends BaseController {
 
     @PostMapping
     public void create(@RequestBody UserEntity userEntity) {
-        HugeClient client = this.authClient(null, null);
+        HugeClient client = this.requireAccountCreator();
+        this.checkAccountGrantScope(client, null, userEntity);
         userService.add(client, userEntity);
     }
 
     @PostMapping("batch")
     public void createbatch(@RequestParam("file") MultipartFile csvfile) {
-        HugeClient client = this.authClient(null, null);
+        HugeClient client = this.requireAccountManager();
         userService.addbatch(client, csvfile);
     }
 
@@ -87,13 +93,37 @@ public class UserController extends BaseController {
     @PutMapping("{id}")
     public void update(@PathVariable("id") String id,
                        @RequestBody UserEntity userEntity) {
-        userEntity.setId(id);
-        userService.update(this.authClient(null, null), userEntity);
+        HugeClient client = this.requireAccountManager();
+        UserEntity current = this.userService.get(client, id);
+        if (userEntity.getName() != null &&
+            !Objects.equals(userEntity.getName(), current.getName())) {
+            throw new ParameterizedException(
+                    "The body user_name(%s) does not match path user(%s)",
+                    userEntity.getName(), current.getName());
+        }
+        if (!this.userService.isSuperAdmin(client) &&
+            current.isSuperadmin()) {
+            throw new ForbiddenException(
+                    "Permission denied: modify superadmin");
+        }
+        userEntity.setId(current.getId() == null ? id : current.getId());
+        userEntity.setName(current.getName());
+        if (!userEntity.hasSuperadmin()) {
+            userEntity.setSuperadmin(current.isSuperadmin());
+        }
+        if (userEntity.getAdminSpaces() == null) {
+            userEntity.setAdminSpaces(current.getAdminSpaces());
+        }
+        this.checkAccountGrantScope(client, current.getName(), userEntity);
+        userService.update(client, userEntity);
     }
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable("id") String id) {
-        userService.delete(this.authClient(null, null), id);
+        HugeClient client = this.requireAccountManager();
+        UserEntity current = this.userService.get(client, id);
+        userService.delete(client, current.getId() == null ? id :
+                           current.getId());
     }
 
     @PostMapping("updatepwd")
@@ -111,8 +141,45 @@ public class UserController extends BaseController {
     @PostMapping("updateadminspace/{username}")
     public void updateadminspace(@PathVariable("username") String username,
                                  @RequestBody List<String> adminspaces) {
-        HugeClient client = this.authClient(null, null);
+        HugeClient client = this.requireAccountManager();
+        this.checkAdminSpaceScope(client, username, adminspaces);
         userService.updateAdminSpace(client, username, adminspaces);
+    }
+
+    private void checkAccountGrantScope(HugeClient client, String username,
+                                        UserEntity userEntity) {
+        if (this.userService.isSuperAdmin(client)) {
+            return;
+        }
+        if (userEntity.isSuperadmin()) {
+            throw new ForbiddenException(
+                    "Permission denied: grant superadmin");
+        }
+        this.checkAdminSpaceScope(client, username,
+                                  userEntity.getAdminSpaces());
+    }
+
+    private void checkAdminSpaceScope(HugeClient client, String username,
+                                      List<String> requestedSpaces) {
+        if (this.userService.isSuperAdmin(client)) {
+            return;
+        }
+        Set<String> managedSpaces = new HashSet<>(
+                this.userService.listAdminSpace(client, this.getUser()));
+        Set<String> requested = requestedSpaces == null ?
+                                new HashSet<>() :
+                                new HashSet<>(requestedSpaces);
+        Set<String> current = username == null ? new HashSet<>() :
+                              new HashSet<>(this.userService.listAdminSpace(
+                                      client, username));
+        Set<String> changed = new HashSet<>(current);
+        changed.addAll(requested);
+        changed.removeIf(space -> current.contains(space) ==
+                                  requested.contains(space));
+        if (!managedSpaces.containsAll(changed)) {
+            throw new ForbiddenException(
+                    "Permission denied: manage another graphspace");
+        }
     }
 
     @PutMapping("personal")

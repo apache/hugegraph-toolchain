@@ -22,7 +22,8 @@
 
 import React, {useState, useCallback, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Input, Form, Collapse} from 'antd';
+import {Input, Collapse} from 'antd';
+import Form from '../../PersistentForm';
 import {HeatMapOutlined} from '@ant-design/icons';
 import AlgorithmNameHeader from '../../AlgorithmNameHeader';
 import DirectionItem from '../../DirectionItem';

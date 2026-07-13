@@ -31,6 +31,24 @@
         justify-content: flex-end;
     }
 
+    .help {
+        margin-bottom: 16px;
+        padding: 12px 16px;
+        border: 1px solid #d9e8ff;
+        border-radius: 6px;
+        background: #f5f9ff;
+
+        strong {
+            display: block;
+            color: #172033;
+        }
+
+        p {
+            margin: 4px 0 0;
+            color: #536179;
+        }
+    }
+
     .emptyJourney {
         padding: 52px 20px;
         border: 1px dashed #cbd5e1;

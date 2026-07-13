@@ -107,8 +107,18 @@ test('does not expose a default GraphSpace mutation action', () => {
 
     expect(screen.queryByText('common.action.set_default')).not.toBeInTheDocument();
     expect(handleSetDefault).not.toHaveBeenCalled();
+    expect(screen.getByText('graphspace.default_name')).toBeInTheDocument();
+    expect(screen.queryByText('Default')).not.toBeInTheDocument();
     expect(screen.getByText('graphspace.card.daily_snapshot')).toBeInTheDocument();
     expect(screen.getByLabelText('graphspace.card.statistic_help')).toBeInTheDocument();
+});
+
+test('ships a localized default GraphSpace name in both languages', () => {
+    const zh = require('../../i18n/resources/zh-CN/modules/pages.json');
+    const en = require('../../i18n/resources/en-US/modules/pages.json');
+
+    expect(zh.graphspace.default_name).toBe('默认图空间');
+    expect(en.graphspace.default_name).toBe('Default GraphSpace');
 });
 
 test('falls back to the daily-update label when statistics are unavailable', () => {
@@ -137,6 +147,24 @@ test('falls back to the daily-update label when statistics are unavailable', () 
     expect(screen.getByText('graphspace.card.vertex: -')).toBeInTheDocument();
     expect(screen.getByText('graphspace.card.edge: -')).toBeInTheDocument();
     expect(screen.getByText('graphspace.card.daily_update')).toBeInTheDocument();
+});
+
+test('treats a backend nickname echo as an unset alias', () => {
+    const item = {
+        name: 'space', nickname: 'space', create_time: '2026-07-10', auth: false,
+        max_graph_number: 10, cpu_limit: 2, memory_limit: 4,
+        storage_limit: 100, storage_used: 0, storage_percent: 0,
+    };
+    render(
+        <GraphSpaceCard
+            item={item}
+            editGraphspace={jest.fn()}
+            deleteGraphspace={jest.fn()}
+            handleInit={jest.fn()}
+        />
+    );
+
+    expect(screen.getByTitle('space')).toBeInTheDocument();
 });
 
 test('keeps public GraphSpace navigation but hides mutation actions for viewers', () => {

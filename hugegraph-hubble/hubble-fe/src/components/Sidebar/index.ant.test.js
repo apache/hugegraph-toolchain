@@ -55,7 +55,7 @@ test('exposes the application menu as named primary navigation', async () => {
     expect(screen.getByText('图导入')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', {name: 'database 图查询'})).toBeInTheDocument();
     expect(screen.getByText('系统与运维')).toBeInTheDocument();
-    expect(navigation).toContainElement(screen.getByRole('link', {name: '图查询'}));
+    expect(navigation).toContainElement(screen.getByRole('link', {name: 'GQL 图遍历'}));
     expect(navigation).toContainElement(screen.getByRole('link', {name: '分析任务'}));
     const menuSections = screen.getAllByRole('menuitem')
         .map(item => item.textContent);
@@ -185,7 +185,7 @@ test('shows Account for the same authorized-space user accepted by its route', a
 
     render(
         <MemoryRouter
-            initialEntries={['/my']}
+            initialEntries={['/profile']}
             future={{v7_startTransition: true, v7_relativeSplatPath: true}}
         >
             <Sidebar />
@@ -207,12 +207,15 @@ test('hides Account from an analyst who can read a space but cannot administer i
 
     render(
         <MemoryRouter
-            initialEntries={['/my']}
+            initialEntries={['/profile']}
             future={{v7_startTransition: true, v7_relativeSplatPath: true}}
         >
             <Sidebar />
         </MemoryRouter>
     );
 
+    expect(await screen.findByRole('link', {name: 'GQL 图遍历'})).toBeInTheDocument();
+    expect(screen.getByText('图导入')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '数据导入'})).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: '账号管理'})).not.toBeInTheDocument();
 });

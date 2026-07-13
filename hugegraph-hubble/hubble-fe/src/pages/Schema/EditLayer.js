@@ -21,35 +21,16 @@ import {useState, useEffect, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../api/index';
 import * as rules from '../../utils/rules';
+import FormHelpLabel from '../../components/FormHelpLabel';
+import CodeEditor from '../../components/CodeEditor';
+import {BUILTIN_SCHEMA_TEMPLATES} from './builtinSchemaTemplates';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 const DUPLICATE_SCHEMA_TEMPLATE
     = 'Cannot create schema template since it has been created';
 const SCHEMA_EXAMPLE_URL = 'https://hugegraph.apache.org/docs/language/hugegraph-example/';
 
-export const BUILTIN_SCHEMA_TEMPLATES = {
-    people_network: [
-        'schema.propertyKey("name").asText().ifNotExist().create()',
-        'schema.propertyKey("since").asInt().ifNotExist().create()',
-        'schema.vertexLabel("person").properties("name").primaryKeys("name")',
-        '      .ifNotExist().create()',
-        'schema.edgeLabel("knows").sourceLabel("person").targetLabel("person")',
-        '      .properties("since").ifNotExist().create()',
-        'schema.indexLabel("personByName").onV("person").by("name")',
-        '      .secondary().ifNotExist().create()',
-    ].join('\n'),
-    product_catalog: [
-        'schema.propertyKey("sku").asText().ifNotExist().create()',
-        'schema.propertyKey("name").asText().ifNotExist().create()',
-        'schema.propertyKey("price").asDouble().ifNotExist().create()',
-        'schema.vertexLabel("product").properties("sku", "name", "price")',
-        '      .primaryKeys("sku").ifNotExist().create()',
-        'schema.edgeLabel("related").sourceLabel("product").targetLabel("product")',
-        '      .ifNotExist().create()',
-        'schema.indexLabel("productByPrice").onV("product").by("price")',
-        '      .range().ifNotExist().create()',
-    ].join('\n'),
-};
+export {BUILTIN_SCHEMA_TEMPLATES};
 
 const SchemaHelp = ({t}) => (
     <span>
@@ -73,6 +54,8 @@ const EditLayer = ({visible, onCancel, graphspace, refresh, mode, detail}) => {
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const schemaDraft = Form.useWatch('schema', form);
+    const detailName = detail.name;
+    const detailSchema = detail.schema;
 
     const applyBuiltinTemplate = useCallback(key => {
         form.setFieldsValue({
@@ -118,12 +101,6 @@ const EditLayer = ({visible, onCancel, graphspace, refresh, mode, detail}) => {
     }, [graphspace, onCancel, refresh, t]);
 
     const onFinish = useCallback(() => {
-        // form.resetFields();
-        if (mode === 'view') {
-            onCancel();
-            return;
-        }
-
         form.validateFields().then(values => {
             setLoading(true);
             if (mode === 'create') {
@@ -131,9 +108,9 @@ const EditLayer = ({visible, onCancel, graphspace, refresh, mode, detail}) => {
                 return;
             }
 
-            updateSchema(detail.name, values);
+            updateSchema(detailName, values);
         });
-    }, [addSchema, detail.name, form, mode, onCancel, updateSchema]);
+    }, [addSchema, detailName, form, mode, updateSchema]);
 
     useEffect(() => {
         if (!visible) {
@@ -141,98 +118,88 @@ const EditLayer = ({visible, onCancel, graphspace, refresh, mode, detail}) => {
         }
 
         if (mode === 'create') {
-            // form.setFieldsValue({name: '', schema: ''});
             form.resetFields();
         }
-        else {
-            form.setFieldsValue(detail);
-        }
-    }, [visible, detail.name, mode, form, detail]);
+        form.setFieldsValue({
+            name: detailName || '',
+            schema: detailSchema || '',
+        });
+    }, [detailName, detailSchema, form, mode, visible]);
 
     return (
-        mode === 'view'
-            ? (
-                <Modal
-                    open={visible}
-                    onCancel={onCancel}
-                    title={t('schema_template.action.view')}
-                    width={600}
-                    footer={null}
-                >
-                    <Form
-                        form={form}
-                        labelCol={{span: 6}}
-                        preserve={false}
-                    >
-                        <Form.Item
-                            label={t('schema_template.form.name')}
-                        >
-                            {detail.name}
-                        </Form.Item>
-                        <Form.Item label={t('schema_template.form.schema')}>
-                            <pre style={{whiteSpace: 'pre-wrap'}}>{detail.schema}</pre>
-                        </Form.Item>
-                    </Form>
-                </Modal>
-            ) : (
-                <Modal
-                    open={visible}
-                    onCancel={onCancel}
-                    title={mode === 'edit'
-                        ? t('schema_template.action.edit')
-                        : t('schema_template.action.create')}
-                    width={600}
-                    onOk={onFinish}
-                    confirmLoading={loading}
-                    destroyOnClose
-                >
-                    <Form
-                        form={form}
-                        labelCol={{span: 6}}
-                        validateTrigger='onBlur'
-                        preserve={false}
-                    >
-                        {mode === 'create' && (
-                            <Form.Item
+        <Modal
+            open={visible}
+            onCancel={onCancel}
+            title={mode === 'edit'
+                ? t('schema_template.action.edit')
+                : t('schema_template.action.create')}
+            width={960}
+            onOk={onFinish}
+            confirmLoading={loading}
+            destroyOnClose
+        >
+            <Form
+                form={form}
+                labelCol={{span: 6}}
+                validateTrigger='onBlur'
+                preserve={false}
+            >
+                {mode === 'create' && (
+                    <Form.Item
+                        label={(
+                            <FormHelpLabel
                                 label={t('schema_template.form.starting_point')}
-                                extra={t('schema_template.form.starting_point_help')}
-                            >
-                                <Select
-                                    disabled={Boolean(schemaDraft)}
-                                    placeholder={t('schema_template.form.starting_point_placeholder')}
-                                    onSelect={applyBuiltinTemplate}
-                                    options={Object.keys(BUILTIN_SCHEMA_TEMPLATES).map(key => ({
-                                        value: key,
-                                        label: t(`schema_template.builtin.${key}`),
-                                    }))}
-                                />
-                            </Form.Item>
+                                help={t('schema_template.form.starting_point_help')}
+                            />
                         )}
-                        <Form.Item
+                        extra={t('schema_template.form.starting_point_help')}
+                    >
+                        <Select
+                            disabled={Boolean(schemaDraft)}
+                            placeholder={t('schema_template.form.starting_point_placeholder')}
+                            onSelect={applyBuiltinTemplate}
+                            options={Object.keys(BUILTIN_SCHEMA_TEMPLATES).map(key => ({
+                                value: key,
+                                label: t(`schema_template.builtin.${key}`),
+                            }))}
+                        />
+                    </Form.Item>
+                )}
+                <Form.Item
+                    label={(
+                        <FormHelpLabel
                             label={t('schema_template.form.name')}
-                            rules={[rules.required(), rules.isName, {type: 'string', max: 48}]}
-                            name='name'
-                        >
-                            <Input
-                                placeholder={t('schema_template.form.name_placeholder')}
-                                disabled={mode === 'edit'}
-                            />
-                        </Form.Item>
-                        <Form.Item
+                            help={t('schema_template.form.name_help')}
+                        />
+                    )}
+                    rules={[rules.required(), rules.isName, {type: 'string', max: 48}]}
+                    name='name'
+                >
+                    <Input
+                        placeholder={t('schema_template.form.name_placeholder')}
+                        disabled={mode === 'edit'}
+                    />
+                </Form.Item>
+                <Form.Item
+                    label={(
+                        <FormHelpLabel
                             label={t('schema_template.form.schema')}
-                            extra={<SchemaHelp t={t} />}
-                            rules={[rules.required()]}
-                            name='schema'
-                        >
-                            <Input.TextArea
-                                autoSize={{minRows: 12, maxRows: 22}}
-                                style={{fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'}}
-                                placeholder={t('schema_template.form.schema_placeholder')}
-                            />
-                        </Form.Item>
-                    </Form>
-                </Modal>
-            )
+                            help={t('schema_template.form.schema_help')}
+                        />
+                    )}
+                    extra={<SchemaHelp t={t} />}
+                    rules={[rules.required()]}
+                    name='schema'
+                >
+                    <CodeEditor
+                        lang='groovy'
+                        minHeight={360}
+                        ariaLabel={t('schema_template.form.schema')}
+                        placeholder={t('schema_template.form.schema_placeholder')}
+                    />
+                </Form.Item>
+            </Form>
+        </Modal>
     );
 };
 

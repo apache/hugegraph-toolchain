@@ -109,7 +109,7 @@ describe('Login request errors', () => {
         expect(screen.getByRole('img', {name: 'Apache HugeGraph'}))
             .toBeInTheDocument();
         expect(screen.getByText('HugeGraph')).toBeInTheDocument();
-        expect(screen.getByRole('combobox', {name: 'login.language'}))
+        expect(screen.getByRole('radiogroup', {name: 'login.language'}))
             .toBeInTheDocument();
     });
 
@@ -120,12 +120,9 @@ describe('Login request errors', () => {
             </MemoryRouter>
         );
 
-        await userEvent.selectOptions(
-            screen.getByRole('combobox', {name: 'login.language'}),
-            'en-US'
-        );
+        await userEvent.click(screen.getByRole('radio', {name: 'CN'}));
 
-        expect(localStorage.getItem('languageType')).toBe('en-US');
+        expect(localStorage.getItem('languageType')).toBe('zh-CN');
     });
 
     it('defaults a fresh login to English without overwriting storage', () => {
@@ -135,8 +132,7 @@ describe('Login request errors', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByRole('combobox', {name: 'login.language'}))
-            .toHaveValue('en-US');
+        expect(screen.getByRole('radio', {name: 'EN'})).toBeChecked();
         expect(localStorage.getItem('languageType')).toBeNull();
     });
 

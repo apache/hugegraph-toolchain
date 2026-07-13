@@ -20,6 +20,8 @@ import {Space, Button, Form, Select, Input, Drawer} from 'antd';
 import {useState, useEffect, useCallback, useMemo} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as rules from '../../../utils/rules';
+import FormHelpLabel from '../../../components/FormHelpLabel';
+import {completeRowsRule, duplicateSourceRule} from './mappingRules';
 
 const ListAction = ({index, action, children, ...props}) => {
     const handleClick = useCallback(() => action(index), [action, index]);
@@ -34,7 +36,6 @@ const AddAction = ({action, children, ...props}) => {
 const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index}) => {
     const {t} = useTranslation();
     const [selectLabel, setSelectLabel] = useState({});
-    const [errorList, setErrorList] = useState({});
     const [vertexForm] = Form.useForm();
     const targetOptions = useMemo(() => targetField.map(item => ({label: item, value: item})),
         [targetField]);
@@ -62,29 +63,6 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
         vertexForm.setFieldValue('attr', [...list, ...addRows]);
     }, [selectLabel, targetField, vertexForm]);
 
-    const checkDuplicate = () => ({
-        validator(_, value) {
-            const existName = [];
-            if (value === undefined) {
-                return Promise.resolve();
-            }
-
-            for (let item of value) {
-                if (item === undefined || !item.key) {
-                    return Promise.resolve();
-                }
-
-                if (existName.includes(item.key)) {
-                    return Promise.reject(new Error(t('task.edit.duplicate_property')));
-                }
-
-                existName.push(item.key);
-            }
-
-            return Promise.resolve();
-        },
-    });
-
     const attrFormList = (fields, {add, remove}, {errors}) => (
         <>
             {fields.map((field, index) => (
@@ -95,7 +73,7 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
                     >
                         <Select
                             options={targetOptions}
-                            placeholder={t('task.edit.select_schema_field')}
+                            placeholder={t('task.edit.select_source_field')}
                         />
                     </Form.Item>
                     <span className={'form_attr_split'}>-</span>
@@ -105,7 +83,7 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
                     >
                         <Select
                             options={propertyOptions}
-                            placeholder={t('task.edit.select_mapping_field')}
+                            placeholder={t('task.edit.select_schema_property')}
                         />
                     </Form.Item>
                     <Space>
@@ -125,7 +103,7 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
         </>
     );
 
-    const valueFormList = (fields, {add, remove}) => (
+    const valueFormList = (fields, {add, remove}, {errors}) => (
         <>
             {fields.map((field, index) => (
                 <div key={field.key}>
@@ -135,6 +113,7 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
                     >
                         <Select
                             options={targetOptions}
+                            placeholder={t('task.edit.select_source_field')}
                         />
                     </Form.Item>
                     <span className={'form_attr_split'}>:</span>
@@ -142,14 +121,14 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
                         className="form_attr_val"
                         name={[field.name, 'origin']}
                     >
-                        <Input />
+                        <Input placeholder={t('task.edit.original_value_placeholder')} />
                     </Form.Item>
                     <span className={'form_attr_split'}>{'->'}</span>
                     <Form.Item
                         className="form_attr_val"
                         name={[field.name, 'replace']}
                     >
-                        <Input />
+                        <Input placeholder={t('task.edit.replacement_value_placeholder')} />
                     </Form.Item>
                     <ListAction type='link' action={remove} index={index}>
                         {t('common.action.delete')}
@@ -158,6 +137,7 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
             )
 
             )}
+            <Form.ErrorList errors={errors} />
             <AddAction type='link' className='form_attr_add' action={add}>
                 +{t('common.action.add')}
             </AddAction>
@@ -169,23 +149,15 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
         if (['PRIMARY_KEY', 'AUTOMATIC'].includes(option.info.id_strategy)) {
             vertexForm.resetFields(['id']);
         }
-        setErrorList({...errorList, label: ''});
-    }, [errorList, vertexForm]);
+    }, [vertexForm]);
 
     const handleCancel = useCallback(() => {
-        setErrorList({});
         setSelectLabel({});
         vertexForm.resetFields();
         onCancel();
     }, [onCancel, vertexForm]);
 
-    const onFinish = useCallback(() => {
-
-        vertexForm.validateFields().then(() => {
-            vertexForm.submit();
-            onCancel();
-        });
-    }, [onCancel, vertexForm]);
+    const onFinish = useCallback(() => onCancel(), [onCancel]);
 
     useEffect(() => {
         if (!open) {
@@ -211,9 +183,19 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
             width={580}
             open={open}
         >
-            <Form form={vertexForm} labelCol={{span: 4}} name='vertex_form'>
+            <Form
+                form={vertexForm}
+                labelCol={{span: 4}}
+                name='vertex_form'
+                onFinish={onFinish}
+            >
                 <Form.Item
-                    label={t('task.edit.vertex_type')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.vertex_type')}
+                            help={t('task.edit.vertex_type_help')}
+                        />
+                    )}
                     required
                     name={'label'}
                     rules={[rules.required()]}
@@ -221,43 +203,70 @@ const VertexForm = ({open, onCancel, sourceField, targetField, vertexList, index
                     <Select
                         options={labelOptions}
                         onChange={handleLabel}
+                        placeholder={t('task.edit.select_vertex_label')}
                     />
                 </Form.Item>
                 <Form.Item
                     // required={selectLabel.id_strategy !== 'PRIMARY_KEY'}
-                    label={t('task.edit.id_column')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.id_column')}
+                            help={t('task.edit.id_column_help', {
+                                strategy: selectLabel.id_strategy || '-',
+                            })}
+                        />
+                    )}
                     name={'id'}
-                    extra={t('task.edit.id_column_help', {
-                        strategy: selectLabel.id_strategy || '-',
-                    })}
                     rules={[!['PRIMARY_KEY', 'AUTOMATIC'].includes(selectLabel.id_strategy) ? rules.required() : null]}
                 >
                     <Select
                         disabled={['PRIMARY_KEY', 'AUTOMATIC'].includes(selectLabel.id_strategy)
                         || !selectLabel.id_strategy}
                         options={targetOptions}
+                        placeholder={t('task.edit.select_id_field')}
                     />
                 </Form.Item>
                 <Form.Item
-                    label={t('task.edit.property_mapping')}
-                    extra={t('task.edit.property_mapping_help')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.property_mapping')}
+                            help={t('task.edit.property_mapping_help')}
+                        />
+                    )}
                 >
-                    <Form.List name={'attr'} rules={[checkDuplicate]}>
+                    <Form.List
+                        name={'attr'}
+                        rules={[
+                            completeRowsRule(t, ['key', 'val'],
+                                'task.edit.incomplete_property_mapping'),
+                            duplicateSourceRule(t),
+                        ]}
+                    >
                         {attrFormList}
                     </Form.List>
                 </Form.Item>
                 <Form.Item
-                    label={t('task.edit.value_mapping')}
-                    extra={t('task.edit.value_mapping_help')}
+                    label={(
+                        <FormHelpLabel
+                            label={t('task.edit.value_mapping')}
+                            help={t('task.edit.value_mapping_help')}
+                        />
+                    )}
                 >
-                    <Form.List name={'value'}>
+                    <Form.List
+                        name={'value'}
+                        rules={[
+                            completeRowsRule(t, ['key', 'origin', 'replace'],
+                                'task.edit.incomplete_value_mapping'),
+                        ]}
+                    >
                         {valueFormList}
                     </Form.List>
                 </Form.Item>
-                <Form.Item name='index' hidden />
+                <Form.Item name='index' hidden><Input type='hidden' /></Form.Item>
                 <Form.Item wrapperCol={{offset: 4}}>
                     <Space>
-                        <Button type='primary' onClick={onFinish}>
+                        <Button type='primary' htmlType='submit'>
                             {t('common.action.confirm')}
                         </Button>
                         <Button onClick={handleCancel}>{t('common.action.cancel')}</Button>

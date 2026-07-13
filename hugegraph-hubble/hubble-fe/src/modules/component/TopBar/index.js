@@ -101,7 +101,9 @@ const TopBar = props => {
     const getGraphSpaceOptions = () => {
         return graphSpaceList?.map(item => ({
             value: item,
-            label: item,
+            label: item === 'DEFAULT'
+                ? t('analysis.topbar.default_graph_space')
+                : item,
         }));
     };
 

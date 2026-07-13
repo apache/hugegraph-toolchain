@@ -19,7 +19,6 @@ import fs from 'fs';
 import path from 'path';
 
 const dropdownSources = [
-    'pages/Role/index.js',
     'pages/Graph/Card.js',
     'pages/GraphSpace/Card.js',
     'modules/analysis/QueryBar/ContentCommon/index.js',

@@ -38,10 +38,23 @@ public class TargetService extends AuthService {
         return client.auth().listTargets();
     }
 
+    public List<Target> list(HugeClient client, String graphSpace) {
+        return this.list(client).stream()
+                   .filter(target -> belongsToGraphSpace(
+                           graphSpace, target.graphSpace()))
+                   .collect(Collectors.toList());
+    }
+
     public IPage<Target> queryPage(HugeClient client, String query,
                                    int pageNo, int pageSize) {
+        return this.queryPage(client, null, query, pageNo, pageSize);
+    }
+
+    public IPage<Target> queryPage(HugeClient client, String graphSpace,
+                                   String query, int pageNo, int pageSize) {
         List<Target> results =
-                this.list(client).stream()
+                (graphSpace == null ? this.list(client) :
+                 this.list(client, graphSpace)).stream()
                     .filter(target -> target.name().toLowerCase()
                                             .contains(query.toLowerCase()))
                     .sorted(Comparator.comparing(Target::name))
@@ -57,6 +70,20 @@ public class TargetService extends AuthService {
         return target;
     }
 
+    public Target get(HugeClient client, String graphSpace, String targetId) {
+        Target target = this.get(client, targetId);
+        requireGraphSpace(graphSpace, target.graphSpace(), "target");
+        return target;
+    }
+
+    public Target add(HugeClient client, String graphSpace, Target target) {
+        if (target.graphSpace() != null) {
+            requireGraphSpace(graphSpace, target.graphSpace(), "target");
+        }
+        target.graphSpace(graphSpace);
+        return this.add(client, target);
+    }
+
     public Target add(HugeClient client, Target target) {
         return client.auth().createTarget(target);
     }
@@ -65,7 +92,18 @@ public class TargetService extends AuthService {
         return client.auth().updateTarget(target);
     }
 
+    public Target update(HugeClient client, String graphSpace, Target target) {
+        requireGraphSpace(graphSpace, target.graphSpace(), "target");
+        target.graphSpace(graphSpace);
+        return this.update(client, target);
+    }
+
     public void delete(HugeClient client, String targetId) {
         client.auth().deleteTarget(targetId);
+    }
+
+    public void delete(HugeClient client, String graphSpace, String targetId) {
+        this.get(client, graphSpace, targetId);
+        this.delete(client, targetId);
     }
 }

@@ -36,6 +36,7 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 
 import org.apache.hugegraph.common.Constant;
 import org.apache.hugegraph.exception.ParameterizedException;
+import org.apache.hugegraph.exception.ForbiddenException;
 import org.apache.hugegraph.service.HugeClientPoolService;
 import org.apache.hugegraph.common.Identifiable;
 import org.apache.hugegraph.common.Mergeable;
@@ -164,6 +165,35 @@ public abstract class BaseController {
         HugeClient client = this.hugeClientPoolService.createAuthClient(
                 graphSpace, graph, this.getToken());
         request.setAttribute("hugeClient", client);
+        return client;
+    }
+
+    protected HugeClient requireAccountManager() {
+        HugeClient client = this.authClient(null, null);
+        String level = this.userService.userLevel(client, this.getUser());
+        if (!"ADMIN".equals(level)) {
+            throw new ForbiddenException("Permission denied: manage accounts");
+        }
+        return client;
+    }
+
+    protected HugeClient requireAccountCreator() {
+        HugeClient client = this.authClient(null, null);
+        String level = this.userService.userLevel(client, this.getUser());
+        if (!"ADMIN".equals(level) && !"SPACEADMIN".equals(level)) {
+            throw new ForbiddenException("Permission denied: manage accounts");
+        }
+        return client;
+    }
+
+    protected HugeClient requireGraphSpaceManager(String graphSpace) {
+        HugeClient client = this.authClient(null, null);
+        if (!this.userService.isSuperAdmin(client) &&
+            !this.userService.isAssignSpaceAdmin(client, graphSpace)) {
+            throw new ForbiddenException(
+                    "Permission denied: manage graphspace members");
+        }
+        client.assignGraph(graphSpace, null);
         return client;
     }
 

@@ -66,7 +66,7 @@ const QueryResult = props => {
 
     const GRAPH_VIEW = t('analysis.query_result.graph');
     const TABLE_VIEW = t('analysis.query_result.table');
-    const JSON_VIEW = 'Json';
+    const JSON_VIEW = 'JSON';
     const renderTab = type => {
         let iconClassName = '';
         switch (type) {

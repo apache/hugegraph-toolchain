@@ -38,8 +38,8 @@ const {CLOSED} = PANEL_TYPE;
 const {CANVAS2D} = GRAPH_RENDER_MODE;
 const defaultPageParams = {page: 1, pageSize: 10};
 const DEFAULT_QUERIES = {
-    [GREMLIN]: 'g.V().limit(20)',
-    [CYPHER]: 'MATCH (n) RETURN n LIMIT 20',
+    [GREMLIN]: 'g.V().limit(10)',
+    [CYPHER]: 'MATCH (n) RETURN n LIMIT 10',
 };
 
 const queryDraftKey = (graphSpace, graph, mode) =>
@@ -51,11 +51,22 @@ const restoreQuery = (graphSpace, graph, mode) => {
     }
     try {
         const saved = window.localStorage.getItem(queryDraftKey(graphSpace, graph, mode));
-        return saved === null ? DEFAULT_QUERIES[mode] : saved;
+        return saved?.trim() ? saved : DEFAULT_QUERIES[mode];
     }
     catch {
         return DEFAULT_QUERIES[mode];
     }
+};
+
+export const extractQueryErrorMessage = (error, fallback) => {
+    const backendMessage = error?.response?.data?.message;
+    if (typeof backendMessage === 'string' && backendMessage.trim()) {
+        return backendMessage;
+    }
+    if (typeof error?.message === 'string' && error.message.trim()) {
+        return error.message;
+    }
+    return fallback;
 };
 
 const AnalysisHome = () => {
@@ -363,13 +374,16 @@ const AnalysisHome = () => {
                 onFavoriteRefresh();
                 resetGraphInfo();
             }
-            catch {
+            catch (error) {
                 if (queryRequest.current !== request) {
                     return;
                 }
                 setQueryResult();
                 setAsyncTaskResult();
-                setQueryMessage(t('analysis.query_result.run_failed_action'));
+                setQueryMessage(extractQueryErrorMessage(
+                    error,
+                    t('analysis.query_result.run_failed_action')
+                ));
                 setQueryStatus(FAILED);
             }
         },
@@ -412,11 +426,14 @@ const AnalysisHome = () => {
                     setQueryStatus(FAILED);
                 }
             }
-            catch {
+            catch (error) {
                 if (queryRequest.current !== request) {
                     return;
                 }
-                setQueryMessage(t('analysis.query_result.submit_failed'));
+                setQueryMessage(extractQueryErrorMessage(
+                    error,
+                    t('analysis.query_result.submit_failed')
+                ));
                 setQueryStatus(FAILED);
             }
         },
@@ -482,10 +499,6 @@ const AnalysisHome = () => {
         [analysisMode, graph, graphSpace]
     );
 
-    const resetQueryExample = useCallback(() => {
-        resetCodeEditorContent(DEFAULT_QUERIES[analysisMode] || '');
-    }, [analysisMode, resetCodeEditorContent]);
-
     const updatePanelType = useCallback(
         type => {
             setPanelType(type);
@@ -521,8 +534,8 @@ const AnalysisHome = () => {
     }, []);
 
     const handleClickLoadContent = useCallback(content => {
-        setCodeEditorContent(content);
-    }, []);
+        resetCodeEditorContent(content);
+    }, [resetCodeEditorContent]);
 
     const onGraphRenderModeChange = useCallback(
         value => {
@@ -542,7 +555,6 @@ const AnalysisHome = () => {
                 onTabsChange={onAnalysisModeChange}
                 onExecute={onExecute}
                 onRefresh={onFavoriteRefresh}
-                onResetQuery={resetQueryExample}
                 isExecuting={queryStatus === LOADING}
             />
             {analysisMode !== TEXT2GQL && <QueryResult

@@ -31,6 +31,11 @@ jest.mock('react-i18next', () => ({
             'task.edit.step_mapping_fields': 'Mappings',
             'task.edit.mapping_help_title': 'How mapping works',
             'task.edit.mapping_help': 'Map source fields to schema.',
+            'task.edit.mapping_example_title': 'Complete mapping example',
+            'task.edit.mapping_example_vertex_source': 'person_id=42, person_name=Alice',
+            'task.edit.mapping_example_vertex_target': 'person / ID person_id / name',
+            'task.edit.mapping_example_edge_source': 'from_id=42, to_id=84',
+            'task.edit.mapping_example_edge_target': 'knows / from_id -> to_id',
             'task.edit.add_vertex_mapping': 'Add vertex mapping',
             'task.edit.add_edge_mapping': 'Add edge mapping',
             'task.edit.mapping_meta_failed': 'Could not load target schema.',
@@ -84,4 +89,29 @@ it('shows an inline retry instead of treating metadata failure as empty schema',
     await waitFor(() => expect(screen.getByRole('button', {
         name: 'Add vertex mapping',
     })).toBeEnabled());
+});
+
+it('keeps complete vertex and edge mapping examples visible on the mapping step', () => {
+    api.manage.getMetaVertexList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.getMetaEdgeList.mockResolvedValue({status: 200, data: {records: []}});
+
+    render(
+        <MappingForm
+            visible
+            targetField={[]}
+            graphspace=''
+            graph=''
+            vertexList={[]}
+            edgeList={[]}
+            changeVertexList={jest.fn()}
+            changeEdgeList={jest.fn()}
+            prev={jest.fn()}
+        />
+    );
+
+    expect(screen.getByText('Complete mapping example')).toBeInTheDocument();
+    expect(screen.getByText('person_id=42, person_name=Alice')).toBeInTheDocument();
+    expect(screen.getByText('person / ID person_id / name')).toBeInTheDocument();
+    expect(screen.getByText('from_id=42, to_id=84')).toBeInTheDocument();
+    expect(screen.getByText('knows / from_id -> to_id')).toBeInTheDocument();
 });

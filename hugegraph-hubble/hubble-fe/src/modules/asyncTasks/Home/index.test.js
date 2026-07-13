@@ -31,6 +31,8 @@ jest.mock('../Detail', () => props => (
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => ({
         'analysis.async_task.search_placeholder': 'Search tasks',
+        'analysis.async_task.help_title': 'About analysis tasks',
+        'analysis.async_task.help_description': 'Track asynchronous work and results here.',
         'analysis.async_task.get_failed': 'Could not load tasks.',
         'analysis.async_task.retry_list': 'Retry tasks',
         'analysis.async_task.empty_title': 'No analysis tasks yet',
@@ -112,6 +114,8 @@ it('keeps existing task data visible during background polling', async () => {
 
     await act(async () => Promise.resolve());
     expect(await screen.findByText('tasks 1')).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'About analysis tasks'}))
+        .toHaveTextContent('Track asynchronous work and results here.');
     act(() => jest.advanceTimersByTime(5000));
 
     expect(screen.getByText('tasks 1')).toBeInTheDocument();

@@ -185,6 +185,13 @@ const AsyncTaskHome = () => {
     return (
         <div className={c.gremlinAsyncTask}>
             <div className={c.content}>
+                <section
+                    className={c.help}
+                    aria-label={t('analysis.async_task.help_title')}
+                >
+                    <strong>{t('analysis.async_task.help_title')}</strong>
+                    <p>{t('analysis.async_task.help_description')}</p>
+                </section>
                 {loadError && (
                     <Alert
                         showIcon

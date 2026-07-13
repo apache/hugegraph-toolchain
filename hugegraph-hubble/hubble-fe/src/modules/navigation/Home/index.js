@@ -20,7 +20,7 @@
  * @file 导航首页
  */
 
-import {Card, PageHeader, Space, Tag} from 'antd';
+import {Card, Space, Tag} from 'antd';
 import {
     ApartmentOutlined,
     ArrowRightOutlined,
@@ -34,7 +34,6 @@ import * as user from '../../../utils/user';
 import {isPdEnabled} from '../../../utils/config';
 import {Link} from 'react-router-dom';
 import {getWorkbenchJourneys} from './workbenchHome';
-import BrandLockup from '../../../components/BrandLockup';
 
 import style from './index.module.scss';
 
@@ -51,80 +50,75 @@ const NavigationHome = () => {
     };
 
     return (
-        <>
-            <PageHeader
-                ghost={false}
-                title={t('home.workbench.title')}
-                subTitle={t('home.workbench.subtitle')}
-            />
-
-            <div className={style.navigation}>
-                <div className={style.header}>
-                    <BrandLockup className={style.headerBrand} compact />
+        <div className={style.navigation}>
+            <div className={style.header}>
+                <div className={style.headerCopy}>
+                    <h2>{t('home.workbench.title')}</h2>
+                    <p className={style.subtitle}>{t('home.workbench.subtitle')}</p>
                     <p>{t('home.workbench.intro')}</p>
-                    <Tag color={pdMode ? 'blue' : 'default'}>
-                        {t(`home.workbench.mode.${pdMode ? 'pd' : 'non_pd'}`)}
-                    </Tag>
                 </div>
-                <section aria-labelledby="workbench-journeys-title">
-                    <h2 id="workbench-journeys-title" className={style.sectionTitle}>
-                        {t('home.workbench.journeys.title')}
-                    </h2>
-                    <div className={style.journeyGrid}>
-                        {journeys.map((journey, index) => (
-                            <Card
-                                key={journey.key}
-                                className={style.journeyCard}
-                                title={(
-                                    <Space>
-                                        <span className={style.step}>{index + 1}</span>
-                                        {icons[journey.key]}
-                                        {t(`home.workbench.journeys.${journey.key}.title`)}
-                                    </Space>
-                                )}
+                <Tag color={pdMode ? 'blue' : 'default'}>
+                    {t(`home.workbench.mode.${pdMode ? 'pd' : 'non_pd'}`)}
+                </Tag>
+            </div>
+            <section aria-labelledby="workbench-journeys-title">
+                <h2 id="workbench-journeys-title" className={style.sectionTitle}>
+                    {t('home.workbench.journeys.title')}
+                </h2>
+                <div className={style.journeyGrid}>
+                    {journeys.map((journey, index) => (
+                        <Card
+                            key={journey.key}
+                            className={style.journeyCard}
+                            title={(
+                                <Space>
+                                    <span className={style.step}>{index + 1}</span>
+                                    {icons[journey.key]}
+                                    {t(`home.workbench.journeys.${journey.key}.title`)}
+                                </Space>
+                            )}
+                        >
+                            <p className={style.description}>
+                                {t(`home.workbench.journeys.${journey.key}.description`)}
+                            </p>
+                            <Link
+                                className={style.primaryAction}
+                                to={journey.primaryPath}
                             >
-                                <p className={style.description}>
-                                    {t(`home.workbench.journeys.${journey.key}.description`)}
-                                </p>
-                                <Link
-                                    className={style.primaryAction}
-                                    to={journey.primaryPath}
-                                >
-                                    {t(`home.workbench.journeys.${journey.key}.primary`)}
-                                    <ArrowRightOutlined />
-                                </Link>
-                                {journey.secondaryPaths.length > 0 && (
-                                    <div className={style.secondaryActions}>
-                                        {journey.secondaryPaths.map((path, actionIndex) => (
-                                            <Link key={path} to={path}>
-                                                {t(
-                                                    `home.workbench.journeys.${journey.key}`
-                                                    + `.secondary_${actionIndex + 1}`
-                                                )}
-                                            </Link>
-                                        ))}
-                                    </div>
-                                )}
-                            </Card>
-                        ))}
+                                {t(`home.workbench.journeys.${journey.key}.primary`)}
+                                <ArrowRightOutlined />
+                            </Link>
+                            {journey.secondaryPaths.length > 0 && (
+                                <div className={style.secondaryActions}>
+                                    {journey.secondaryPaths.map((path, actionIndex) => (
+                                        <Link key={path} to={path}>
+                                            {t(
+                                                `home.workbench.journeys.${journey.key}`
+                                                + `.secondary_${actionIndex + 1}`
+                                            )}
+                                        </Link>
+                                    ))}
+                                </div>
+                            )}
+                        </Card>
+                    ))}
+                </div>
+            </section>
+            {pdMode && userInfo.is_superadmin && (
+                <section
+                    className={style.support}
+                    aria-labelledby="workbench-support-title"
+                >
+                    <h2 id="workbench-support-title" className={style.sectionTitle}>
+                        {t('home.workbench.support')}
+                    </h2>
+                    <div className={style.supportGrid}>
+                        <AdminItem />
+                        <ConsoleItem />
                     </div>
                 </section>
-                {pdMode && userInfo.is_superadmin && (
-                    <section
-                        className={style.support}
-                        aria-labelledby="workbench-support-title"
-                    >
-                        <h2 id="workbench-support-title" className={style.sectionTitle}>
-                            {t('home.workbench.support')}
-                        </h2>
-                        <div className={style.supportGrid}>
-                            <AdminItem />
-                            <ConsoleItem />
-                        </div>
-                    </section>
-                )}
-            </div>
-        </>
+            )}
+        </div>
     );
 };
 

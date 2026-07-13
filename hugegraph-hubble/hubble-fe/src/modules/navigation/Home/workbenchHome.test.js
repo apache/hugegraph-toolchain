@@ -47,6 +47,14 @@ test('maps every existing high-frequency entry into a task journey', () => {
     ]));
 });
 
+test('orders import before query on the home page', () => {
+    expect(getWorkbenchJourneys(true).map(journey => journey.key)).toEqual([
+        'understand',
+        'prepare',
+        'query',
+    ]);
+});
+
 test.each([
     [true, {graphspace: 'space a', graph: 'g'}, '/graphspace/space%20a/schema'],
     [false, {graphspace: 'DEFAULT', graph: 'graph a'},

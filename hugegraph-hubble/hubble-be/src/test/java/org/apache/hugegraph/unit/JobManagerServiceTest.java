@@ -27,10 +27,14 @@ import org.mockito.Mockito;
 
 import org.apache.hugegraph.entity.enums.JobStatus;
 import org.apache.hugegraph.entity.enums.LoadStatus;
+import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.entity.GraphConnection;
+import org.apache.hugegraph.entity.load.FileMapping;
 import org.apache.hugegraph.entity.load.JobManager;
 import org.apache.hugegraph.entity.load.LoadTask;
 import org.apache.hugegraph.mapper.load.JobManagerMapper;
 import org.apache.hugegraph.service.load.JobManagerService;
+import org.apache.hugegraph.service.load.FileMappingService;
 import org.apache.hugegraph.service.load.LoadTaskService;
 import org.apache.hugegraph.testutil.Assert;
 
@@ -117,6 +121,59 @@ public class JobManagerServiceTest {
 
         Assert.assertEquals(JobStatus.LOADING, job.getJobStatus());
         Mockito.verify(mapper, Mockito.never()).updateById(Mockito.any());
+    }
+
+    @Test
+    public void testCreateIngestTaskPersistsOneAtomicUnit() throws Exception {
+        JobManagerService service = this.service();
+        JobManagerMapper mapper = Mockito.mock(JobManagerMapper.class);
+        FileMappingService mappingService = Mockito.mock(FileMappingService.class);
+        LoadTaskService taskService = Mockito.mock(LoadTaskService.class);
+        this.setField(service, "mapper", mapper);
+        this.setField(service, "fileMappingService", mappingService);
+        this.setField(service, "taskService", taskService);
+
+        JobManager job = JobManager.builder().id(7).build();
+        FileMapping mapping = new FileMapping();
+        GraphConnection connection = new GraphConnection();
+        HugeClient client = Mockito.mock(HugeClient.class);
+        LoadTask task = LoadTask.builder().id(9).build();
+        Mockito.when(mapper.insert(job)).thenReturn(1);
+        Mockito.when(taskService.start(connection, mapping, client))
+               .thenReturn(task);
+
+        Assert.assertSame(task, service.createIngestTask(job, mapping,
+                                                        connection, client));
+        Assert.assertEquals(7, mapping.getJobId().intValue());
+        Mockito.verify(mapper).insert(job);
+        Mockito.verify(mappingService).save(mapping);
+        Mockito.verify(taskService).start(connection, mapping, client);
+    }
+
+    @Test
+    public void testCreateIngestTaskPropagatesLoadBuildFailure()
+           throws Exception {
+        JobManagerService service = this.service();
+        JobManagerMapper mapper = Mockito.mock(JobManagerMapper.class);
+        FileMappingService mappingService = Mockito.mock(FileMappingService.class);
+        LoadTaskService taskService = Mockito.mock(LoadTaskService.class);
+        this.setField(service, "mapper", mapper);
+        this.setField(service, "fileMappingService", mappingService);
+        this.setField(service, "taskService", taskService);
+
+        JobManager job = JobManager.builder().id(7).build();
+        FileMapping mapping = new FileMapping();
+        GraphConnection connection = new GraphConnection();
+        HugeClient client = Mockito.mock(HugeClient.class);
+        Mockito.when(mapper.insert(job)).thenReturn(1);
+        Mockito.when(taskService.start(connection, mapping, client))
+               .thenThrow(new IllegalArgumentException("invalid mapping"));
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            service.createIngestTask(job, mapping, connection, client);
+        });
+        Mockito.verify(mappingService).save(mapping);
+        Mockito.verify(taskService).start(connection, mapping, client);
     }
 
     private JobManagerService service() {

@@ -32,7 +32,6 @@ import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.auth.BelongEntity;
 import org.apache.hugegraph.entity.auth.RoleEntity;
 import org.apache.hugegraph.entity.auth.UserView;
-import org.apache.hugegraph.structure.auth.Belong;
 import org.apache.hugegraph.structure.auth.User;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.PageUtil;
@@ -46,16 +45,10 @@ public class GraphSpaceUserService extends AuthService {
     @Autowired
     private BelongService belongService;
 
-    @Autowired
-    private RoleService roleService;
-
-    public List<UserView> listUsers(HugeClient client) {
+    public List<UserView> listUsers(HugeClient client, String graphSpace) {
         List<UserView> users = new ArrayList<>();
-        List<BelongEntity> belongs = new ArrayList<>();
-        this.roleService.list(client).forEach(role -> {
-            belongs.addAll(this.belongService.listByRole(client,
-                                                         role.id().toString()));
-        });
+        List<BelongEntity> belongs = this.belongService.list(
+                client, graphSpace, null, null);
 
         Multimap<String, BelongEntity> grouped = ArrayListMultimap.create();
         belongs.forEach(belong -> {
@@ -75,9 +68,10 @@ public class GraphSpaceUserService extends AuthService {
         return users;
     }
 
-    public UserView getUser(HugeClient client, String userId) {
-        List<BelongEntity> belongs = this.belongService.listByUser(client,
-                                                                   userId);
+    public UserView getUser(HugeClient client, String graphSpace,
+                            String userId) {
+        List<BelongEntity> belongs = this.belongService.list(
+                client, graphSpace, null, userId);
         UserView user = new UserView(null, null,
                                      new ArrayList<>(belongs.size()));
         belongs.forEach(belong -> {
@@ -89,17 +83,18 @@ public class GraphSpaceUserService extends AuthService {
         return user;
     }
 
-    public IPage<UserView> queryPage(HugeClient client, String query,
-                                     int pageNo, int pageSize) {
+    public IPage<UserView> queryPage(HugeClient client, String graphSpace,
+                                     String query, int pageNo, int pageSize) {
         List<UserView> results =
-                this.listUsers(client).stream()
+                this.listUsers(client, graphSpace).stream()
                     .filter(user -> user.getName().contains(query))
                     .sorted(Comparator.comparing(UserView::getName))
                     .collect(Collectors.toList());
         return PageUtil.page(results, pageNo, pageSize);
     }
 
-    public UserView createOrUpdate(HugeClient client, UserView userView) {
+    public UserView createOrUpdate(HugeClient client, String graphSpace,
+                                   UserView userView) {
         E.checkNotNull(userView.getId(), "User Id Not Null");
         E.checkArgument(userView.getRoles() != null &&
                         !userView.getRoles().isEmpty(),
@@ -109,31 +104,34 @@ public class GraphSpaceUserService extends AuthService {
                 userView.getRoles().stream()
                         .map(RoleEntity::getId)
                         .collect(Collectors.toSet());
-        this.belongService.listByUser(client, userView.getId())
-                          .forEach(belong -> {
-                              if (!newRoles.contains(belong.getRoleId())) {
-                                  client.auth().deleteBelong(belong.getId());
-                              }
-                          });
-
-        userView.getRoles().forEach(role -> {
-            if (!this.belongService.exists(client, role.getId(),
-                                           userView.getId())) {
-                Belong belong = new Belong();
-                belong.user(userView.getId());
-                belong.group(role.getId());
-                this.belongService.add(client, belong);
+        List<BelongEntity> current = this.belongService.list(
+                client, graphSpace, null, userView.getId());
+        current.forEach(belong -> {
+            if (!newRoles.contains(belong.getRoleId())) {
+                this.belongService.deleteById(client, graphSpace,
+                                              belong.getId());
             }
         });
-        return this.getUser(client, userView.getId());
+        Set<String> currentRoles = current.stream()
+                                          .map(BelongEntity::getRoleId)
+                                          .collect(Collectors.toSet());
+
+        userView.getRoles().forEach(role -> {
+            if (!currentRoles.contains(role.getId())) {
+                this.belongService.add(client, graphSpace, role.getId(),
+                                       userView.getId());
+            }
+        });
+        return this.getUser(client, graphSpace, userView.getId());
     }
 
-    public void unauthUser(HugeClient client, String userId) {
-        List<BelongEntity> belongs = this.belongService.listByUser(client,
-                                                                   userId);
+    public void unauthUser(HugeClient client, String graphSpace,
+                           String userId) {
+        List<BelongEntity> belongs = this.belongService.list(
+                client, graphSpace, null, userId);
         E.checkState(!belongs.isEmpty(), "The user: (%s) not exists", userId);
         belongs.forEach(belong -> {
-            this.belongService.delete(client, belong.getId());
+            this.belongService.deleteById(client, graphSpace, belong.getId());
         });
     }
 

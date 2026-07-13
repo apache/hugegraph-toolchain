@@ -21,6 +21,7 @@ package org.apache.hugegraph.handler;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ForbiddenException;
 import org.apache.hugegraph.exception.IllegalGremlinException;
 import org.apache.hugegraph.exception.InternalException;
 import org.apache.hugegraph.exception.LoginThrottledException;
@@ -96,6 +97,18 @@ public class ExceptionAdvisor {
         return Response.builder()
                        .status(e.status())
                        .message(message)
+                       .cause(null)
+                       .build();
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public Response exceptionHandler(ForbiddenException e) {
+        log.debug("Forbidden request: {}", e.getMessage());
+        closeRequestClient();
+        return Response.builder()
+                       .status(HttpStatus.FORBIDDEN.value())
+                       .message(e.getMessage())
                        .cause(null)
                        .build();
     }

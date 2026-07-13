@@ -18,5 +18,23 @@
 
 package org.apache.hugegraph.service.auth;
 
+import java.util.Objects;
+
+import org.apache.hugegraph.exception.ForbiddenException;
+
 public class AuthService {
+
+    protected static void requireGraphSpace(String expected, String actual,
+                                            String resource) {
+        if (expected != null && !Objects.equals(expected, actual)) {
+            throw new ForbiddenException(String.format(
+                    "Permission denied: %s belongs to graphspace %s",
+                    resource, actual));
+        }
+    }
+
+    protected static boolean belongsToGraphSpace(String expected,
+                                                 String actual) {
+        return expected == null || Objects.equals(expected, actual);
+    }
 }

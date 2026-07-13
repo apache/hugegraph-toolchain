@@ -52,7 +52,13 @@ test('shows load type for a scheduled JDBC import', () => {
 
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(screen.getByText('task.edit.load_full')).toBeInTheDocument();
-    expect(screen.getByText('task.edit.load_type_help')).toBeInTheDocument();
+    expect(screen.getByRole('img', {
+        name: 'task.edit.load_type: task.edit.load_type_help',
+    })).toBeInTheDocument();
+    expect(screen.queryByText('task.edit.load_type_help')).not.toBeInTheDocument();
+    expect(screen.getByRole('img', {
+        name: 'task.edit.cron_expression: task.edit.cron_extra',
+    })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('task.edit.cron_placeholder')).toBeInTheDocument();
 });
 

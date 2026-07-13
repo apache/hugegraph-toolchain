@@ -25,13 +25,13 @@ import {
     Switch,
     InputNumber,
     Space,
-    Tooltip,
     Typography,
 } from 'antd';
-import {QuestionCircleOutlined} from '@ant-design/icons';
 import {useState, useEffect, useMemo, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../api/index';
+import FormHelpLabel from '../../components/FormHelpLabel';
+import {getResourceAlias} from '../../utils/displayName';
 
 const {Option} = Select;
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
@@ -40,18 +40,9 @@ const GRAPHSPACE_NICKNAME_PATTERN = new RegExp(
     + '[a-zA-Z0-9\\u4E00-\\u9FA5~!@#$%^&*()_+|<>,.?/:;\'`"\\[\\]{}\\\\]{0,47}$'
 );
 
-const FieldLabel = ({label, help}) => (
-    <Space size={4}>
-        <span>{label}</span>
-        <Tooltip title={help}>
-            <QuestionCircleOutlined aria-label={help} />
-        </Tooltip>
-    </Space>
-);
-
 const MyFormItem = ({label, help, unit, children}) => {
     return (
-        <Form.Item label={<FieldLabel label={label} help={help} />} colon={false}>
+        <Form.Item label={<FormHelpLabel label={label} help={help} />} colon={false}>
             <Space>
                 {children}
                 <span className='spanFontSize'>{unit}</span>
@@ -131,6 +122,9 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
     };
 
     const nicknameValidator = (_, value) => {
+        if (!value) {
+            return Promise.resolve();
+        }
         const valid = GRAPHSPACE_NICKNAME_PATTERN.test(value);
         return valid
             ? Promise.resolve()
@@ -161,6 +155,7 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
                 if (res.status === 200) {
                     form.setFieldsValue({
                         ...res.data,
+                        nickname: getResourceAlias(res.data.name, res.data.nickname),
                         algorithm_image_url: res.data.algorithm_image_url
                                              || res.data['internal_'
                                                          + 'algorithm_image_url'],
@@ -198,40 +193,38 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
 
                 <Form.Item
                     name="name"
-                    label={<FieldLabel
+                    label={<FormHelpLabel
                         label={t('graphspace.form.id')}
                         help={t('graphspace.form.id_help')}
                     />}
-                    rules={
-                        [
-                            {required: true, message: t('common.form.required')},
-                            {max: 48, message: t('common.form.max_48')},
-                            {validator: serviceValidator},
-                        ]
-                    }
+                    rules={[
+                        {required: true, message: t('common.form.required')},
+                        {max: 48, message: t('common.form.max_48')},
+                        {validator: serviceValidator},
+                    ]}
                 >
-                    <Input disabled={isDisabled} placeholder={t('graphspace.form.id_placeholder')} />
+                    <Input
+                        disabled={isDisabled}
+                        placeholder={t('graphspace.form.id_placeholder')}
+                    />
                 </Form.Item>
 
                 <Form.Item
                     name="nickname"
-                    label={<FieldLabel
+                    label={<FormHelpLabel
                         label={t('graphspace.form.name')}
                         help={t('graphspace.form.name_help')}
                     />}
-                    rules={
-                        [
-                            {required: true, message: t('common.form.required')},
-                            {max: 48, message: t('common.form.max_48')},
-                            {validator: nicknameValidator},
-                        ]
-                    }
+                    rules={[
+                        {max: 48, message: t('common.form.max_48')},
+                        {validator: nicknameValidator},
+                    ]}
                 >
                     <Input placeholder={t('graphspace.form.name_placeholder')} />
                 </Form.Item>
 
                 <Form.Item
-                    label={<FieldLabel
+                    label={<FormHelpLabel
                         label={t('graphspace.form.auth')}
                         help={t('graphspace.form.auth_help')}
                     />}
@@ -243,7 +236,7 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
 
                 <Form.Item
                     name="max_graph_number"
-                    label={<FieldLabel
+                    label={<FormHelpLabel
                         label={t('graphspace.form.max_graph')}
                         help={t('graphspace.form.max_graph_help')}
                     />}
@@ -302,7 +295,7 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
 
                     <Form.Item
                         name="oltp_namespace"
-                        label={<FieldLabel
+                        label={<FormHelpLabel
                             label={t('graphspace.form.k8s_namespace')}
                             help={t('graphspace.form.oltp_namespace_help')}
                         />}
@@ -352,7 +345,7 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
 
                     <Form.Item
                         name="olap_namespace"
-                        label={<FieldLabel
+                        label={<FormHelpLabel
                             label={t('graphspace.form.k8s_namespace')}
                             help={t('graphspace.form.olap_namespace_help')}
                         />}

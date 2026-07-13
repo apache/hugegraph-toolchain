@@ -50,12 +50,18 @@
 // export {hint, highlight};
 
 
+const functionCompletion = label => ({
+    label,
+    type: 'function',
+    apply: `${label}()`,
+});
+
 const hint = [
     {label: 'g', type: 'constant'},
     {label: 'graph', type: 'constant'},
-    {label: 'out', type: 'function'},
-    {label: 'int', type: 'function'},
-    {label: 'both', type: 'function'},
+    functionCompletion('out'),
+    functionCompletion('in'),
+    functionCompletion('both'),
     {label: 'outE', type: 'function'},
     {label: 'inE', type: 'function'},
     {label: 'bothE', type: 'function'},
@@ -171,6 +177,10 @@ const hint = [
 ];
 
 const highlight = [];
+const completionHint = hint.map(item => (
+    item.type === 'function' && !item.apply
+        ? {...item, apply: `${item.label}()`}
+        : item
+));
 
-export {hint, highlight};
-
+export {completionHint as hint, highlight};

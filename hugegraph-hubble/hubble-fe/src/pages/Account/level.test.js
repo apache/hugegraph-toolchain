@@ -1,5 +1,4 @@
-/*!
- *
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -16,26 +15,14 @@
  * under the License.
  */
 
-.role_name {
-    padding-left: 5px;
-    cursor: pointer;
-}
+import {getAccountLevel} from './level';
 
-.current {
-    span {
-        color: #1890ff;
-    }
-}
-
-div.item {
-    margin: 0;
-}
-
-.rolelist {
-    :global {
-        .ant-spin-container .ant-list-item {
-            border-bottom: 0;
-            padding-top: 0;
-        }
-    }
-}
+test.each([
+    [{is_superadmin: true, adminSpaces: []}, 'ADMIN'],
+    [{is_superadmin: false, adminSpaces: ['SPACE']}, 'SPACEADMIN'],
+    [{is_superadmin: false, adminSpaces: [{name: 'SPACE'}]}, 'SPACEADMIN'],
+    [{is_superadmin: false, adminSpaces: []}, 'USER'],
+    [{}, 'USER'],
+])('derives the visible account level from authoritative account capabilities', (account, level) => {
+    expect(getAccountLevel(account)).toBe(level);
+});

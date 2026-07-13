@@ -23,6 +23,7 @@ import moment from 'moment';
 import style from './index.module.scss';
 import React, {useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
+import {getResourceDisplayName} from '../../utils/displayName';
 
 const showText = (val, suffix, unlimited, empty) => (
     val > 99999 ? (empty === undefined ? unlimited : empty) : `${val}${suffix}`
@@ -34,18 +35,21 @@ const formatPercent = percent => {
 
 const TitleField = ({item, onClick, onKeyDown}) => {
     const {t} = useTranslation();
+    const displayName = item.name === 'DEFAULT'
+        ? t('graphspace.default_name')
+        : getResourceDisplayName(item.name, item.nickname);
 
     return (
         <>
             <Typography.Text
                 style={{maxWidth: 244}}
                 ellipsis={{ellipsis: true}}
-                title={`${item.nickname}`}
+                title={`${displayName}`}
                 onClick={onClick}
                 onKeyDown={onKeyDown}
                 role='button'
                 tabIndex={0}
-            >{item.nickname}
+            >{displayName}
             </Typography.Text>
             <div className={style.subtitle}>
                 {item.default && (

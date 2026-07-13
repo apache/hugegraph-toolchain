@@ -21,3 +21,10 @@
     word-wrap: break-word;
     word-break: break-word;
 }
+
+.columnHeaderTools {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+}

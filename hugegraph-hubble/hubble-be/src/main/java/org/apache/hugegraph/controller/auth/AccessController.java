@@ -61,14 +61,14 @@ public class AccessController extends AuthController {
     @PostMapping
     public AccessEntity add(@PathVariable("graphspace") String graphSpace,
                             @RequestBody AccessEntity accessEntity) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.accessService.addOrUpdate(client, graphSpace, accessEntity);
     }
 
     @PutMapping
     public AccessEntity update(@PathVariable("graphspace") String graphSpace,
                                @RequestBody AccessEntity accessEntity) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.accessService.addOrUpdate(client, graphSpace, accessEntity);
     }
 
@@ -76,7 +76,7 @@ public class AccessController extends AuthController {
     public void delete(@PathVariable("graphspace") String graphSpace,
                        @RequestParam("role_id") String roleId,
                        @RequestParam("target_id") String targetId) {
-        HugeClient client = this.authClient(graphSpace, null);
-        this.accessService.delete(client, roleId, targetId);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
+        this.accessService.delete(client, graphSpace, roleId, targetId);
     }
 }

@@ -18,6 +18,8 @@
 
 import {BUILTIN_SCHEMA_TEMPLATES, schemaTemplateBusinessError} from './EditLayer';
 
+jest.mock('../../components/CodeEditor', () => () => null);
+
 const t = (key, values) => ({key, values});
 
 test('maps the Server duplicate-name response to an actionable local message', () => {

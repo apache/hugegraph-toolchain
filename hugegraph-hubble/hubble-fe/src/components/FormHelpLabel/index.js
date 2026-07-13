@@ -1,5 +1,4 @@
-/*!
- *
+/*
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -16,22 +15,20 @@
  * under the License.
  */
 
-form.form_label {
-    .form_input {
-        width: 140px;
-    }
+import {QuestionCircleOutlined} from '@ant-design/icons';
+import {Space, Tooltip} from 'antd';
 
-    .form_split {
-        display: inline-block;
-        width: 24px;
-        line-height: 32px;
-        text-align: center;
-    }
+const FormHelpLabel = ({label, help}) => (
+    <Space size={4}>
+        <span>{label}</span>
+        <Tooltip title={help}>
+            <QuestionCircleOutlined
+                tabIndex={0}
+                role='img'
+                aria-label={`${label}: ${help}`}
+            />
+        </Tooltip>
+    </Space>
+);
 
-    .form_add {
-        border: 1px dashed #40a9ff;
-        text-align: center;
-        padding: 4px;
-        cursor: pointer;
-    }
-}
+export default FormHelpLabel;

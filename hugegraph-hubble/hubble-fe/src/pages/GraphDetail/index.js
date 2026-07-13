@@ -29,6 +29,7 @@ import * as api from '../../api';
 import GraphJourneyNav from '../../components/GraphJourneyNav';
 import style from './index.module.scss';
 import {useTranslation} from 'react-i18next';
+import {getResourceDisplayName} from '../../utils/displayName';
 
 const GraphDetail = () => {
     const [graphspaceInfo, setGraphspaceInfo] = useState({});
@@ -206,9 +207,10 @@ const GraphDetail = () => {
 
     const graphspaceLabel = graphspace === 'DEFAULT'
         ? t('workbench.context.default_graphspace')
-        : graphspaceInfo.nickname ?? graphspace;
+        : getResourceDisplayName(graphspace, graphspaceInfo.nickname);
     const pageTitle = `${graphspaceLabel} - `
-                      + `${graphIno.nickname ?? graph} - ${t('graph.detail.title')}`;
+                      + `${getResourceDisplayName(graph, graphIno.nickname)} - `
+                      + t('graph.detail.title');
     const isPageDataCurrent = pageDataRoute === routeKey;
     const isStatisticsDataCurrent = statisticsDataRoute === routeKey;
     const visibleStatisticsStatus = isStatisticsDataCurrent

@@ -41,7 +41,7 @@ const OPEN_SECTIONS = ['understand', 'prepare', 'query', 'support'];
 const items = (t, pathname) => {
     const userInfo = user.getUser();
     const pdMode = isPdEnabled();
-    const MY = {label: <Link to='/my'>{t('home.my')}</Link>, key: 'my'};
+    const MY = {label: <Link to='/profile'>{t('home.my')}</Link>, key: 'my'};
     const ACCOUNT = {label: <Link to='/account'>{t('home.account')}</Link>, key: 'account'};
 
     // TODO temporary hided the resource and role modules

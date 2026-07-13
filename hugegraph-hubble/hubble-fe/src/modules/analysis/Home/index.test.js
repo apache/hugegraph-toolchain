@@ -17,7 +17,7 @@
  */
 
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
-import AnalysisHome from './index';
+import AnalysisHome, {extractQueryErrorMessage} from './index';
 import GraphAnalysisContext from '../../Context';
 import * as api from '../../../api';
 
@@ -42,7 +42,7 @@ jest.mock('../QueryBar/Home', () => props => (
         <span data-testid='query-content'>{props.codeEditorContent}</span>
         <button onClick={() => props.onTabsChange('Text2GQL')}>Natural language</button>
         <button onClick={() => props.onTabsChange('Cypher')}>Cypher</button>
-        <button onClick={props.onResetQuery}>Reset example</button>
+        <button onClick={() => props.setCodeEditorContent('g.E().limit(3)')}>Edit query</button>
         <button onClick={() => props.onExecute(props.activeTab)}>Run current</button>
     </div>
 ));
@@ -89,7 +89,7 @@ beforeEach(() => {
     api.manage.getMetaPropertyList.mockResolvedValue(okList);
 });
 
-it('starts with a safe limited example and restores one per query language', async () => {
+it('starts with a limited default only when no saved query exists', async () => {
     render(
         <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
             <AnalysisHome />
@@ -97,10 +97,50 @@ it('starts with a safe limited example and restores one per query language', asy
     );
     await act(async () => Promise.resolve());
 
-    expect(await screen.findByTestId('query-content')).toHaveTextContent('g.V().limit(20)');
+    expect(await screen.findByTestId('query-content')).toHaveTextContent('g.V().limit(10)');
     fireEvent.click(screen.getByRole('button', {name: 'Cypher'}));
     expect(screen.getByTestId('query-content'))
-        .toHaveTextContent('MATCH (n) RETURN n LIMIT 20');
+        .toHaveTextContent('MATCH (n) RETURN n LIMIT 10');
+});
+
+it('restores the last input for the current graph instead of replacing it', async () => {
+    window.localStorage.setItem(
+        'hubble.query.DEFAULT.hugegraph.Gremlin',
+        'g.E().hasLabel("created")'
+    );
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    expect(screen.getByTestId('query-content'))
+        .toHaveTextContent('g.E().hasLabel("created")');
+    fireEvent.click(screen.getByRole('button', {name: 'Edit query'}));
+    expect(window.localStorage.getItem('hubble.query.DEFAULT.hugegraph.Gremlin'))
+        .toBe('g.E().limit(3)');
+});
+
+it('falls back to the real default after a cleared draft is mounted again', async () => {
+    window.localStorage.setItem('hubble.query.DEFAULT.hugegraph.Gremlin', '');
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    expect(screen.getByTestId('query-content')).toHaveTextContent('g.V().limit(10)');
+});
+
+it('prefers a multiline backend diagnostic for rejected HTTP queries', () => {
+    expect(extractQueryErrorMessage({
+        response: {data: {message: 'Syntax error\nline 2: unexpected token'}},
+        message: 'Request failed',
+    }, 'fallback')).toBe('Syntax error\nline 2: unexpected token');
+    expect(extractQueryErrorMessage({message: 'Network Error'}, 'fallback'))
+        .toBe('Network Error');
 });
 
 afterEach(() => jest.clearAllMocks());
@@ -138,7 +178,7 @@ it('turns a rejected synchronous query into a recoverable failed result', async 
     fireEvent.click(screen.getByRole('button', {name: 'Run current'}));
 
     expect(await screen.findByText(/query result failed/)).toHaveTextContent(
-        'analysis.query_result.run_failed_action'
+        'offline'
     );
 });
 

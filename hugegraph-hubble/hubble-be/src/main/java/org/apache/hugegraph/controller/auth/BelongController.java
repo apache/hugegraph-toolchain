@@ -49,7 +49,7 @@ public class BelongController extends AuthController {
             @RequestParam(value = "role_id", required = false) String roleId,
             @RequestParam(value = "user_id", required = false) String userId) {
         HugeClient client = this.authClient(graphSpace, null);
-        return this.belongService.list(client, roleId, userId);
+        return this.belongService.list(client, graphSpace, roleId, userId);
     }
 
     @GetMapping
@@ -62,56 +62,57 @@ public class BelongController extends AuthController {
             @RequestParam(name = "page_size", required = false,
                           defaultValue = "10") int pageSize) {
         HugeClient client = this.authClient(graphSpace, null);
-        return this.belongService.listPage(client, roleId, userId, pageNo,
-                                           pageSize);
+        return this.belongService.listPage(client, graphSpace, roleId, userId,
+                                           pageNo, pageSize);
     }
 
     @GetMapping("{id}")
     public BelongEntity get(@PathVariable("graphspace") String graphSpace,
                             @PathVariable("id") String belongId) {
         HugeClient client = this.authClient(graphSpace, null);
-        return this.belongService.get(client, belongId);
+        return this.belongService.get(client, graphSpace, belongId);
     }
 
     @PostMapping
     public void create(@PathVariable("graphspace") String graphSpace,
                        @RequestBody BelongEntity belongEntity) {
-        HugeClient client = this.authClient(graphSpace, null);
-        this.belongService.add(client, belongEntity.getRoleId(),
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
+        this.belongService.add(client, graphSpace, belongEntity.getRoleId(),
                                belongEntity.getUserId());
     }
 
     @PostMapping("ids")
     public void createMany(@PathVariable("graphspace") String graphSpace,
                            @RequestBody BelongService.BelongsReq belongsReq) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         for (String userId : belongsReq.getUserIds()) {
-            this.belongService.add(client, belongsReq.getRoleId(), userId);
+            this.belongService.add(client, graphSpace,
+                                   belongsReq.getRoleId(), userId);
         }
     }
 
     @DeleteMapping("{id}")
     public void delete(@PathVariable("graphspace") String graphSpace,
                        @PathVariable("id") String belongId) {
-        HugeClient client = this.authClient(graphSpace, null);
-        this.belongService.delete(client, belongId);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
+        this.belongService.deleteById(client, graphSpace, belongId);
     }
 
     @DeleteMapping
     public void delete(@PathVariable("graphspace") String graphSpace,
                        @RequestParam("role_id") String roleId,
                        @RequestParam("user_id") String userId) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         if (StringUtils.isNotEmpty(roleId) && StringUtils.isNotEmpty(userId)) {
-            this.belongService.delete(client, roleId, userId);
+            this.belongService.delete(client, graphSpace, roleId, userId);
         }
     }
 
     @PostMapping("delids")
     public void deleteMany(@PathVariable("graphspace") String graphSpace,
                            @RequestBody DelIdsReq delIdsReq) {
-        HugeClient client = this.authClient(graphSpace, null);
-        this.belongService.deleteMany(client,
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
+        this.belongService.deleteMany(client, graphSpace,
                                       delIdsReq.ids.toArray(new String[0]));
     }
 

@@ -20,6 +20,11 @@ import enPages from '../../i18n/resources/en-US/modules/pages.json';
 import zhPages from '../../i18n/resources/zh-CN/modules/pages.json';
 import * as rules from '../../utils/rules';
 import {resolveJdbcConnectionStatus} from './connectionStatus';
+import {
+    BUILTIN_DATASOURCE_TEMPLATES,
+    DATASOURCE_FIELD_HELP_KEYS,
+    applyDatasourceTemplate,
+} from './EditLayer';
 
 const get = (data, path) => path.split('.').reduce((value, key) => value && value[key], data);
 const hasChinese = value => /[\u4e00-\u9fff]/.test(value);
@@ -35,6 +40,67 @@ const flattenKeys = (value, prefix = '') => Object.entries(value).flatMap(([key,
 });
 
 describe('datasource i18n coverage', () => {
+    it('ships editable starting points for all four supported source types', () => {
+        expect(BUILTIN_DATASOURCE_TEMPLATES.local_csv).toMatchObject({
+            type: 'FILE',
+            format: 'CSV',
+            header: 'id,name,age',
+        });
+        expect(BUILTIN_DATASOURCE_TEMPLATES.kafka_json).toMatchObject({
+            type: 'KAFKA',
+            format: 'JSON',
+            topic: 'graph-events',
+        });
+        expect(BUILTIN_DATASOURCE_TEMPLATES.hdfs_csv).toMatchObject({
+            type: 'HDFS',
+            format: 'CSV',
+            path: 'hdfs://127.0.0.1:8020/data/vertices.csv',
+        });
+        expect(BUILTIN_DATASOURCE_TEMPLATES.jdbc_mysql).toMatchObject({
+            type: 'JDBC',
+            vendor: 'MySQL',
+            driver: 'com.mysql.cj.jdbc.Driver',
+            url: 'jdbc:mysql://127.0.0.1:3306',
+            batch_size: 500,
+        });
+        expect(new Set(Object.values(BUILTIN_DATASOURCE_TEMPLATES)
+            .map(template => template.type)))
+            .toEqual(new Set(['FILE', 'HDFS', 'KAFKA', 'JDBC']));
+        expect(JSON.stringify(BUILTIN_DATASOURCE_TEMPLATES)).not.toContain('password');
+    });
+
+    it.each(Object.keys(BUILTIN_DATASOURCE_TEMPLATES))(
+        'applies the %s template after clearing fields from the previous type',
+        key => {
+            const form = {
+                resetFields: jest.fn(),
+                setFieldsValue: jest.fn(),
+            };
+
+            expect(applyDatasourceTemplate(form, key))
+                .toBe(BUILTIN_DATASOURCE_TEMPLATES[key].type);
+            expect(form.resetFields).toHaveBeenCalledWith(expect.arrayContaining([
+                'datasource_name', 'path', 'bootstrap-server', 'vendor', 'password',
+            ]));
+            expect(form.setFieldsValue)
+                .toHaveBeenCalledWith(BUILTIN_DATASOURCE_TEMPLATES[key]);
+        }
+    );
+
+    it('provides specific bilingual help for every visible source field', () => {
+        Object.values(DATASOURCE_FIELD_HELP_KEYS).flat().forEach(field => {
+            const key = `datasource.form.${field}_help`;
+            const enHelp = get(enPages, key);
+            const zhHelp = get(zhPages, key);
+
+            expect(typeof enHelp).toBe('string');
+            expect(enHelp.length).toBeGreaterThan(10);
+            expect(hasChinese(enHelp)).toBe(false);
+            expect(typeof zhHelp).toBe('string');
+            expect(hasChinese(zhHelp)).toBe(true);
+        });
+    });
+
     it('keeps datasource keys symmetric between English and Chinese resources', () => {
         const enKeys = flattenKeys(enPages.datasource);
         const zhKeys = flattenKeys(zhPages.datasource);

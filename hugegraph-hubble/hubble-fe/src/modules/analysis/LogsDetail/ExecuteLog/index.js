@@ -20,11 +20,14 @@
  * @file gremlin表格 执行记录
  */
 
-import {useState, useCallback} from 'react';
+import {useState, useCallback, useMemo} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Button, Table, Space, Tag, Popconfirm, message} from 'antd';
 import ExecutionContent from '../../../../components/ExecutionContent';
 import FavoriteNameInput from '../../../../components/FavoriteNameInput';
+import ColumnSettings, {
+    useColumnSettings,
+} from '../../../../components/ColumnSettings';
 import {isValidFavoriteName} from '../../../../utils/rules';
 import c from './index.module.scss';
 
@@ -56,6 +59,7 @@ const statusColor =  {
 const FAILURE_REASON_KEYS = new Set([
     'GREMLIN_EXECUTION_FAILED',
 ]);
+const REQUIRED_EXECUTE_COLUMNS = ['action'];
 
 export function failureReasonDescription(rowData, t) {
     if (rowData.status !== 'FAILED'
@@ -188,29 +192,25 @@ const ExecuteLog = props => {
         [favoriteName, onFavoraiteName, t]
     );
 
-    const typeDesc = type => {
+    const typeDesc = useCallback(type => {
         const typeKey = EXECUTE_TYPE_KEY[type];
         return typeKey ? t(`analysis.logs.type.${typeKey}`) : type;
-    };
+    }, [t]);
 
-    const statusDesc = status => {
+    const statusDesc = useCallback(status => {
         const statusKey = EXECUTE_STATUS_KEY[status];
         return statusKey ? t(`analysis.logs.status.${statusKey}`) : status;
-    };
+    }, [t]);
 
-    const executeLogColumns = [
+    const executeLogColumns = useMemo(() => [
         {
+            key: 'time',
             title: t('analysis.logs.column.time'),
             dataIndex: 'create_time',
             width: '20%',
         },
         {
-            title: t('analysis.logs.column.type'),
-            dataIndex: 'type',
-            width: '15%',
-            render: type => typeDesc(type),
-        },
-        {
+            key: 'content',
             title: t('analysis.logs.column.content'),
             dataIndex: 'content',
             width: '30%',
@@ -228,6 +228,7 @@ const ExecuteLog = props => {
             },
         },
         {
+            key: 'status',
             title: t('analysis.logs.column.status'),
             dataIndex: 'status',
             width: '10%',
@@ -248,11 +249,13 @@ const ExecuteLog = props => {
             },
         },
         {
+            key: 'duration',
             title: t('analysis.logs.column.duration'),
             dataIndex: 'duration',
             width: '10%',
         },
         {
+            key: 'action',
             title: t('analysis.logs.column.action'),
             dataIndex: 'manipulation',
             width: '15%',
@@ -272,12 +275,60 @@ const ExecuteLog = props => {
                 );
             },
         },
-    ];
+        {
+            key: 'type',
+            title: t('analysis.logs.column.type'),
+            dataIndex: 'type',
+            width: '15%',
+            render: type => typeDesc(type),
+        },
+    ], [favoriteContent, favoriteName, loadStatements, onAddFavorite,
+        onFavoriteCard, statusDesc, t, typeDesc]);
+
+    const columnSettings = useColumnSettings(
+        executeLogColumns,
+        'hubble.analysis.execution-log.columns',
+        REQUIRED_EXECUTE_COLUMNS
+    );
+    const columnSettingsLabels = useMemo(
+        () => ({
+            title: t('analysis.logs.column_settings.title'),
+            moveUp: t('analysis.logs.column_settings.move_up'),
+            moveDown: t('analysis.logs.column_settings.move_down'),
+            reset: t('analysis.logs.column_settings.reset'),
+        }),
+        [t]
+    );
+    const displayedColumns = useMemo(
+        () => columnSettings.columns.map((column, index) => {
+            if (index !== columnSettings.columns.length - 1) {
+                return column;
+            }
+            return {
+                ...column,
+                title: (
+                    <div className={c.columnHeaderTools}>
+                        <span>{column.title}</span>
+                        <ColumnSettings
+                            columns={executeLogColumns}
+                            preferences={columnSettings.preferences}
+                            setPreferences={columnSettings.setPreferences}
+                            reset={columnSettings.reset}
+                            requiredKeys={REQUIRED_EXECUTE_COLUMNS}
+                            labels={columnSettingsLabels}
+                        />
+                    </div>
+                ),
+            };
+        }),
+        [columnSettings.columns, columnSettings.preferences, columnSettings.reset,
+            columnSettings.setPreferences, columnSettingsLabels, executeLogColumns]
+    );
 
 
     return (
         <Table
-            columns={executeLogColumns}
+            columns={displayedColumns}
             dataSource={executeLogsDataRecords}
             rowKey={getRowKey}
             pagination={{

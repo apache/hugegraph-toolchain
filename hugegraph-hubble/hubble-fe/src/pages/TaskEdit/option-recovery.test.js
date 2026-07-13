@@ -90,6 +90,70 @@ it('defaults a new task to the current graph when it is still eligible', async (
     })).toBeInTheDocument();
 });
 
+it('uses the graph name when the backend returns an empty alias', async () => {
+    window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'DEFAULT',
+        graph: 'current_graph',
+    }));
+    api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'current_graph',
+            nickname: '',
+            schemaview: {vertices: [{name: 'person'}], edges: []},
+        }]},
+    });
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('current_graph', {
+        selector: '.ant-select-selection-item',
+    })).toBeInTheDocument();
+});
+
+it('defaults a PD task to the current graph space and graph', async () => {
+    isPdEnabled.mockReturnValue(true);
+    window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'SPACE_B',
+        graph: 'current_graph',
+    }));
+    api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.getGraphSpaceList.mockResolvedValue({
+        status: 200,
+        data: {records: [
+            {name: 'SPACE_A', nickname: 'Space A'},
+            {name: 'SPACE_B', nickname: 'Space B'},
+        ]},
+    });
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'current_graph',
+            nickname: 'Current graph',
+            schemaview: {vertices: [{name: 'person'}], edges: []},
+        }]},
+    });
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Space B', {
+        selector: '.ant-select-selection-item',
+    })).toBeInTheDocument();
+    expect(await screen.findByText('Current graph', {
+        selector: '.ant-select-selection-item',
+    })).toBeInTheDocument();
+    expect(api.manage.getGraphList).toHaveBeenCalledWith('SPACE_B', {page_size: -1});
+});
+
 it('restores the last available data source or falls back to the first one', async () => {
     window.localStorage.setItem('hubble_task_datasource', '9');
     api.manage.getDatasourceList.mockResolvedValue({

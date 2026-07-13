@@ -16,6 +16,7 @@
  */
 
 import {
+    applyGraphDataUpdate,
     preserveNodePositions,
     shouldKeepGraphCanvas,
     shouldRestartGraphLayout,
@@ -35,6 +36,16 @@ test('does not restart layout when a repeated query returns the same topology', 
     expect(shouldRestartGraphLayout(data, repeated)).toBe(false);
 });
 
+test('restarts layout once when a new query result repeats the same topology', () => {
+    const repeated = {
+        nodes: data.nodes.map(node => ({...node})),
+        edges: data.edges.map(edge => ({...edge})),
+    };
+
+    expect(shouldRestartGraphLayout(data, repeated, 1, 2)).toBe(true);
+    expect(shouldRestartGraphLayout(repeated, repeated, 2, 2)).toBe(false);
+});
+
 test('keeps node coordinates when a repeated query refreshes graph data', () => {
     const graphItems = [
         {getModel: () => ({id: 'a', x: 120, y: 80})},
@@ -45,6 +56,55 @@ test('keeps node coordinates when a repeated query refreshes graph data', () => 
         {id: 'a', x: 120, y: 80},
         {id: 'b', x: 360, y: 240},
     ]);
+});
+
+test('runs exactly one explicit layout for each new query result', () => {
+    const graph = {
+        changeData: jest.fn(),
+        updateLayout: jest.fn(),
+        getNodes: jest.fn(() => []),
+    };
+    const repeated = {
+        nodes: data.nodes.map(node => ({...node})),
+        edges: data.edges.map(edge => ({...edge})),
+    };
+
+    expect(applyGraphDataUpdate({
+        graph,
+        previousData: data,
+        nextData: repeated,
+        layout: {type: 'force2'},
+        previousRevision: 1,
+        nextRevision: 2,
+    })).toBe(true);
+    expect(graph.changeData).toHaveBeenCalledWith(repeated, false);
+    expect(graph.updateLayout).toHaveBeenCalledTimes(1);
+});
+
+test('preserves dragged positions without relayout for the same result revision', () => {
+    const graph = {
+        changeData: jest.fn(),
+        updateLayout: jest.fn(),
+        getNodes: jest.fn(() => [
+            {getModel: () => ({id: 'a', x: 120, y: 80})},
+            {getModel: () => ({id: 'b', x: 360, y: 240})},
+        ]),
+    };
+
+    expect(applyGraphDataUpdate({
+        graph,
+        previousData: data,
+        nextData: {...data},
+        layout: {type: 'force2'},
+        previousRevision: 2,
+        nextRevision: 2,
+    })).toBe(false);
+    expect(graph.changeData.mock.calls[0][0].nodes).toEqual([
+        {id: 'a', x: 120, y: 80},
+        {id: 'b', x: 360, y: 240},
+    ]);
+    expect(graph.changeData.mock.calls[0][1]).toBe(false);
+    expect(graph.updateLayout).not.toHaveBeenCalled();
 });
 
 test('keeps the existing canvas mounted while a repeated query is loading', () => {

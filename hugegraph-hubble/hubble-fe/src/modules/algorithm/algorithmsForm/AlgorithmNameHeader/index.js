@@ -30,12 +30,17 @@ import {
     getAlgorithmDisplayName,
     isAlgorithmNameMatched,
 } from '../../../../utils/constants';
+import {
+    getAlgorithmDocumentationUrl,
+    isAlgorithmImplementationSource,
+} from '../algorithmDocs';
 
 const {Text} = Typography;
 
 import {
     QuestionCircleOutlined,
     CaretRightOutlined,
+    LinkOutlined,
 } from '@ant-design/icons';
 
 const AlgorithmNameHeader = props => {
@@ -57,6 +62,10 @@ const AlgorithmNameHeader = props => {
 
     );
     const displayName = getAlgorithmDisplayName(name, t);
+    const documentationUrl = getAlgorithmDocumentationUrl(name);
+    const helpLinkLabel = t(isAlgorithmImplementationSource(name)
+        ? 'analysis.algorithm.api_source'
+        : 'analysis.algorithm.api_docs');
 
     const renderAlgorithmName = name => {
         let res;
@@ -148,6 +157,18 @@ const AlgorithmNameHeader = props => {
                 {renderAlgorithmName(name)}
             </div>
             <div className={c.panelHeaderRight}>
+                <Tooltip title={helpLinkLabel}>
+                    <span onClickCapture={event => event.stopPropagation()}>
+                        <a
+                            href={documentationUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            aria-label={`${displayName} ${helpLinkLabel}`}
+                        >
+                            <LinkOutlined />
+                        </a>
+                    </span>
+                </Tooltip>
                 <Tooltip placement="rightTop" title={description}>
                     <QuestionCircleOutlined />
                 </Tooltip>

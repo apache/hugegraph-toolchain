@@ -246,12 +246,17 @@ public class IngestController extends BaseController {
             setting.setColumnValues(columns.values);
         }
 
+        Set<VertexMapping> vertexMappings = this.vertexMappings(struct.vertices);
+        Set<EdgeMapping> edgeMappings = this.edgeMappings(struct.edges);
+        Ex.check(!vertexMappings.isEmpty() || !edgeMappings.isEmpty(),
+                 "At least one vertex or edge mapping is required");
+
         JobManager job = JobManager.builder()
                                    .graphSpace(graphSpace)
                                    .graph(graph)
                                    .jobName(request.taskName)
                                    .jobSize(totalSize)
-                                   .jobStatus(JobStatus.SETTING)
+                                   .jobStatus(JobStatus.LOADING)
                                    .createTime(HubbleUtil.nowDate())
                                    .updateTime(HubbleUtil.nowDate())
                                    .build();
@@ -263,33 +268,18 @@ public class IngestController extends BaseController {
         mapping.setTotalLines(FileUtil.countLines(sourceFile.getPath()));
         mapping.setFileSetting(setting);
         mapping.setLoadParameter(new LoadParameter());
-        mapping.setVertexMappings(this.vertexMappings(struct.vertices));
-        mapping.setEdgeMappings(this.edgeMappings(struct.edges));
+        mapping.setVertexMappings(vertexMappings);
+        mapping.setEdgeMappings(edgeMappings);
 
-        boolean started = false;
-        try {
-            this.jobManagerService.save(job);
-            mapping.setJobId(job.getId());
-            this.fileMappingService.save(mapping);
-
-            GraphConnection connection = this.graphConnection(graphSpace, graph);
-            HugeClient client = this.authClient(graphSpace, graph);
-            LoadTask task = this.loadTaskService.start(connection, mapping,
-                                                       client);
-            started = true;
-            Map<String, Object> data = new HashMap<>();
-            data.put("task_id", job.getId());
-            data.put("job_id", task.getId());
-            return Response.builder().status(Constant.STATUS_OK)
-                           .data(data).build();
-        } finally {
-            if (job.getId() != null) {
-                job.setJobStatus(started ? JobStatus.LOADING :
-                                 JobStatus.FAILED);
-                job.setUpdateTime(HubbleUtil.nowDate());
-                this.jobManagerService.update(job);
-            }
-        }
+        GraphConnection connection = this.graphConnection(graphSpace, graph);
+        HugeClient client = this.authClient(graphSpace, graph);
+        LoadTask task = this.jobManagerService.createIngestTask(
+                job, mapping, connection, client);
+        Map<String, Object> data = new HashMap<>();
+        data.put("task_id", job.getId());
+        data.put("job_id", task.getId());
+        return Response.builder().status(Constant.STATUS_OK)
+                       .data(data).build();
     }
 
     @GetMapping("/tasks/list")
