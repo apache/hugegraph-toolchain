@@ -55,4 +55,25 @@ public class ManagerAPITest extends BaseUnitTest {
                             payload.getValue().get("type"));
         Assert.assertFalse(payload.getValue().containsKey("graphspace"));
     }
+
+    @Test
+    public void testSpaceChecksUseEachTargetGraphSpacePath() {
+        RestClient client = Mockito.mock(RestClient.class);
+        RestResult result = Mockito.mock(RestResult.class);
+        Mockito.when(result.readObject(Map.class))
+               .thenReturn(java.util.Collections.singletonMap("check", true));
+
+        ArgumentCaptor<String> path = ArgumentCaptor.forClass(String.class);
+        Mockito.when(client.get(path.capture(), Mockito.anyMap()))
+               .thenReturn(result);
+
+        AuthManager auth = new AuthManager(client, "DEFAULT", null);
+        Assert.assertTrue(auth.isSpaceAdmin("space_a"));
+        Assert.assertTrue(auth.checkDefaultRole("space_b", "analyst"));
+
+        Assert.assertEquals("graphspaces/space_a/auth/managers/check",
+                            path.getAllValues().get(0));
+        Assert.assertEquals("graphspaces/space_b/auth/managers/default",
+                            path.getAllValues().get(1));
+    }
 }

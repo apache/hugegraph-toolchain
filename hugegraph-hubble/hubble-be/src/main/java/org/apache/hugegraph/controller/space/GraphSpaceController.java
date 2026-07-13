@@ -33,7 +33,6 @@ import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.auth.UserService;
 import org.apache.hugegraph.service.graphs.GraphsService;
 import org.apache.hugegraph.service.space.GraphSpaceService;
-import org.apache.hugegraph.structure.space.GraphSpace;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Ex;
 import org.apache.hugegraph.util.PageUtil;
@@ -130,7 +129,7 @@ public class GraphSpaceController extends BaseController {
     }
 
     @GetMapping("{graphspace}")
-    public GraphSpaceEntity get(@PathVariable("graphspace") String graphspace) {
+    public Object get(@PathVariable("graphspace") String graphspace) {
         if (!isPdEnabled()) {
             // Return a minimal stub entity for non-PD mode
             GraphSpaceEntity stub = new GraphSpaceEntity();
@@ -140,7 +139,8 @@ public class GraphSpaceController extends BaseController {
         }
         HugeClient client = this.authClient(null, null);
         // Get GraphSpace Info
-        return graphSpaceService.getWithAdmins(client, graphspace);
+        return graphSpaceService.toView(
+                graphSpaceService.getWithAdmins(client, graphspace));
     }
 
     @PostMapping
@@ -186,8 +186,8 @@ public class GraphSpaceController extends BaseController {
     }
 
     @PutMapping("{graphspace}")
-    public GraphSpace update(@PathVariable("graphspace") String graphspace,
-                             @RequestBody GraphSpaceEntity graphSpaceEntity) {
+    public Object update(@PathVariable("graphspace") String graphspace,
+                         @RequestBody GraphSpaceEntity graphSpaceEntity) {
         E.checkArgument(isPdEnabled(),
                 "GraphSpace management is not supported in standalone mode");
 

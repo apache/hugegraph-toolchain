@@ -337,14 +337,17 @@ public class AuthManager {
     }
 
     public boolean isSpaceAdmin(String graphSpace) {
-        return this.managerAPI.checkPermission(HugePermission.SPACE, graphSpace);
+        return this.managerAPI(graphSpace)
+                   .checkPermission(HugePermission.SPACE, graphSpace);
     }
 
     public boolean checkDefaultRole(String graphSpace, String role) {
-        return this.managerAPI.checkDefaultRole(graphSpace, role, "");
+        return this.managerAPI(graphSpace)
+                   .checkDefaultRole(graphSpace, role, "");
     }
 
     public boolean checkDefaultRole(String graphSpace, String role, String graph) {
-        return this.managerAPI.checkDefaultRole(graphSpace, role, graph);
+        return this.managerAPI(graphSpace)
+                   .checkDefaultRole(graphSpace, role, graph);
     }
 }
