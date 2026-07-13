@@ -17,7 +17,6 @@
 
 package org.apache.hugegraph.structure.space;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
@@ -80,9 +79,9 @@ public class GraphSpace {
     @JsonProperty("dp_password")
     private String dpPassWord;
 
-    @JsonIgnore
+    @JsonProperty("create_time")
     private String createTime;
-    @JsonIgnore
+    @JsonProperty("update_time")
     private String updateTime;
 
     @JsonProperty("configs")

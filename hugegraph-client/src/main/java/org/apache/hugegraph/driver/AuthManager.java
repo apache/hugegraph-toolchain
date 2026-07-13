@@ -48,6 +48,7 @@ import org.apache.hugegraph.structure.auth.UserManager;
 
 public class AuthManager {
 
+    private final RestClient client;
     private final TargetAPI targetAPI;
     private final GroupAPI groupAPI;
     private final UserAPI userAPI;
@@ -60,6 +61,7 @@ public class AuthManager {
     private final ManagerAPI managerAPI;
 
     public AuthManager(RestClient client, String graphSpace, String graph) {
+        this.client = client;
         this.targetAPI = new TargetAPI(client, graphSpace);
         this.groupAPI = new GroupAPI(client);
         this.userAPI = new UserAPI(client, graphSpace);
@@ -305,7 +307,7 @@ public class AuthManager {
         userManager.type(HugePermission.SPACE);
         userManager.graphSpace(graphSpace);
         userManager.user(user);
-        return this.managerAPI.create(userManager);
+        return this.managerAPI(graphSpace).create(userManager);
     }
 
     public void delSuperAdmin(String user) {
@@ -313,11 +315,17 @@ public class AuthManager {
     }
 
     public void delSpaceAdmin(String user, String graphSpace) {
-        this.managerAPI.delete(user, HugePermission.SPACE, graphSpace);
+        this.managerAPI(graphSpace).delete(user, HugePermission.SPACE,
+                                           graphSpace);
     }
 
     public List<String> listSpaceAdmin(String graphSpace) {
-        return this.managerAPI.list(HugePermission.SPACE, graphSpace);
+        return this.managerAPI(graphSpace).list(HugePermission.SPACE,
+                                                graphSpace);
+    }
+
+    private ManagerAPI managerAPI(String graphSpace) {
+        return new ManagerAPI(this.client, graphSpace);
     }
 
     public List<String> listSuperAdmin() {

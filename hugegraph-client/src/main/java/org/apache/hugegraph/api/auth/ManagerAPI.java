@@ -35,7 +35,10 @@ public class ManagerAPI extends AuthAPI {
     }
 
     public UserManager create(UserManager userManager) {
-        RestResult result = this.client.post(this.path(), userManager);
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("user", userManager.user());
+        payload.put("type", userManager.type());
+        RestResult result = this.client.post(this.path(), payload);
         return result.readObject(UserManager.class);
     }
 

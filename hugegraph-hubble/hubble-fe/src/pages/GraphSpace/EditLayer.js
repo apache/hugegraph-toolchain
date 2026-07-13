@@ -102,6 +102,10 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
                 api.manage.addGraphSpace(values, PAGE_ERROR_CONFIG)
                     .then(thenCallBack).catch(catchCallback);
             }
+        }).catch(error => {
+            if (!error?.errorFields) {
+                message.error(t('common.msg.operation_failed'));
+            }
         });
     }, [detail.name, isDisabled, onCancel, refresh, form, t]);
 
@@ -251,152 +255,164 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
                     />
                 </Form.Item>
 
-                <Typography.Title level={5}>{t('graphspace.form.graph_service')}</Typography.Title>
-                <MyFormItem
-                    label={t('graphspace.form.cpu')}
-                    help={t('graphspace.form.graph_cpu_help')}
-                    unit={t('graphspace.unit.cpu')}
-                >
-                    <Form.Item
-                        name="cpu_limit"
-                        noStyle
+                <details style={{marginBottom: 24}}>
+                    <summary style={{cursor: 'pointer', marginBottom: 16}}>
+                        <strong>{t('graphspace.form.advanced_title')}</strong>
+                        <Typography.Text type='secondary' style={{marginLeft: 8}}>
+                            {t('graphspace.form.advanced_help')}
+                        </Typography.Text>
+                    </summary>
+
+                    <Typography.Title level={5}>
+                        {t('graphspace.form.graph_service')}
+                    </Typography.Title>
+                    <MyFormItem
+                        label={t('graphspace.form.cpu')}
+                        help={t('graphspace.form.graph_cpu_help')}
+                        unit={t('graphspace.unit.cpu')}
                     >
-                        <InputNumber
-                            placeholder={t('graphspace.form.cpu_placeholder')}
-                            precision={0}
-                            min={1}
-                        />
-                    </Form.Item>
-                </MyFormItem>
+                        <Form.Item
+                            name="cpu_limit"
+                            noStyle
+                        >
+                            <InputNumber
+                                placeholder={t('graphspace.form.cpu_placeholder')}
+                                precision={0}
+                                min={1}
+                            />
+                        </Form.Item>
+                    </MyFormItem>
 
-                <MyFormItem
-                    label={t('graphspace.form.memory')}
-                    help={t('graphspace.form.graph_memory_help')}
-                    unit={t('graphspace.unit.memory')}
-                >
-                    <Form.Item
-                        name="memory_limit"
-                        noStyle
+                    <MyFormItem
+                        label={t('graphspace.form.memory')}
+                        help={t('graphspace.form.graph_memory_help')}
+                        unit={t('graphspace.unit.memory')}
                     >
-                        <InputNumber
-                            placeholder={t('graphspace.form.memory_placeholder')}
-                            precision={0}
-                            min={1}
-                        />
-                    </Form.Item>
-                </MyFormItem>
+                        <Form.Item
+                            name="memory_limit"
+                            noStyle
+                        >
+                            <InputNumber
+                                placeholder={t('graphspace.form.memory_placeholder')}
+                                precision={0}
+                                min={1}
+                            />
+                        </Form.Item>
+                    </MyFormItem>
 
-                <Form.Item
-                    name="oltp_namespace"
-                    label={<FieldLabel
-                        label={t('graphspace.form.k8s_namespace')}
-                        help={t('graphspace.form.oltp_namespace_help')}
-                    />}
-                    rules={
-                        [
-                            {validator: k8sValidator},
-                        ]
-                    }
-                >
-                    <Input disabled={isDisabled} placeholder={t('graphspace.form.k8s_placeholder')} />
-                </Form.Item>
-
-                <Typography.Title level={5}>{t('graphspace.form.compute_task')}</Typography.Title>
-                <MyFormItem
-                    label={t('graphspace.form.cpu')}
-                    help={t('graphspace.form.compute_cpu_help')}
-                    unit={t('graphspace.unit.cpu')}
-                >
                     <Form.Item
-                        name="compute_cpu_limit"
-                        noStyle
+                        name="oltp_namespace"
+                        label={<FieldLabel
+                            label={t('graphspace.form.k8s_namespace')}
+                            help={t('graphspace.form.oltp_namespace_help')}
+                        />}
+                        rules={
+                            [
+                                {validator: k8sValidator},
+                            ]
+                        }
                     >
-                        <InputNumber
-                            placeholder={t('graphspace.form.cpu_placeholder')}
-                            precision={0}
-                            min={1}
-                        />
+                        <Input disabled={isDisabled} placeholder={t('graphspace.form.k8s_placeholder')} />
                     </Form.Item>
-                </MyFormItem>
 
-                <MyFormItem
-                    label={t('graphspace.form.memory')}
-                    help={t('graphspace.form.compute_memory_help')}
-                    unit={t('graphspace.unit.memory')}
-                >
+                    <Typography.Title level={5}>{t('graphspace.form.compute_task')}</Typography.Title>
+                    <MyFormItem
+                        label={t('graphspace.form.cpu')}
+                        help={t('graphspace.form.compute_cpu_help')}
+                        unit={t('graphspace.unit.cpu')}
+                    >
+                        <Form.Item
+                            name="compute_cpu_limit"
+                            noStyle
+                        >
+                            <InputNumber
+                                placeholder={t('graphspace.form.cpu_placeholder')}
+                                precision={0}
+                                min={1}
+                            />
+                        </Form.Item>
+                    </MyFormItem>
+
+                    <MyFormItem
+                        label={t('graphspace.form.memory')}
+                        help={t('graphspace.form.compute_memory_help')}
+                        unit={t('graphspace.unit.memory')}
+                    >
+                        <Form.Item
+                            name="compute_memory_limit"
+                            noStyle
+                        >
+                            <InputNumber
+                                placeholder={t('graphspace.form.memory_placeholder')}
+                                precision={0}
+                                min={1}
+                            />
+                        </Form.Item>
+                    </MyFormItem>
+
                     <Form.Item
-                        name="compute_memory_limit"
-                        noStyle
+                        name="olap_namespace"
+                        label={<FieldLabel
+                            label={t('graphspace.form.k8s_namespace')}
+                            help={t('graphspace.form.olap_namespace_help')}
+                        />}
+                        rules={
+                            [
+                                {validator: k8sValidator},
+                            ]
+                        }
                     >
-                        <InputNumber
-                            placeholder={t('graphspace.form.memory_placeholder')}
-                            precision={0}
-                            min={1}
-                        />
+                        <Input disabled={isDisabled} placeholder={t('graphspace.form.k8s_placeholder')} />
                     </Form.Item>
-                </MyFormItem>
 
-                <Form.Item
-                    name="olap_namespace"
-                    label={<FieldLabel
-                        label={t('graphspace.form.k8s_namespace')}
-                        help={t('graphspace.form.olap_namespace_help')}
-                    />}
-                    rules={
-                        [
-                            {validator: k8sValidator},
-                        ]
-                    }
-                >
-                    <Input disabled={isDisabled} placeholder={t('graphspace.form.k8s_placeholder')} />
-                </Form.Item>
-
-                <Form.Item
-                    name="operator_image_path"
-                    label={t('graphspace.form.operator_image')}
-                    rules={[
-                        {
-                            pattern: /^[a-zA-Z0-9\-\.]+\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_]+(\:[a-z0-9\.]+)*$/,
-                            message: t('graphspace.form.image_format_error'),
-                        },
-                    ]}
-                    extra='ie: example.com/org_1/xx_img:1.0.0'
-                >
-                    <Input placeholder={t('graphspace.form.image_placeholder')} />
-                </Form.Item>
-
-                <Form.Item
-                    name="algorithm_image_url"
-                    label={t('graphspace.form.algorithm_image')}
-                    extra='ie: example.com/org_1/xx_img:1.0.0'
-                    rules={[
-                        {
-                            pattern: /^[a-zA-Z0-9\-\.]+\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_]+(\:[a-z0-9\.]+)*$/,
-                            message: t('graphspace.form.image_format_error'),
-                        },
-                    ]}
-                >
-                    <Input placeholder={t('graphspace.form.image_placeholder')} />
-                </Form.Item>
-
-                <Typography.Title level={5}>{t('graphspace.form.storage')}</Typography.Title>
-                <MyFormItem
-                    label={t('graphspace.form.storage_limit')}
-                    help={t('graphspace.form.storage_limit_help')}
-                    unit={t('graphspace.unit.memory')}
-                >
                     <Form.Item
-                        name="storage_limit"
-                        noStyle
+                        name="operator_image_path"
+                        label={t('graphspace.form.operator_image')}
+                        rules={[
+                            {
+                                pattern: /^[a-zA-Z0-9\-\.]+\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_]+(\:[a-z0-9\.]+)*$/,
+                                message: t('graphspace.form.image_format_error'),
+                            },
+                        ]}
+                        extra={t('graphspace.form.image_example')}
                     >
-                        <InputNumber
-                            style={{width: 200}}
-                            placeholder={t('graphspace.form.storage_placeholder')}
-                            precision={0}
-                            min={1}
-                        />
+                        <Input placeholder={t('graphspace.form.image_placeholder')} />
                     </Form.Item>
-                </MyFormItem>
+
+                    <Form.Item
+                        name="algorithm_image_url"
+                        label={t('graphspace.form.algorithm_image')}
+                        extra={t('graphspace.form.image_example')}
+                        rules={[
+                            {
+                                pattern: /^[a-zA-Z0-9\-\.]+\/[a-zA-Z0-9\-_]+\/[a-zA-Z0-9\-_]+(\:[a-z0-9\.]+)*$/,
+                                message: t('graphspace.form.image_format_error'),
+                            },
+                        ]}
+                    >
+                        <Input placeholder={t('graphspace.form.image_placeholder')} />
+                    </Form.Item>
+
+                    <Typography.Title level={5}>{t('graphspace.form.storage')}</Typography.Title>
+                    <MyFormItem
+                        label={t('graphspace.form.storage_limit')}
+                        help={t('graphspace.form.storage_limit_help')}
+                        unit={t('graphspace.unit.memory')}
+                    >
+                        <Form.Item
+                            name="storage_limit"
+                            noStyle
+                        >
+                            <InputNumber
+                                style={{width: 200}}
+                                placeholder={t('graphspace.form.storage_placeholder')}
+                                precision={0}
+                                min={1}
+                            />
+                        </Form.Item>
+                    </MyFormItem>
+
+                </details>
 
                 <hr />
 

@@ -65,7 +65,7 @@ jest.mock('antd', () => {
     };
 });
 
-test('does not expose a default GraphSpace mutation action', () => {
+beforeEach(() => {
     window.matchMedia = jest.fn().mockImplementation(query => ({
         matches: false,
         media: query,
@@ -76,6 +76,9 @@ test('does not expose a default GraphSpace mutation action', () => {
         removeEventListener: jest.fn(),
         dispatchEvent: jest.fn(),
     }));
+});
+
+test('does not expose a default GraphSpace mutation action', () => {
     const handleSetDefault = jest.fn();
     const item = {
         name: 'DEFAULT',
@@ -104,4 +107,58 @@ test('does not expose a default GraphSpace mutation action', () => {
 
     expect(screen.queryByText('common.action.set_default')).not.toBeInTheDocument();
     expect(handleSetDefault).not.toHaveBeenCalled();
+    expect(screen.getByText('graphspace.card.daily_snapshot')).toBeInTheDocument();
+    expect(screen.getByLabelText('graphspace.card.statistic_help')).toBeInTheDocument();
+});
+
+test('falls back to the daily-update label when statistics are unavailable', () => {
+    const item = {
+        name: 'empty',
+        nickname: 'Empty',
+        create_time: '2026-07-10',
+        auth: false,
+        max_graph_number: 10,
+        cpu_limit: 2,
+        memory_limit: 4,
+        storage_limit: 100,
+        storage_used: 0,
+        storage_percent: 0,
+    };
+
+    render(
+        <GraphSpaceCard
+            item={item}
+            editGraphspace={jest.fn()}
+            deleteGraphspace={jest.fn()}
+            handleInit={jest.fn()}
+        />
+    );
+
+    expect(screen.getByText('graphspace.card.vertex: -')).toBeInTheDocument();
+    expect(screen.getByText('graphspace.card.edge: -')).toBeInTheDocument();
+    expect(screen.getByText('graphspace.card.daily_update')).toBeInTheDocument();
+});
+
+test('keeps public GraphSpace navigation but hides mutation actions for viewers', () => {
+    const item = {
+        name: 'public', nickname: 'Public', create_time: '2026-07-10',
+        auth: false, max_graph_number: 10, cpu_limit: 2, memory_limit: 4,
+        storage_limit: 100, storage_used: 1, storage_percent: 0.01,
+        statistic: {vertex: 0, edge: 0},
+    };
+
+    render(
+        <GraphSpaceCard
+            item={item}
+            canManage={false}
+            editGraphspace={jest.fn()}
+            deleteGraphspace={jest.fn()}
+            handleInit={jest.fn()}
+        />
+    );
+
+    expect(screen.getAllByText('graphspace.card.enter').length).toBeGreaterThan(0);
+    expect(screen.getByText('common.action.schema_manage')).toBeInTheDocument();
+    expect(screen.queryByText('common.action.edit')).not.toBeInTheDocument();
+    expect(screen.queryByText('common.action.delete')).not.toBeInTheDocument();
 });

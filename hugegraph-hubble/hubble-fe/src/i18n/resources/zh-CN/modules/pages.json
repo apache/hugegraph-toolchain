@@ -117,6 +117,8 @@
       "name": "图空间名称",
       "auth": "是否开启鉴权",
       "max_graph": "最大图数",
+      "advanced_title": "高级部署与资源限制",
+      "advanced_help": "仅 Kubernetes、计算任务或配额场景需要",
       "max_role": "最大角色数",
       "graph_service": "图服务：",
       "compute_task": "计算任务：",
@@ -136,6 +138,7 @@
       "storage_placeholder": "例如：1000000",
       "max_graph_placeholder": "例如：100",
       "image_placeholder": "例如：example.com/hugegraph/image:1.0.0",
+      "image_example": "例如：example.com/org/image:1.0.0",
       "id_placeholder": "以字母开头,只能包含小写字母、数字、_, 最长48位",
       "name_placeholder": "例如：演示图空间（最长 48 位）",
       "k8s_placeholder": "以字母开头,只能包含小写字母、数字、-,最长48位",
@@ -160,6 +163,8 @@
       "vertex": "顶点",
       "edge": "边",
       "daily_update": "点边数每日更新",
+      "daily_snapshot": "{{date}} 每日快照",
+      "statistic_help": "点边统计说明",
       "last_update": "本次数据更新于 {{date}}",
       "graph_id": "图ID：{{name}}",
       "auth_label": "是否鉴权：",
@@ -321,6 +326,12 @@
       "open_schema": "创建 Schema",
       "query_graph": "查询此图",
       "detail_tooltip": "点击可以查看本图目前存储的点边的数量"
+    },
+    "empty": {
+      "description": "这个 GraphSpace 已可用，但还没有图。创建第一张图后即可配置 Schema、导入和查询数据。",
+      "create": "创建第一张图",
+      "filtered_description": "没有图符合当前日期或名称条件。",
+      "clear_filters": "清除筛选"
     }
   },
   "account": {

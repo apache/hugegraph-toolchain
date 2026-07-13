@@ -20,6 +20,7 @@ import {render, screen} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GraphSpace from './index';
 import * as api from '../../api';
+import * as user from '../../utils/user';
 
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => key}),
@@ -33,11 +34,16 @@ jest.mock('../../api', () => ({
     },
 }));
 
-jest.mock('./Card', () => ({item}) => <div>{item.nickname}</div>);
+jest.mock('../../utils/user', () => ({getUser: jest.fn()}));
+
+jest.mock('./Card', () => ({item, canManage}) => (
+    <div>{item.nickname}:{canManage ? 'manage' : 'view'}</div>
+));
 jest.mock('./EditLayer', () => ({EditLayer: () => null}));
 
 beforeEach(() => {
     jest.clearAllMocks();
+    user.getUser.mockReturnValue({is_superadmin: true, adminSpaces: []});
     window.matchMedia = jest.fn().mockImplementation(query => ({
         matches: false,
         media: query,
@@ -63,7 +69,21 @@ test('keeps a failed GraphSpace request distinct from a valid empty list', async
 
     await userEvent.click(screen.getByRole('button', {name: 'graphspace.load.retry'}));
 
-    expect(await screen.findByText('Space A')).toBeInTheDocument();
+    expect(await screen.findByText('Space A:manage')).toBeInTheDocument();
     expect(screen.queryByText('graphspace.load.unavailable')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'graphspace.create'})).toBeEnabled();
+});
+
+test('keeps public spaces readable without exposing GraphSpace mutations', async () => {
+    user.getUser.mockReturnValue({is_superadmin: false, adminSpaces: []});
+    api.manage.getGraphSpaceList.mockResolvedValue({
+        status: 200,
+        data: {records: [{name: 'public', nickname: 'Public'}], total: 1},
+    });
+
+    render(<GraphSpace />);
+
+    expect(await screen.findByText('Public:view')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'graphspace.create'}))
+        .not.toBeInTheDocument();
 });

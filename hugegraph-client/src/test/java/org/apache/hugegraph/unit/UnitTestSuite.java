@@ -30,6 +30,7 @@ import org.junit.runners.Suite;
         PropertyKeyTest.class,
         IndexLabelTest.class,
         GraphSpaceAPITest.class,
+        ManagerAPITest.class,
         GraphsAPITest.class,
         CommonUtilTest.class,
         IdUtilTest.class,

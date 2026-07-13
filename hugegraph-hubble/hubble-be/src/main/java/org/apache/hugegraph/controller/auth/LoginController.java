@@ -85,10 +85,8 @@ public class LoginController extends BaseController {
                              this.createLoginTokenClient(result.token())) {
                     client.assignGraph(PDHugeClientFactory.DEFAULT_GRAPHSPACE,
                                        null);
-                    UserEntity entity = this.userService.getUser(client,
-                                                                 login.name());
-                    entity.setSuperadmin(
-                            this.userService.isSuperAdmin(client));
+                    UserEntity entity = this.userService.getpersonal(
+                            client, login.name());
                     user = entity;
                 }
             }

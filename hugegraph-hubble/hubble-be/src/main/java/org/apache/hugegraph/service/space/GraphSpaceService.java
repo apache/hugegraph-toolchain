@@ -33,6 +33,7 @@ import org.apache.hugegraph.structure.space.GraphSpace;
 import org.apache.hugegraph.structure.space.SchemaTemplate;
 import org.apache.hugegraph.util.GremlinUtil;
 import org.apache.hugegraph.util.HubbleUtil;
+import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.Log;
 import org.apache.hugegraph.util.PageUtil;
 import org.slf4j.Logger;
@@ -135,6 +136,42 @@ public class GraphSpaceService {
             Map<String, Object> statisticTotal = evCount(client, name);
             info.put("statistic", statisticTotal);
         }
+        return results;
+    }
+
+    public List<Map<String, Object>> queryAccessibleGs(HugeClient client,
+                                                       String query,
+                                                       String createTime) {
+        String prefix = query == null ? "" : query;
+        String after = createTime == null ? "" : createTime;
+        List<Map<String, Object>> results = client.graphSpace()
+                .listGraphSpace().stream()
+                .map(client.graphSpace()::getGraphSpace)
+                .filter(space -> space != null &&
+                                 (space.getName().contains(prefix) ||
+                                  space.getNickname() != null &&
+                                  space.getNickname().contains(prefix)))
+                .filter(space -> space.getCreateTime() == null ||
+                                 space.getCreateTime().compareTo(after) > 0)
+                .filter(space -> !space.isAuth() ||
+                                 client.auth().isSpaceAdmin(space.getName()) ||
+                                 client.auth().checkDefaultRole(
+                                         space.getName(), "analyst"))
+                .map(space -> {
+                    GraphSpaceEntity entity =
+                            GraphSpaceEntity.fromGraphSpace(space);
+                    entity.setStatistic(evCount(client, space.getName()));
+                    Map<String, Object> info = HubbleUtil.uncheckedCast(
+                            JsonUtil.fromJson(JsonUtil.toJson(entity),
+                                              Map.class));
+                    info.put("authed", true);
+                    info.put("default", false);
+                    return info;
+                })
+                .collect(Collectors.toList());
+        Collections.sort(results, (a, b) ->
+                new BuiltInFirst().compare(a.get("name").toString(),
+                                           b.get("name").toString()));
         return results;
     }
 

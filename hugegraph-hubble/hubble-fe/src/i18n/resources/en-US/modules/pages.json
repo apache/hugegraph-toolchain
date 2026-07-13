@@ -117,6 +117,8 @@
       "name": "Display Name",
       "auth": "Enable Authentication",
       "max_graph": "Max Graphs",
+      "advanced_title": "Advanced deployment and resource limits",
+      "advanced_help": "Only needed for Kubernetes, compute tasks, or quotas",
       "max_role": "Max Roles",
       "graph_service": "Graph Service:",
       "compute_task": "Compute Task:",
@@ -136,6 +138,7 @@
       "storage_placeholder": "e.g. 1000000",
       "max_graph_placeholder": "e.g. 100",
       "image_placeholder": "e.g. example.com/hugegraph/image:1.0.0",
+      "image_example": "Example: example.com/org/image:1.0.0",
       "id_placeholder": "Start with a letter, lowercase letters/digits/underscore, max 48 chars",
       "name_placeholder": "e.g. Demo Space (max 48 characters)",
       "k8s_placeholder": "Start with a letter, lowercase letters/digits/hyphen, max 48 chars",
@@ -160,6 +163,8 @@
       "vertex": "Vertices",
       "edge": "Edges",
       "daily_update": "Updated daily",
+      "daily_snapshot": "Daily snapshot · {{date}}",
+      "statistic_help": "Vertex and edge statistics help",
       "last_update": "Last updated: {{date}}",
       "graph_id": "Graph ID: {{name}}",
       "auth_label": "Auth: ",
@@ -321,6 +326,12 @@
       "open_schema": "Create schema",
       "query_graph": "Query graph",
       "detail_tooltip": "View the current vertex and edge counts for this graph"
+    },
+    "empty": {
+      "description": "This GraphSpace is ready but has no graphs yet. Create the first graph to model, import, and query data.",
+      "create": "Create first graph",
+      "filtered_description": "No graphs match the current date or name filters.",
+      "clear_filters": "Clear filters"
     }
   },
   "account": {

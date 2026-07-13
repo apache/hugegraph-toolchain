@@ -78,6 +78,26 @@ test('creates a GraphSpace with only ID and display name', async () => {
     expect(values.storage_limit).toBeUndefined();
 });
 
+test('keeps validation failures inline without calling the API', async () => {
+    render(
+        <EditLayer
+            visible
+            detail={{}}
+            onCancel={jest.fn()}
+            refresh={jest.fn()}
+        />
+    );
+    await waitFor(() => expect(api.auth.getUserList).toHaveBeenCalled());
+
+    fireEvent.change(screen.getByPlaceholderText('graphspace.form.id_placeholder'), {
+        target: {value: 'Invalid ID'},
+    });
+    fireEvent.click(screen.getByRole('button', {name: 'common.action.create'}));
+
+    expect(await screen.findByText('graphspace.form.id_rule')).toBeInTheDocument();
+    expect(api.manage.addGraphSpace).not.toHaveBeenCalled();
+});
+
 test('resource fields are optional and expose examples and field help', async () => {
     render(
         <EditLayer
@@ -89,6 +109,11 @@ test('resource fields are optional and expose examples and field help', async ()
     );
     await waitFor(() => expect(api.auth.getUserList).toHaveBeenCalled());
 
+    const advanced = document.querySelector('details');
+    expect(advanced).not.toHaveAttribute('open');
+    fireEvent.click(screen.getByText('graphspace.form.advanced_title'));
+    expect(advanced).toHaveAttribute('open');
+
     expect(screen.getAllByPlaceholderText('graphspace.form.cpu_placeholder')).toHaveLength(2);
     expect(screen.getAllByPlaceholderText('graphspace.form.memory_placeholder')).toHaveLength(2);
     expect(screen.getByPlaceholderText('graphspace.form.max_graph_placeholder'))
@@ -96,4 +121,20 @@ test('resource fields are optional and expose examples and field help', async ()
     expect(screen.getByLabelText('graphspace.form.id_help')).toBeInTheDocument();
     expect(screen.getByLabelText('graphspace.form.graph_cpu_help')).toBeInTheDocument();
     expect(screen.getByLabelText('graphspace.form.oltp_namespace_help')).toBeInTheDocument();
+
+    fireEvent.change(screen.getAllByPlaceholderText('graphspace.form.cpu_placeholder')[0], {
+        target: {value: '4'},
+    });
+    fireEvent.click(screen.getByText('graphspace.form.advanced_title'));
+    expect(advanced).not.toHaveAttribute('open');
+
+    fireEvent.change(screen.getByPlaceholderText('graphspace.form.id_placeholder'), {
+        target: {value: 'advanced_space'},
+    });
+    fireEvent.change(screen.getByPlaceholderText('graphspace.form.name_placeholder'), {
+        target: {value: 'AdvancedSpace'},
+    });
+    fireEvent.click(screen.getByRole('button', {name: 'common.action.create'}));
+    await waitFor(() => expect(api.manage.addGraphSpace).toHaveBeenCalled());
+    expect(api.manage.addGraphSpace.mock.calls[0][0].cpu_limit).toBe(4);
 });

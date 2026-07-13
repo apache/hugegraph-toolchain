@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {ExclamationCircleOutlined, InfoOutlined} from '@ant-design/icons';
+import {InfoCircleOutlined, InfoOutlined} from '@ant-design/icons';
 import {Typography, Dropdown, Row, Col, Space, Progress, Card, Tooltip} from 'antd';
 import {Link, useNavigate} from 'react-router-dom';
 import moment from 'moment';
@@ -57,7 +57,7 @@ const TitleField = ({item, onClick, onKeyDown}) => {
     );
 };
 
-const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit}) => {
+const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit, canManage = true}) => {
     const navigate = useNavigate();
     const {t} = useTranslation();
 
@@ -81,7 +81,7 @@ const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit}) =>
     }, [handleGotoGraph]);
 
     const getMenu = item => ({
-        items: item.name === 'neizhianli'
+        items: item.name === 'neizhianli' && canManage
             ? [
                 {
                     key: '1',
@@ -106,19 +106,18 @@ const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit}) =>
                         </Link>
                     ),
                 },
-                {
+                ...(canManage ? [{
                     key: '2',
                     label: t('common.action.edit'),
                     onClick: handleEdit,
-                },
-                {
+                }, {
                     key: '3',
                     disabled: item.default,
                     label: (item.default)
                         ? <span className={style.disable}>{t('common.action.delete')}</span>
                         : t('common.action.delete'),
                     onClick: item.default ? undefined : handleDelete,
-                },
+                }] : []),
             ],
     });
 
@@ -126,6 +125,7 @@ const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit}) =>
     const cpu = showText(item.cpu_limit, t('graphspace.unit.cpu'), unlimited);
     const memory = showText(item.memory_limit, t('graphspace.unit.memory'), unlimited);
     const storage = showText(item.storage_limit, t('graphspace.unit.memory'), unlimited);
+    const statisticDate = item.statistic?.date;
 
     return (
         <Card
@@ -157,21 +157,28 @@ const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit}) =>
             )}
             actions={
                 [
-                    <Space key="1">
-                        <span>{t('graphspace.card.vertex')}: {item.statistic?.vertex}</span>
-                        <span>{t('graphspace.card.edge')}: {item.statistic?.edge}</span>
-                        <span>
+                    <Space key="1" size={8} wrap>
+                        <span>{t('graphspace.card.vertex')}: {item.statistic?.vertex ?? '-'}</span>
+                        <span>{t('graphspace.card.edge')}: {item.statistic?.edge ?? '-'}</span>
+                        <Typography.Text type='secondary'>
+                            {statisticDate
+                                ? t('graphspace.card.daily_snapshot', {date: statisticDate})
+                                : t('graphspace.card.daily_update')}
+                        </Typography.Text>
+                        <span aria-label={t('graphspace.card.statistic_help')}>
                             <Tooltip title={(
                                 <>
                                     <div>{t('graphspace.card.daily_update')}</div>
-                                    <div>{t('graphspace.card.last_update', {
-                                        date: item.statistic.date,
-                                    })}
-                                    </div>
+                                    {statisticDate && (
+                                        <div>{t('graphspace.card.last_update', {
+                                            date: statisticDate,
+                                        })}
+                                        </div>
+                                    )}
                                 </>
                             )}
                             >
-                                <ExclamationCircleOutlined />
+                                <InfoCircleOutlined />
                             </Tooltip>
                         </span>
                     </Space>,

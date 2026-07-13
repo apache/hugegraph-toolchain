@@ -576,7 +576,7 @@ public class AuthSecurityTest {
         controller.userClient = userClient;
         UserService users = Mockito.mock(UserService.class);
         UserEntity entity = new UserEntity();
-        Mockito.when(users.getUser(userClient, "admin")).thenReturn(entity);
+        Mockito.when(users.getpersonal(userClient, "admin")).thenReturn(entity);
         ReflectionTestUtils.setField(controller, "userService", users);
         Login login = new Login();
         login.name("admin");
@@ -641,7 +641,7 @@ public class AuthSecurityTest {
         controller.loginClient = loginClient;
         controller.userClient = userClient;
         UserService users = Mockito.mock(UserService.class);
-        Mockito.when(users.getUser(userClient, "admin"))
+        Mockito.when(users.getpersonal(userClient, "admin"))
                .thenThrow(new ExternalException(HttpStatus.UNAUTHORIZED.value(),
                                                 "expected validation failure"));
         ReflectionTestUtils.setField(controller, "userService", users);

@@ -167,3 +167,22 @@ test('shows clone as unavailable instead of exposing a failing action', async ()
     expect(cloneItem).toHaveAttribute('aria-disabled', 'true');
     expect(clone.closest('a')).toBeNull();
 });
+
+test('explains an empty GraphSpace and distinguishes filtered results', async () => {
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+    render(<Graph />);
+
+    expect(await screen.findByText('graph.empty.description')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'graph.empty.create'})).toBeInTheDocument();
+
+    const search = screen.getByPlaceholderText('graph.search_placeholder');
+    fireEvent.change(search, {target: {value: 'missing'}});
+    fireEvent.click(screen.getByRole('button', {name: 'search'}));
+
+    expect(await screen.findByText('graph.empty.filtered_description')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'graph.empty.clear_filters'}));
+    expect(search).toHaveValue('');
+});

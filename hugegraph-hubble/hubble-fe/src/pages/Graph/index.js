@@ -33,6 +33,7 @@ import {
     Spin,
     Alert,
     Tooltip,
+    Empty,
 } from 'antd';
 import {useState, useEffect, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
@@ -63,6 +64,7 @@ const Graph = () => {
     const [data, setData] = useState([]);
     const [dateData, setDateData] = useState('');
     const [graphname, setGraphname] = useState('');
+    const [searchText, setSearchText] = useState('');
     const [graphspaceInfo, setGraphspaceInfo] = useState({});
     const [editLayer, setEditLayer] = useState(false);
     const [viewLayer, setViewLayer] = useState(false);
@@ -97,6 +99,18 @@ const Graph = () => {
         setGraphname(val);
         setRefresh(!refresh);
     }, [refresh]);
+
+    const handleSearchTextChange = useCallback(event => {
+        setSearchText(event.target.value);
+    }, []);
+
+    const handleClearFilters = useCallback(() => {
+        setDateData('');
+        setGraphname('');
+        setSearchText('');
+        setPagination(value => ({...value, current: 1}));
+        setRefresh(value => !value);
+    }, []);
 
     const showEditLayer = useCallback(() => {
         setEditLayer(true);
@@ -246,6 +260,25 @@ const Graph = () => {
     }, []);
 
     const handleDatePickerChange = useCallback((_, val) => setDateData(val), []);
+    const hasFilters = Boolean(dateData || graphname);
+
+    const emptyState = (
+        <Empty
+            description={hasFilters
+                ? t('graph.empty.filtered_description')
+                : t('graph.empty.description')}
+        >
+            {hasFilters ? (
+                <Button onClick={handleClearFilters}>
+                    {t('graph.empty.clear_filters')}
+                </Button>
+            ) : graphCreateEnabled ? (
+                <Button type='primary' onClick={showEditLayer}>
+                    {t('graph.empty.create')}
+                </Button>
+            ) : null}
+        </Empty>
+    );
 
     const handleGotoMeta = useCallback(item => {
         navigate(`/graphspace/${item.graphspace || 'DEFAULT'}/graph/${item.name}/meta`);
@@ -547,7 +580,10 @@ const Graph = () => {
             >
                 <Row justify='space-between'>
                     <Col>
-                        <DatePicker onChange={handleDatePickerChange} />
+                        <DatePicker
+                            value={dateData ? moment(dateData) : null}
+                            onChange={handleDatePickerChange}
+                        />
                     </Col>
                     <Col>
                         <Space>
@@ -563,6 +599,8 @@ const Graph = () => {
                             />
                             <Input.Search
                                 onSearch={handleSearch}
+                                onChange={handleSearchTextChange}
+                                value={searchText}
                                 placeholder={t('graph.search_placeholder')}
                             />
                         </Space>
@@ -581,8 +619,9 @@ const Graph = () => {
                 {listType === 'image'
                     ? (
                         <>
+                            {!listUnavailable && data.length === 0 && emptyState}
                             <Row gutter={[10, 10]} justify='start'>
-                                {graphCreateEnabled && (
+                                {graphCreateEnabled && data.length > 0 && (
                                     <Col span={8} key='add'>
                                         <KeyboardAction
                                             onAction={showEditLayer}
@@ -638,6 +677,7 @@ const Graph = () => {
                             <Table
                                 columns={columns}
                                 dataSource={data}
+                                locale={{emptyText: listUnavailable ? null : emptyState}}
                                 pagination={pagination}
                                 onChange={handleTable}
                             />
