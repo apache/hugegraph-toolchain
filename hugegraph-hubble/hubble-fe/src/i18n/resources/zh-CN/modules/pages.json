@@ -1106,10 +1106,10 @@
     "password": "密码",
     "username_required": "请输入用户名。",
     "password_required": "请输入密码。",
-    "title": "登录 HugeGraph",
+    "title": "登录 Hubble",
     "brand_label": "HugeGraph Hubble 产品介绍",
     "subtitle": "面向图数据使用者的一站式理解、准备与分析工作台。",
-    "form_hint": "使用 HugeGraph 账号继续进入工作台。",
+    "form_hint": "使用 HugeGraph 账号进入工作台。",
     "language": "语言"
   }
 }

@@ -21,6 +21,8 @@ import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import Login from './index';
 import * as api from '../../api';
+import enPages from '../../i18n/resources/en-US/modules/pages.json';
+import zhPages from '../../i18n/resources/zh-CN/modules/pages.json';
 
 jest.mock('../../api', () => ({
     auth: {
@@ -111,6 +113,14 @@ describe('Login request errors', () => {
         expect(screen.getByText('HugeGraph')).toBeInTheDocument();
         expect(screen.getByRole('radiogroup', {name: 'login.language'}))
             .toBeInTheDocument();
+    });
+
+    it('uses Hubble-specific sign-in copy in both languages', () => {
+        expect(zhPages.login.title).toBe('登录 Hubble');
+        expect(zhPages.login.form_hint).toBe('使用 HugeGraph 账号进入工作台。');
+        expect(enPages.login.title).toBe('Sign in to Hubble');
+        expect(enPages.login.form_hint)
+            .toBe('Use your HugeGraph account to enter the workbench.');
     });
 
     it('lets users choose a language before authentication', async () => {

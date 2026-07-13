@@ -95,15 +95,6 @@ form.loginForm {
     top: 24px;
     right: 32px;
 
-    label {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-    }
-
     select {
         min-width: 104px;
         height: 32px;
