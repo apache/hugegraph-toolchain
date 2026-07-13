@@ -47,6 +47,9 @@
 
             .primaryActions {
                 flex: 0 0 auto;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 8px;
                 margin-left: auto;
             }
 
@@ -64,12 +67,8 @@
                 white-space: nowrap;
             }
 
-            :global(.ant-dropdown-button) {
-                min-width: 180px;
-            }
-
-            :global(.ant-dropdown-button > .ant-btn:first-child) {
-                min-width: 138px;
+            .primaryActions > :global(.ant-btn) {
+                min-width: 112px;
             }
         }
     }
@@ -79,6 +78,12 @@
         margin-left: 8px;
         cursor: pointer;
         user-select: none;
+    }
+}
+
+@media (max-width: 900px) {
+    .tabContent .leftHeader .actionBar .primaryActions {
+        width: 100%;
     }
 }
 

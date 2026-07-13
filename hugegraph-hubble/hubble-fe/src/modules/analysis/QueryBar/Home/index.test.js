@@ -23,6 +23,7 @@ jest.mock('../../../../components/CodeEditor', () => props => (
     <div
         data-testid={`editor-${props.lang}`}
         data-placeholder={props.placeholder}
+        data-meta-enter-newline={props.metaEnterNewline ? 'true' : 'false'}
     >
         editor
     </div>
@@ -49,7 +50,7 @@ jest.mock('react-i18next', () => ({
         'analysis.query.cypher_tab': 'Cypher',
         'analysis.query.cypher_placeholder': 'For example: MATCH (n) RETURN n LIMIT 10',
         'analysis.query.shortcut_hint_ctrl': 'Ctrl + Enter to run',
-        'analysis.query.shortcut_hint_command': 'Command + Enter to run',
+        'analysis.query.shortcut_hint_command': 'Command + Enter for a new line',
         'analysis.query.text2gql_tab': 'Natural language',
         'analysis.query.text2gql_title': 'Natural-language graph query',
         'analysis.query.text2gql_description': 'This preview is not connected.',
@@ -143,7 +144,10 @@ it('matches the editor placeholder to the active query language without promotio
     );
     expect(screen.queryByText(/safe example/i)).not.toBeInTheDocument();
     expect(screen.getByText('Ctrl + Enter to run')).toBeInTheDocument();
-    expect(screen.getByText('Command + Enter to run')).toBeInTheDocument();
+    expect(screen.getByText('Command + Enter for a new line')).toBeInTheDocument();
+    expect(screen.getByTestId('editor-gremlin')).toHaveAttribute(
+        'data-meta-enter-newline', 'true'
+    );
 
     fireEvent.click(screen.getByRole('tab', {name: 'Cypher'}));
     expect(screen.getByTestId('editor-cypher')).toHaveAttribute(

@@ -25,8 +25,9 @@ jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => ({
         'analysis.query.execute_query': 'Run Query',
         'analysis.query.execute_task': 'Run Task',
-        'analysis.query.switch_async_task': 'Switch to Async Task',
-        'analysis.query.execute_shortcut': 'Run Query (Ctrl/Command + Enter)',
+        'analysis.query.execute_mode_immediate': 'Immediate Query',
+        'analysis.query.execute_mode_async': 'Async Task',
+        'analysis.query.execute_shortcut': 'Run Query (Ctrl + Enter)',
     })[key] || key}),
 }));
 jest.mock('../../../../api/index', () => ({
@@ -66,17 +67,21 @@ const renderContent = overrides => {
     return props;
 };
 
-it('runs the active Gremlin or Cypher query once with Mod+Enter', () => {
+it('runs the active Gremlin or Cypher query only with Ctrl+Enter', () => {
     const props = renderContent({activeTab: 'Cypher'});
+    const editor = screen.getByLabelText('query editor');
 
-    fireEvent.keyDown(screen.getByLabelText('query editor'), {
+    fireEvent.keyDown(editor, {key: 'Enter', metaKey: true});
+    expect(props.onExecute).not.toHaveBeenCalled();
+
+    fireEvent.keyDown(editor, {
         key: 'Enter', ctrlKey: true,
     });
 
     expect(props.onExecute).toHaveBeenCalledTimes(1);
     expect(props.onExecute).toHaveBeenCalledWith('Cypher');
     expect(screen.getByRole('button', {name: /Run Query/})).toHaveAttribute(
-        'title', 'Run Query (Ctrl/Command + Enter)'
+        'title', 'Run Query (Ctrl + Enter)'
     );
 });
 
@@ -92,18 +97,19 @@ it('does not run for plain Enter, IME composition, or a pending request', () => 
     expect(screen.getByRole('button', {name: /Run Query/})).toBeDisabled();
 });
 
-it('offers async execution with explicit wording next to the primary action', async () => {
-    renderContent();
+it('switches explicitly between immediate query and async task modes', () => {
+    const props = renderContent();
 
-    fireEvent.mouseEnter(screen.getByRole('img', {name: 'ellipsis'}).closest('button'));
+    expect(screen.getByRole('radio', {name: 'Immediate Query'})).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', {name: 'Async Task'}));
 
-    expect(await screen.findByText('Switch to Async Task')).toBeInTheDocument();
+    expect(props.onExecuteModeChange).toHaveBeenCalledWith('task');
 });
 
 it('keeps the keyboard shortcut visible beside the secondary actions', () => {
-    renderContent({shortcutHint: 'Ctrl / Command + Enter to run'});
+    renderContent({shortcutHint: 'Ctrl + Enter to run'});
 
-    expect(screen.getByText('Ctrl / Command + Enter to run')).toBeInTheDocument();
+    expect(screen.getByText('Ctrl + Enter to run')).toBeInTheDocument();
 });
 
 it('keeps favorite submission disabled until the name is backend-compatible', () => {

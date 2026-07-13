@@ -22,7 +22,7 @@
 
 import React, {useCallback, useState, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Button, Tooltip, Dropdown, Popover, message, Space} from 'antd';
+import {Button, Tooltip, Popover, message, Radio, Space} from 'antd';
 import {UpOutlined, DownOutlined, QuestionCircleOutlined} from '@ant-design/icons';
 import {GREMLIN_EXECUTES_MODE} from '../../../../utils/constants';
 import GraphAnalysisContext from '../../../Context';
@@ -171,12 +171,7 @@ const ContentCommon = props => {
 
     const onSwitchExecuteMenu = useCallback(
         e => {
-            if (e.key === QUERY) {
-                onExecuteModeChange(QUERY);
-            }
-            else {
-                onExecuteModeChange(TASK);
-            }
+            onExecuteModeChange(e.target.value);
         },
         [onExecuteModeChange]
     );
@@ -194,7 +189,7 @@ const ContentCommon = props => {
         event => {
             const nativeEvent = event.nativeEvent || event;
             const isEditor = event.target.closest?.('.cm-editor');
-            if (event.key !== 'Enter' || (!event.metaKey && !event.ctrlKey)
+            if (event.key !== 'Enter' || !event.ctrlKey || event.metaKey
                 || nativeEvent.isComposing || !isEditor || isEmptyQuery || isExecuting) {
                 return;
             }
@@ -203,14 +198,6 @@ const ContentCommon = props => {
         },
         [isEmptyQuery, isExecuting, onExecution]
     );
-
-    const executeMenu = {
-        onClick: onSwitchExecuteMenu,
-        items: [
-            {label: t('analysis.query.execute_query'), key: QUERY},
-            {label: t('analysis.query.switch_async_task'), key: TASK},
-        ],
-    };
 
     return (
         <div className={tabClassName} onKeyDown={onQueryKeyDown}>
@@ -243,21 +230,38 @@ const ContentCommon = props => {
                         <span className={c.shortcutHint}>{shortcutHint}</span>
                     </div>
                     <div className={c.primaryActions}>
+                        <Radio.Group
+                            aria-label={t('analysis.query.execute_mode')}
+                            value={executeMode}
+                            onChange={onSwitchExecuteMenu}
+                            optionType='button'
+                            buttonStyle='solid'
+                            size='small'
+                            options={[
+                                {
+                                    label: t('analysis.query.execute_mode_immediate'),
+                                    value: QUERY,
+                                },
+                                {
+                                    label: t('analysis.query.execute_mode_async'),
+                                    value: TASK,
+                                },
+                            ]}
+                        />
                         <Tooltip
                             placement="top"
                             title={isEmptyQuery
                                 ? emptyDesc
                                 : t('analysis.query.execute_shortcut')}
                         >
-                            <Dropdown.Button
-                                menu={executeMenu}
+                            <Button
+                                type='primary'
                                 disabled={isEmptyQuery || isExecuting}
                                 onClick={onExecution}
-                                placement="topRight"
                                 title={t('analysis.query.execute_shortcut')}
                             >
                                 {isQueryMode ? t('analysis.query.execute_query') : t('analysis.query.execute_task')}
-                            </Dropdown.Button>
+                            </Button>
                         </Tooltip>
                         <Tooltip placement="top" title={queryDesc} className={c.questionCircleIcon}>
                             <QuestionCircleOutlined />

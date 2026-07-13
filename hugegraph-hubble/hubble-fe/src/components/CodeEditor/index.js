@@ -33,6 +33,7 @@ const CodeEditor = ({
     readOnly = false,
     ariaLabel,
     minHeight,
+    metaEnterNewline = false,
 }) => {
     const {t} = useTranslation();
     const editor = useRef();
@@ -72,6 +73,19 @@ const CodeEditor = ({
                 syntax.language ?? [],
                 syntaxHighlighting(myHighlightStyle),
                 EditorView.editable.of(!readOnly),
+                metaEnterNewline && !readOnly
+                    ? EditorView.domEventHandlers({
+                        keydown: (event, view) => {
+                            if (event.key !== 'Enter' || !event.metaKey
+                                || event.ctrlKey || event.altKey || event.shiftKey
+                                || event.isComposing) {
+                                return false;
+                            }
+                            view.dispatch(view.state.replaceSelection('\n'));
+                            return true;
+                        },
+                    })
+                    : [],
                 ariaLabel ? EditorView.contentAttributes.of({
                     'aria-label': ariaLabel,
                 }) : [],
@@ -105,7 +119,8 @@ const CodeEditor = ({
         return () => {
             cm.current.destroy();
         };
-    }, [ariaLabel, lang, minHeight, onChange, placeholder, readOnly, t]);
+    }, [ariaLabel, lang, metaEnterNewline, minHeight, onChange, placeholder,
+        readOnly, t]);
 
     useEffect(() => {
         if (value !== null && cm.current.state.doc && value !== cm.current.state.doc.toString()) {

@@ -88,6 +88,7 @@ const QueryBar = props => {
                             value={codeEditorContent}
                             onChange={handleCodeEditorChange}
                             lang={'gremlin'}
+                            metaEnterNewline
                             placeholder={t('analysis.query.gremlin_placeholder')}
                         />
                         <span className={c.editorShortcutHint}>
@@ -117,6 +118,7 @@ const QueryBar = props => {
                             value={codeEditorContent}
                             onChange={handleCodeEditorChange}
                             lang={'cypher'}
+                            metaEnterNewline
                             placeholder={t('analysis.query.cypher_placeholder')}
                         />
                         <span className={c.editorShortcutHint}>
