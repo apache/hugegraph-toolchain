@@ -127,14 +127,14 @@ async function main() {
   const auth = await authenticateUi(context, page, hubbleUrl, username, password);
   let zhText;
   let enText;
-  let selectorTextAfterSwitch = '';
+  let englishSelected = false;
   try {
     zhText = await captureLanguage(page, hubbleUrl,
                                    path.join(outputDir, 'i18n-zh-CN.png'));
     await switchToEnglish(page);
-    selectorTextAfterSwitch = await page
-      .locator('[data-testid="language-switcher"]')
-      .innerText({ timeout: 5000 });
+    englishSelected = await page.locator(
+      '[data-testid="language-switcher"] input[value="en-US"]'
+    ).isChecked({ timeout: 5000 });
     await page.screenshot({
       path: path.join(outputDir, 'i18n-en-US.png'),
       fullPage: true
@@ -153,7 +153,7 @@ async function main() {
     authenticatedUser: auth.user.user_name,
     authLevel: auth.level,
     zhContainsChinese: /[\u4e00-\u9fff]/.test(zhText),
-    enSelectorVisible: /English/.test(selectorTextAfterSwitch),
+    enSelectorVisible: englishSelected,
     textChanged: zhText !== enText,
     rawI18nKeyFound: rawKeyPattern.test(zhText) || rawKeyPattern.test(enText),
     notFoundPage: /404|页面不存在|Not Found/.test(zhText + enText),
