@@ -91,9 +91,9 @@ async function captureLanguage(page, hubbleUrl, screenshot) {
 }
 
 async function switchToEnglish(page) {
-  await page.locator('[data-testid="language-switcher"] .ant-select-selector')
-            .click({ timeout: 5000 });
-  await page.locator('.ant-select-item-option[title="English"]')
+  await page.locator(
+    '[data-testid="language-switcher"] label:has(input[value="en-US"])'
+  )
             .click({ timeout: 5000 });
   await page.waitForFunction(
     () => window.localStorage.getItem('languageType') === 'en-US',

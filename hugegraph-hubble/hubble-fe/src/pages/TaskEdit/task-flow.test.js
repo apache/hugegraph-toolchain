@@ -46,6 +46,14 @@ it('does not advance until both datasource and graph-space context are valid', a
     await expect(loadTaskBaseContext(manage, values)).rejects.toMatchObject({
         reason: 'datasource',
     });
+    manage.getDatasource.mockResolvedValueOnce(undefined);
+    await expect(loadTaskBaseContext(manage, values)).rejects.toMatchObject({
+        reason: 'datasource',
+    });
+    manage.getGraphSpace.mockResolvedValueOnce(null);
+    await expect(loadTaskBaseContext(manage, values)).rejects.toMatchObject({
+        reason: 'graphspace',
+    });
     manage.getGraphSpace.mockRejectedValueOnce(new Error('offline'));
     await expect(loadTaskBaseContext(manage, values)).rejects.toMatchObject({
         reason: 'request',

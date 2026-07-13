@@ -91,7 +91,9 @@ const GraphDetail = () => {
             if (pageRequest.current !== token) {
                 return;
             }
-            if (graphspaceResponse.status !== 200 || graphResponse.status !== 200) {
+            if (!graphspaceResponse || !graphResponse
+                || graphspaceResponse.status !== 200
+                || graphResponse.status !== 200) {
                 setPageDataRoute(routeKey);
                 setPageError(true);
                 return;

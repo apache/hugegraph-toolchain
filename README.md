@@ -132,6 +132,16 @@ docker run --rm hugegraph/hugegraph-loader ./bin/hugegraph-loader.sh -f example.
 
 ## Module Overview
 
+Before committing a new source or test file, run the same license-header check
+used by CI (`license-eye` from `apache/skywalking-eyes` is required):
+
+```bash
+./tools/check-license-header.sh
+```
+
+Do not use shortened Apache headers: the complete header configured in
+`.licenserc.yaml` is required.
+
 ### hugegraph-client
 
 **Purpose**: Official Java SDK for HugeGraph Server

@@ -37,10 +37,12 @@ const loadTaskBaseContext = async (manage, values) => {
         throw new TaskFlowError('request', error.message);
     }
 
-    if (datasourceResponse.status !== 200 || !datasourceResponse.data) {
+    if (!datasourceResponse || datasourceResponse.status !== 200
+        || !datasourceResponse.data) {
         throw new TaskFlowError('datasource');
     }
-    if (graphspaceResponse.status !== 200 || !graphspaceResponse.data) {
+    if (!graphspaceResponse || graphspaceResponse.status !== 200
+        || !graphspaceResponse.data) {
         throw new TaskFlowError('graphspace');
     }
 
