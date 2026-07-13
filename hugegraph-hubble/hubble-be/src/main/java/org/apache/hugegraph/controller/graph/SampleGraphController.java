@@ -51,6 +51,8 @@ public class SampleGraphController extends BaseController {
 
     private static final String IDEMPOTENT_TRAVERSAL_FALLBACK_MARKER =
             "// hugegraph-client:idempotent-traversal-fallback\n";
+    private static final int SCHEMA_CREATE_RETRIES = 20;
+    private static final long SCHEMA_CREATE_RETRY_DELAY_MS = 100L;
 
     public static final String LOADER_SOURCE = "hugegraph-loader/example/file";
     public static final String RANK_SOURCE =
@@ -320,7 +322,7 @@ public class SampleGraphController extends BaseController {
             return;
         }
         RuntimeException conflict = null;
-        for (int attempt = 0; attempt < 20; attempt++) {
+        for (int attempt = 0; attempt < SCHEMA_CREATE_RETRIES; attempt++) {
             try {
                 create.run();
                 existing.add(name);
@@ -340,7 +342,7 @@ public class SampleGraphController extends BaseController {
                     // schema becomes visible through the read endpoint.
                 }
                 try {
-                    Thread.sleep(100L);
+                    Thread.sleep(SCHEMA_CREATE_RETRY_DELAY_MS);
                 } catch (InterruptedException interrupted) {
                     Thread.currentThread().interrupt();
                     throw e;
