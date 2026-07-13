@@ -200,17 +200,17 @@ public class GraphSpaceService {
         client.assignGraph(graphSpace, "");
         Set<String> graphs = graphsService.listGraphNames(client, graphSpace, "");
         String statisticDate = null;
-        boolean mixedStatisticDates = false;
+        boolean statisticDateInitialized = false;
         for (String graph : graphs) {
             Map<String, Object> graphEvCount =
                     graphsService.evCount(client, graphSpace, graph);
 
             String graphStatisticDate = (String) graphEvCount.get("date");
-            if (statisticDate == null && !mixedStatisticDates) {
+            if (!statisticDateInitialized) {
                 statisticDate = graphStatisticDate;
+                statisticDateInitialized = true;
             } else if (!java.util.Objects.equals(statisticDate,
                                                   graphStatisticDate)) {
-                mixedStatisticDates = true;
                 statisticDate = null;
             }
 
@@ -220,7 +220,8 @@ public class GraphSpaceService {
         if (graphs.isEmpty()) {
             statisticDate = HubbleUtil.dateFormatDay(HubbleUtil.nowDate());
         }
-        statisticTotal.put("date", statisticDate);
+        statisticTotal.put("date", statisticDate == null ? null :
+                                   HubbleUtil.dateFormatDay(statisticDate));
         statisticTotal.put("vertex", vertexTotal);
         statisticTotal.put("edge", edgeTotal);
         return statisticTotal;

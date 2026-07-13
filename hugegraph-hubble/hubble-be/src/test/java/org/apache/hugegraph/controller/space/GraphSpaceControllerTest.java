@@ -18,12 +18,82 @@
 
 package org.apache.hugegraph.controller.space;
 
-import org.junit.Test;
+import java.util.Map;
 
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.springframework.test.util.ReflectionTestUtils;
+
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.driver.AuthManager;
+import org.apache.hugegraph.driver.GraphSpaceManager;
+import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.space.GraphSpaceEntity;
+import org.apache.hugegraph.options.HubbleOptions;
+import org.apache.hugegraph.service.auth.UserService;
+import org.apache.hugegraph.service.graphs.GraphsService;
+import org.apache.hugegraph.service.space.GraphSpaceService;
+import org.apache.hugegraph.structure.space.GraphSpace;
 import org.apache.hugegraph.testutil.Assert;
 
 public class GraphSpaceControllerTest {
+
+    @Test
+    public void testStandaloneDetailNeverContainsDataPlaneSecrets() {
+        GraphSpaceController controller = new GraphSpaceController();
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.PD_ENABLED)).thenReturn(false);
+        controller.config = config;
+        ReflectionTestUtils.setField(controller, "graphSpaceService",
+                                     new GraphSpaceService());
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> detail =
+                (Map<String, Object>) controller.get("DEFAULT");
+
+        Assert.assertEquals("DEFAULT", detail.get("name"));
+        Assert.assertFalse(detail.containsKey("dp_username"));
+        Assert.assertFalse(detail.containsKey("dp_password"));
+        Assert.assertFalse(detail.containsKey("configs"));
+    }
+
+    @Test
+    public void testPdDetailResponseNeverContainsDataPlaneSecrets() {
+        HugeClient client = Mockito.mock(HugeClient.class);
+        GraphSpaceManager manager = Mockito.mock(GraphSpaceManager.class);
+        AuthManager auth = Mockito.mock(AuthManager.class);
+        GraphsService graphsService = Mockito.mock(GraphsService.class);
+        UserService userService = Mockito.mock(UserService.class);
+        GraphSpace graphSpace = new GraphSpace("public");
+        graphSpace.setDpUserName("dp-user");
+        graphSpace.setDpPassWord("dp-secret");
+        graphSpace.setConfigs(new java.util.HashMap<>());
+        Mockito.when(client.graphSpace()).thenReturn(manager);
+        Mockito.when(client.auth()).thenReturn(auth);
+        Mockito.when(manager.getGraphSpace("public")).thenReturn(graphSpace);
+        Mockito.when(auth.isSuperAdmin()).thenReturn(false);
+        Mockito.when(graphsService.listGraphNames(client, "public", ""))
+               .thenReturn(java.util.Collections.emptySet());
+
+        GraphSpaceService service = new GraphSpaceService();
+        ReflectionTestUtils.setField(service, "graphsService", graphsService);
+        ReflectionTestUtils.setField(service, "userService", userService);
+        TestGraphSpaceController controller =
+                new TestGraphSpaceController(client);
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.PD_ENABLED)).thenReturn(true);
+        controller.config = config;
+        ReflectionTestUtils.setField(controller, "graphSpaceService", service);
+
+        @SuppressWarnings("unchecked")
+        Map<String, Object> detail =
+                (Map<String, Object>) controller.get("public");
+
+        Assert.assertEquals("public", detail.get("name"));
+        Assert.assertFalse(detail.containsKey("dp_username"));
+        Assert.assertFalse(detail.containsKey("dp_password"));
+        Assert.assertFalse(detail.containsKey("configs"));
+    }
 
     @Test
     public void testApplyDefaultsForOptionalResourceLimits() {
@@ -60,5 +130,20 @@ public class GraphSpaceControllerTest {
         Assert.assertEquals(6, graphSpace.getComputeCpuLimit());
         Assert.assertEquals(7, graphSpace.getComputeMemoryLimit());
         Assert.assertEquals(8, graphSpace.getStorageLimit());
+    }
+
+    private static class TestGraphSpaceController
+            extends GraphSpaceController {
+
+        private final HugeClient client;
+
+        TestGraphSpaceController(HugeClient client) {
+            this.client = client;
+        }
+
+        @Override
+        protected HugeClient authClient(String graphSpace, String graph) {
+            return this.client;
+        }
     }
 }

@@ -135,7 +135,7 @@ public class GraphSpaceController extends BaseController {
             GraphSpaceEntity stub = new GraphSpaceEntity();
             stub.setName(graphspace);
             stub.setNickname(graphspace);
-            return stub;
+            return this.graphSpaceService.toView(stub);
         }
         HugeClient client = this.authClient(null, null);
         // Get GraphSpace Info
