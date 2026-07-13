@@ -65,14 +65,14 @@ const applySemanticZoom = (graph, data, options = {}) => {
     });
     const {excludedItem, force = false, previousVisibility} = options;
     if (force || previousVisibility?.nodeLabels !== visibility.nodeLabels) {
-        graph.getNodes().forEach(item => {
+        (graph.getNodes?.() || []).forEach(item => {
             if (item !== excludedItem) {
                 setItemLabelVisibility(item, visibility.nodeLabels);
             }
         });
     }
     if (force || previousVisibility?.edgeLabels !== visibility.edgeLabels) {
-        graph.getEdges().forEach(item => {
+        (graph.getEdges?.() || []).forEach(item => {
             if (item !== excludedItem) {
                 setItemLabelVisibility(item, visibility.edgeLabels);
             }

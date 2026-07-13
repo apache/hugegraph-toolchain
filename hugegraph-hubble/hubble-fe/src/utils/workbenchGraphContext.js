@@ -121,8 +121,13 @@ const writeWorkbenchGraphContext = (storage = localStorage, context = {}) => {
     const value = typeof context.graph === 'string' && context.graph
         ? {graphspace: context.graphspace, graph: context.graph}
         : {graphspace: context.graphspace};
-    storage.setItem(STORAGE_KEY, JSON.stringify(value));
-    return true;
+    try {
+        storage.setItem(STORAGE_KEY, JSON.stringify(value));
+        return true;
+    }
+    catch (error) {
+        return false;
+    }
 };
 
 export {

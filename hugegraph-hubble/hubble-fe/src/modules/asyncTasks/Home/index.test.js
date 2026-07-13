@@ -99,6 +99,26 @@ it('does not overlap polling and stops automatic retries after failure', async (
     unmount();
 });
 
+it('keeps existing task data visible during background polling', async () => {
+    jest.useFakeTimers();
+    api.analysis.fetchManageTaskList
+        .mockResolvedValueOnce({status: 200, data: {records: [{}], total: 1}})
+        .mockImplementationOnce(() => new Promise(() => {}));
+    const {unmount} = render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AsyncTaskHome />
+        </GraphAnalysisContext.Provider>
+    );
+
+    await act(async () => Promise.resolve());
+    expect(await screen.findByText('tasks 1')).toBeInTheDocument();
+    act(() => jest.advanceTimersByTime(5000));
+
+    expect(screen.getByText('tasks 1')).toBeInTheDocument();
+    expect(screen.queryByText('loading tasks')).not.toBeInTheDocument();
+    unmount();
+});
+
 it('explains where analysis tasks come from when the list is empty', async () => {
     api.analysis.fetchManageTaskList.mockResolvedValue({
         status: 200,

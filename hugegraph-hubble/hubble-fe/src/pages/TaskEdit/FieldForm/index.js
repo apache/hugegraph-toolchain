@@ -34,6 +34,8 @@ import * as api from '../../../api';
 import * as rules from '../../../utils/rules';
 import style from '../index.module.scss';
 
+const HiddenFormValue = () => null;
+
 const FieldTitle = ({fieldKey, onDelete, confirmTitle, okText, cancelText}) => {
     const handleConfirm = useCallback(() => onDelete(fieldKey), [fieldKey, onDelete]);
     return (
@@ -256,10 +258,10 @@ const FieldForm = ({visible, prev, datasourceID}) => {
                     rules={[rules.required(t('task.edit.select_source_fields'))]}
                     hidden
                 >
-                    <Input />
+                    <HiddenFormValue />
                 </Form.Item>
                 <Form.Item name='source_keys' hidden>
-                    <Input />
+                    <HiddenFormValue />
                 </Form.Item>
                 <Form.Item>
                     <Space>

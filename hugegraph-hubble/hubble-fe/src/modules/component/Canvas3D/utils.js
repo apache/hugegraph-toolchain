@@ -34,8 +34,11 @@ export const observeCanvasSize = (element, graph, ResizeObserverClass) => {
     }
     const observer = new ResizeObserverClass(entries => {
         const {width, height} = entries[0]?.contentRect || {};
-        if (width > 0 && height > 0) {
-            graph.width(width).height(height);
+        if (width > 0 && height > 0 && graph && !graph.destroyed
+            && typeof graph.width === 'function'
+            && typeof graph.height === 'function') {
+            graph.width(width);
+            graph.height(height);
         }
     });
     observer.observe(element);

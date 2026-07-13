@@ -101,4 +101,14 @@ describe('workbench graph context contract', () => {
         });
         expect(storage.setItem).toHaveBeenCalledTimes(1);
     });
+
+    test('returns false when browser storage rejects writes', () => {
+        const storage = {
+            setItem: jest.fn(() => {
+                throw new Error('storage disabled');
+            }),
+        };
+
+        expect(writeWorkbenchGraphContext(storage, {graphspace: 'space_a'})).toBe(false);
+    });
 });

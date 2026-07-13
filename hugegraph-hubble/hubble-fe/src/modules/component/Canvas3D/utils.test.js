@@ -50,3 +50,23 @@ test('resizes the graph with its container and disconnects on cleanup', () => {
     cleanup();
     expect(observer.disconnect).toHaveBeenCalled();
 });
+
+test('ignores resize callbacks after graph teardown', () => {
+    let callback;
+    const observer = {observe: jest.fn(), disconnect: jest.fn()};
+    const ResizeObserverClass = jest.fn(fn => {
+        callback = fn;
+        return observer;
+    });
+    const graph = {
+        destroyed: true,
+        width: jest.fn(),
+        height: jest.fn(),
+    };
+
+    observeCanvasSize({}, graph, ResizeObserverClass);
+    callback([{contentRect: {width: 960, height: 540}}]);
+
+    expect(graph.width).not.toHaveBeenCalled();
+    expect(graph.height).not.toHaveBeenCalled();
+});

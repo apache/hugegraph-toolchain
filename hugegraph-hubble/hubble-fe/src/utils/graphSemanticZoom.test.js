@@ -105,4 +105,11 @@ describe('graph semantic zoom', () => {
         expect(graph.getNodes).toHaveBeenCalledTimes(1);
         expect(graph.getEdges).not.toHaveBeenCalled();
     });
+
+    it('tolerates a partially destroyed graph without item accessors', () => {
+        expect(() => applySemanticZoom({getZoom: () => 1}, {
+            nodes: new Array(400),
+            edges: new Array(400),
+        }, {force: true})).not.toThrow();
+    });
 });

@@ -57,13 +57,15 @@ const AsyncTaskHome = () => {
     );
 
     const getAsynTaskList = useCallback(
-        async () => {
+        async ({background = false} = {}) => {
             const request = Symbol('async-task-list');
             listRequest.current = request;
             listPending.current = true;
-            setLoading(true);
-            setLoadError(false);
-            setAsyncManageTaskData({});
+            if (!background) {
+                setLoading(true);
+                setLoadError(false);
+                setAsyncManageTaskData({});
+            }
             const {task_type, task_status} = filters;
             const params = {
                 'page_size': pageSize,
@@ -116,7 +118,7 @@ const AsyncTaskHome = () => {
         if (graphSpace && graph) {
             timer.current = setInterval(() => {
                 if (!listPending.current && !listFailed.current) {
-                    getAsynTaskList();
+                    getAsynTaskList({background: true});
                 }
             }, 5000);
         }
