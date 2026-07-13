@@ -22,7 +22,7 @@
 
 import {useState, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Button, Table, Space, Tag, Popconfirm} from 'antd';
+import {Button, Table, Space, Tag, Popconfirm, message} from 'antd';
 import ExecutionContent from '../../../../components/ExecutionContent';
 import FavoriteNameInput from '../../../../components/FavoriteNameInput';
 import {isValidFavoriteName} from '../../../../utils/rules';
@@ -82,9 +82,27 @@ const ExecuteLogActions = props => {
         () => loadStatements(text, rowData, index),
         [index, loadStatements, rowData, text]
     );
+    const handleCopyStatement = useCallback(
+        async () => {
+            try {
+                await navigator.clipboard.writeText(rowData.content);
+                message.success(t('analysis.logs.copy_success'));
+            }
+            catch (error) {
+                message.error(t('analysis.logs.copy_failed'));
+            }
+        },
+        [rowData.content, t]
+    );
 
     return (
         <div className={c.manipulation}>
+            <Button type='link' onClick={handleLoadStatements}>
+                {t('analysis.logs.action.load_statement')}
+            </Button>
+            <Button type='link' onClick={handleCopyStatement}>
+                {t('analysis.logs.action.copy_statement')}
+            </Button>
             <Popconfirm
                 placement="left"
                 title={favoriteContent(rowData)}
@@ -97,9 +115,6 @@ const ExecuteLogActions = props => {
                     {t('analysis.logs.action.favorite')}
                 </Button>
             </Popconfirm>
-            <Button type='link' style={{marginLeft: '8px'}} onClick={handleLoadStatements}>
-                {t('analysis.logs.action.load_statement')}
-            </Button>
         </div>
     );
 };

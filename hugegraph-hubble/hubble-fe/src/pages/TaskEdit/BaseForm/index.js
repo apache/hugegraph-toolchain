@@ -27,6 +27,7 @@ import {
     DEFAULT_GRAPHSPACE,
     getTaskGraphspaceOptions,
 } from '../../../utils/productMode';
+import {readWorkbenchGraphContext} from '../../../utils/workbenchGraphContext';
 
 const BaseForm = ({cancel, visible, loading}) => {
     const {t} = useTranslation();
@@ -67,6 +68,14 @@ const BaseForm = ({cancel, visible, loading}) => {
     });
 
     const handleChange = useCallback(val => setSelectGraphspace(val), []);
+    const handleDatasourceChange = useCallback(value => {
+        try {
+            window.localStorage.setItem('hubble_task_datasource', value.toString());
+        }
+        catch {
+            // The selected value remains valid even when storage is unavailable.
+        }
+    }, []);
     const retryDatasources = useCallback(() => setDatasourceRetry(v => v + 1), []);
     const retryGraphspaces = useCallback(() => setGraphspaceRetry(v => v + 1), []);
     const retryGraphs = useCallback(() => setGraphRetry(v => v + 1), []);
@@ -84,12 +93,23 @@ const BaseForm = ({cancel, visible, loading}) => {
                 return;
             }
             if (res.status === 200) {
-                setGraphOptions(res.data.records.map(item => ({
+                const options = res.data.records.map(item => ({
                     label: item.nickname,
                     value: item.name,
                     disabled: (item.schemaview && item.schemaview.vertices.length === 0
                         && item.schemaview.edges.length === 0),
-                })));
+                }));
+                setGraphOptions(options);
+
+                const current = readWorkbenchGraphContext();
+                const currentOption = options.find(option => option.value === current.graph);
+                if (current.graphspace === selectGraphspace
+                    && currentOption && !currentOption.disabled
+                    && !baseForm.getFieldValue(['ingestion_option', 'graph'])) {
+                    baseForm.setFieldsValue({
+                        ingestion_option: {graph: current.graph},
+                    });
+                }
 
                 return;
             }
@@ -114,11 +134,24 @@ const BaseForm = ({cancel, visible, loading}) => {
                 return;
             }
             if (res.status === 200) {
-                setDatasourceOptions(res.data.records.map(item => ({
+                const options = res.data.records.map(item => ({
                     label: item.datasource_name,
                     value: BigInt(item.datasource_id.toString()),
                     info: item,
-                })));
+                }));
+                setDatasourceOptions(options);
+                if (options.length > 0 && !baseForm.getFieldValue('datasource_id')) {
+                    let saved;
+                    try {
+                        saved = window.localStorage.getItem('hubble_task_datasource');
+                    }
+                    catch {
+                        saved = null;
+                    }
+                    const selected = options.find(option => option.value.toString() === saved)
+                        || options[0];
+                    baseForm.setFieldValue('datasource_id', selected.value);
+                }
 
                 return;
             }
@@ -128,7 +161,7 @@ const BaseForm = ({cancel, visible, loading}) => {
         return () => {
             active = false;
         };
-    }, [datasourceRetry]);
+    }, [baseForm, datasourceRetry]);
 
     useEffect(() => {
         if (!pdMode) {
@@ -241,6 +274,7 @@ const BaseForm = ({cancel, visible, loading}) => {
                 >
                     <Select
                         options={datasourceOptions}
+                        onChange={handleDatasourceChange}
                         placeholder={t('task.edit.select_source')}
                         notFoundContent={
                             <div style={{textAlign: 'center', padding: '4px 0'}}>

@@ -149,7 +149,6 @@ const Graph = () => {
                 }
                 catch (error) {
                     message.error(error.message || t('graph.sample.failed'));
-                    throw error;
                 }
                 finally {
                     setSampleLoading('');
@@ -367,14 +366,6 @@ const Graph = () => {
             label: t('graph.menu.meta_config'),
             onClick: () => handleGotoMeta(item),
         },
-        {
-            key: '2',
-            disabled: item.default,
-            label: item.default
-                ? <span className={style.disable}>{t('graph.menu.clear_graph')}</span>
-                : t('graph.menu.clear_graph'),
-            onClick: item.default ? undefined : () => clearGraph(item.name),
-        },
         graphDefaultMutationEnabled && {
             key: '4',
             disabled: item.default,
@@ -389,62 +380,76 @@ const Graph = () => {
             onClick: () => showSchema(item.name),
         },
         {
-            key: 'sample-hlm',
-            disabled: Boolean(sampleLoading),
-            label: sampleLoading === `${item.name}:hlm`
-                ? t('graph.sample.loading') : t('graph.menu.load_hlm_sample'),
-            onClick: sampleLoading ? undefined : () => loadSample(item.name, 'hlm'),
+            key: 'sample-data',
+            label: t('graph.menu.sample_data'),
+            children: [
+                {
+                    key: 'sample-hlm',
+                    disabled: Boolean(sampleLoading),
+                    label: sampleLoading === `${item.name}:hlm`
+                        ? t('graph.sample.loading') : t('graph.menu.load_hlm_sample'),
+                    onClick: sampleLoading ? undefined : () => loadSample(item.name, 'hlm'),
+                },
+                {
+                    key: 'sample-loader',
+                    disabled: Boolean(sampleLoading),
+                    label: sampleLoading === `${item.name}:loader`
+                        ? t('graph.sample.loading') : t('graph.menu.load_loader_sample'),
+                    onClick: sampleLoading ? undefined : () => loadSample(item.name, 'loader'),
+                },
+                {
+                    key: 'sample-rank',
+                    disabled: Boolean(sampleLoading),
+                    label: sampleLoading === `${item.name}:rank`
+                        ? t('graph.sample.loading') : t('graph.menu.load_rank_sample'),
+                    onClick: sampleLoading ? undefined : () => loadSample(item.name, 'rank'),
+                },
+                {key: 'sample-divider', type: 'divider'},
+                {
+                    key: 'sample-rank-docs',
+                    label: (
+                        <a
+                            href="https://hugegraph.apache.org/docs/clients/restful-api/rank/"
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {t('graph.sample.rank_docs')}
+                        </a>
+                    ),
+                },
+                {
+                    key: 'sample-movielens-docs',
+                    label: (
+                        <a
+                            href={
+                                'https://files.grouplens.org/datasets/'
+                                + 'movielens/ml-latest-small-README.html'
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {t('graph.sample.movielens_docs')}
+                        </a>
+                    ),
+                },
+                {
+                    key: 'sample-movielens-download',
+                    label: (
+                        <a
+                            href={
+                                'https://files.grouplens.org/datasets/'
+                                + 'movielens/ml-latest-small.zip'
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                        >
+                            {t('graph.sample.movielens_download')}
+                        </a>
+                    ),
+                },
+            ],
         },
-        {
-            key: 'sample-loader',
-            disabled: Boolean(sampleLoading),
-            label: sampleLoading === `${item.name}:loader`
-                ? t('graph.sample.loading') : t('graph.menu.load_loader_sample'),
-            onClick: sampleLoading ? undefined : () => loadSample(item.name, 'loader'),
-        },
-        {
-            key: 'sample-rank',
-            disabled: Boolean(sampleLoading),
-            label: sampleLoading === `${item.name}:rank`
-                ? t('graph.sample.loading') : t('graph.menu.load_rank_sample'),
-            onClick: sampleLoading ? undefined : () => loadSample(item.name, 'rank'),
-        },
-        {
-            key: 'sample-rank-docs',
-            label: (
-                <a
-                    href="https://hugegraph.apache.org/docs/clients/restful-api/rank/"
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    {t('graph.sample.rank_docs')}
-                </a>
-            ),
-        },
-        {
-            key: 'sample-movielens-docs',
-            label: (
-                <a
-                    href="https://files.grouplens.org/datasets/movielens/ml-latest-small-README.html"
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    {t('graph.sample.movielens_docs')}
-                </a>
-            ),
-        },
-        {
-            key: 'sample-movielens-download',
-            label: (
-                <a
-                    href="https://files.grouplens.org/datasets/movielens/ml-latest-small.zip"
-                    target="_blank"
-                    rel="noreferrer"
-                >
-                    {t('graph.sample.movielens_download')}
-                </a>
-            ),
-        },
+        {key: 'sample-section-divider', type: 'divider'},
         {
             key: '6',
             disabled: item.graphspace === 'neizhianli',
@@ -454,8 +459,19 @@ const Graph = () => {
             onClick: item.graphspace === 'neizhianli'
                 ? undefined : () => editGraph(item.name),
         },
+        {key: 'danger-section-divider', type: 'divider'},
+        {
+            key: '2',
+            danger: true,
+            disabled: item.default,
+            label: item.default
+                ? <span className={style.disable}>{t('graph.menu.clear_graph')}</span>
+                : t('graph.menu.clear_graph'),
+            onClick: item.default ? undefined : () => clearGraph(item.name),
+        },
         {
             key: '7',
+            danger: true,
             disabled: item.graphspace === 'neizhianli',
             label: item.graphspace === 'neizhianli'
                 ? <span className={style.disable}>{t('common.action.delete')}</span>

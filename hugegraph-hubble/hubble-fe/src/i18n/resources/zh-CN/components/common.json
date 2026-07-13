@@ -32,8 +32,11 @@
     }
   },
   "workbench": {
+    "back_home": "返回工作台",
     "skip_to_workspace": "跳到主工作区",
     "navigation": "主导航",
+    "navigation_open": "打开主导航",
+    "navigation_close": "关闭主导航",
     "context": {
       "name": "当前图上下文",
       "graphspace": "当前 GraphSpace",
@@ -44,6 +47,8 @@
       "non_pd_fixed": "固定 DEFAULT",
       "graphspaces_load_failed": "GraphSpace 列表暂时无法加载，当前页面内容不会丢失。",
       "graphs_load_failed": "图列表暂时无法加载，当前页面内容不会丢失。",
+      "graphs_forbidden": "当前账号无权读取图列表，请联系管理员授予目标图权限。",
+      "graphspaces_forbidden": "当前账号无权读取图空间列表，请联系管理员授予图空间权限。",
       "retry": "重试",
       "retry_graphspaces": "重试 GraphSpace",
       "retry_graphs": "重试图列表"
@@ -51,6 +56,8 @@
     "nav": {
       "home": "工作台",
       "understand": "图概览",
+      "graphs": "图",
+      "graph_list": "图列表",
       "prepare": "图导入",
       "query": "图查询",
       "support": "系统与运维"

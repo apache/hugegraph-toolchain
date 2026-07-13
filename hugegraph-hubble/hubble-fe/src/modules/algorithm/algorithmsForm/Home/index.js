@@ -21,7 +21,8 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {Empty} from 'antd';
+import {Alert, Button, Empty, Space} from 'antd';
+import {Link} from 'react-router-dom';
 import OlapFormHome from '../OlapHome';
 import OltpFormHome from '../OltpHome';
 import AlgorithmSearch from '../../AlgorithmSearch';
@@ -39,14 +40,20 @@ const AlgorithmFormHome = props => {
         handleOlapFormSubmit,
         currentAlgorithm,
         updateCurrentAlgorithm,
+        graphNums,
+        metaData,
+        graphSpace,
+        graph,
     } =  props;
     const {t} = useTranslation();
     const {ALGORITHM_NAME} = useTranslatedConstants();
     const [search, setSearch] = useState('');
+    const [formVersion, setFormVersion] = useState(0);
 
     const handleSearch = useCallback(value => {
         setSearch(value);
     }, []);
+    const resetParameters = useCallback(() => setFormVersion(value => value + 1), []);
 
     const isListEmpty = _.isEmpty(
         Object.values(ALGORITHM_NAME).filter(item => isAlgorithmNameMatched(item, search, t))
@@ -55,6 +62,48 @@ const AlgorithmFormHome = props => {
     return (
         <div className={c.algorithmSidebar}>
             <AlgorithmSearch onSearch={handleSearch} />
+            <p className={c.guide}>{t('analysis.algorithm.guide')}</p>
+            <Space className={c.docs} wrap size={12}>
+                <a
+                    href="https://hugegraph.apache.org/docs/clients/restful-api/traverser/"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    {t('analysis.algorithm.traverser_docs')}
+                </a>
+                <a
+                    href="https://hugegraph.apache.org/docs/quickstart/hugegraph-computer/"
+                    target="_blank"
+                    rel="noreferrer"
+                >
+                    {t('analysis.algorithm.computer_docs')}
+                </a>
+                <Button type='link' size='small' onClick={resetParameters}>
+                    {t('analysis.algorithm.reset_parameters')}
+                </Button>
+            </Space>
+            {((Number(graphNums?.vertexCount) === 0 && Number(graphNums?.edgeCount) === 0)
+                || (metaData?.vertexMeta?.length === 0 && metaData?.edgeMeta?.length === 0)) && (
+                <Alert
+                    className={c.prerequisite}
+                    type='info'
+                    showIcon
+                    message={t('analysis.algorithm.empty_graph_title')}
+                    description={(
+                        <Space direction='vertical' size={4}>
+                            <span>{t('analysis.algorithm.empty_graph_description')}</span>
+                            <Space>
+                                <Link to={`/graphspace/${graphSpace}/graph/${graph}/meta`}>
+                                    {t('analysis.algorithm.create_schema')}
+                                </Link>
+                                <Link to='/source'>
+                                    {t('analysis.algorithm.prepare_data')}
+                                </Link>
+                            </Space>
+                        </Space>
+                    )}
+                />
+            )}
             {isListEmpty && (
                 <Empty
                     className={c.listEmpty}
@@ -62,12 +111,14 @@ const AlgorithmFormHome = props => {
                 />
             )}
             <OltpFormHome
+                key={`oltp-${formVersion}`}
                 onOltpFormSubmit={handleOltpFormSubmit}
                 search={search}
                 currentAlgorithm={currentAlgorithm}
                 updateCurrentAlgorithm={updateCurrentAlgorithm}
             />
             <OlapFormHome
+                key={`olap-${formVersion}`}
                 onOlapFormSubmit={handleOlapFormSubmit}
                 search={search}
                 currentAlgorithm={currentAlgorithm}

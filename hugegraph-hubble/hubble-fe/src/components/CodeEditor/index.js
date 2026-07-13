@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {autocompletion} from '@codemirror/autocomplete';
+import {autocompletion, closeBrackets} from '@codemirror/autocomplete';
 import {syntaxHighlighting, HighlightStyle} from '@codemirror/language';
 import {basicSetup, EditorView} from 'codemirror';
 import React, {useRef, useEffect} from 'react';
@@ -29,6 +29,7 @@ const CodeEditor = ({value, placeholder, onChange, lang = 'gremlin'}) => {
     const {t} = useTranslation();
     const editor = useRef();
     const cm = useRef();
+    const initialValue = useRef(value || '');
 
     useEffect(() => {
         const syntax = syntaxConfig[lang] ?? syntaxConfig.default;
@@ -52,8 +53,10 @@ const CodeEditor = ({value, placeholder, onChange, lang = 'gremlin'}) => {
         ]);
 
         cm.current = new EditorView({
+            doc: initialValue.current,
             extensions: [
                 basicSetup,
+                closeBrackets(),
                 autocompletion({override: [myCompletions]}),
                 syntaxHighlighting(myHighlightStyle),
                 EditorView.updateListener.of(e => {

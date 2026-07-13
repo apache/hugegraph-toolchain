@@ -83,7 +83,12 @@ const ScheduleForm = ({prev, visible, datasource, loading}) => {
                 )
                 }
                 {showLoadType ? (
-                    <Form.Item label={t('task.edit.sync_type')} name='task_load_type' wrapperCol={{span: 4}}>
+                    <Form.Item
+                        label={t('task.edit.load_type')}
+                        extra={t('task.edit.load_type_help')}
+                        name='task_load_type'
+                        wrapperCol={{span: 4}}
+                    >
                         <Select
                             options={[
                                 {label: t('task.edit.load_full'), value: 'FULL'},

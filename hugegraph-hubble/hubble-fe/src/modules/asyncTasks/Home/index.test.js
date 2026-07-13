@@ -33,6 +33,13 @@ jest.mock('react-i18next', () => ({
         'analysis.async_task.search_placeholder': 'Search tasks',
         'analysis.async_task.get_failed': 'Could not load tasks.',
         'analysis.async_task.retry_list': 'Retry tasks',
+        'analysis.async_task.empty_title': 'No analysis tasks yet',
+        'analysis.async_task.empty_description': 'Tasks are created from queries and algorithms.',
+        'analysis.async_task.start_query': 'Start a query',
+        'analysis.async_task.open_algorithms': 'Open algorithms',
+        'analysis.async_task.no_matches_title': 'No matching tasks',
+        'analysis.async_task.no_matches_description': 'Try another search.',
+        'analysis.async_task.clear_filters': 'Clear filters',
     })[key] || key}),
 }));
 
@@ -90,4 +97,48 @@ it('does not overlap polling and stops automatic retries after failure', async (
     act(() => jest.advanceTimersByTime(10000));
     expect(api.analysis.fetchManageTaskList).toHaveBeenCalledTimes(1);
     unmount();
+});
+
+it('explains where analysis tasks come from when the list is empty', async () => {
+    api.analysis.fetchManageTaskList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AsyncTaskHome />
+        </GraphAnalysisContext.Provider>
+    );
+
+    expect(await screen.findByText('No analysis tasks yet')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Start a query'}))
+        .toHaveAttribute('href', '/gremlin/DEFAULT/hugegraph');
+    expect(screen.getByRole('link', {name: 'Open algorithms'}))
+        .toHaveAttribute('href', '/algorithms/DEFAULT/hugegraph');
+});
+
+it('distinguishes filtered no-results from the first-use empty journey', async () => {
+    api.analysis.fetchManageTaskList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AsyncTaskHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await screen.findByText('No analysis tasks yet');
+
+    fireEvent.change(screen.getByPlaceholderText('Search tasks'), {
+        target: {value: 'missing'},
+    });
+    fireEvent.keyDown(screen.getByPlaceholderText('Search tasks'), {
+        key: 'Enter', code: 'Enter', charCode: 13,
+    });
+
+    expect(await screen.findByText('No matching tasks')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Start a query'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'Clear filters'}));
+    expect(await screen.findByText('No analysis tasks yet')).toBeInTheDocument();
 });

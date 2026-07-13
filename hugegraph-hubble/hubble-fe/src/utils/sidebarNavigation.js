@@ -19,6 +19,10 @@
 export const getSidebarMenuKey = (pathname, pdEnabled) => {
     const normalizedPath = typeof pathname === 'string' ? pathname : '';
 
+    if (/^\/graphspace\/[^/]+\/graph\/[^/]+\/meta\/?$/.test(normalizedPath)) {
+        return 'schema';
+    }
+
     if (pdEnabled && /^\/graphspace\/[^/]+\/schema\/?$/.test(normalizedPath)) {
         return 'schema';
     }

@@ -69,3 +69,32 @@
     width: 148px;
   }
 }
+
+@media (max-width: 900px) {
+  .context {
+    flex: 1 1 auto;
+    margin-left: 0;
+    overflow: hidden;
+
+    :global(.ant-space) {
+      display: flex;
+      width: 100%;
+    }
+  }
+
+  .graphspace,
+  .graph {
+    width: min(120px, 24vw);
+  }
+
+  .mode,
+  .separator {
+    display: none;
+  }
+
+  .errorStack {
+    right: 8px;
+    left: 8px;
+    min-width: 0;
+  }
+}

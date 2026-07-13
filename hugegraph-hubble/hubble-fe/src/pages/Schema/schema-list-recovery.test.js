@@ -34,6 +34,9 @@ const mockTranslate = (key, values) => ({
     'schema_template.column.updated_at': 'Updated',
     'schema_template.column.creator': 'Creator',
     'schema_template.column.operation': 'Actions',
+    'schema_template.no_matches': 'No matching templates',
+    'schema_template.clear_search': 'Clear search',
+    'schema_template.empty': 'No templates yet',
 }[key] || key);
 
 jest.mock('../../api', () => ({
@@ -81,6 +84,28 @@ it('does not present a failed schema-template request as an empty list', async (
 
     await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+});
+
+it('distinguishes search no-results and clears the search', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+    render(<Schema />);
+    await screen.findByText('No templates yet');
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), {
+        target: {value: 'missing'},
+    });
+    fireEvent.keyDown(screen.getByPlaceholderText('Search'), {
+        key: 'Enter', code: 'Enter', charCode: 13,
+    });
+
+    expect(await screen.findByText('No matching templates')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'Clear search'}));
+    expect(await screen.findByText('No templates yet')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search')).toHaveValue('');
 });
 
 it('ignores graph-space detail returned after the route has changed', async () => {

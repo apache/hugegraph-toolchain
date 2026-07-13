@@ -226,6 +226,19 @@ describe('GraphContextSwitcher', () => {
         );
     });
 
+    test('distinguishes missing graph permission from a temporary failure', async () => {
+        sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
+        api.manage.getGraphList.mockResolvedValueOnce({status: 403, data: null});
+        renderSwitcher('/navigation');
+
+        expect(await screen.findByRole('alert')).toHaveTextContent(
+            'workbench.context.graphs_forbidden'
+        );
+        expect(screen.queryByRole('button', {
+            name: 'workbench.context.retry_graphs',
+        })).not.toBeInTheDocument();
+    });
+
     test('graph success cannot erase a concurrent GraphSpace failure', async () => {
         sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
         api.manage.getGraphSpaceList.mockResolvedValueOnce({status: 500, data: null});

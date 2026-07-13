@@ -1,0 +1,50 @@
+.empty {
+  max-width: 720px;
+  margin: 48px auto 24px;
+  padding: 32px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 8px;
+  background: #fafafa;
+
+  h2 {
+    margin-bottom: 8px;
+    font-size: 18px;
+  }
+
+  > p {
+    color: #667085;
+  }
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin: 24px 0;
+  padding: 0;
+  list-style-position: inside;
+
+  li {
+    padding: 14px 10px;
+    border-radius: 6px;
+    background: #fff;
+    color: #344054;
+  }
+}
+
+.edgeHint {
+  margin: 12px 0 0;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .empty {
+    margin-top: 24px;
+    padding: 24px 16px;
+  }
+
+  .steps {
+    grid-template-columns: 1fr;
+    text-align: left;
+  }
+}

@@ -21,6 +21,7 @@
     --workbench-color-brand-strong: #0f56bd;
     --workbench-color-text: #172033;
     --workbench-color-text-secondary: #536179;
+    --workbench-color-text-tertiary: #7b879c;
     --workbench-color-border: #d8dee9;
     --workbench-color-surface: #ffffff;
     --workbench-color-canvas: #f2f5f9;
@@ -92,6 +93,49 @@
 
 }
 
+.workbench-mobile-navigation-toggle {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .workbench-navigation {
+        width: 0;
+        border-right: 0;
+
+        .ant-layout-sider {
+            position: fixed;
+            z-index: 1000;
+            top: var(--workbench-header-height);
+            bottom: 0;
+            left: 0;
+            height: calc(100vh - var(--workbench-header-height));
+            overflow-y: auto;
+            box-shadow: 8px 0 24px rgba(6, 28, 56, 0.18);
+        }
+
+        .ant-layout-sider-collapsed {
+            box-shadow: none;
+        }
+    }
+
+    .workbench-mobile-navigation-toggle {
+        position: fixed;
+        z-index: 1100;
+        top: 14px;
+        left: 12px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #fff;
+
+        &:hover,
+        &:focus {
+            color: #fff;
+            background: rgba(255, 255, 255, 0.12);
+        }
+    }
+}
+
 .workbench-topbar {
     :where(a[href], button, [role='button']):focus-visible {
         box-shadow: var(--workbench-focus-ring);
@@ -108,6 +152,23 @@
     .ant-select-selector,
     .ant-picker {
         border-radius: var(--workbench-radius);
+    }
+
+    .ant-alert,
+    .ant-card,
+    .ant-modal-content {
+        border-radius: var(--workbench-radius-lg);
+    }
+
+    .ant-page-header-heading-title {
+        color: var(--workbench-color-text);
+        font-size: 20px;
+        line-height: 1.4;
+    }
+
+    .ant-form-item-extra {
+        color: var(--workbench-color-text-secondary);
+        line-height: 1.5;
     }
 
     .ant-table {

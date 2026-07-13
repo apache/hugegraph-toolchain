@@ -18,6 +18,15 @@
 
 .tableWrapper{
     position: relative;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
     height: var(--analysis-result-height, calc(100vh - 40px));
     overflow: auto;
+}
+
+.largeResultNotice {
+    margin-bottom: 12px;
+    white-space: normal;
+    overflow-wrap: anywhere;
 }

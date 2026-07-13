@@ -312,7 +312,6 @@ const Task = () => {
                 }
                 catch (error) {
                     message.error(error.message || t('graph.sample.failed'));
-                    throw error;
                 }
                 finally {
                     setDemoLoading('');

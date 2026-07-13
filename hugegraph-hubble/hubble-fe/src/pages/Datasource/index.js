@@ -17,7 +17,7 @@
  */
 
 import {
-    Alert, Button, Row, Col, PageHeader, Input, Modal, Table, Space, Spin, message,
+    Alert, Button, Empty, Row, Col, PageHeader, Input, Modal, Table, Space, Spin, message,
 } from 'antd';
 import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
@@ -221,7 +221,9 @@ const Datasource = () => {
                 <TableHeader>
                     <Space>
                         <Button type='primary' onClick={handleShowLayer}>{t('datasource.create')}</Button>
-                        <Button onClick={delBatch}>{t('datasource.delete')}</Button>
+                        <Button disabled={selectedItems.length === 0} onClick={delBatch}>
+                            {t('datasource.delete')}
+                        </Button>
                         <span>{t('datasource.selected_count', {
                             selected: selectedItems.length,
                             total: data.length,
@@ -242,6 +244,22 @@ const Datasource = () => {
                         }}
                         pagination={pagination}
                         onChange={handleTable}
+                        locale={{
+                            emptyText: (
+                                <Empty
+                                    description={(
+                                        <div>
+                                            <strong>{t('datasource.empty_title')}</strong>
+                                            <p>{t('datasource.empty_description')}</p>
+                                        </div>
+                                    )}
+                                >
+                                    <Button type='primary' onClick={handleShowLayer}>
+                                        {t('datasource.create')}
+                                    </Button>
+                                </Empty>
+                            ),
+                        }}
                     />
                 </Spin>
                 <EditLayer

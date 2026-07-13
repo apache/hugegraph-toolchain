@@ -76,6 +76,14 @@ describe('workbench graph context contract', () => {
         })).toEqual({graphspace: 'DEFAULT'});
     });
 
+    test('non-PD graph list keeps the selected graph in the only graphspace', () => {
+        expect(resolveWorkbenchGraphContext({
+            pdEnabled: false,
+            routeContext: {graphspace: 'DEFAULT'},
+            storedContext: {graphspace: 'DEFAULT', graph: 'hugegraph'},
+        })).toEqual({graphspace: 'DEFAULT', graph: 'hugegraph'});
+    });
+
     test('persists only a valid graph selection and survives malformed storage', () => {
         const storage = {
             value: '{bad-json',

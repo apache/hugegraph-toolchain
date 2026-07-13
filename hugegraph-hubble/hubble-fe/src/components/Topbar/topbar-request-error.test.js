@@ -46,16 +46,28 @@ jest.mock('antd', () => {
     const React = require('react');
 
     const Select = ({children, onChange, value}) => (
-        <select
-            value={value}
-            onChange={event => onChange?.(event.target.value)}
-        >
+        <select value={value} onChange={event => onChange?.(event.target.value)}>
             {children}
         </select>
     );
-    Select.Option = ({children, value}) => (
-        <option value={value}>{children}</option>
-    );
+    Select.Option = ({children, value}) => <option value={value}>{children}</option>;
+    const Radio = {
+        Group: ({options = [], onChange, value, 'aria-label': ariaLabel}) => (
+            <div role='radiogroup' aria-label={ariaLabel}>
+                {options.map(option => (
+                    <label key={option.value}>
+                        <input
+                            type='radio'
+                            value={option.value}
+                            checked={value === option.value}
+                            onChange={onChange}
+                        />
+                        {option.label}
+                    </label>
+                ))}
+            </div>
+        ),
+    };
 
     return {
         Layout: {
@@ -78,6 +90,7 @@ jest.mock('antd', () => {
             confirm: jest.fn(),
         },
         Select,
+        Radio,
     };
 });
 
@@ -154,12 +167,17 @@ describe('Topbar request errors', () => {
         api.auth.status.mockResolvedValue({status: 200});
 
         render(
-            <MemoryRouter initialEntries={['/navigation']}>
+            <MemoryRouter
+                initialEntries={['/navigation']}
+                future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+            >
                 <Topbar />
             </MemoryRouter>
         );
 
         expect(screen.getByText('Topbar.super_admin')).toBeInTheDocument();
+        expect(screen.getByRole('link', {name: 'workbench.back_home'}))
+            .toHaveAttribute('href', '/navigation');
         expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
     });
 });

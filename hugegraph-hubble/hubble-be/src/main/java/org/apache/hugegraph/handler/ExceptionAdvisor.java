@@ -120,10 +120,18 @@ public class ExceptionAdvisor {
         String message = this.handleMessage(e.getMessage(), null);
         closeRequestClient();
         return Response.builder()
-                       .status(Constant.STATUS_BAD_REQUEST)
+                       .status(serverStatus(e.status()))
                        .message(message)
                        .cause(null)
                        .build();
+    }
+
+    static int serverStatus(int status) {
+        if (status == HttpStatus.UNAUTHORIZED.value() ||
+            status == HttpStatus.FORBIDDEN.value()) {
+            return status;
+        }
+        return Constant.STATUS_BAD_REQUEST;
     }
 
     @ExceptionHandler(Exception.class)

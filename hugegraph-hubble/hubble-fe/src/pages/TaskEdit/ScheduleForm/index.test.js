@@ -52,6 +52,8 @@ test('shows load type for a scheduled JDBC import', () => {
 
     expect(screen.getByRole('combobox')).toBeInTheDocument();
     expect(screen.getByText('task.edit.load_full')).toBeInTheDocument();
+    expect(screen.getByText('task.edit.load_type_help')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('task.edit.cron_placeholder')).toBeInTheDocument();
 });
 
 test('keeps Run Once as the default for a file import', () => {

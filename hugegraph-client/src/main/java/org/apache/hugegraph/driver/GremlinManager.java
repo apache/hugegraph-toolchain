@@ -21,10 +21,14 @@ import org.apache.hugegraph.api.gremlin.GremlinAPI;
 import org.apache.hugegraph.api.gremlin.GremlinRequest;
 import org.apache.hugegraph.api.job.GremlinJobAPI;
 import org.apache.hugegraph.client.RestClient;
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.structure.gremlin.Response;
 import org.apache.hugegraph.structure.gremlin.ResultSet;
 
 public class GremlinManager {
+
+    public static final String IDEMPOTENT_TRAVERSAL_FALLBACK_MARKER =
+            "// hugegraph-client:idempotent-traversal-fallback\n";
 
     private final GraphManager graphManager;
 
@@ -43,22 +47,49 @@ public class GremlinManager {
     }
 
     public ResultSet execute(GremlinRequest request) {
-        if (this.gremlinAPI.isSupportGs()) {
-            // Bind "graph" and graph space to all graphs
-            request.aliases.put("graph", this.graphSpace + "-" + this.graph);
-            // Bind "g" and graph space to all graphs by custom rule which define in gremlin server.
-            request.aliases.put("g", "__g_" + this.graphSpace + "-" + this.graph);
-        } else {
-            // Bind "graph" to all graphs
-            request.aliases.put("graph", this.graph);
-            // Bind "g" to all graphs by custom rule which define in gremlin server.
-            request.aliases.put("g", "__g_" + this.graph);
-        }
+        bindAliases(request, this.gremlinAPI.isSupportGs(), this.graphSpace,
+                    this.graph);
 
-        Response response = this.gremlinAPI.post(request);
+        Response response;
+        try {
+            response = this.gremlinAPI.post(request);
+        } catch (ServerException e) {
+            if (!this.gremlinAPI.isSupportGs() ||
+                !allowTraversalFallback(request, e.getMessage())) {
+                throw e;
+            }
+            prepareTraversalFallback(request);
+            response = this.gremlinAPI.post(request);
+        }
         response.graphManager(this.graphManager);
         // TODO: Can add some checks later
         return response.result();
+    }
+
+    static void bindAliases(GremlinRequest request, boolean supportGraphSpace,
+                            String graphSpace, String graph) {
+        if (supportGraphSpace) {
+            // Bind "graph" and graph space to all graphs
+            request.aliases.put("graph", graphSpace + "-" + graph);
+            // Bind "g" and graph space to all graphs by custom rule which define in gremlin server.
+            request.aliases.put("g", "__g_" + graphSpace + "-" + graph);
+        } else {
+            // Bind "graph" to all graphs
+            request.aliases.put("graph", graph);
+            // Bind "g" to all graphs by custom rule which define in gremlin server.
+            request.aliases.put("g", "__g_" + graph);
+        }
+    }
+
+    static void prepareTraversalFallback(GremlinRequest request) {
+        request.aliases.remove("g");
+        request.gremlin = "g = graph.traversal();\n" + request.gremlin;
+    }
+
+    static boolean allowTraversalFallback(GremlinRequest request,
+                                          String message) {
+        return request.gremlin.startsWith(IDEMPOTENT_TRAVERSAL_FALLBACK_MARKER) &&
+               message != null && message.contains("Could not rebind [g]");
     }
 
     public long executeAsTask(GremlinRequest request) {

@@ -30,9 +30,16 @@
     }
 
     .panelHeaderName {
-        max-width: 130px;
+        max-width: 240px;
         margin: 0 6px;
         user-select: none;
+        line-height: 1.35;
+
+        :global(.ant-typography) {
+            overflow: visible;
+            white-space: normal;
+            text-overflow: clip;
+        }
     
         .highlight {
             color: #1890ff;

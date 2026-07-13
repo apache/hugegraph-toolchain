@@ -61,6 +61,10 @@ jest.mock('react-i18next', () => ({
         'graph.detail.retry_page': 'Retry graph details',
         'graph.detail.retry_statistics': 'Retry statistics',
         'graph.detail.update_failed': 'Data update failed. Retry later.',
+        'graph.detail.empty_title': 'This graph has no schema or data yet',
+        'graph.detail.empty_description': 'Create schema, prepare data, or run a safe query.',
+        'graph.detail.create_schema': 'Create schema',
+        'graph.detail.prepare_data': 'Prepare data',
     })[key] || key}),
 }));
 
@@ -189,6 +193,36 @@ test('exposes overview, schema and query as one graph journey', async () => {
     expect(screen.getByRole('link', {name: 'Overview'}))
         .toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('Available')).toBeInTheDocument();
+});
+
+test('turns zero statistics into an actionable empty graph journey', async () => {
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
+    api.manage.getGraph.mockResolvedValue({status: 200, data: {nickname: 'Graph'}});
+    api.manage.getGraphStatistic.mockResolvedValue({
+        status: 200,
+        data: {vertex_count: 0, edge_count: 0, vertices: {}, edges: {}},
+    });
+
+    render(
+        <MemoryRouter
+            initialEntries={['/graphspace/DEFAULT/graph/g/detail']}
+            future={{v7_relativeSplatPath: true, v7_startTransition: true}}
+        >
+            <Routes>
+                <Route
+                    path='/graphspace/:graphspace/graph/:graph/detail'
+                    element={<GraphDetail />}
+                />
+            </Routes>
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('This graph has no schema or data yet'))
+        .toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Create schema'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Prepare data'})).toBeInTheDocument();
+    expect(screen.getAllByRole('button', {name: /Query this graph/}).length)
+        .toBeGreaterThan(0);
 });
 
 test('does not represent unavailable statistics as zero and retries only statistics', async () => {

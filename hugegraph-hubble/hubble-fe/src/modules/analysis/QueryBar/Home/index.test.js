@@ -24,10 +24,12 @@ jest.mock('../ContentCommon', () => ({
     children,
     favoriteCardVisible,
     setFavoriteCardVisible,
+    isEmptyQuery,
 }) => (
     <div>
         <button onClick={() => setFavoriteCardVisible(true)}>open favorite</button>
         <span>{favoriteCardVisible ? 'favorite open' : 'favorite closed'}</span>
+        <span>{isEmptyQuery ? 'query empty' : 'query ready'}</span>
         {children}
     </div>
 ));
@@ -99,6 +101,7 @@ it('does not transfer an open favorite popover when query tabs change', () => {
     };
 
     render(<ControlledQueryBar />);
+    expect(screen.getByText('query ready')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: 'open favorite'}));
     expect(screen.getByText('favorite open')).toBeInTheDocument();
 

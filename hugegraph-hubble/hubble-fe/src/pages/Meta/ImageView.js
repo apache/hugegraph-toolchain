@@ -27,6 +27,7 @@ import PropertyTable from './Property';
 import {Alert, Button, Row, Space, Col, Drawer, Spin} from 'antd';
 import {formatToGraphInData} from '../../utils/formatGraphInData';
 import {useTranslation} from 'react-i18next';
+import styles from './ImageView.module.scss';
 
 const ImageView = () => {
     const {t} = useTranslation();
@@ -144,6 +145,33 @@ const ImageView = () => {
         };
     }, [refresh, loadSchemaView]);
 
+    const schemaIsEmpty = !loading && !loadError
+        && !data.nodes?.length && !data.edges?.length;
+
+    const schemaActions = (
+        <Space wrap>
+            <Button
+                type={schemaIsEmpty ? 'primary' : 'default'}
+                disabled={loading || loadError}
+                onClick={createProperty}
+            >
+                {t('schema.property.create')}
+            </Button>
+            <Button disabled={loading || loadError} onClick={createVertex}>
+                {t('schema.vertex.create')}
+            </Button>
+            <Button
+                disabled={loading || loadError || vertexList.length === 0}
+                onClick={createEdge}
+            >
+                {t('schema.edge.form.title_create')}
+            </Button>
+            <Button disabled={loading || loadError} onClick={showPropertyList}>
+                {t('schema.image_view.view_properties')}
+            </Button>
+        </Space>
+    );
+
     return (
         <div style={{textAlign: 'center'}}>
             {loadError && (
@@ -161,38 +189,43 @@ const ImageView = () => {
             {/* <div ref={graphRef} style={{display: 'inline-block', width: 1000, height: 600}} /> */}
             <Row>
                 <Col>
-                    <Space>
-                        <Button disabled={loading || loadError} onClick={createProperty}>
-                            {t('schema.property.create')}
-                        </Button>
-                        <Button disabled={loading || loadError} onClick={createVertex}>
-                            {t('schema.vertex.create')}
-                        </Button>
-                        <Button disabled={loading || loadError} onClick={createEdge}>
-                            {t('schema.edge.form.title_create')}
-                        </Button>
-                        <Button disabled={loading || loadError} onClick={showPropertyList}>
-                            {t('schema.image_view.view_properties')}
-                        </Button>
-                    </Space>
+                    {!schemaIsEmpty && schemaActions}
                 </Col>
             </Row>
             <Spin spinning={loading}>
-                <GraphView
-                    data={data}
-                    config={{
-                        minZoom: 0.5,
-                        maxZoom: 2,
-                        fitCenter: true,
-                    }}
-                    layout={{
-                        type: 'gForce',
-                        gravity: 10,
-                        linkDistance: 150,
-                    }}
-                    onClick={handleClick}
-                    height={600}
-                />
+                {schemaIsEmpty ? (
+                    <section className={styles.empty} aria-labelledby='schema-empty-title'>
+                        <h2 id='schema-empty-title'>
+                            {t('schema.image_view.empty_title')}
+                        </h2>
+                        <p>{t('schema.image_view.empty_description')}</p>
+                        <ol className={styles.steps}>
+                            <li>{t('schema.image_view.step_property')}</li>
+                            <li>{t('schema.image_view.step_vertex')}</li>
+                            <li>{t('schema.image_view.step_edge')}</li>
+                        </ol>
+                        {schemaActions}
+                        <p className={styles.edgeHint}>
+                            {t('schema.image_view.edge_prerequisite')}
+                        </p>
+                    </section>
+                ) : (
+                    <GraphView
+                        data={data}
+                        config={{
+                            minZoom: 0.5,
+                            maxZoom: 2,
+                            fitCenter: true,
+                        }}
+                        layout={{
+                            type: 'gForce',
+                            gravity: 10,
+                            linkDistance: 150,
+                        }}
+                        onClick={handleClick}
+                        height={600}
+                    />
+                )}
             </Spin>
 
             <EditVertexLayer

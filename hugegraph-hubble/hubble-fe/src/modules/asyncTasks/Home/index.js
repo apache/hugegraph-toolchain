@@ -23,7 +23,7 @@
 import React, {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import GraphAnalysisContext from '../../Context';
 import {useParams} from 'react-router-dom';
-import {Alert, Button, Input} from 'antd';
+import {Alert, Button, Empty, Input, Space} from 'antd';
 import AsyncTaskDetail from '../Detail';
 import * as api from '../../../api/index';
 import {useTranslation} from 'react-i18next';
@@ -153,6 +153,17 @@ const AsyncTaskHome = () => {
         [search, searchCache]
     );
 
+    const clearFilters = useCallback(() => {
+        setSearchCache('');
+        setSearch('');
+        setFilters({});
+        setPage(defaultPageParams.page);
+    }, []);
+
+    const hasActiveFilters = Boolean(search) || Object.values(filters).some(value => (
+        Array.isArray(value) ? value.length > 0 : Boolean(value)
+    ));
+
     useEffect(
         () => {
             if (page > 1 && asyncManageTaskData?.records?.length === 0) {
@@ -194,14 +205,47 @@ const AsyncTaskHome = () => {
                         style={{width: '215px'}}
                     />
                 </div>
-                <AsyncTaskDetail
-                    onPageChange={onPageChange}
-                    asyncManageTaskData={asyncManageTaskData}
-                    getAsynTaskList={getAsynTaskList}
-                    page={page}
-                    pageSize={pageSize}
-                    loading={loading}
-                />
+                {!loading && !loadError && asyncManageTaskData.total === 0 ? (
+                    <Empty
+                        className={c.emptyJourney}
+                        description={(
+                            <div>
+                                <strong>{t(hasActiveFilters
+                                    ? 'analysis.async_task.no_matches_title'
+                                    : 'analysis.async_task.empty_title')}
+                                </strong>
+                                <p>{t(hasActiveFilters
+                                    ? 'analysis.async_task.no_matches_description'
+                                    : 'analysis.async_task.empty_description')}
+                                </p>
+                            </div>
+                        )}
+                    >
+                        {hasActiveFilters ? (
+                            <Button type='primary' onClick={clearFilters}>
+                                {t('analysis.async_task.clear_filters')}
+                            </Button>
+                        ) : (
+                            <Space wrap>
+                                <Button type='primary' href={`/gremlin/${graphSpace}/${graph}`}>
+                                    {t('analysis.async_task.start_query')}
+                                </Button>
+                                <Button href={`/algorithms/${graphSpace}/${graph}`}>
+                                    {t('analysis.async_task.open_algorithms')}
+                                </Button>
+                            </Space>
+                        )}
+                    </Empty>
+                ) : (
+                    <AsyncTaskDetail
+                        onPageChange={onPageChange}
+                        asyncManageTaskData={asyncManageTaskData}
+                        getAsynTaskList={getAsynTaskList}
+                        page={page}
+                        pageSize={pageSize}
+                        loading={loading}
+                    />
+                )}
             </div>
         </div>
     );

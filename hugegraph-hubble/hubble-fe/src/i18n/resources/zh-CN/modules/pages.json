@@ -217,6 +217,7 @@
       "view_schema": "查看schema",
       "load_hlm_sample": "构建红楼梦 Demo 图",
       "load_loader_sample": "导入 Loader 示例",
+      "sample_data": "示例数据与资源",
       "load_rank_sample": "构建 Rank 迷你电影 Demo",
       "clone": "克隆图"
     },
@@ -245,10 +246,13 @@
       "title_create": "创建图",
       "title_edit": "编辑图",
       "name": "图ID",
-      "name_placeholder": "只能包含小写字母、数字、_，最长48位",
+      "name_placeholder": "例如：movie_graph",
+      "name_help": "稳定的 API 与 URL 标识：仅小写字母、数字和下划线，最长 48 位；创建后不可修改。",
       "nickname": "图名",
-      "nickname_placeholder": "只能包含中文、字母、数字、_，最长48位",
-      "schema_placeholder": "请选择schema",
+      "nickname_placeholder": "例如：电影推荐图",
+      "nickname_help": "展示给使用者的名称，可使用中文、字母、数字和下划线，最长 48 位。",
+      "schema": "Schema 模板",
+      "schema_placeholder": "选择已有 Schema 模板（可选）",
       "schema_load_failed": "Schema 模板暂时无法加载。",
       "schema_retry": "重试模板",
       "schema_optional_hint": "可选；不选择模板时将创建空 Schema 图。",
@@ -302,11 +306,20 @@
       "edge_total": "边总数",
       "vertex_type": "点类型",
       "edge_type": "边类型",
-      "count": "数量"
+      "count": "数量",
+      "empty_title": "当前图还没有 Schema 或数据",
+      "empty_description": "创建 Schema、准备数据或运行安全查询，即可开始使用。",
+      "create_schema": "创建 Schema",
+      "prepare_data": "准备数据"
     },
     "card": {
       "more_actions": "{{graph}} 的更多操作",
       "storage": "存储空间",
+      "schema_types": "{{vertices}} 个顶点类型 · {{edges}} 个边类型",
+      "empty_schema": "尚未创建 Schema",
+      "empty_schema_help": "可以先建立模型，或运行安全查询。",
+      "open_schema": "创建 Schema",
+      "query_graph": "查询此图",
       "detail_tooltip": "点击可以查看本图目前存储的点边的数量"
     }
   },
@@ -346,6 +359,10 @@
   },
   "my": {
     "empty_value": "暂无信息",
+    "level": {
+      "ADMIN": "管理员",
+      "USER": "普通用户"
+    },
     "title": "个人中心",
     "edit_profile_title": "编辑信息",
     "load": {
@@ -519,9 +536,9 @@
       "workflow_title": "分四步完成导入配置",
       "workflow_description": "先选择已配置好 Schema 的目标图和数据源，再选择源字段、映射到顶点或边类型，最后设置执行时间。返回上一步不会创建任务。",
       "sync_type": "同步方式",
-      "cron_extra": "quartz表达式：秒 分钟 小时 天 月 星期 年(选填)",
+      "cron_extra": "Quartz 表达式顺序：秒 分钟 小时 日 月 星期 年（可选）。例如每 5 分钟：0 0/5 * * * ?",
       "cron_required": "请输入调度信息",
-      "cron_placeholder": "定时 * 5 * * * * (*)",
+      "cron_placeholder": "例如：0 0/5 * * * ?",
       "cron_rule": "请输入合法的quartz格式",
       "update_success": "修改成功",
       "graphspace": "图空间",
@@ -578,6 +595,8 @@
       "mapping_required_tip": "请至少创建一个顶点或边映射",
       "mapping_help_title": "将源字段映射到目标图的已有 Schema",
       "mapping_help": "只有自定义 ID 策略需要单独指定顶点 ID 列；边的起点、终点 ID 必须能定位对应顶点。自动匹配仅按同名字段配对，继续前请检查结果。",
+      "mapping_meta_failed": "无法加载目标图 Schema，当前不能安全配置映射。",
+      "mapping_meta_retry": "重试加载 Schema",
       "create_vertex": "创建顶点",
       "edit_vertex": "编辑顶点",
       "create_edge": "创建边",
@@ -603,7 +622,9 @@
       "schedule_help_title": "选择任务读取数据源的时间",
       "schedule_help": "文件和首次导入建议使用默认的“执行一次”；周期执行使用 Quartz 表达式；Kafka 使用实时消费。",
       "load_full": "全量",
-      "load_incremental": "增量"
+      "load_incremental": "增量",
+      "load_type": "导入模式",
+      "load_type_help": "全量读取当前数据源；增量仅用于数据源与部署明确支持的新增数据读取。"
     }
   },
   "datasource": {
@@ -616,6 +637,8 @@
     "load_failed": "数据源加载失败，请检查服务后重试。",
     "retry": "重试数据源",
     "selected_count": "已选中 {{selected}} 条 / 共 {{total}} 条",
+    "empty_title": "还没有数据源",
+    "empty_description": "请先添加数据源，再创建导入任务。",
     "col": {
       "name": "数据源名称",
       "type": "数据源类型",
@@ -633,6 +656,7 @@
       "title_edit": "编辑数据源",
       "basic_info": "基础属性",
       "config_info": "配置信息",
+      "advanced_config": "高级解析与认证配置",
       "auth_info": "认证信息",
       "name": "数据源名称",
       "name_placeholder": "请输入数据源名称",
@@ -651,6 +675,17 @@
       "file_type": "文件类型",
       "select": "请选择",
       "header_placeholder": "请输入header,以,分割",
+      "header": "列名",
+      "header_help": "无表头文件可填写逗号分隔的列名，例如：id,name,age。",
+      "hdfs_path": "HDFS 数据路径",
+      "hdfs_path_placeholder": "例如：/data/vertices.csv",
+      "hdfs_path_help": "已配置 HDFS 集群中的源文件或目录路径。",
+      "core_site": "core-site.xml 配置",
+      "core_site_help": "上传用于解析 HDFS 地址的 Hadoop core-site.xml。",
+      "hdfs_site": "hdfs-site.xml 配置",
+      "hdfs_site_help": "上传当前集群的 Hadoop hdfs-site.xml，仅支持 XML 文件。",
+      "hdfs_docs": "HugeGraph Loader 数据源文档",
+      "loader_docs": "查看 HugeGraph Loader 数据源与字段说明",
       "delimiter": "列分隔符",
       "charset": "编码字符集",
       "date_format": "日期格式",
@@ -658,10 +693,18 @@
       "skipped_line": "跳过行",
       "compression": "压缩格式",
       "local_file": "本地文件",
-      "server_placeholder": "请输入kafka server list",
-      "topic_placeholder": "请输入topic",
+      "local_file_help": "上传与所选文件类型、压缩格式一致的单个文件；列顺序必须与后续映射一致。",
+      "kafka_servers": "Kafka 服务地址",
+      "kafka_servers_help": "以逗号分隔 broker，例如：kafka-1:9092,kafka-2:9092。",
+      "server_placeholder": "例如：kafka-1:9092,kafka-2:9092",
+      "kafka_topic": "Topic",
+      "kafka_topic_help": "填写 Loader 要持续读取的现有 Topic 名称。",
+      "topic_placeholder": "例如：person_events",
       "from_beginning": "是否从头读取",
       "db_type": "数据库类型",
+      "jdbc_driver": "JDBC 驱动",
+      "jdbc_url_help": "必须使用所选数据库对应的 JDBC URL；连接测试会同时校验凭据与目标表。",
+      "database_schema": "数据库 Schema",
       "select_db_type": "请选择数据库类型",
       "url_placeholder": "请输入URL",
       "url_rule": "请输入正确的jdbc url, 例如：jdbc:mysql://127.0.0.1:3306/db_name",
@@ -844,6 +887,12 @@
     },
     "image_view": {
       "load_failed": "Schema 图数据暂时无法加载，请重试后再编辑。",
+      "empty_title": "创建第一个图 Schema",
+      "empty_description": "建议先定义可复用属性，再创建顶点类型和边类型。",
+      "step_property": "定义属性",
+      "step_vertex": "创建顶点类型",
+      "step_edge": "用边类型连接顶点",
+      "edge_prerequisite": "创建至少一个顶点类型后，才可创建边类型。",
       "vertex": "顶点类型",
       "edge": "边类型",
       "view_properties": "查看属性"
@@ -853,6 +902,9 @@
     "title": "{{name}} - Schema 模板管理",
     "create": "创建 Schema 模板",
     "search_placeholder": "请输入 Schema 模板名称",
+    "empty": "还没有 Schema 模板",
+    "no_matches": "没有匹配的 Schema 模板",
+    "clear_search": "清除搜索",
     "load_failed": "Schema 模板加载失败，请检查服务后重试。",
     "retry": "重试 Schema 模板",
     "graphspace_failed": "图空间详情加载失败。",
@@ -865,6 +917,10 @@
     "update_failed": "无法更新 Schema 模板，请检查输入后重试。",
     "create_success": "新增成功",
     "update_success": "编辑成功",
+    "builtin": {
+      "people_network": "人物关系网络",
+      "product_catalog": "商品关联目录"
+    },
     "action": {
       "view": "查看",
       "edit": "编辑",
@@ -880,8 +936,14 @@
     },
     "form": {
       "name": "Schema 模板名称",
-      "name_placeholder": "请输入 Schema 名称",
-      "schema_placeholder": "请输入 Schema"
+      "name_placeholder": "例如：movie_network",
+      "schema": "Groovy Schema",
+      "schema_placeholder": "例如：schema.propertyKey(\"name\").asText().ifNotExist().create()",
+      "schema_help": "按属性、顶点、边、索引的依赖顺序编写；推荐使用 ifNotExist() 使模板可安全复用。",
+      "schema_docs": "查看官方 Schema 示例",
+      "starting_point": "内置起点",
+      "starting_point_placeholder": "选择一份小型幂等模板（可选）",
+      "starting_point_help": "仅在草稿为空时可选；选择后仍可审阅和修改，不会自动创建或覆盖图数据。"
     }
   },
   "navigation_page": {

@@ -464,11 +464,9 @@ public class UserService extends AuthService {
         }
     }
 
-    public String userLevel(HugeClient client) {
+    public String userLevel(HugeClient client, String username) {
         if (!isPdEnabled()) {
-            // In non-PD mode, Manager/GraphSpace APIs are not available.
-            // Treat the logged-in user as ADMIN for full access.
-            return "ADMIN";
+            return standaloneUserLevel(username);
         }
 
         if (isSuperAdmin(client)) {
@@ -481,6 +479,12 @@ public class UserService extends AuthService {
 
         // Default: user
         return "USER";
+    }
+
+    static String standaloneUserLevel(String username) {
+        // StandardAuthenticator reserves the configured administrator account
+        // name. Other authenticated users still depend on explicit role grants.
+        return "admin".equals(username) ? "ADMIN" : "USER";
     }
 
     public boolean isSuperAdmin(HugeClient client, String uid) {

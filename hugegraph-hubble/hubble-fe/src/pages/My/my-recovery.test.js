@@ -28,6 +28,7 @@ jest.mock('react-i18next', () => ({
 jest.mock('../../api', () => ({
     auth: {
         getPersonal: jest.fn(),
+        status: jest.fn(),
         updatePwd: jest.fn(),
     },
 }));
@@ -48,6 +49,7 @@ beforeEach(() => {
         addListener: jest.fn(),
         removeListener: jest.fn(),
     }));
+    api.auth.status.mockResolvedValue({status: 200, data: {level: 'ADMIN'}});
 });
 
 const deferred = () => {
@@ -115,7 +117,24 @@ test('renders localized placeholders for empty profile fields', async () => {
     render(<My />);
 
     expect(await screen.findByText('Administrator')).toBeInTheDocument();
-    expect(screen.getAllByText('my.empty_value')).toHaveLength(3);
+    expect(screen.getAllByText('my.empty_value')).toHaveLength(2);
+    expect(screen.getByText('my.level.ADMIN')).toBeInTheDocument();
+});
+
+test('shows the authoritative capability level instead of an empty role placeholder', async () => {
+    api.auth.getPersonal.mockResolvedValue({
+        status: 200,
+        data: {
+            user_name: 'admin',
+            user_nickname: 'admin',
+            adminSpaces: [],
+        },
+    });
+
+    render(<My />);
+
+    expect(await screen.findByText('my.level.ADMIN')).toBeInTheDocument();
+    expect(api.auth.status).toHaveBeenCalledTimes(1);
 });
 
 test('ignores an old profile response after a newer refresh', async () => {

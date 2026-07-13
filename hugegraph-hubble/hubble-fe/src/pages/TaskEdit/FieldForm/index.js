@@ -97,10 +97,11 @@ const FieldForm = ({visible, prev, datasourceID}) => {
 
     const setKey = useCallback(val => {
         setTargetKeys(val);
+        fieldForm.setFieldValue('target_keys', val);
         if (val.length > 0) {
             setTransferStatus('');
         }
-    }, []);
+    }, [fieldForm]);
 
     const addField = useCallback(() => {
         if (inputData && status !== 'error') {
@@ -221,10 +222,7 @@ const FieldForm = ({visible, prev, datasourceID}) => {
                         )}
                     />
                 )}
-                <Form.Item
-                    name='target_keys'
-                    rules={[rules.required(t('task.edit.select_source_fields'))]}
-                >
+                <Form.Item>
                     <Transfer
                         dataSource={data}
                         titles={[
@@ -253,7 +251,16 @@ const FieldForm = ({visible, prev, datasourceID}) => {
                         }}
                     </Transfer>
                 </Form.Item>
-                <Form.Item name='source_keys' hidden />
+                <Form.Item
+                    name='target_keys'
+                    rules={[rules.required(t('task.edit.select_source_fields'))]}
+                    hidden
+                >
+                    <Input />
+                </Form.Item>
+                <Form.Item name='source_keys' hidden>
+                    <Input />
+                </Form.Item>
                 <Form.Item>
                     <Space>
                         <Button onClick={prev}>{t('common.action.back')}</Button>

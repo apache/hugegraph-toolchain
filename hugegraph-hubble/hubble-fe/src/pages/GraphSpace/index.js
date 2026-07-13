@@ -27,7 +27,6 @@ import {
     Input,
     Radio,
     DatePicker,
-    Card,
     message,
     Modal,
     Pagination,
@@ -36,9 +35,7 @@ import {
 import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import {EditLayer} from './EditLayer';
-import TableHeader from '../../components/TableHeader';
 import {Link} from 'react-router-dom';
-import {PlusOutlined} from '@ant-design/icons';
 import GraphSpaceCard from './Card';
 import style from './index.module.scss';
 import * as api from '../../api/index';
@@ -63,7 +60,7 @@ const GraphSpace = () => {
     const [refresh, setRefresh] = useState('false');
     const [dateData, setDateData] = useState('');
     const [graphspacename, setGraphspacename] = useState('');
-    const [pagination, setPagination] = useState({toatal: 0, current: 1, pageSize: 11});
+    const [pagination, setPagination] = useState({toatal: 0, current: 1, pageSize: 12});
     const [loading, setLoading] = useState(false);
     const [listError, setListError] = useState(false);
     const listRequest = useRef(null);
@@ -74,21 +71,9 @@ const GraphSpace = () => {
         setDetail({});
     }, []);
 
-    const handleCreateKeyDown = useCallback(event => {
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            handleCreate();
-        }
-    }, [handleCreate]);
-
     const editGraphspace = useCallback(detail => {
         setDetail(detail);
         setEditLayer(true);
-    }, []);
-
-    const createGraphspace = useCallback(() => {
-        setEditLayer(true);
-        setDetail(false);
     }, []);
 
     const handleListType = useCallback(e => {
@@ -96,7 +81,7 @@ const GraphSpace = () => {
         setPagination(value => ({
             ...value,
             current: 1,
-            pageSize: e.target.value === 'image' ? 11 : 10,
+            pageSize: e.target.value === 'image' ? 12 : 10,
         }));
     }, []);
 
@@ -295,7 +280,14 @@ const GraphSpace = () => {
             >
                 <Row justify='space-between'>
                     <Col>
-                        <DatePicker onChange={handleDatePickerChange} />
+                        <Space>
+                            {!listError && (
+                                <Button type='primary' onClick={handleCreate}>
+                                    {t('graphspace.create')}
+                                </Button>
+                            )}
+                            <DatePicker onChange={handleDatePickerChange} />
+                        </Space>
                     </Col>
                     <Col>
                         <Space>
@@ -337,18 +329,6 @@ const GraphSpace = () => {
                         ? (
                             <>
                                 <Row gutter={[10, 10]} justify='start'>
-                                    <Col span={8} key='add'>
-                                        <Card
-                                            className={style.add_card}
-                                            onClick={handleCreate}
-                                            onKeyDown={handleCreateKeyDown}
-                                            role='button'
-                                            tabIndex={0}
-                                        >
-                                            <Space><PlusOutlined />{t('graphspace.create')}</Space>
-                                        </Card>
-                                    </Col>
-
                                     {data.map(item => {
                                         return (
                                             <Col span={8} key={item.name}>
@@ -376,11 +356,6 @@ const GraphSpace = () => {
                             </>
                         ) : (
                             <>
-                                <TableHeader>
-                                    <Button onClick={createGraphspace} type='primary'>
-                                        {t('graphspace.create')}
-                                    </Button>
-                                </TableHeader>
                                 <Table
                                     columns={columns}
                                     dataSource={data}

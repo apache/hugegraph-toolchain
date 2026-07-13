@@ -22,7 +22,7 @@ test.each([
     [true, '/graphspace/SPACE/schema', 'schema'],
     [true, '/graphspace/SPACE/schema/', 'schema'],
     [true, '/graphspace/SPACE', 'graphspace'],
-    [false, '/graphspace/DEFAULT/graph/hugegraph/meta', 'graphspace'],
+    [false, '/graphspace/DEFAULT/graph/hugegraph/meta', 'schema'],
     [false, '/graphspace/DEFAULT/graph/hugegraph/detail', 'graphspace'],
     [false, '/navigation', 'navigation'],
     [false, '/', 'navigation'],

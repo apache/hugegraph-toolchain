@@ -27,19 +27,28 @@ import {useTranslation} from 'react-i18next';
 import {EDGELABEL_TYPE} from '../../../utils/constants';
 import _ from 'lodash';
 import c from './index.module.scss';
+import {
+    escapeTooltipHtml,
+    formatTooltipProperties,
+    observeCanvasSize,
+} from './utils';
 
 const formatLabelString = (labels, type, label, id, propertiesStr, edgeLabelType) => {
     let tagStr = '';
     if (edgeLabelType && edgeLabelType !== EDGELABEL_TYPE.NORMAL) {
         const classname = edgeLabelType === EDGELABEL_TYPE.PARENT ? c.tagGlod : c.tagBlue;
-        tagStr = `<span class=${classname}>${labels.edgeLabelType[edgeLabelType]}</span>`;
+        tagStr = `<span class="${classname}">${escapeTooltipHtml(
+            labels.edgeLabelType[edgeLabelType]
+        )}</span>`;
     }
-    return `<div class=${c.tooltip}>
+    return `<div class="${c.tooltip}">
                 <div>
-                    <span>${type} ${labels.type}: ${label}</span>
+                    <span>${escapeTooltipHtml(type)} ${escapeTooltipHtml(labels.type)}: ${
+    escapeTooltipHtml(label)}</span>
                     ${tagStr}
                 </div>
-                <div>${type} ${labels.id}: ${id}</div>
+                <div>${escapeTooltipHtml(type)} ${escapeTooltipHtml(labels.id)}: ${
+    escapeTooltipHtml(id)}</div>
                 ${propertiesStr}
             </div>`;
 };
@@ -101,10 +110,7 @@ const Canvas3D = props => {
                 // nodeStyle
                 .nodeLabel(node => {
                     const {itemType, id, properties} = node;
-                    let propertiesStr = '';
-                    for (const [key, value] of Object.entries(properties)) {
-                        propertiesStr += `<div>${key}: ${value}</div>`;
-                    }
+                    const propertiesStr = formatTooltipProperties(properties);
                     return formatLabelString(labels, labels.node, itemType, id, propertiesStr);
                 })
                 .nodeThreeObject(node => {
@@ -129,10 +135,7 @@ const Canvas3D = props => {
                 // linkStyle
                 .linkLabel(link => {
                     const {label, id, properties, edgeLabelType} = link;
-                    let propertiesStr = '';
-                    for (const [key, value] of Object.entries(properties)) {
-                        propertiesStr += `<div>${key}: ${value}</div>`;
-                    }
+                    const propertiesStr = formatTooltipProperties(properties);
                     return formatLabelString(labels, labels.edge, label, id, propertiesStr, edgeLabelType);
                 })
                 .linkColor(links => links.style.stroke)
@@ -156,8 +159,15 @@ const Canvas3D = props => {
                         );
                     }
                 });
+            const stopObserving = observeCanvasSize(
+                elem,
+                graphRef.current,
+                globalThis.ResizeObserver
+            );
             return () => {
+                stopObserving();
                 if (graphRef.current) {
+                    graphRef.current.pauseAnimation?.();
                     graphRef.current._destructor();
                 }
             };

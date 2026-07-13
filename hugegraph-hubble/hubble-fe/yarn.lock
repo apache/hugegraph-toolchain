@@ -243,19 +243,12 @@
   dependencies:
     "@antv/g6-pc" "0.8.25"
 
-"@antv/graphin-components@^2.4.0":
-  version "2.4.1"
-  resolved "https://registry.npmmirror.com/@antv/graphin-components/-/graphin-components-2.4.1.tgz#ea9f02ddd8b5f9d2ac37c6dbaab3e949520afb54"
-  integrity sha512-Vaxhg1Jbv76j0SwrDLS5/VoHEx2mJW9CEbNdJ7HuWCaz24imvOymV4FpKSJND2PUq7BgIrzo48NaF3bpfiWZZA==
-  dependencies:
-    "@antv/graphin" "^2.7.18"
-
 "@antv/graphin-icons@^1.0.0":
   version "1.0.0"
   resolved "https://registry.npmmirror.com/@antv/graphin-icons/-/graphin-icons-1.0.0.tgz#86ba9e9ab6565bfe2ea1096e8678e76c279053f1"
   integrity sha512-2nogK6ZrDklnfIOJrqOAgD7iFLjfZIjLbA8pDUbeXN5c9b0Mu84oCfyqg8OmWwvi9Gt80eUzoplo73gKjZECJg==
 
-"@antv/graphin@^2.7.12", "@antv/graphin@^2.7.18":
+"@antv/graphin@^2.7.12":
   version "2.7.27"
   resolved "https://registry.npmmirror.com/@antv/graphin/-/graphin-2.7.27.tgz#0a16a1ef8ae43c90f95c268e1e17d3fe68014e24"
   integrity sha512-cqsLl3xpZ5mPgTq5UufcqJDlxzKZSLk9/JWXmoQYpvDC4cpzDjBZeVlaDfhT8iToB5aR15CEIu6j+XsQDMqUsA==
@@ -352,11 +345,6 @@
     react-color "2.17.1"
     react-resize-detector "^7.0.0"
     ua-parser-js "^0.7.20"
-
-"@antv/x6-react-shape@^1.6.3":
-  version "1.6.6"
-  resolved "https://registry.npmmirror.com/@antv/x6-react-shape/-/x6-react-shape-1.6.6.tgz#58500fb177497324c7171ba16a3d6aefcf3c7868"
-  integrity sha512-+SIvQWeGhfH9miKDQvJT497iVDs/CcMwcgbNKbPV6qTUaSUeXjz/bZy8knbQ5t9XtkVYeQXZP7swiKK2xMI0UQ==
 
 "@antv/x6@^1.34.6":
   version "1.35.1"
@@ -11745,11 +11733,6 @@ vary@~1.1.2:
   version "1.1.2"
   resolved "https://registry.npmmirror.com/vary/-/vary-1.1.2.tgz#2299f02c6ded30d4a5961b0b9f74524a18f634fc"
   integrity sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==
-
-vis-network@^9.1.2:
-  version "9.1.13"
-  resolved "https://registry.npmmirror.com/vis-network/-/vis-network-9.1.13.tgz#3cb785ab0a45489556414d9f503a7fadc50ca90b"
-  integrity sha512-HLeHd5KZS92qzO1kC59qMh1/FWAZxMUEwUWBwDMoj6RKj/Ajkrgy/heEYo0Zc8SZNQ2J+u6omvK2+a28GX1QuQ==
 
 void-elements@3.1.0:
   version "3.1.0"

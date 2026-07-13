@@ -69,3 +69,27 @@ div.nav {
 .right {
   margin-left: 10px;
 }
+
+@media (max-width: 900px) {
+  .header {
+    padding: 0 12px 0 56px;
+  }
+
+  .logo {
+    display: none;
+  }
+
+  .rightContainer {
+    :global(.ant-select) {
+      width: 88px !important;
+    }
+  }
+
+  .right {
+    margin-left: 6px;
+
+    span:last-child {
+      display: none;
+    }
+  }
+}

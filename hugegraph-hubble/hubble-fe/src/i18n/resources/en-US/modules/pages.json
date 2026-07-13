@@ -217,6 +217,7 @@
       "view_schema": "View Schema",
       "load_hlm_sample": "Build Red Chamber Demo",
       "load_loader_sample": "Load Loader Example",
+      "sample_data": "Sample data and resources",
       "load_rank_sample": "Build Rank Tiny Movie Demo",
       "clone": "Clone Graph"
     },
@@ -245,10 +246,13 @@
       "title_create": "Create Graph",
       "title_edit": "Edit Graph",
       "name": "Graph ID",
-      "name_placeholder": "Lowercase letters, digits, underscore, max 48 chars",
+      "name_placeholder": "For example: movie_graph",
+      "name_help": "Stable API and URL identifier: lowercase letters, digits, and underscores, up to 48 characters. It cannot be changed after creation.",
       "nickname": "Display Name",
-      "nickname_placeholder": "Letters, digits, underscore, max 48 chars",
-      "schema_placeholder": "Select a schema",
+      "nickname_placeholder": "For example: Movie Recommendations",
+      "nickname_help": "User-facing name with letters, digits, and underscores, up to 48 characters.",
+      "schema": "Schema Template",
+      "schema_placeholder": "Select an existing schema template (optional)",
       "schema_load_failed": "Schema templates could not be loaded.",
       "schema_retry": "Retry templates",
       "schema_optional_hint": "Optional. You can create an empty graph without a template.",
@@ -302,11 +306,20 @@
       "edge_total": "Total edges",
       "vertex_type": "Vertex type",
       "edge_type": "Edge type",
-      "count": "Count"
+      "count": "Count",
+      "empty_title": "This graph has no schema or data yet",
+      "empty_description": "Create schema, prepare data, or run a safe query to get started.",
+      "create_schema": "Create schema",
+      "prepare_data": "Prepare data"
     },
     "card": {
       "more_actions": "More actions for {{graph}}",
       "storage": "Storage",
+      "schema_types": "{{vertices}} vertex types · {{edges}} edge types",
+      "empty_schema": "No schema yet",
+      "empty_schema_help": "Model this graph or run a safe query.",
+      "open_schema": "Create schema",
+      "query_graph": "Query graph",
       "detail_tooltip": "View the current vertex and edge counts for this graph"
     }
   },
@@ -346,6 +359,10 @@
   },
   "my": {
     "empty_value": "No information",
+    "level": {
+      "ADMIN": "Administrator",
+      "USER": "User"
+    },
     "title": "My Profile",
     "edit_profile_title": "Edit Profile",
     "load": {
@@ -519,9 +536,9 @@
       "workflow_title": "Configure the import in four steps",
       "workflow_description": "Choose a source and a graph that already has Schema, select source columns, map them to vertex or edge types, then choose when to run. You can go back without creating a task.",
       "sync_type": "Sync Type",
-      "cron_extra": "Quartz expression: seconds minutes hours day month week year (optional)",
+      "cron_extra": "Quartz order: second minute hour day month weekday year (optional). Every 5 minutes: 0 0/5 * * * ?",
       "cron_required": "Enter schedule information",
-      "cron_placeholder": "Schedule * 5 * * * * (*)",
+      "cron_placeholder": "For example: 0 0/5 * * * ?",
       "cron_rule": "Enter a valid Quartz expression",
       "update_success": "Updated successfully",
       "graphspace": "Graph Space",
@@ -578,6 +595,8 @@
       "mapping_required_tip": "Create at least one vertex or edge mapping",
       "mapping_help_title": "Map source columns to the existing graph Schema",
       "mapping_help": "A vertex ID column is required only for custom ID strategies. Edge source and target IDs must resolve to the endpoint vertex IDs. Auto Match only pairs identical column and property names; review it before continuing.",
+      "mapping_meta_failed": "The target Schema could not be loaded, so mappings cannot be configured safely.",
+      "mapping_meta_retry": "Retry Schema",
       "create_vertex": "Create Vertex",
       "edit_vertex": "Edit Vertex",
       "create_edge": "Create Edge",
@@ -603,11 +622,13 @@
       "schedule_help_title": "Choose when this task should read the source",
       "schedule_help": "Run Once is the safest default for files and initial imports. Scheduled uses a Quartz expression. Kafka uses realtime consumption.",
       "load_full": "Full",
-      "load_incremental": "Incremental"
+      "load_incremental": "Incremental",
+      "load_type": "Load Mode",
+      "load_type_help": "Full reads the current source. Use incremental only when the source and deployment explicitly support new-record consumption."
     }
   },
   "datasource": {
-    "title": "Data Source Management",
+    "title": "Data Sources",
     "create": "Add Data Source",
     "delete": "Delete Data Source",
     "search_placeholder": "Search by data source name",
@@ -616,6 +637,8 @@
     "load_failed": "Could not load data sources. Check the service and retry.",
     "retry": "Retry data sources",
     "selected_count": "{{selected}} selected / {{total}} total",
+    "empty_title": "No data sources yet",
+    "empty_description": "Add a data source before creating an import task.",
     "col": {
       "name": "Name",
       "type": "Type",
@@ -633,6 +656,7 @@
       "title_edit": "Edit Data Source",
       "basic_info": "Basic Information",
       "config_info": "Configuration",
+      "advanced_config": "Advanced parsing and authentication",
       "auth_info": "Authentication",
       "name": "Data Source Name",
       "name_placeholder": "Enter data source name",
@@ -651,6 +675,17 @@
       "file_type": "File Type",
       "select": "Select",
       "header_placeholder": "Enter header, separated by commas",
+      "header": "Column Names",
+      "header_help": "Optional comma-separated names for files without a header row, for example: id,name,age.",
+      "hdfs_path": "HDFS Data Path",
+      "hdfs_path_placeholder": "For example: /data/vertices.csv",
+      "hdfs_path_help": "Path to the source file or directory in the configured HDFS cluster.",
+      "core_site": "core-site.xml",
+      "core_site_help": "Upload the Hadoop core-site.xml used to resolve the HDFS endpoint.",
+      "hdfs_site": "hdfs-site.xml",
+      "hdfs_site_help": "Upload the Hadoop hdfs-site.xml for this cluster. XML files only.",
+      "hdfs_docs": "HugeGraph Loader data-source documentation",
+      "loader_docs": "View HugeGraph Loader data-source and field documentation",
       "delimiter": "Column Delimiter",
       "charset": "Charset",
       "date_format": "Date Format",
@@ -658,10 +693,18 @@
       "skipped_line": "Skipped Lines",
       "compression": "Compression",
       "local_file": "Local File",
-      "server_placeholder": "Enter Kafka server list",
-      "topic_placeholder": "Enter topic",
+      "local_file_help": "Upload one file matching the selected format and compression. Column order must match the later mapping.",
+      "kafka_servers": "Kafka Brokers",
+      "kafka_servers_help": "Comma-separated brokers, for example: kafka-1:9092,kafka-2:9092.",
+      "server_placeholder": "For example: kafka-1:9092,kafka-2:9092",
+      "kafka_topic": "Topic",
+      "kafka_topic_help": "Name of the existing topic that Loader will continuously consume.",
+      "topic_placeholder": "For example: person_events",
       "from_beginning": "Read From Beginning",
       "db_type": "Database Type",
+      "jdbc_driver": "JDBC Driver",
+      "jdbc_url_help": "Use the JDBC URL for the selected database. The connection test also checks credentials and the target table.",
+      "database_schema": "Database Schema",
       "select_db_type": "Select database type",
       "url_placeholder": "Enter URL",
       "url_rule": "Enter a valid JDBC URL, for example: jdbc:mysql://127.0.0.1:3306/db_name",
@@ -844,6 +887,12 @@
     },
     "image_view": {
       "load_failed": "Schema diagram data could not be loaded. Retry before editing.",
+      "empty_title": "Build your first graph schema",
+      "empty_description": "Define reusable properties first, then create vertex and edge types.",
+      "step_property": "Define properties",
+      "step_vertex": "Create vertex types",
+      "step_edge": "Connect them with edge types",
+      "edge_prerequisite": "Create at least one vertex type before creating an edge type.",
       "vertex": "Vertex Type",
       "edge": "Edge Type",
       "view_properties": "View Properties"
@@ -853,6 +902,9 @@
     "title": "{{name}} - Schema Template Management",
     "create": "Create Schema Template",
     "search_placeholder": "Enter a schema template name",
+    "empty": "No schema templates yet",
+    "no_matches": "No matching schema templates",
+    "clear_search": "Clear search",
     "load_failed": "Could not load schema templates. Check the service and retry.",
     "retry": "Retry schema templates",
     "graphspace_failed": "Could not load graph-space details.",
@@ -865,6 +917,10 @@
     "update_failed": "Could not update the schema template. Review the input and retry.",
     "create_success": "Created successfully",
     "update_success": "Updated successfully",
+    "builtin": {
+      "people_network": "People Relationship Network",
+      "product_catalog": "Product Relationship Catalog"
+    },
     "action": {
       "view": "View",
       "edit": "Edit",
@@ -880,8 +936,14 @@
     },
     "form": {
       "name": "Schema Template Name",
-      "name_placeholder": "Enter a schema name",
-      "schema_placeholder": "Enter a schema"
+      "name_placeholder": "For example: movie_network",
+      "schema": "Groovy Schema",
+      "schema_placeholder": "For example: schema.propertyKey(\"name\").asText().ifNotExist().create()",
+      "schema_help": "Define properties, vertices, edges, then indexes. Prefer ifNotExist() so the template is safe to reuse.",
+      "schema_docs": "View the official schema example",
+      "starting_point": "Built-in Starting Point",
+      "starting_point_placeholder": "Choose a small idempotent template (optional)",
+      "starting_point_help": "Available only while the draft is empty. Review and edit it before submitting; selection never creates or overwrites graph data."
     }
   },
   "navigation_page": {

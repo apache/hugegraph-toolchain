@@ -344,6 +344,10 @@ const AlgorithmHome = () => {
                     handleOlapFormSubmit={handleOlapFormSubmit}
                     currentAlgorithm={algorithmOnCanvas}
                     updateCurrentAlgorithm={handleUpdateCurrentAlgorithm}
+                    graphNums={graphNums}
+                    metaData={metaData}
+                    graphSpace={graphSpace}
+                    graph={graph}
                 />
                 <GraphResult
                     data={queryResult}

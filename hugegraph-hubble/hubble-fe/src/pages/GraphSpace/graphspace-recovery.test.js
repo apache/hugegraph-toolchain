@@ -58,9 +58,12 @@ test('keeps a failed GraphSpace request distinct from a valid empty list', async
 
     expect(await screen.findByText('graphspace.load.unavailable')).toBeInTheDocument();
     expect(screen.queryByText('Space A')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'graphspace.create'}))
+        .not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'graphspace.load.retry'}));
 
     expect(await screen.findByText('Space A')).toBeInTheDocument();
     expect(screen.queryByText('graphspace.load.unavailable')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'graphspace.create'})).toBeEnabled();
 });

@@ -2,9 +2,10 @@
   "analysis": {
     "name": "Business Analysis",
     "query": {
-      "name": "GQL Graph Query",
+      "name": "Graph Query",
       "placeholder": "Enter a query statement",
       "gremlin_tab": "Gremlin",
+      "reset_example": "Reset example",
       "cypher_tab": "Cypher",
       "text2gql_tab": "Natural language",
       "text2gql_badge": "Coming soon",
@@ -38,6 +39,8 @@
       "submit_success": "Submitted successfully",
       "no_graph_result": "No graph result. Check Table or Json data.",
       "no_table_result": "No table result. Check Graph or Json data.",
+      "large_table_title": "{{count}} result rows, displayed with pagination",
+      "large_table_description": "Confirm the result scope before browsing or copying. Add a limit to reduce the wait.",
       "no_json_result": "No Json result. Check Graph or Table data.",
       "expand_failed": "Failed to expand",
       "no_more_neighbors": "No more adjacent vertices",
@@ -372,6 +375,8 @@
       "edit_failed": "Update failed",
       "favorite_statement": "Favorite Statement",
       "favorite_name_placeholder": "Enter favorite name",
+      "copy_success": "Query copied",
+      "copy_failed": "Could not copy. Select the query text manually.",
       "edit_name": "Edit Name",
       "confirm_delete": "Confirm Delete",
       "delete_favorite_confirm": "Delete this favorite statement?",
@@ -406,12 +411,29 @@
       "action": {
         "favorite": "Favorite",
         "load_statement": "Load Statement",
+        "copy_statement": "Copy Statement",
         "edit_name": "Edit Name",
         "save": "Save"
       }
     },
     "algorithm": {
       "name": "Graph Algorithm",
+      "guide": "Start with interactive exploration for quick results. Use batch analysis for whole-graph computation; results appear in Analysis Tasks.",
+      "traverser_docs": "Interactive algorithm parameter docs",
+      "computer_docs": "Batch graph-computing guide",
+      "reset_parameters": "Reset parameters",
+      "empty_graph_title": "Prepare data before running algorithms",
+      "empty_graph_description": "This graph has no vertices or edges, so algorithms cannot return a useful result.",
+      "create_schema": "Create schema",
+      "prepare_data": "Prepare data",
+      "group": {
+        "neighbors": "Explore neighborhoods",
+        "paths": "Find paths and connections",
+        "similarity": "Compare and rank",
+        "importance": "Measure importance",
+        "communities": "Find communities",
+        "structure": "Analyze graph structure"
+      },
       "placeholder": "Algorithm Query",
       "run": "Run",
       "task_submit_success": "{{name}} task submitted successfully",
@@ -434,6 +456,9 @@
       "form": {
         "vertices_required": "Specify ids, or specify both label and properties",
         "vertices_ids_tooltip": "Provide source or target vertices by vertex ID list. If ids is empty, label and properties are used together to query vertices.",
+        "vertices_ids_placeholder": "For example: [\"1:marko\", \"2:lop\"]",
+        "vertices_label_placeholder": "For example: person",
+        "vertices_properties_placeholder": "For example: {\"city\": \"Beijing\"}",
         "vertices_label_tooltip": "Vertex label. label and properties take effect only when ids is empty.",
         "vertices_properties_tooltip": "Property map. Keys are property names and values are property values defined by schema. Values can be lists; a property matches when its value is in the list.",
         "direction_options": {
@@ -492,8 +517,8 @@
         "no_neighbor_at_degree": "No {{index}}-hop neighbors in this scenario"
       },
       "mode": {
-        "OLTP": "OLTP Algorithm",
-        "OLAP": "OLAP Algorithm"
+        "OLTP": "Interactive exploration",
+        "OLAP": "Batch analysis (async)"
       },
       "capacity_item": {
         "tooltip": "Maximum number of vertices visited during traversal"
@@ -792,10 +817,17 @@
       }
     },
     "async_task": {
-      "name": "Async Tasks",
+      "name": "Analysis Tasks",
       "search_placeholder": "Enter a task ID or name",
       "get_failed": "Failed to get async tasks",
       "retry_list": "Retry tasks",
+      "empty_title": "No analysis tasks yet",
+      "empty_description": "Analysis tasks are created when queries or algorithms run asynchronously.",
+      "no_matches_title": "No matching analysis tasks",
+      "no_matches_description": "Try another search term or status filter.",
+      "clear_filters": "Clear filters",
+      "start_query": "Start a query",
+      "open_algorithms": "Open algorithms",
       "result_load_failed": "Could not load the task result.",
       "retry_result": "Retry result",
       "result_loading": "Loading task result",

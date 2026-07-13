@@ -32,8 +32,11 @@
     }
   },
   "workbench": {
+    "back_home": "Back to workbench",
     "skip_to_workspace": "Skip to main workspace",
     "navigation": "Primary navigation",
+    "navigation_open": "Open primary navigation",
+    "navigation_close": "Close primary navigation",
     "context": {
       "name": "Current graph context",
       "graphspace": "Current GraphSpace",
@@ -44,6 +47,8 @@
       "non_pd_fixed": "DEFAULT fixed",
       "graphspaces_load_failed": "GraphSpaces are temporarily unavailable. Your current page is preserved.",
       "graphs_load_failed": "Graphs are temporarily unavailable. Your current page is preserved.",
+      "graphs_forbidden": "This account cannot read the graph list. Ask an administrator for access to the target graph.",
+      "graphspaces_forbidden": "This account cannot read graph spaces. Ask an administrator for graph-space access.",
       "retry": "Retry",
       "retry_graphspaces": "Retry GraphSpaces",
       "retry_graphs": "Retry graphs"
@@ -51,6 +56,8 @@
     "nav": {
       "home": "Workbench",
       "understand": "Graph Overview",
+      "graphs": "Graphs",
+      "graph_list": "Graph list",
       "prepare": "Graph Import",
       "query": "Graph Query",
       "support": "System and operations"

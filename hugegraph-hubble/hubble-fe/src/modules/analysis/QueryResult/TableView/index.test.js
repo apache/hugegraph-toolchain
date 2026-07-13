@@ -15,13 +15,24 @@
  * under the License.
  */
 
-import {renderTableCell, tableRowKey} from './index';
+import {
+    isLargeTableResult,
+    LARGE_TABLE_RESULT_THRESHOLD,
+    renderTableCell,
+    tableRowKey,
+} from './index';
 import JSONbig from 'json-bigint';
 
 it('keeps explicit graph ids and gives scalar result rows stable fallback keys', () => {
     expect(tableRowKey({id: 7}, 2)).toBe(7);
     expect(tableRowKey({_id: 'vertex-1'}, 3)).toBe('vertex-1');
     expect(tableRowKey({name: 'alice'}, 4)).toBe('result-row-4');
+});
+
+it('marks only large materialized result sets for a pagination notice', () => {
+    expect(isLargeTableResult(new Array(LARGE_TABLE_RESULT_THRESHOLD - 1))).toBe(false);
+    expect(isLargeTableResult(new Array(LARGE_TABLE_RESULT_THRESHOLD))).toBe(true);
+    expect(isLargeTableResult(null)).toBe(false);
 });
 
 it('renders scalar cells readably and structured cells as JSON', () => {

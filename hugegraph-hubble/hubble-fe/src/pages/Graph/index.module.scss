@@ -51,6 +51,30 @@ div.add_card {
     }
 }
 
+.empty_schema {
+    display: flex;
+    min-height: 112px;
+    padding: 20px;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 6px;
+    background: #fafafa;
+
+    > span {
+        margin-bottom: 6px;
+        color: #667085;
+        font-size: 12px;
+    }
+}
+
+.created {
+    display: inline-block;
+    white-space: nowrap;
+    color: #667085;
+    cursor: default;
+}
+
 .tooltip {
     :global {
         .ant-tooltip-arrow {
@@ -91,7 +115,7 @@ span.disable {
 .subtitle {
     font-size: 12px;
     font-weight: 400;
-    height: 20px;
+    min-height: 20px;
     color: #999;
     font-family: PingFangSC-Regular;
 }

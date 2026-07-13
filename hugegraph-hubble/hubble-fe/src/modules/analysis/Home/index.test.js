@@ -39,7 +39,10 @@ jest.mock('../../../api', () => ({
 }));
 jest.mock('../QueryBar/Home', () => props => (
     <div>
+        <span data-testid='query-content'>{props.codeEditorContent}</span>
         <button onClick={() => props.onTabsChange('Text2GQL')}>Natural language</button>
+        <button onClick={() => props.onTabsChange('Cypher')}>Cypher</button>
+        <button onClick={props.onResetQuery}>Reset example</button>
         <button onClick={() => props.onExecute(props.activeTab)}>Run current</button>
     </div>
 ));
@@ -74,6 +77,7 @@ jest.mock('react-i18next', () => ({useTranslation: () => ({t: key => key})}));
 const okList = {status: 200, data: {records: [], total: 0}};
 
 beforeEach(() => {
+    window.localStorage.clear();
     api.analysis.getExecutionLogs.mockResolvedValue(okList);
     api.analysis.fetchFavoriteQueries.mockResolvedValue(okList);
     api.analysis.getGraphData.mockResolvedValue({
@@ -83,6 +87,20 @@ beforeEach(() => {
     api.manage.getMetaEdgeList.mockResolvedValue(okList);
     api.manage.getMetaVertexList.mockResolvedValue(okList);
     api.manage.getMetaPropertyList.mockResolvedValue(okList);
+});
+
+it('starts with a safe limited example and restores one per query language', async () => {
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    expect(await screen.findByTestId('query-content')).toHaveTextContent('g.V().limit(20)');
+    fireEvent.click(screen.getByRole('button', {name: 'Cypher'}));
+    expect(screen.getByTestId('query-content'))
+        .toHaveTextContent('MATCH (n) RETURN n LIMIT 20');
 });
 
 afterEach(() => jest.clearAllMocks());
@@ -122,6 +140,24 @@ it('turns a rejected synchronous query into a recoverable failed result', async 
     expect(await screen.findByText(/query result failed/)).toHaveTextContent(
         'analysis.query_result.run_failed_action'
     );
+});
+
+it('shows a backend query diagnostic when the service returns one', async () => {
+    api.analysis.getExecutionQuery.mockResolvedValue({
+        status: 400,
+        message: 'Syntax error near limit',
+    });
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    fireEvent.click(screen.getByRole('button', {name: 'Run current'}));
+
+    expect(await screen.findByText(/query result failed/))
+        .toHaveTextContent('Syntax error near limit');
 });
 
 it('does not start a duplicate query while the first request is pending', async () => {

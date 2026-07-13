@@ -16,8 +16,8 @@
  * under the License.
  */
 
-import {Alert, Space, Button, Form, Typography, message, List} from 'antd';
-import {useState, useEffect, useCallback} from 'react';
+import {Alert, Space, Button, Form, Typography, List, Input} from 'antd';
+import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../api';
 import VertexForm from './Vertex';
@@ -129,6 +129,10 @@ const MappingForm = ({prev,
     const [vertexIndex, setVertexIndex] = useState(-1);
     const [edgeIndex, setEdgeIndex] = useState(-1);
     const [submitEnable, setSubmitEnable] = useState(false);
+    const [metaLoading, setMetaLoading] = useState(false);
+    const [metaError, setMetaError] = useState(false);
+    const [metaRetry, setMetaRetry] = useState(0);
+    const metaRequest = useRef(null);
 
     const onFinish = useCallback(() => {
         const vertices = vertexList.map(item => formatVertex(item));
@@ -161,6 +165,7 @@ const MappingForm = ({prev,
     const createVertex = useCallback(() => editVertex(-1), [editVertex]);
     const createEdge = useCallback(() => editEdge(-1), [editEdge]);
     const closeEditor = useCallback(() => setType(''), []);
+    const retryMeta = useCallback(() => setMetaRetry(value => value + 1), []);
     const renderVertex = useCallback((item, index) => (
         <MappingListItem
             item={item}
@@ -190,25 +195,39 @@ const MappingForm = ({prev,
         if (!graphspace || !graph) {
             return;
         }
-
-        api.manage.getMetaVertexList(graphspace, graph).then(res => {
-            if (res.status === 200) {
-                setVertex(res.data.records);
+        const request = Symbol('mapping-meta');
+        metaRequest.current = request;
+        setMetaLoading(true);
+        setMetaError(false);
+        Promise.all([
+            api.manage.getMetaVertexList(graphspace, graph),
+            api.manage.getMetaEdgeList(graphspace, graph),
+        ]).then(([vertexResponse, edgeResponse]) => {
+            if (metaRequest.current !== request) {
                 return;
             }
-
-            message.error(res.message);
-        });
-
-        api.manage.getMetaEdgeList(graphspace, graph).then(res => {
-            if (res.status === 200) {
-                setEdge(res.data.records);
-                return;
+            if (vertexResponse.status !== 200 || edgeResponse.status !== 200) {
+                throw new Error('mapping metadata unavailable');
             }
-
-            message.error(res.message);
+            setVertex(vertexResponse.data.records);
+            setEdge(edgeResponse.data.records);
+        }).catch(() => {
+            if (metaRequest.current === request) {
+                setVertex([]);
+                setEdge([]);
+                setMetaError(true);
+            }
+        }).finally(() => {
+            if (metaRequest.current === request) {
+                setMetaLoading(false);
+            }
         });
-    }, [graphspace, graph]);
+        return () => {
+            if (metaRequest.current === request) {
+                metaRequest.current = null;
+            }
+        };
+    }, [graphspace, graph, metaRetry]);
 
     return (
         <div style={{display: visible ? '' : 'none'}}>
@@ -219,11 +238,23 @@ const MappingForm = ({prev,
                 message={t('task.edit.mapping_help_title')}
                 description={t('task.edit.mapping_help')}
             />
+            {metaError && (
+                <Alert
+                    showIcon
+                    type='error'
+                    message={t('task.edit.mapping_meta_failed')}
+                    action={(
+                        <Button size='small' onClick={retryMeta}>
+                            {t('task.edit.mapping_meta_retry')}
+                        </Button>
+                    )}
+                />
+            )}
             <Space className={'form_attr_button'}>
-                <Button onClick={createVertex}>
+                <Button onClick={createVertex} disabled={metaLoading || metaError}>
                     {t('task.edit.add_vertex_mapping')}
                 </Button>
-                <Button onClick={createEdge}>
+                <Button onClick={createEdge} disabled={metaLoading || metaError}>
                     {t('task.edit.add_edge_mapping')}
                 </Button>
             </Space>
@@ -269,8 +300,8 @@ const MappingForm = ({prev,
             )}
 
             <Form form={mappingForm} name='mapping_form'>
-                <Form.Item name='vertices' hidden />
-                <Form.Item name='edges' hidden />
+                <Form.Item name='vertices' hidden><Input /></Form.Item>
+                <Form.Item name='edges' hidden><Input /></Form.Item>
 
                 <Form.Item extra={!submitEnable ? t('task.edit.mapping_required_tip') : null}>
                     <Space>

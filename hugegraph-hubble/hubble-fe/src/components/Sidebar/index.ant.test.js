@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import Sidebar from './index.ant';
 import i18n from '../../i18n';
@@ -31,6 +31,12 @@ beforeEach(() => {
         is_superadmin: false,
     }));
     sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
+    window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: false,
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+    }));
 });
 
 test('exposes the application menu as named primary navigation', async () => {
@@ -44,12 +50,13 @@ test('exposes the application menu as named primary navigation', async () => {
     );
 
     const navigation = await screen.findByRole('navigation', {name: '主导航'});
-    expect(screen.getByText('图概览')).toBeInTheDocument();
+    expect(screen.getByText('图')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '图列表'})).toBeInTheDocument();
     expect(screen.getByText('图导入')).toBeInTheDocument();
-    expect(screen.getByText('图查询')).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', {name: 'database 图查询'})).toBeInTheDocument();
     expect(screen.getByText('系统与运维')).toBeInTheDocument();
-    expect(navigation).toContainElement(screen.getByRole('link', {name: 'GQL 图查询'}));
-    expect(navigation).toContainElement(screen.getByRole('link', {name: '异步任务'}));
+    expect(navigation).toContainElement(screen.getByRole('link', {name: '图查询'}));
+    expect(navigation).toContainElement(screen.getByRole('link', {name: '分析任务'}));
     const menuSections = screen.getAllByRole('menuitem')
         .map(item => item.textContent);
     expect(menuSections.indexOf('图查询')).toBeLessThan(menuSections.indexOf('图导入'));
@@ -78,7 +85,7 @@ test('highlights the dedicated Schema entry on its PD route', async () => {
         .not.toHaveClass('ant-menu-item-selected');
 });
 
-test('keeps graph metadata under Understand graph in non-PD mode', async () => {
+test('highlights Graph Schema for graph metadata in non-PD mode', async () => {
     render(
         <MemoryRouter
             initialEntries={['/graphspace/DEFAULT/graph/hugegraph/meta']}
@@ -88,10 +95,37 @@ test('keeps graph metadata under Understand graph in non-PD mode', async () => {
         </MemoryRouter>
     );
 
-    expect((await screen.findByRole('link', {name: '图管理'})).closest('li'))
+    expect((await screen.findByRole('link', {name: '图 Schema'})).closest('li'))
         .toHaveClass('ant-menu-item-selected');
-    expect(screen.getByRole('link', {name: '图 Schema'}).closest('li'))
+    expect(screen.getByRole('link', {name: '图列表'}).closest('li'))
         .not.toHaveClass('ant-menu-item-selected');
+});
+
+test('starts collapsed on a narrow viewport and exposes an accessible toggle', async () => {
+    window.matchMedia = jest.fn().mockImplementation(query => ({
+        matches: query === '(max-width: 900px)',
+        media: query,
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+    }));
+
+    render(
+        <MemoryRouter
+            initialEntries={['/navigation']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    const toggle = await screen.findByRole('button', {name: '打开主导航'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(document.querySelectorAll('.ant-menu-submenu-open')).toHaveLength(0);
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toHaveAccessibleName('关闭主导航');
 });
 
 test.each([

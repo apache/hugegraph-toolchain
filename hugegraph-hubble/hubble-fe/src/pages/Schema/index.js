@@ -18,7 +18,7 @@
 
 import {useCallback, useState, useEffect, useRef} from 'react';
 import {
-    Alert, Table, Space, PageHeader, Row, Col, Input, Button, message, Modal, Spin,
+    Alert, Table, Space, PageHeader, Row, Col, Input, Button, message, Modal, Spin, Empty,
 } from 'antd';
 import EditLayer from './EditLayer';
 import {useParams, useNavigate} from 'react-router-dom';
@@ -52,6 +52,7 @@ const Schema = () => {
     const [refresh, setRefresh] = useState(false);
     const [pagination, setPagination] = useState({current: 1, pageSize: 10});
     const [query, setQuery] = useState('');
+    const [searchDraft, setSearchDraft] = useState('');
     const [graphspaceInfo, setGraphspaceInfo] = useState({});
     const [graphspaceLoading, setGraphspaceLoading] = useState(true);
     const [listLoading, setListLoading] = useState(true);
@@ -92,6 +93,16 @@ const Schema = () => {
 
     const onSearch = useCallback(val => {
         setQuery(val);
+        setPagination(value => ({...value, current: 1}));
+    }, []);
+    const onSearchDraftChange = useCallback(event => {
+        setSearchDraft(event.target.value);
+    }, []);
+
+    const clearSearch = useCallback(() => {
+        setSearchDraft('');
+        setQuery('');
+        setPagination(value => ({...value, current: 1}));
     }, []);
 
     const deleteSchema = useCallback(row => {
@@ -250,7 +261,10 @@ const Schema = () => {
                         <Col>
                             <Input.Search
                                 placeholder={t('schema_template.search_placeholder')}
+                                value={searchDraft}
+                                onChange={onSearchDraftChange}
                                 onSearch={onSearch}
+                                allowClear
                             />
                         </Col>
                     </Row>
@@ -290,6 +304,21 @@ const Schema = () => {
                         size='small'
                         pagination={pagination}
                         onChange={handleTable}
+                        locale={{
+                            emptyText: query ? (
+                                <Empty description={t('schema_template.no_matches')}>
+                                    <Button onClick={clearSearch}>
+                                        {t('schema_template.clear_search')}
+                                    </Button>
+                                </Empty>
+                            ) : (
+                                <Empty description={t('schema_template.empty')}>
+                                    <Button type='primary' onClick={createSchema}>
+                                        {t('schema_template.create')}
+                                    </Button>
+                                </Empty>
+                            ),
+                        }}
                     />
                     <EditLayer
                         visible={editLayer}

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {schemaTemplateBusinessError} from './EditLayer';
+import {BUILTIN_SCHEMA_TEMPLATES, schemaTemplateBusinessError} from './EditLayer';
 
 const t = (key, values) => ({key, values});
 
@@ -39,3 +39,16 @@ test('uses an input-oriented fallback for other business failures', () => {
         values: undefined,
     });
 });
+
+test.each(Object.entries(BUILTIN_SCHEMA_TEMPLATES))(
+    '%s is a small idempotent complete graph starting point',
+    (name, script) => {
+        expect(script.split('\n').length).toBeLessThanOrEqual(12);
+        expect(script).toContain('propertyKey(');
+        expect(script).toContain('vertexLabel(');
+        expect(script).toContain('edgeLabel(');
+        expect(script).toContain('indexLabel(');
+        expect(script).toContain('primaryKeys(');
+        expect(script.match(/ifNotExist\(\)/g).length).toBeGreaterThanOrEqual(5);
+    }
+);

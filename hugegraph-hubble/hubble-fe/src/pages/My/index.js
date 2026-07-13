@@ -33,6 +33,7 @@ const My = () => {
     const [loading, setLoading] = useState(false);
     const [spinning, setSpinning] = useState(true);
     const [profileError, setProfileError] = useState(false);
+    const [accessLevel, setAccessLevel] = useState();
     const profileRequest = useRef(null);
     const [form] = Form.useForm();
     const emptyValue = <span className={style.emptyValue}>{t('my.empty_value')}</span>;
@@ -95,13 +96,24 @@ const My = () => {
         setSpinning(true);
         setProfileError(false);
         setData({});
+        setAccessLevel();
         try {
-            const res = await api.auth.getPersonal({suppressBusinessErrorToast: true});
+            const [profileResult, statusResult] = await Promise.allSettled([
+                api.auth.getPersonal({suppressBusinessErrorToast: true}),
+                api.auth.status({suppressBusinessErrorToast: true}),
+            ]);
             if (profileRequest.current !== token) {
                 return;
             }
-            if (res.status === 200) {
+            const res = profileResult.status === 'fulfilled'
+                ? profileResult.value : null;
+            if (res?.status === 200) {
                 setData(res.data);
+                const status = statusResult.status === 'fulfilled'
+                    ? statusResult.value : null;
+                if (status?.status === 200 && status.data?.level) {
+                    setAccessLevel(status.data.level);
+                }
                 return;
             }
             setProfileError(true);
@@ -186,7 +198,9 @@ const My = () => {
                                         {displayValue(data.user_description)}
                                     </Form.Item>
                                     <Form.Item label={t('my.col.permission_roles')} className={style.item}>
-                                        {displayValue(data.adminSpaces)}
+                                        {displayValue(accessLevel
+                                            ? t(`my.level.${accessLevel}`)
+                                            : data.adminSpaces)}
                                     </Form.Item>
                                     <Form.Item label={t('my.col.create_time')} className={style.item}>
                                         {displayValue(data.user_create)}

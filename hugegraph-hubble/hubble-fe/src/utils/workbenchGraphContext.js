@@ -73,7 +73,7 @@ const resolveWorkbenchGraphContext = ({pdEnabled, routeContext = {}, storedConte
         const routeIsDefault = routeContext.graphspace === DEFAULT_GRAPHSPACE;
         const storedIsDefault = storedContext.graphspace === DEFAULT_GRAPHSPACE;
         const graph = routeIsDefault
-            ? routeContext.graph
+            ? (routeContext.graph || (storedIsDefault ? storedContext.graph : undefined))
             : (!routeContext.graphspace && storedIsDefault ? storedContext.graph : undefined);
 
         return graph

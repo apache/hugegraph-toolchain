@@ -226,7 +226,7 @@ public class LoginController extends BaseController {
 
         HugeClient client = authClient(null, null);
 
-        String level = userService.userLevel(client);
+        String level = userService.userLevel(client, this.getUser());
 
         return ImmutableMap.of("level", level);
     }

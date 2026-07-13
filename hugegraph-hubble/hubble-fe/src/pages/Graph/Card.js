@@ -17,7 +17,7 @@
  */
 
 import {useCallback} from 'react';
-import {Button, Card, Dropdown, Typography, Tooltip} from 'antd';
+import {Button, Card, Dropdown, Space, Typography, Tooltip} from 'antd';
 import {UnorderedListOutlined, EyeOutlined} from '@ant-design/icons';
 import {useNavigate} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
@@ -29,7 +29,7 @@ import {isPdEnabled} from '../../utils/config';
 import style from './index.module.scss';
 import {byteConvert} from '../../utils/format';
 
-const TitleField = ({item, onClick, onKeyDown}) => {
+const TitleField = ({item, onClick, onKeyDown, schemaTypeCounts}) => {
     const {t} = useTranslation();
     const pdMode = isPdEnabled();
     const graphName = item.nickname || item.name;
@@ -56,6 +56,8 @@ const TitleField = ({item, onClick, onKeyDown}) => {
             {item.default && <span className={style.default}>{t('common.label.default')}</span>}
             <div className={style.subtitle}>
                 {t('graph.card.storage')}: {item.storage >= 0 ? byteConvert(item.storage) : '--'}
+                {' · '}
+                {t('graph.card.schema_types', schemaTypeCounts)}
             </div>
         </>
     );
@@ -67,6 +69,7 @@ const GraphCard = ({item, menus}) => {
     const graphName = item.nickname || item.name;
     const schemaView = item.schemaview || {vertices: [], edges: []};
     const graphinData = formatToGraphInData(schemaView, false);
+    const schemaIsEmpty = graphinData.nodes.length === 0 && graphinData.edges.length === 0;
 
     const handleGotoAnalysis = useCallback(() => {
         navigate(`/gremlin/${item.graphspace || 'DEFAULT'}/${item.name}`);
@@ -74,6 +77,10 @@ const GraphCard = ({item, menus}) => {
 
     const handleGotoDetail = useCallback(() => {
         navigate(`/graphspace/${item.graphspace || 'DEFAULT'}/graph/${item.name}/detail`);
+    }, [item, navigate]);
+
+    const handleGotoSchema = useCallback(() => {
+        navigate(`/graphspace/${item.graphspace || 'DEFAULT'}/graph/${item.name}/meta`);
     }, [item, navigate]);
 
     const handleAnalysisKeyDown = useCallback(event => {
@@ -98,6 +105,10 @@ const GraphCard = ({item, menus}) => {
                     item={item}
                     onClick={handleGotoAnalysis}
                     onKeyDown={handleAnalysisKeyDown}
+                    schemaTypeCounts={{
+                        vertices: schemaView.vertices?.length || 0,
+                        edges: schemaView.edges?.length || 0,
+                    }}
                 />
             )}
             headStyle={{
@@ -117,11 +128,8 @@ const GraphCard = ({item, menus}) => {
             )}
             actions={[
                 <span
-                    key="setting"
-                    onClick={handleGotoAnalysis}
-                    onKeyDown={handleAnalysisKeyDown}
-                    role='button'
-                    tabIndex={0}
+                    key='created'
+                    className={style.created}
                 >
                     {t('graph.col.create_time')}: {moment(item.create_time).format('YYYY-MM-DD')}
                 </span>,
@@ -138,42 +146,57 @@ const GraphCard = ({item, menus}) => {
                 </span>,
             ]}
         >
-            <div
-                className={style.card_content}
-                onClick={handleGotoAnalysis}
-                onKeyDown={handleAnalysisKeyDown}
-                role='button'
-                tabIndex={0}
-            >
-                <GraphView
-                    data={graphinData}
-                    style={{minHeight: '153px'}}
-                    layout={{
-                        type: 'gForce',
-                        // center: [200, 200],
-                        linkDistance: 100,
-                        coulombDisScale: 0.01,
+            {schemaIsEmpty ? (
+                <div className={style.empty_schema}>
+                    <strong>{t('graph.card.empty_schema')}</strong>
+                    <span>{t('graph.card.empty_schema_help')}</span>
+                    <Space>
+                        <Button type='primary' size='small' onClick={handleGotoSchema}>
+                            {t('graph.card.open_schema')}
+                        </Button>
+                        <Button size='small' onClick={handleGotoAnalysis}>
+                            {t('graph.card.query_graph')}
+                        </Button>
+                    </Space>
+                </div>
+            ) : (
+                <div
+                    className={style.card_content}
+                    onClick={handleGotoAnalysis}
+                    onKeyDown={handleAnalysisKeyDown}
+                    role='button'
+                    tabIndex={0}
+                >
+                    <GraphView
+                        data={graphinData}
+                        style={{minHeight: '153px'}}
+                        layout={{
+                            type: 'gForce',
+                            // center: [200, 200],
+                            linkDistance: 100,
+                            coulombDisScale: 0.01,
                         // preventOverlap: true,
                         // begin: item.schemaview.vertices.length > 1
                         //     ? [0, 0] : [200, 100],
-                    }}
-                    height={147}
-                    config={{
+                        }}
+                        height={147}
+                        config={{
                         // minZoom: 0.6,
                         // maxZoom: 0.6,
-                        fitView: false,
-                        fitCenter: true,
+                            fitView: false,
+                            fitCenter: true,
                         // handleZoomIn: false,
-                    }}
-                    behaviors={{
-                        zoomCanvas: {disabled: true},
-                        dragNode: {disabled: true},
-                        dragCanvas: {disabled: true},
-                        clickSelect: {disabled: true},
-                        hoverable: {disabled: true},
-                    }}
-                />
-            </div>
+                        }}
+                        behaviors={{
+                            zoomCanvas: {disabled: true},
+                            dragNode: {disabled: true},
+                            dragCanvas: {disabled: true},
+                            clickSelect: {disabled: true},
+                            hoverable: {disabled: true},
+                        }}
+                    />
+                </div>
+            )}
         </Card>
     );
 };

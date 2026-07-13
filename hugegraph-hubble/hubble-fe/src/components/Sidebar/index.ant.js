@@ -16,8 +16,8 @@
  * under the License.
  */
 
-import React, {useState} from 'react';
-import {Layout, Menu} from 'antd';
+import React, {useCallback, useEffect, useState} from 'react';
+import {Button, Layout, Menu} from 'antd';
 import {
     HomeOutlined,
     DatabaseOutlined,
@@ -26,6 +26,7 @@ import {
     CloudUploadOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
+    MenuOutlined,
 } from '@ant-design/icons';
 import {Link, useLocation} from 'react-router-dom';
 import * as user from '../../utils/user';
@@ -34,6 +35,8 @@ import {getGraphspacePath} from '../../utils/productMode';
 import {getPreparationSchemaPath} from '../../utils/dataPreparationNavigation';
 import {getSidebarMenuKey} from '../../utils/sidebarNavigation';
 import {useTranslation} from 'react-i18next';
+
+const OPEN_SECTIONS = ['understand', 'prepare', 'query', 'support'];
 
 const items = (t, pathname) => {
     const userInfo = user.getUser();
@@ -58,13 +61,13 @@ const items = (t, pathname) => {
             icon: <HomeOutlined />,
         },
         {
-            label: t('workbench.nav.understand'),
+            label: t('workbench.nav.graphs'),
             key: 'understand',
             icon: <ApartmentOutlined />,
             children: [{
                 label: (
                     <Link to={getGraphspacePath(pdMode)}>
-                        {t('manage.graphspace')}
+                        {pdMode ? t('manage.graphspace') : t('workbench.nav.graph_list')}
                     </Link>
                 ),
                 key: 'graphspace',
@@ -130,26 +133,84 @@ const items = (t, pathname) => {
 };
 
 const Sidebar = () => {
-    const [collapsed, setCollapsed] = useState(false);
+    const mediaQuery = '(max-width: 900px)';
+    const getNarrow = () => typeof window !== 'undefined'
+        && typeof window.matchMedia === 'function'
+        && window.matchMedia(mediaQuery).matches;
+    const [narrow, setNarrow] = useState(getNarrow);
+    const [collapsed, setCollapsed] = useState(getNarrow);
+    const [openKeys, setOpenKeys] = useState(() => (
+        getNarrow() ? [] : OPEN_SECTIONS
+    ));
     const href = useLocation();
     const {t} = useTranslation();
     const menuKey = getSidebarMenuKey(href.pathname, isPdEnabled());
 
+    useEffect(() => {
+        if (typeof window.matchMedia !== 'function') {
+            return undefined;
+        }
+        const query = window.matchMedia(mediaQuery);
+        const update = event => {
+            setNarrow(event.matches);
+            setCollapsed(event.matches);
+            setOpenKeys(event.matches ? [] : OPEN_SECTIONS);
+        };
+        query.addEventListener?.('change', update);
+        return () => query.removeEventListener?.('change', update);
+    }, []);
+
+    useEffect(() => {
+        if (narrow) {
+            setCollapsed(true);
+            setOpenKeys([]);
+        }
+    }, [href.pathname, narrow]);
+
+    const setNavigationCollapsed = useCallback(value => {
+        setCollapsed(value);
+        setOpenKeys(value ? [] : OPEN_SECTIONS);
+    }, []);
+    const toggleNavigation = useCallback(
+        () => setNavigationCollapsed(!collapsed),
+        [collapsed, setNavigationCollapsed]
+    );
+    const toggleLabel = collapsed
+        ? t('workbench.navigation_open')
+        : t('workbench.navigation_close');
+
     return (
-        <nav className="workbench-navigation" aria-label={t('workbench.navigation')}>
+        <nav
+            className={`workbench-navigation ${narrow ? 'is-narrow' : ''}`}
+            aria-label={t('workbench.navigation')}
+        >
+            {narrow && (
+                <Button
+                    className="workbench-mobile-navigation-toggle"
+                    type="text"
+                    icon={<MenuOutlined />}
+                    aria-label={toggleLabel}
+                    aria-expanded={!collapsed}
+                    onClick={toggleNavigation}
+                />
+            )}
             <Layout.Sider
                 collapsible
                 collapsed={collapsed}
+                collapsedWidth={narrow ? 0 : 80}
                 width={248}
-                onCollapse={setCollapsed}
+                onCollapse={setNavigationCollapsed}
                 theme='light'
+                className={narrow && !collapsed ? 'is-mobile-open' : ''}
                 trigger={
-                    collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+                    narrow ? null
+                        : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
                 }
             >
                 <Menu
                     defaultSelectedKeys={['graphspace']}
-                    defaultOpenKeys={['understand', 'prepare', 'query', 'support']}
+                    openKeys={openKeys}
+                    onOpenChange={setOpenKeys}
                     mode="inline"
                     items={items(t, href.pathname)}
                     selectedKeys={[menuKey]}

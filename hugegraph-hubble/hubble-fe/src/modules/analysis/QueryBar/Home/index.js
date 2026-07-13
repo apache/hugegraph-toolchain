@@ -20,7 +20,7 @@
  * @file Gremlin语法分析 Header
  */
 
-import React, {useCallback, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Alert, Input, Tabs, Tag} from 'antd';
 import CodeEditor from '../../../../components/CodeEditor';
@@ -40,8 +40,12 @@ const QueryBar = props => {
 
     const {codeEditorContent, setCodeEditorContent, activeTab, onTabsChange} = args;
 
-    const [isEmptyQuery, setIsEmptyQuery] = useState(true);
+    const [isEmptyQuery, setIsEmptyQuery] = useState(() => !codeEditorContent);
     const [favoriteCardVisible, setFavoriteCardVisible] = useState(false);
+
+    useEffect(() => {
+        setIsEmptyQuery(!codeEditorContent);
+    }, [codeEditorContent]);
 
     const handleCodeEditorChange = useCallback(
         value => {

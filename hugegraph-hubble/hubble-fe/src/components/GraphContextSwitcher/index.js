@@ -38,12 +38,20 @@ const INLINE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
 const getRecords = response => {
     if (response?.status !== 200) {
-        throw new Error(`Unexpected graph context response: ${response?.status}`);
+        const error = new Error(`Unexpected graph context response: ${response?.status}`);
+        error.status = response?.status;
+        throw error;
     }
     if (Array.isArray(response.data)) {
         return response.data;
     }
     return response.data?.records ?? [];
+};
+
+const errorKind = error => {
+    const status = error?.status ?? error?.response?.data?.status
+                   ?? error?.response?.status;
+    return status === 403 ? 'forbidden' : true;
 };
 
 const GraphContextSwitcher = () => {
@@ -98,9 +106,9 @@ const GraphContextSwitcher = () => {
                     setLoading(value => ({...value, graphspaces: false}));
                 }
             })
-            .catch(() => {
+            .catch(error => {
                 if (!cancelled) {
-                    setErrors(value => ({...value, graphspaces: true}));
+                    setErrors(value => ({...value, graphspaces: errorKind(error)}));
                     setLoading(value => ({...value, graphspaces: false}));
                 }
             });
@@ -130,9 +138,9 @@ const GraphContextSwitcher = () => {
                     setLoading(value => ({...value, graphs: false}));
                 }
             })
-            .catch(() => {
+            .catch(error => {
                 if (!cancelled) {
-                    setErrors(value => ({...value, graphs: true}));
+                    setErrors(value => ({...value, graphs: errorKind(error)}));
                     setLoading(value => ({...value, graphs: false}));
                 }
             });
@@ -289,8 +297,10 @@ const GraphContextSwitcher = () => {
                             className={style.error}
                             type="error"
                             showIcon
-                            message={t('workbench.context.graphspaces_load_failed')}
-                            action={(
+                            message={t(errors.graphspaces === 'forbidden'
+                                ? 'workbench.context.graphspaces_forbidden'
+                                : 'workbench.context.graphspaces_load_failed')}
+                            action={errors.graphspaces !== 'forbidden' && (
                                 <Button size="small" onClick={retryGraphspaces}>
                                     {t('workbench.context.retry_graphspaces')}
                                 </Button>
@@ -302,8 +312,10 @@ const GraphContextSwitcher = () => {
                             className={style.error}
                             type="error"
                             showIcon
-                            message={t('workbench.context.graphs_load_failed')}
-                            action={(
+                            message={t(errors.graphs === 'forbidden'
+                                ? 'workbench.context.graphs_forbidden'
+                                : 'workbench.context.graphs_load_failed')}
+                            action={errors.graphs !== 'forbidden' && (
                                 <Button size="small" onClick={retryGraphs}>
                                     {t('workbench.context.retry_graphs')}
                                 </Button>

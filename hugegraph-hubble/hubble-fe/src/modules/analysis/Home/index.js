@@ -37,6 +37,26 @@ const {GREMLIN, CYPHER, TEXT2GQL} = ANALYSIS_TYPE;
 const {CLOSED} = PANEL_TYPE;
 const {CANVAS2D} = GRAPH_RENDER_MODE;
 const defaultPageParams = {page: 1, pageSize: 10};
+const DEFAULT_QUERIES = {
+    [GREMLIN]: 'g.V().limit(20)',
+    [CYPHER]: 'MATCH (n) RETURN n LIMIT 20',
+};
+
+const queryDraftKey = (graphSpace, graph, mode) =>
+    `hubble.query.${graphSpace || 'DEFAULT'}.${graph || 'unknown'}.${mode}`;
+
+const restoreQuery = (graphSpace, graph, mode) => {
+    if (mode === TEXT2GQL) {
+        return '';
+    }
+    try {
+        const saved = window.localStorage.getItem(queryDraftKey(graphSpace, graph, mode));
+        return saved === null ? DEFAULT_QUERIES[mode] : saved;
+    }
+    catch {
+        return DEFAULT_QUERIES[mode];
+    }
+};
 
 const AnalysisHome = () => {
     const {t} = useTranslation();
@@ -51,6 +71,7 @@ const AnalysisHome = () => {
     const [graphNums, setGraphNums] = useState({vertexCount: -1, edgeCount: -1});
     const [executeMode, setExecuteMode] = useState(QUERY);
     const [analysisMode, setAnalysisMode] = useState(GREMLIN);
+    const analysisModeRef = useRef(GREMLIN);
     const [panelType, setPanelType] = useState(CLOSED);
     const [executionLogsLoading, setExecutionLogsLoading] = useState(false);
     const [favoriteQueriesLoading, setFavoriteQueriesLoading] = useState(false);
@@ -58,7 +79,9 @@ const AnalysisHome = () => {
     const [favoriteQueriesError, setFavoriteQueriesError] = useState(false);
     const [favoriteQueriesData, setFavoriteQueriesData] = useState({});
     const [executionLogsData, setExecutionLogsData] = useState({});
-    const [codeEditorContent, setCodeEditorContent] = useState('');
+    const [codeEditorContent, setCodeEditorContent] = useState(
+        () => restoreQuery(graphSpace, graph, GREMLIN)
+    );
     const [pageExecute, setExecutePage] = useState(defaultPageParams.page);
     const [pageFavorite, setFavoritePage] = useState(defaultPageParams.page);
     const [pageSize, setPageSize] = useState(defaultPageParams.pageSize);
@@ -243,7 +266,8 @@ const AnalysisHome = () => {
             queryRequest.current = null;
             executionLogsRequest.current = null;
             favoriteQueriesRequest.current = null;
-            setCodeEditorContent('');
+            analysisModeRef.current = queryType;
+            setCodeEditorContent(restoreQuery(graphSpace, graph, queryType));
             setAnalysisMode(queryType);
             initQueryResult();
             setExecutionLogsData({});
@@ -254,7 +278,7 @@ const AnalysisHome = () => {
             setFavoriteQueriesLoading(false);
             onResetPage();
         },
-        [initQueryResult, onResetPage]
+        [graph, graphSpace, initQueryResult, onResetPage]
     );
 
     const resetGraphInfo = useCallback(
@@ -268,6 +292,7 @@ const AnalysisHome = () => {
 
     useEffect(() => {
         queryRequest.current = null;
+        setCodeEditorContent(restoreQuery(graphSpace, graph, analysisModeRef.current));
         if (graphSpace && graph) {
             resetGraphInfo();
         }
@@ -331,7 +356,7 @@ const AnalysisHome = () => {
                     setQueryStatus(SUCCESS);
                 }
                 else {
-                    setQueryMessage(t('analysis.query_result.run_failed_action'));
+                    setQueryMessage(message || t('analysis.query_result.run_failed_action'));
                     setQueryStatus(FAILED);
                 }
                 onExeLogsRefresh();
@@ -443,9 +468,23 @@ const AnalysisHome = () => {
     const resetCodeEditorContent = useCallback(
         content => {
             setCodeEditorContent(content);
+            if (analysisMode !== TEXT2GQL) {
+                try {
+                    window.localStorage.setItem(
+                        queryDraftKey(graphSpace, graph, analysisMode), content
+                    );
+                }
+                catch {
+                    // Keep editing available when browser storage is blocked.
+                }
+            }
         },
-        []
+        [analysisMode, graph, graphSpace]
     );
+
+    const resetQueryExample = useCallback(() => {
+        resetCodeEditorContent(DEFAULT_QUERIES[analysisMode] || '');
+    }, [analysisMode, resetCodeEditorContent]);
 
     const updatePanelType = useCallback(
         type => {
@@ -503,6 +542,7 @@ const AnalysisHome = () => {
                 onTabsChange={onAnalysisModeChange}
                 onExecute={onExecute}
                 onRefresh={onFavoriteRefresh}
+                onResetQuery={resetQueryExample}
                 isExecuting={queryStatus === LOADING}
             />
             {analysisMode !== TEXT2GQL && <QueryResult

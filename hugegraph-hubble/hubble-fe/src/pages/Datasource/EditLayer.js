@@ -73,7 +73,7 @@ const charsetOptions = [
 
 const dateformatOptions = [
     {label: 'yyyy-MM-dd', value: 'yyyy-MM-dd'},
-    {label: 'yyyy-MM-dd HH:MM:SS', value: 'yyyy-MM-dd HH:MM:SS'},
+    {label: 'yyyy-MM-dd HH:mm:ss', value: 'yyyy-MM-dd HH:mm:ss'},
     {label: 'yyyy-MM-dd HH:mm:ss.SSS', value: 'yyyy-MM-dd HH:mm:ss.SSS'},
 ];
 
@@ -122,7 +122,7 @@ const formatDatasource = values => {
 const requiredRule = (t, label) => rules.required(t('datasource.form.required', {label}));
 const requiredUploadRule = (t, label) => rules.required(t('datasource.form.required_upload', {label}));
 
-const UploadForm = ({label, name, accept}) => {
+const UploadForm = ({label, name, accept, extra}) => {
     const {t} = useTranslation();
     const [visible, setVisible] = useState(true);
 
@@ -146,6 +146,7 @@ const UploadForm = ({label, name, accept}) => {
                 }),
             ]}
             name={name}
+            extra={extra}
             valuePropName='file'
             getValueFromEvent={normFile}
         >
@@ -274,7 +275,11 @@ const LocalFileForm = () => {
                     placeholder={t('datasource.form.select')}
                 />
             </Form.Item>
-            <Form.Item label='header' name='header'>
+            <Form.Item
+                label={t('datasource.form.header')}
+                extra={t('datasource.form.header_help')}
+                name='header'
+            >
                 <Input placeholder={t('datasource.form.header_placeholder')} />
             </Form.Item>
             {(fileType === 'TEXT')
@@ -283,56 +288,73 @@ const LocalFileForm = () => {
                     <Input />
                 </Form.Item>
             )}
-            <Form.Item
-                label={t('datasource.form.charset')}
-                wrapperCol={{span: 6}}
-                rules={[requiredRule(t, t('datasource.form.charset'))]}
-                name='charset'
-            >
-                <AutoComplete options={charsetOptions} />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.date_format')}
-                wrapperCol={{span: 10}}
-                rules={[requiredRule(t, t('datasource.form.date_format'))]}
-                name='date_format'
-            >
-                {/* <Input placeholder='yyyy-MM-dd HH:mm:ss' /> */}
-                <AutoComplete options={dateformatOptions} />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.time_zone')}
-                wrapperCol={{span: 4}}
-                rules={[requiredRule(t, t('datasource.form.time_zone'))]}
-                name='time_zone'
-            >
-                <Select
-                    options={[...new Array(25).keys()].map(item => {
-                        const str = item === 11 ? '' : (item > 11 ? `+${item - 12}` : item - 12);
-                        return {label: `GMT${str}`, value: `GMT${str}`};
-                    })}
-                />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.skipped_line')}
-                wrapperCol={{span: 8}}
-                rules={[requiredRule(t, t('datasource.form.skipped_line'))]}
-                name={['skipped_line', 'regex']}
-            >
-                <Input placeholder='(^#|^//).*' />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.compression')}
-                wrapperCol={{span: 8}}
-                rules={[requiredRule(t, t('datasource.form.compression'))]}
-                name='compression'
-            >
-                <Select
-                    options={compressionOptions.map(item => ({label: item, value: item}))}
-                    onChange={handleCompression}
-                />
-            </Form.Item>
-            <UploadForm label={t('datasource.form.local_file')} name={'path'} accept={accept} />
+            <details>
+                <summary>{t('datasource.form.advanced_config')}</summary>
+                <Form.Item
+                    label={t('datasource.form.charset')}
+                    wrapperCol={{span: 6}}
+                    rules={[requiredRule(t, t('datasource.form.charset'))]}
+                    name='charset'
+                >
+                    <AutoComplete options={charsetOptions} />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.date_format')}
+                    wrapperCol={{span: 10}}
+                    rules={[requiredRule(t, t('datasource.form.date_format'))]}
+                    name='date_format'
+                >
+                    {/* <Input placeholder='yyyy-MM-dd HH:mm:ss' /> */}
+                    <AutoComplete options={dateformatOptions} />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.time_zone')}
+                    wrapperCol={{span: 4}}
+                    rules={[requiredRule(t, t('datasource.form.time_zone'))]}
+                    name='time_zone'
+                >
+                    <Select
+                        options={[...new Array(25).keys()].map(item => {
+                            const str = item === 11 ? '' : (item > 11 ? `+${item - 12}` : item - 12);
+                            return {label: `GMT${str}`, value: `GMT${str}`};
+                        })}
+                    />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.skipped_line')}
+                    wrapperCol={{span: 8}}
+                    rules={[requiredRule(t, t('datasource.form.skipped_line'))]}
+                    name={['skipped_line', 'regex']}
+                >
+                    <Input placeholder='(^#|^//).*' />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.compression')}
+                    wrapperCol={{span: 8}}
+                    rules={[requiredRule(t, t('datasource.form.compression'))]}
+                    name='compression'
+                >
+                    <Select
+                        options={compressionOptions.map(item => ({label: item, value: item}))}
+                        onChange={handleCompression}
+                    />
+                </Form.Item>
+            </details>
+            <UploadForm
+                label={t('datasource.form.local_file')}
+                name={'path'}
+                accept={accept}
+                extra={t('datasource.form.local_file_help')}
+            />
+            <Typography.Paragraph type='secondary'>
+                <a
+                    href='https://hugegraph.apache.org/docs/quickstart/toolchain/hugegraph-loader/'
+                    target='_blank'
+                    rel='noreferrer'
+                >
+                    {t('datasource.form.loader_docs')}
+                </a>
+            </Typography.Paragraph>
         </>
     );
 };
@@ -347,11 +369,26 @@ const HdfsForm = () => {
         <>
             <Divider />
             <Typography.Title level={5}>{t('datasource.form.config_info')}</Typography.Title>
-            <Form.Item label='path' rules={[requiredRule(t, 'path')]} name='path'>
-                <Input />
+            <Form.Item
+                label={t('datasource.form.hdfs_path')}
+                extra={t('datasource.form.hdfs_path_help')}
+                rules={[requiredRule(t, t('datasource.form.hdfs_path'))]}
+                name='path'
+            >
+                <Input placeholder={t('datasource.form.hdfs_path_placeholder')} />
             </Form.Item>
-            <UploadForm label='core_site' name={'core_site_path'} accept='.xml' />
-            <UploadForm label='hdfs_site' name={'hdfs_site_path'} accept='.xml' />
+            <UploadForm
+                label={t('datasource.form.core_site')}
+                name={'core_site_path'}
+                accept='.xml'
+                extra={t('datasource.form.core_site_help')}
+            />
+            <UploadForm
+                label={t('datasource.form.hdfs_site')}
+                name={'hdfs_site_path'}
+                accept='.xml'
+                extra={t('datasource.form.hdfs_site_help')}
+            />
             <Form.Item
                 label={t('datasource.form.file_type')}
                 wrapperCol={{span: 4}}
@@ -364,63 +401,79 @@ const HdfsForm = () => {
                     placeholder={t('datasource.form.select')}
                 />
             </Form.Item>
-            <Form.Item label='header' name='header'>
+            <Form.Item
+                label={t('datasource.form.header')}
+                extra={t('datasource.form.header_help')}
+                name='header'
+            >
                 <Input placeholder={t('datasource.form.header_placeholder')} />
             </Form.Item>
+            <Typography.Paragraph type='secondary'>
+                <a
+                    href='https://hugegraph.apache.org/docs/quickstart/toolchain/hugegraph-loader/'
+                    target='_blank'
+                    rel='noreferrer'
+                >
+                    {t('datasource.form.hdfs_docs')}
+                </a>
+            </Typography.Paragraph>
             {(fileType === 'TEXT')
             && (
                 <Form.Item label={t('datasource.form.delimiter')} wrapperCol={{span: 2}} name='delimiter'>
                     <Input />
                 </Form.Item>
             )}
-            <Form.Item
-                label={t('datasource.form.charset')}
-                wrapperCol={{span: 6}}
-                rules={[requiredRule(t, t('datasource.form.charset'))]}
-                name='charset'
-            >
-                <AutoComplete options={charsetOptions} />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.date_format')}
-                wrapperCol={{span: 10}}
-                rules={[requiredRule(t, t('datasource.form.date_format'))]}
-                name='date_format'
-            >
-                <AutoComplete options={dateformatOptions} />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.time_zone')}
-                wrapperCol={{span: 4}}
-                rules={[requiredRule(t, t('datasource.form.time_zone'))]}
-                name='time_zone'
-            >
-                <Select
-                    options={[...new Array(25).keys()].map(item => {
-                        const str = item === 11 ? '' : (item > 11 ? `+${item - 12}` : item - 12);
-                        return {label: `GMT${str}`, value: `GMT${str}`};
-                    })}
-                />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.skipped_line')}
-                wrapperCol={{span: 8}}
-                rules={[requiredRule(t, t('datasource.form.skipped_line'))]}
-                name={['skipped_line', 'regex']}
-            >
-                <Input placeholder='(^#|^//).*' />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.compression')}
-                wrapperCol={{span: 8}}
-                rules={[requiredRule(t, t('datasource.form.compression'))]}
-                name='compression'
-            >
-                <Select
-                    options={compressionOptions.map(item => ({label: item, value: item}))}
-                />
-            </Form.Item>
-            <CertForm />
+            <details>
+                <summary>{t('datasource.form.advanced_config')}</summary>
+                <Form.Item
+                    label={t('datasource.form.charset')}
+                    wrapperCol={{span: 6}}
+                    rules={[requiredRule(t, t('datasource.form.charset'))]}
+                    name='charset'
+                >
+                    <AutoComplete options={charsetOptions} />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.date_format')}
+                    wrapperCol={{span: 10}}
+                    rules={[requiredRule(t, t('datasource.form.date_format'))]}
+                    name='date_format'
+                >
+                    <AutoComplete options={dateformatOptions} />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.time_zone')}
+                    wrapperCol={{span: 4}}
+                    rules={[requiredRule(t, t('datasource.form.time_zone'))]}
+                    name='time_zone'
+                >
+                    <Select
+                        options={[...new Array(25).keys()].map(item => {
+                            const str = item === 11 ? '' : (item > 11 ? `+${item - 12}` : item - 12);
+                            return {label: `GMT${str}`, value: `GMT${str}`};
+                        })}
+                    />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.skipped_line')}
+                    wrapperCol={{span: 8}}
+                    rules={[requiredRule(t, t('datasource.form.skipped_line'))]}
+                    name={['skipped_line', 'regex']}
+                >
+                    <Input placeholder='(^#|^//).*' />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.compression')}
+                    wrapperCol={{span: 8}}
+                    rules={[requiredRule(t, t('datasource.form.compression'))]}
+                    name='compression'
+                >
+                    <Select
+                        options={compressionOptions.map(item => ({label: item, value: item}))}
+                    />
+                </Form.Item>
+                <CertForm />
+            </details>
         </>
     );
 };
@@ -435,10 +488,20 @@ const KafkaForm = () => {
         <>
             <Divider />
             <Typography.Title level={5}>{t('datasource.form.config_info')}</Typography.Title>
-            <Form.Item label='server' rules={[requiredRule(t, 'server')]} name='bootstrap-server'>
+            <Form.Item
+                label={t('datasource.form.kafka_servers')}
+                extra={t('datasource.form.kafka_servers_help')}
+                rules={[requiredRule(t, t('datasource.form.kafka_servers'))]}
+                name='bootstrap-server'
+            >
                 <Input placeholder={t('datasource.form.server_placeholder')} />
             </Form.Item>
-            <Form.Item label='topic' rules={[requiredRule(t, 'topic')]} name='topic'>
+            <Form.Item
+                label={t('datasource.form.kafka_topic')}
+                extra={t('datasource.form.kafka_topic_help')}
+                rules={[requiredRule(t, t('datasource.form.kafka_topic'))]}
+                name='topic'
+            >
                 <Input placeholder={t('datasource.form.topic_placeholder')} />
             </Form.Item>
             <Form.Item label={t('datasource.form.from_beginning')} name='from-beginning' valuePropName='checked'>
@@ -456,7 +519,11 @@ const KafkaForm = () => {
                     placeholder={t('datasource.form.select')}
                 />
             </Form.Item>
-            <Form.Item label='header' name='header'>
+            <Form.Item
+                label={t('datasource.form.header')}
+                extra={t('datasource.form.header_help')}
+                name='header'
+            >
                 <Input placeholder={t('datasource.form.header_placeholder')} />
             </Form.Item>
             {(fileType === 'TEXT')
@@ -465,44 +532,56 @@ const KafkaForm = () => {
                     <Input />
                 </Form.Item>
             )}
-            <Form.Item
-                label={t('datasource.form.charset')}
-                wrapperCol={{span: 6}}
-                rules={[requiredRule(t, t('datasource.form.charset'))]}
-                name='charset'
-            >
-                <AutoComplete options={charsetOptions} />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.date_format')}
-                wrapperCol={{span: 10}}
-                rules={[requiredRule(t, t('datasource.form.date_format'))]}
-                name='date_format'
-            >
-                {/* <Input placeholder='yyyy-MM-dd HH:mm:ss' /> */}
-                <AutoComplete options={dateformatOptions} />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.time_zone')}
-                wrapperCol={{span: 4}}
-                rules={[requiredRule(t, t('datasource.form.time_zone'))]}
-                name='time_zone'
-            >
-                <Select
-                    options={[...new Array(25).keys()].map(item => {
-                        const str = item === 11 ? '' : (item > 11 ? `+${item - 12}` : item - 12);
-                        return {label: `GMT${str}`, value: `GMT${str}`};
-                    })}
-                />
-            </Form.Item>
-            <Form.Item
-                label={t('datasource.form.skipped_line')}
-                wrapperCol={{span: 8}}
-                rules={[requiredRule(t, t('datasource.form.skipped_line'))]}
-                name={['skipped_line', 'regex']}
-            >
-                <Input placeholder='(^#|^//).*' />
-            </Form.Item>
+            <details>
+                <summary>{t('datasource.form.advanced_config')}</summary>
+                <Form.Item
+                    label={t('datasource.form.charset')}
+                    wrapperCol={{span: 6}}
+                    rules={[requiredRule(t, t('datasource.form.charset'))]}
+                    name='charset'
+                >
+                    <AutoComplete options={charsetOptions} />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.date_format')}
+                    wrapperCol={{span: 10}}
+                    rules={[requiredRule(t, t('datasource.form.date_format'))]}
+                    name='date_format'
+                >
+                    {/* <Input placeholder='yyyy-MM-dd HH:mm:ss' /> */}
+                    <AutoComplete options={dateformatOptions} />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.time_zone')}
+                    wrapperCol={{span: 4}}
+                    rules={[requiredRule(t, t('datasource.form.time_zone'))]}
+                    name='time_zone'
+                >
+                    <Select
+                        options={[...new Array(25).keys()].map(item => {
+                            const str = item === 11 ? '' : (item > 11 ? `+${item - 12}` : item - 12);
+                            return {label: `GMT${str}`, value: `GMT${str}`};
+                        })}
+                    />
+                </Form.Item>
+                <Form.Item
+                    label={t('datasource.form.skipped_line')}
+                    wrapperCol={{span: 8}}
+                    rules={[requiredRule(t, t('datasource.form.skipped_line'))]}
+                    name={['skipped_line', 'regex']}
+                >
+                    <Input placeholder='(^#|^//).*' />
+                </Form.Item>
+            </details>
+            <Typography.Paragraph type='secondary'>
+                <a
+                    href='https://hugegraph.apache.org/docs/quickstart/toolchain/hugegraph-loader/'
+                    target='_blank'
+                    rel='noreferrer'
+                >
+                    {t('datasource.form.loader_docs')}
+                </a>
+            </Typography.Paragraph>
         </>
     );
 };
@@ -558,11 +637,12 @@ const JDBCForm = ({setField, form}) => {
                     placeholder={t('datasource.form.select_db_type')}
                 />
             </Form.Item>
-            <Form.Item label='driver' name='driver'>
+            <Form.Item label={t('datasource.form.jdbc_driver')} name='driver'>
                 <Input readOnly />
             </Form.Item>
             <Form.Item
                 label='URL'
+                extra={t('datasource.form.jdbc_url_help')}
                 rules={[requiredRule(t, 'URL'), rules.isJDBC(t('datasource.form.url_rule'))]}
                 name='url'
             >
@@ -576,12 +656,16 @@ const JDBCForm = ({setField, form}) => {
                 <Input placeholder={t('datasource.form.database_placeholder')} />
             </Form.Item>
             {(vendor === 'Oracle' || vendor === 'PostgreSQL') && (
-                <Form.Item label='schema' name='schema'>
+                <Form.Item label={t('datasource.form.database_schema')} name='schema'>
                     <Input placeholder={t('datasource.form.schema_placeholder')} />
                 </Form.Item>)
             }
             {vendor === 'SQLServer' && (
-                <Form.Item label='schema' name='schema' rules={[requiredRule(t, 'schema')]}>
+                <Form.Item
+                    label={t('datasource.form.database_schema')}
+                    name='schema'
+                    rules={[requiredRule(t, t('datasource.form.database_schema'))]}
+                >
                     <Input placeholder={t('datasource.form.schema_placeholder')} />
                 </Form.Item>)
             }
@@ -626,6 +710,15 @@ const JDBCForm = ({setField, form}) => {
                     </Typography.Text>
                 </Space>
             </Form.Item>
+            <Typography.Paragraph type='secondary'>
+                <a
+                    href='https://hugegraph.apache.org/docs/quickstart/toolchain/hugegraph-loader/'
+                    target='_blank'
+                    rel='noreferrer'
+                >
+                    {t('datasource.form.loader_docs')}
+                </a>
+            </Typography.Paragraph>
         </>
     );
 };

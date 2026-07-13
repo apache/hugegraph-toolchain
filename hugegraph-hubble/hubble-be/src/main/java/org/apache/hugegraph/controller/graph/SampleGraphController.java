@@ -49,6 +49,9 @@ import org.apache.hugegraph.util.Ex;
 @RequestMapping(Constant.API_VERSION + "graphspaces/{graphspace}/graphs/{graph}/sample")
 public class SampleGraphController extends BaseController {
 
+    private static final String IDEMPOTENT_TRAVERSAL_FALLBACK_MARKER =
+            "// hugegraph-client:idempotent-traversal-fallback\n";
+
     public static final String LOADER_SOURCE = "hugegraph-loader/example/file";
     public static final String RANK_SOURCE =
             "hugegraph-doc/rank-api/neighbor-rank-example";
@@ -155,7 +158,9 @@ public class SampleGraphController extends BaseController {
         HugeClient client = this.authGremlinClient(graphSpace, graph);
         try {
             createSchema(client, dataset);
-            client.gremlin().gremlin(data(dataset)).execute();
+            String script = IDEMPOTENT_TRAVERSAL_FALLBACK_MARKER +
+                            data(dataset);
+            client.gremlin().gremlin(script).execute();
         } catch (RuntimeException e) {
             log.warn("Failed to load sample dataset '{}' into {}/{}",
                      dataset, graphSpace, graph, e);

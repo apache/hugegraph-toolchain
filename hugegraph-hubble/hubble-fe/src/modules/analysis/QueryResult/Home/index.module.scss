@@ -20,6 +20,8 @@
     --analysis-result-height: clamp(360px, calc(100vh - 305px), 640px);
 
     margin-top: 10px;
+    min-width: 0;
+    overflow: hidden;
 
     :global(.ant-tabs) {
         background-color: #fff;
@@ -27,6 +29,13 @@
 
     :global(.ant-tabs-nav) {
         z-index: 1;
+    }
+
+    :global(.ant-tabs-content-holder),
+    :global(.ant-tabs-content),
+    :global(.ant-tabs-tabpane) {
+        min-width: 0;
+        max-width: 100%;
     }
 
     :global(.ant-tabs-tab.ant-tabs-tab.ant-tabs-tab) {

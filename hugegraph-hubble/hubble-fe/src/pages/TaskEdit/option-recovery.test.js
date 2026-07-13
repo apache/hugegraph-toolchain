@@ -58,9 +58,57 @@ beforeAll(() => {
 
 beforeEach(() => {
     jest.clearAllMocks();
+    window.localStorage.clear();
     isPdEnabled.mockReturnValue(false);
     api.manage.getGraphList.mockResolvedValue({status: 200, data: {records: []}});
     api.manage.getTaskList.mockResolvedValue({status: 200, data: {total: 0}});
+});
+
+it('defaults a new task to the current graph when it is still eligible', async () => {
+    window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'DEFAULT',
+        graph: 'current_graph',
+    }));
+    api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'current_graph',
+            nickname: 'Current graph',
+            schemaview: {vertices: [{name: 'person'}], edges: []},
+        }]},
+    });
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Current graph', {
+        selector: '.ant-select-selection-item',
+    })).toBeInTheDocument();
+});
+
+it('restores the last available data source or falls back to the first one', async () => {
+    window.localStorage.setItem('hubble_task_datasource', '9');
+    api.manage.getDatasourceList.mockResolvedValue({
+        status: 200,
+        data: {records: [
+            {datasource_id: '8', datasource_name: 'first.csv'},
+            {datasource_id: '9', datasource_name: 'saved.csv'},
+        ]},
+    });
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('saved.csv', {
+        selector: '.ant-select-selection-item',
+    })).toBeInTheDocument();
 });
 
 const deferred = () => {
@@ -80,7 +128,7 @@ it('keeps a data-source option failure visible and retries in place', async () =
         });
 
     render(
-        <MemoryRouter>
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
             <BaseForm visible cancel={jest.fn()} loading={false} />
         </MemoryRouter>
     );
@@ -98,7 +146,7 @@ it('turns a duplicate-name request rejection into a stable form error', async ()
     api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: []}});
     api.manage.getTaskList.mockRejectedValue(new Error('raw transport detail'));
     render(
-        <MemoryRouter>
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
             <BaseForm visible cancel={jest.fn()} loading={false} />
         </MemoryRouter>
     );
@@ -183,7 +231,7 @@ it('recovers PD graph-space and graph option failures without stale overwrite', 
         .mockResolvedValueOnce({status: 200, data: {records: []}});
 
     render(
-        <MemoryRouter>
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
             <BaseForm visible cancel={jest.fn()} loading={false} />
         </MemoryRouter>
     );
@@ -225,7 +273,7 @@ it('ignores a late graph response after the graph-space selection changes', asyn
     });
 
     render(
-        <MemoryRouter>
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
             <BaseForm visible cancel={jest.fn()} loading={false} />
         </MemoryRouter>
     );

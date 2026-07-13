@@ -2,10 +2,11 @@
   "analysis": {
     "name": "业务分析",
     "query": {
-      "name": "GQL 图查询",
+      "name": "图查询",
       "placeholder": "请输入查询语句",
-      "gremlin_tab": "Gremlin 分析",
-      "cypher_tab": "Cypher 分析",
+      "gremlin_tab": "Gremlin",
+      "reset_example": "恢复安全示例",
+      "cypher_tab": "Cypher",
       "text2gql_tab": "自然语言",
       "text2gql_badge": "待实现",
       "text2gql_title": "自然语言图查询",
@@ -38,6 +39,8 @@
       "submit_success": "提交成功",
       "no_graph_result": "无图结果，请查看表格或 Json 数据",
       "no_table_result": "无表格结果，请查看图或 Json 数据",
+      "large_table_title": "当前结果共 {{count}} 行，已使用分页展示",
+      "large_table_description": "浏览和复制前请确认结果范围；可在查询中增加 limit 以缩短等待时间。",
       "no_json_result": "无 Json 结果，请查看图或表格数据",
       "expand_failed": "展开失败",
       "no_more_neighbors": "不存在更多邻接点",
@@ -372,6 +375,8 @@
       "edit_failed": "修改失败",
       "favorite_statement": "收藏语句",
       "favorite_name_placeholder": "请输入收藏名称",
+      "copy_success": "查询语句已复制",
+      "copy_failed": "复制失败，请手动选择查询语句",
       "edit_name": "修改名称",
       "confirm_delete": "确认删除",
       "delete_favorite_confirm": "是否确认删除该条收藏语句？",
@@ -406,12 +411,29 @@
       "action": {
         "favorite": "收藏",
         "load_statement": "加载语句",
+        "copy_statement": "复制语句",
         "edit_name": "修改名称",
         "save": "保存"
       }
     },
     "algorithm": {
       "name": "图算法",
+      "guide": "快速查看局部结果请从交互式探索开始；全图计算使用异步批量分析，结果会进入分析任务。",
+      "traverser_docs": "交互式算法参数文档",
+      "computer_docs": "批量图计算使用指南",
+      "reset_parameters": "重置参数",
+      "empty_graph_title": "请先准备数据再运行算法",
+      "empty_graph_description": "当前图没有顶点或边，算法无法产生有意义的结果。",
+      "create_schema": "创建 Schema",
+      "prepare_data": "准备数据",
+      "group": {
+        "neighbors": "探索邻居",
+        "paths": "查找路径与连接",
+        "similarity": "比较与排名",
+        "importance": "衡量重要性",
+        "communities": "发现社区",
+        "structure": "分析图结构"
+      },
       "placeholder": "算法查询",
       "run": "运行",
       "task_submit_success": "{{name}} 算法任务提交成功",
@@ -434,6 +456,9 @@
       "form": {
         "vertices_required": "未指定 ids 或 label 和 properties 的联合查询",
         "vertices_ids_tooltip": "通过顶点 id 列表提供起始或终止顶点，如果没有指定 ids，则使用 label 和 properties 的联合条件查询起始或终止顶点",
+        "vertices_ids_placeholder": "例如：[\"1:marko\", \"2:lop\"]",
+        "vertices_label_placeholder": "例如：person",
+        "vertices_properties_placeholder": "例如：{\"city\": \"Beijing\"}",
         "vertices_label_tooltip": "顶点的类型，ids 参数为空时 label 和 properties 参数才会生效",
         "vertices_properties_tooltip": "属性 Map，key 为属性名，value 为属性值，类型由 schema 定义决定。properties 中的属性值可以是列表，表示只要 key 对应的 value 在列表中就可以",
         "direction_options": {
@@ -492,8 +517,8 @@
         "no_neighbor_at_degree": "本场景下没有第{{index}}度邻居"
       },
       "mode": {
-        "OLTP": "OLTP算法",
-        "OLAP": "OLAP算法"
+        "OLTP": "交互式探索",
+        "OLAP": "异步批量分析"
       },
       "capacity_item": {
         "tooltip": "遍历过程中最大的访问的顶点数目"
@@ -792,10 +817,17 @@
       }
     },
     "async_task": {
-      "name": "异步任务",
+      "name": "分析任务",
       "search_placeholder": "请输入任务ID或名称",
       "get_failed": "获取异步任务失败",
       "retry_list": "重试任务列表",
+      "empty_title": "还没有分析任务",
+      "empty_description": "图查询或图算法异步执行后，任务会显示在这里。",
+      "no_matches_title": "没有匹配的分析任务",
+      "no_matches_description": "请调整搜索词或状态筛选后重试。",
+      "clear_filters": "清除筛选",
+      "start_query": "开始图查询",
+      "open_algorithms": "打开图算法",
       "result_load_failed": "任务结果加载失败。",
       "retry_result": "重试任务结果",
       "result_loading": "正在加载任务结果",

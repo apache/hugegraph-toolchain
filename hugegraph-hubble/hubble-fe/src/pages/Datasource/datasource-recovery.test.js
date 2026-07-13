@@ -38,6 +38,8 @@ jest.mock('react-i18next', () => ({
         'datasource.delete': 'Delete data source',
         'datasource.search_placeholder': 'Search',
         'datasource.selected_count': '0 selected',
+        'datasource.empty_title': 'No data sources yet',
+        'datasource.empty_description': 'Add a source before creating an import task.',
         'datasource.col.name': 'Name',
         'datasource.col.type': 'Type',
         'datasource.col.creator': 'Creator',
@@ -68,4 +70,21 @@ it('distinguishes a failed data-source list from an empty list and retries', asy
 
     await waitFor(() => expect(api.manage.getDatasourceList).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(await screen.findByText('No data sources yet')).toBeInTheDocument();
+});
+
+it('explains the empty state and disables bulk deletion without a selection', async () => {
+    api.manage.getDatasourceList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(<Datasource />);
+
+    expect(await screen.findByText('No data sources yet')).toBeInTheDocument();
+    expect(screen.getByText('Add a source before creating an import task.'))
+        .toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete data source'})).toBeDisabled();
+    expect(screen.getAllByRole('button', {name: 'Add data source'}).length)
+        .toBeGreaterThan(1);
 });

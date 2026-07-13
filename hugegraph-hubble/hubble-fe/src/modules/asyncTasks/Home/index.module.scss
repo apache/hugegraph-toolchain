@@ -30,4 +30,22 @@
         display: flex;
         justify-content: flex-end;
     }
+
+    .emptyJourney {
+        padding: 52px 20px;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+        background: #f8fafc;
+
+        strong {
+            display: block;
+            color: #172033;
+            font-size: 16px;
+        }
+
+        p {
+            margin: 8px 0 0;
+            color: #536179;
+        }
+    }
 }

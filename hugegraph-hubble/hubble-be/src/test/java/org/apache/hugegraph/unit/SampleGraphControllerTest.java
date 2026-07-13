@@ -55,8 +55,10 @@ public class SampleGraphControllerTest {
         Mockito.verify(schema).vertexLabel("person");
         Mockito.verify(schema).edgeLabel("knows");
         Mockito.verify(gremlin).execute(requests.capture());
-        Assert.assertEquals(SampleGraphController.LOADER_DATA,
-                            requests.getValue().gremlin);
+        Assert.assertTrue(requests.getValue().gremlin.startsWith(
+                          "// hugegraph-client:idempotent-traversal-fallback\n"));
+        Assert.assertTrue(requests.getValue().gremlin.endsWith(
+                          SampleGraphController.LOADER_DATA));
         Assert.assertEquals("hugegraph", result.get("graph"));
         Assert.assertEquals(true, result.get("idempotent"));
         Assert.assertEquals(false, result.get("clears_existing_data"));
@@ -129,8 +131,10 @@ public class SampleGraphControllerTest {
         Mockito.verify(vertex, Mockito.never()).useCustomizeStringId();
         Mockito.verify(schema).edgeLabel("关系");
         Mockito.verify(gremlin).execute(requests.capture());
-        Assert.assertEquals(SampleGraphController.HLM_DATA,
-                            requests.getValue().gremlin);
+        Assert.assertTrue(requests.getValue().gremlin.startsWith(
+                          "// hugegraph-client:idempotent-traversal-fallback\n"));
+        Assert.assertTrue(requests.getValue().gremlin.endsWith(
+                          SampleGraphController.HLM_DATA));
         Assert.assertEquals(14, result.get("vertices"));
         Assert.assertEquals(15, result.get("edges"));
     }

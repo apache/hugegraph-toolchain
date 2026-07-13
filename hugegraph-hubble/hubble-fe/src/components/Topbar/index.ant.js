@@ -16,19 +16,17 @@
  * under the License.
  */
 
-import {Layout, Space, Avatar, Dropdown, message, Modal, Select} from 'antd';
+import {Layout, Space, Avatar, Dropdown, message, Modal, Radio} from 'antd';
 import {UserOutlined} from '@ant-design/icons';
 import style from './index.module.scss';
 import BrandLockup from '../BrandLockup';
-import {useNavigate, useLocation} from 'react-router-dom';
+import {Link, useNavigate, useLocation} from 'react-router-dom';
 import * as api from '../../api/index';
 import * as user from '../../utils/user';
 import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import GraphContextSwitcher from '../GraphContextSwitcher';
 import {getCurrentLanguage} from '../../utils/language';
-
-const {Option} = Select;
 
 const Topbar = () => {
     const userInfo = user.getUser();
@@ -75,6 +73,10 @@ const Topbar = () => {
         setLanguageType(e);
         window.location.reload();
     }, []);
+    const handleLanguageChange = useCallback(
+        event => i18Change(event.target.value),
+        [i18Change]
+    );
 
     const logout = useCallback(() => {
 
@@ -111,20 +113,28 @@ const Topbar = () => {
 
     return (
         <Layout.Header className={`${style.header} workbench-topbar`}>
-            <div className={style.logo}><BrandLockup compact /></div>
+            <Link
+                className={style.logo}
+                to='/navigation'
+                aria-label={t('workbench.back_home')}
+            >
+                <BrandLockup compact />
+            </Link>
             <GraphContextSwitcher />
             <div className={style.rightContainer}>
-                <Select
+                <Radio.Group
                     aria-label={t('login.language')}
                     data-testid="language-switcher"
                     value={languageType}
-                    style={{width: 120}}
                     size="small"
-                    onChange={i18Change}
-                >
-                    <Option value="zh-CN">中文</Option>
-                    <Option value="en-US">English</Option>
-                </Select>
+                    optionType='button'
+                    buttonStyle='solid'
+                    onChange={handleLanguageChange}
+                    options={[
+                        {label: '中', value: 'zh-CN'},
+                        {label: 'EN', value: 'en-US'},
+                    ]}
+                />
                 <Dropdown menu={userMenu}>
                     <Space className={style.right}>
                         <Avatar size={'small'} icon={<UserOutlined />} />

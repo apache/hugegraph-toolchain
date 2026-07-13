@@ -55,6 +55,7 @@ const ContentCommon = props => {
         favoriteCardVisible,
         setFavoriteCardVisible,
         isExecuting,
+        onResetQuery,
     } = props;
 
     const context = useContext(GraphAnalysisContext);
@@ -256,6 +257,9 @@ const ContentCommon = props => {
                     </Popover>
                     <Button className={c.btn} onClick={onClear} size='small'>
                         {t('common.action.clear')}
+                    </Button>
+                    <Button className={c.btn} onClick={onResetQuery} size='small'>
+                        {t('analysis.query.reset_example')}
                     </Button>
                 </div>
             </div>

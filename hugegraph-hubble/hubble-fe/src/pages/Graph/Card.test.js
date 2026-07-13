@@ -57,3 +57,29 @@ test('falls back to the graph id when a PD graph has no nickname', () => {
     expect(screen.getByRole('button', {name: 'graph.card.more_actions'}))
         .toBeInTheDocument();
 });
+
+test('uses a compact actionable state when the graph has no schema', () => {
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <GraphCard
+                item={{
+                    name: 'hugegraph',
+                    graphspace: 'DEFAULT',
+                    graphspace_nickname: 'Default',
+                    storage: 0,
+                    create_time: '2026-07-12',
+                    schemaview: {vertices: [], edges: []},
+                }}
+                menus={[]}
+            />
+        </MemoryRouter>
+    );
+
+    expect(screen.getByText('graph.card.empty_schema')).toBeInTheDocument();
+    expect(screen.getByText(/graph\.card\.schema_types/)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'graph.card.open_schema'}))
+        .toBeInTheDocument();
+    expect(screen.queryByText('graph preview')).not.toBeInTheDocument();
+    expect(screen.getByText(/graph\.col\.create_time/).closest('[role="button"]'))
+        .not.toBeInTheDocument();
+});

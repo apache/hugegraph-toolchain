@@ -113,6 +113,7 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
             >
                 <Form.Item
                     label={t('graph.form.name')}
+                    extra={t('graph.form.name_help')}
                     rules={[rules.required(), rules.isName, {type: 'string', max: 48}]}
                     name='graph'
                 >
@@ -120,6 +121,7 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
                 </Form.Item>
                 <Form.Item
                     label={t('graph.form.nickname')}
+                    extra={t('graph.form.nickname_help')}
                     rules={[rules.required(), rules.isPropertyName, {type: 'string', max: 48}]}
                     name='nickname'
                 >
@@ -141,7 +143,7 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
                             />
                         )}
                         <Form.Item
-                            label='schema'
+                            label={t('graph.form.schema')}
                             name='schema'
                             extra={t('graph.form.schema_optional_hint')}
                         >
