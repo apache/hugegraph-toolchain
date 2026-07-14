@@ -40,6 +40,7 @@ import org.apache.hugegraph.entity.graphs.GraphStatisticsEntity;
 import org.apache.hugegraph.entity.query.ExecuteHistory;
 import org.apache.hugegraph.entity.query.GremlinQuery;
 import org.apache.hugegraph.entity.space.BuiltInEntity;
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.loader.util.JsonUtil;
 import org.apache.hugegraph.service.algorithm.AsyncTaskService;
 import org.apache.hugegraph.service.auth.UserService;
@@ -158,7 +159,7 @@ public class GraphsService {
                                                          boolean isVermeerEnabled,
                                                          Map<String, Object> vermeerInfo) {
         // Get authorized graphs
-        List<Map<String, Object>> graphs = client.graphs().listProfile(query);
+        List<Map<String, Object>> graphs = listGraphProfiles(client.graphs(), query);
         log.info("Query all graphs in '{}' ", graphSpace);
         for (Map<String, Object> info : graphs) {
             String name = info.get("name").toString();
@@ -221,6 +222,34 @@ public class GraphsService {
                       .collect(Collectors.toList());
         return results;
 
+    }
+
+    private List<Map<String, Object>> listGraphProfiles(GraphsManager graphs,
+                                                        String query) {
+        try {
+            return graphs.listProfile(query);
+        } catch (RuntimeException e) {
+            if (e instanceof ServerException) {
+                int status = ((ServerException) e).status();
+                if (status == 401 || status == 403) {
+                    throw e;
+                }
+            }
+            log.warn("Graph profiles are unavailable; using standalone graph metadata");
+        }
+
+        String prefix = query == null ? "" : query;
+        List<Map<String, Object>> profiles = new ArrayList<>();
+        for (String name : graphs.listGraph()) {
+            if (!name.startsWith(prefix)) {
+                continue;
+            }
+            Map<String, Object> profile = new HashMap<>();
+            profile.putAll(graphs.getGraph(name));
+            profile.put("name", name);
+            profiles.add(profile);
+        }
+        return profiles;
     }
 
     public Set<String> listGraphNames(HugeClient client, String graphSpace,

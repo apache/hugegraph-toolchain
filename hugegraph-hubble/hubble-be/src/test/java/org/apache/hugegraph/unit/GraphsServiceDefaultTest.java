@@ -20,6 +20,7 @@ package org.apache.hugegraph.unit;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.Assert;
@@ -35,6 +36,7 @@ import org.apache.hugegraph.driver.GraphsManager;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.graphs.GraphStatisticsEntity;
 import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.service.graphs.GraphsService;
 import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.structure.graph.Edge;
@@ -294,5 +296,53 @@ public class GraphsServiceDefaultTest {
         Assert.assertNull(result.get("vertex"));
         Assert.assertNull(result.get("edge"));
         Assert.assertNull(result.get("date"));
+    }
+
+    @Test
+    public void testGraphProfilesFallBackForStandaloneServer() {
+        Mockito.when(this.graphs.listProfile("huge"))
+               .thenThrow(new ServerException("profile unsupported"));
+        Mockito.when(this.graphs.listGraph())
+               .thenReturn(Arrays.asList("hugegraph", "other"));
+        Mockito.when(this.graphs.getGraph("hugegraph"))
+               .thenReturn(Collections.singletonMap("backend", "rocksdb"));
+        Mockito.when(this.client.assignGraph("DEFAULT", "hugegraph"))
+               .thenReturn(this.client);
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        Mockito.when(this.client.graph()).thenReturn(graph);
+        GraphMetricsAPI.ElementCount snapshot = new GraphMetricsAPI.ElementCount();
+        snapshot.setVertices(2L);
+        snapshot.setEdges(1L);
+        Mockito.when(graph.getEVCount(Mockito.anyString())).thenReturn(snapshot);
+
+        List<Map<String, Object>> result =
+                this.service.sortedGraphsProfile(this.client, "DEFAULT", "huge",
+                                                 "", false,
+                                                 Collections.emptyMap());
+
+        Assert.assertEquals(1, result.size());
+        Assert.assertEquals("hugegraph", result.get(0).get("name"));
+        Assert.assertEquals("rocksdb", result.get(0).get("backend"));
+        Assert.assertEquals("DEFAULT", result.get(0).get("graphspace"));
+        Mockito.verify(this.graphs).getGraph("hugegraph");
+        Mockito.verify(this.graphs, Mockito.never()).getGraph("other");
+    }
+
+    @Test
+    public void testGraphProfilesDoNotMaskForbiddenResponse() {
+        ServerException forbidden = new ServerException("forbidden");
+        forbidden.status(403);
+        Mockito.when(this.graphs.listProfile(""))
+               .thenThrow(forbidden);
+
+        try {
+            this.service.sortedGraphsProfile(this.client, "DEFAULT", "", "",
+                                             false, Collections.emptyMap());
+            Assert.fail("Expected forbidden response");
+        } catch (ServerException actual) {
+            Assert.assertSame(forbidden, actual);
+        }
+
+        Mockito.verify(this.graphs, Mockito.never()).listGraph();
     }
 }
