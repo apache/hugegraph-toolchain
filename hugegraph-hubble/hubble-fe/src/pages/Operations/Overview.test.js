@@ -16,14 +16,21 @@
  * under the License.
  */
 
+import {message} from 'antd';
 import {render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import Overview from './Overview';
 import {getOverview} from '../../api/operations';
+import {getDashboard} from '../../api/auth';
 import i18n from '../../i18n';
 
 jest.mock('../../api/operations');
+jest.mock('../../api/auth');
+
+beforeEach(() => {
+    getDashboard.mockReturnValue(new Promise(() => {}));
+});
 
 beforeAll(() => {
     Object.defineProperty(window, 'matchMedia', {
@@ -48,6 +55,7 @@ const renderOverview = () => render(
 );
 
 afterEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
     i18n.changeLanguage('en-US');
 });
@@ -91,6 +99,91 @@ test('shows a bounded error state when no snapshot exists', async () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(screen.queryByText('upstream secret detail')).not.toBeInTheDocument();
+});
+
+test('opens configured advanced monitoring with a safe external target', async () => {
+    getDashboard.mockResolvedValue({
+        status: 200,
+        data: {
+            configured: true,
+            available: true,
+            address: 'dashboard.example:8443',
+            protocol: 'https',
+        },
+    });
+    getOverview.mockResolvedValue({status: 'UP', nodes: [], sources: {}, facts: {}});
+    const open = jest.spyOn(window, 'open').mockReturnValue({});
+
+    renderOverview();
+    await userEvent.click(await screen.findByRole('button', {
+        name: 'Advanced monitoring',
+    }));
+
+    expect(open).toHaveBeenCalledWith(
+        'https://dashboard.example:8443/monitor/machine',
+        '_blank',
+        'noopener,noreferrer'
+    );
+});
+
+test.each([
+    [{configured: false, available: false}, 'Dashboard is not configured'],
+    [{
+        configured: true,
+        available: false,
+        address: 'dashboard.example:8443',
+        protocol: 'https',
+    }, 'Dashboard is unavailable'],
+])('keeps unavailable advanced monitoring secondary to native data', async (data, reason) => {
+    getDashboard.mockResolvedValue({status: 200, data});
+    getOverview.mockResolvedValue({status: 'UP', nodes: [], sources: {}, facts: {}});
+
+    renderOverview();
+
+    expect(await screen.findByRole('button', {name: 'Advanced monitoring'}))
+        .toBeDisabled();
+    expect(screen.getByLabelText(new RegExp(`Advanced monitoring: ${reason}`)))
+        .toHaveAttribute('tabindex', '0');
+    expect(screen.getByRole('heading', {name: 'Cluster Overview'})).toBeInTheDocument();
+});
+
+test('hides advanced monitoring when the current user is forbidden', async () => {
+    getDashboard.mockRejectedValue({response: {status: 403}});
+    getOverview.mockResolvedValue({status: 'UP', nodes: [], sources: {}, facts: {}});
+
+    renderOverview();
+
+    expect(await screen.findByRole('heading', {name: 'Cluster Overview'}))
+        .toBeInTheDocument();
+    await waitFor(() => {
+        expect(screen.queryByRole('button', {name: 'Advanced monitoring'}))
+            .not.toBeInTheDocument();
+    });
+});
+
+test('reports a blocked advanced monitoring popup without leaving the page', async () => {
+    getDashboard.mockResolvedValue({
+        status: 200,
+        data: {
+            configured: true,
+            available: true,
+            address: 'dashboard.example:8443',
+            protocol: 'https',
+        },
+    });
+    getOverview.mockResolvedValue({status: 'UP', nodes: [], sources: {}, facts: {}});
+    jest.spyOn(window, 'open').mockReturnValue(null);
+    const error = jest.spyOn(message, 'error').mockImplementation(() => {});
+
+    renderOverview();
+    await userEvent.click(await screen.findByRole('button', {
+        name: 'Advanced monitoring',
+    }));
+
+    expect(error).toHaveBeenCalledWith(
+        'The Dashboard window was blocked. Allow pop-ups and retry.'
+    );
+    expect(screen.getByRole('heading', {name: 'Cluster Overview'})).toBeInTheDocument();
 });
 
 test('localizes unavailable facts and safely degrades malformed observation data', async () => {

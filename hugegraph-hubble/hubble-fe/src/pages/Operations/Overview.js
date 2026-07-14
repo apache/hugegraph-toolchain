@@ -16,12 +16,13 @@
  * under the License.
  */
 
-import {Alert, Button, Empty, Progress, Radio, Skeleton, Table} from 'antd';
+import {Alert, Button, Empty, message, Progress, Radio, Skeleton, Table} from 'antd';
 import {
     ApartmentOutlined,
     CrownOutlined,
     DatabaseOutlined,
     DeploymentUnitOutlined,
+    ExportOutlined,
     HddOutlined,
     ReloadOutlined,
     RightOutlined,
@@ -29,7 +30,9 @@ import {
 import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link} from 'react-router-dom';
+import {getDashboard} from '../../api/auth';
 import {getOverview} from '../../api/operations';
+import {normalizeDashboardUrl} from '../../modules/navigation/ConsoleItem/dashboard';
 import {ClusterTopology, HealthStatus, SourceStrip} from './components';
 import {
     formatMetricValue,
@@ -47,6 +50,7 @@ const Overview = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState(null);
     const [view, setView] = useState('topology');
+    const [dashboard, setDashboard] = useState({status: 'checking', url: ''});
 
     const load = useCallback(async refresh => {
         data ? setRefreshing(true) : setLoading(true);
@@ -68,8 +72,55 @@ const Overview = () => {
         // The first request must not restart when the snapshot changes.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    useEffect(() => {
+        let cancelled = false;
+        getDashboard().then(response => {
+            if (cancelled) {
+                return;
+            }
+            if (response?.status !== 200) {
+                setDashboard({status: 'unavailable', url: ''});
+                return;
+            }
+            if (!response.data?.configured) {
+                setDashboard({status: 'unconfigured', url: ''});
+                return;
+            }
+            const url = normalizeDashboardUrl(
+                response.data.address, response.data.protocol
+            );
+            setDashboard({
+                status: response.data.available ? 'configured' : 'unavailable',
+                url,
+            });
+        }).catch(requestError => {
+            if (cancelled) {
+                return;
+            }
+            const status = requestError?.response?.status ?? requestError?.status;
+            setDashboard({
+                status: status === 401 || status === 403 ? 'hidden' : 'unavailable',
+                url: '',
+            });
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
     const refresh = useCallback(() => load(true), [load]);
     const changeView = useCallback(event => setView(event.target.value), []);
+    const openDashboard = useCallback(() => {
+        const popup = window.open(
+            `${dashboard.url}/monitor/machine`,
+            '_blank',
+            'noopener,noreferrer'
+        );
+        if (!popup) {
+            message.error(t('navigation_page.dashboard_popup_blocked'));
+        }
+    }, [dashboard.url, t]);
 
     if (loading && !data) {
         return <Skeleton active paragraph={{rows: 12}} />;
@@ -93,6 +144,12 @@ const Overview = () => {
         && Number.isFinite(facts.capacity_total) && facts.capacity_total > 0
         ? Math.round(facts.capacity_used / facts.capacity_total * 100)
         : null;
+    const dashboardReason = dashboard.status === 'checking'
+        ? t('navigation_page.dashboard_checking')
+        : dashboard.status === 'unconfigured'
+            ? t('navigation_page.dashboard_unconfigured')
+            : dashboard.status === 'unavailable'
+                ? t('navigation_page.dashboard_unavailable') : undefined;
     const nodeColumns = [
         {
             title: t('operations.node'),
@@ -199,14 +256,34 @@ const Overview = () => {
                         {data?.stale && <strong>{t('operations.stale')}</strong>}
                     </div>
                 </div>
-                <Button
-                    icon={<ReloadOutlined />}
-                    loading={refreshing}
-                    onClick={refresh}
-                    aria-label={t('operations.refresh')}
-                >
-                    {refreshing ? t('operations.refreshing') : t('operations.refresh')}
-                </Button>
+                <div className='operations-header-actions'>
+                    {dashboard.status !== 'hidden' && (
+                        <span
+                            title={dashboardReason}
+                            tabIndex={dashboardReason ? 0 : undefined}
+                            aria-label={dashboardReason
+                                ? `${t('operations.advanced_monitoring')}: ${dashboardReason}`
+                                : undefined}
+                        >
+                            <Button
+                                icon={<ExportOutlined />}
+                                disabled={dashboard.status !== 'configured'}
+                                onClick={openDashboard}
+                                aria-label={t('operations.advanced_monitoring')}
+                            >
+                                {t('operations.advanced_monitoring')}
+                            </Button>
+                        </span>
+                    )}
+                    <Button
+                        icon={<ReloadOutlined />}
+                        loading={refreshing}
+                        onClick={refresh}
+                        aria-label={t('operations.refresh')}
+                    >
+                        {refreshing ? t('operations.refreshing') : t('operations.refresh')}
+                    </Button>
+                </div>
             </header>
 
             {data?.nodes ? (

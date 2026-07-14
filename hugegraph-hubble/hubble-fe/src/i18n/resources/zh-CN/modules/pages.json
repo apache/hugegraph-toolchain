@@ -1066,6 +1066,7 @@
     }
   },
   "operations": {
+    "advanced_monitoring": "高级监控",
     "section": "系统与运维",
     "overview": "集群概览",
     "overview_description": "快速了解集群拓扑、服务层级与节点状态。",

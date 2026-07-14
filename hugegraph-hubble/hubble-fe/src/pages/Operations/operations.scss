@@ -54,6 +54,14 @@
     line-height: 22px;
 }
 
+.operations-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 .operations-eyebrow {
     color: var(--workbench-color-brand-strong);
     font-size: 12px;

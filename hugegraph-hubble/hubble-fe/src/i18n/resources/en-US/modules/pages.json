@@ -1066,6 +1066,7 @@
     }
   },
   "operations": {
+    "advanced_monitoring": "Advanced monitoring",
     "section": "System & Operations",
     "overview": "Cluster Overview",
     "overview_description": "Understand cluster topology, service tiers and node status at a glance.",
