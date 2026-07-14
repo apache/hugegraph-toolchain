@@ -73,6 +73,21 @@ div.nav {
   margin-left: 10px;
 }
 
+.userMenuTrigger {
+  display: inline-flex;
+  height: 32px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 6px;
+  color: #fff !important;
+
+  &:hover,
+  &:focus-visible {
+    color: #fff !important;
+    background: rgba(255, 255, 255, 0.12) !important;
+  }
+}
+
 .languageSwitch {
   :global(.ant-radio-button-wrapper) {
     height: 24px;

@@ -77,8 +77,8 @@ jest.mock('antd', () => {
         Space: ({children}) => <div>{children}</div>,
         Avatar: () => <span>avatar</span>,
         Button: ({children, icon, ...props}) => <button {...props}>{icon}{children}</button>,
-        Dropdown: ({children, menu}) => (
-            <div>
+        Dropdown: ({children, menu, trigger}) => (
+            <div data-testid='user-dropdown' data-trigger={trigger?.join(',')}>
                 {children}
                 {menu?.items?.map(item => (
                     <button key={item.key} type='button' onClick={menu.onClick}>
@@ -179,7 +179,7 @@ describe('Topbar request errors', () => {
         )).toBeNull();
     });
 
-    it('localizes the built-in admin nickname instead of leaking Chinese', () => {
+    it('localizes the built-in admin nickname instead of leaking Chinese', async () => {
         sessionStorage.setItem('user_', JSON.stringify({
             id: 'admin',
             user_name: 'admin',
@@ -196,6 +196,12 @@ describe('Topbar request errors', () => {
             </MemoryRouter>
         );
 
+        await waitFor(() => {
+            expect(screen.getByRole('option', {
+                name: 'workbench.context.default_graphspace',
+            })).toBeInTheDocument();
+        });
+
         expect(screen.getByText('Topbar.super_admin')).toBeInTheDocument();
         expect(screen.getByRole('link', {name: 'workbench.back_home'}))
             .toHaveAttribute('href', '/navigation');
@@ -205,6 +211,10 @@ describe('Topbar request errors', () => {
         expect(screen.getByRole('button', {
             name: 'workbench.shortcuts.open_button',
         })).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Topbar.user_menu'}))
+            .toHaveAttribute('aria-haspopup', 'menu');
+        expect(screen.getByTestId('user-dropdown'))
+            .toHaveAttribute('data-trigger', 'click');
     });
 
     it('logs out immediately without a confirmation dialog', async () => {

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Layout, Space, Avatar, Button, Dropdown, message, Radio} from 'antd';
+import {Layout, Avatar, Button, Dropdown, message, Radio} from 'antd';
 import {QuestionCircleOutlined, UserOutlined} from '@ant-design/icons';
 import style from './index.module.scss';
 import BrandLockup from '../BrandLockup';
@@ -142,11 +142,16 @@ const Topbar = () => {
                     title={t('workbench.shortcuts.open_button')}
                     onClick={showShortcutHelp}
                 />
-                <Dropdown menu={userMenu}>
-                    <Space className={style.right}>
+                <Dropdown menu={userMenu} trigger={['click']}>
+                    <Button
+                        type='text'
+                        className={`${style.right} ${style.userMenuTrigger}`}
+                        aria-label={t('Topbar.user_menu')}
+                        aria-haspopup='menu'
+                    >
                         <Avatar size={'small'} icon={<UserOutlined />} />
                         <span>{userLabel}</span>
-                    </Space>
+                    </Button>
                 </Dropdown>
             </div>
         </Layout.Header>
