@@ -160,10 +160,10 @@ public class GraphsServiceDefaultTest {
         Mockito.when(personA.label()).thenReturn("人物");
         Mockito.when(personB.label()).thenReturn("人物");
         Mockito.when(relation.label()).thenReturn("关系");
-        Mockito.when(graph.listVertices(10001))
-               .thenReturn(Arrays.asList(personA, personB));
-        Mockito.when(graph.listEdges(10001))
-               .thenReturn(Collections.singletonList(relation));
+        Mockito.when(graph.iterateVertices(1000))
+               .thenReturn(Arrays.asList(personA, personB).iterator());
+        Mockito.when(graph.iterateEdges(1000))
+               .thenReturn(Collections.singletonList(relation).iterator());
 
         GraphStatisticsEntity result =
                 this.service.postSmallStatistics(this.client, "DEFAULT", "demo");
@@ -172,5 +172,30 @@ public class GraphsServiceDefaultTest {
         Assert.assertEquals("1", result.getEdgeCount());
         Assert.assertEquals(2, result.getVertices().get("人物"));
         Assert.assertEquals(1, result.getEdges().get("关系"));
+    }
+
+    @Test
+    public void testSmallStatisticsStopsBeforeLoadingEdgesAboveLimit() {
+        QueryService query = Mockito.mock(QueryService.class);
+        Mockito.when(query.executeQueryCount(Mockito.eq(this.client),
+                                             Mockito.anyString()))
+               .thenThrow(new ExternalException("gremlin.execute.failed"));
+        ReflectionTestUtils.setField(this.service, "queryService", query);
+
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        Mockito.when(this.client.graph()).thenReturn(graph);
+        Vertex vertex = Mockito.mock(Vertex.class);
+        Mockito.when(vertex.label()).thenReturn("person");
+        Mockito.when(graph.iterateVertices(1000))
+               .thenReturn(Collections.nCopies(10001, vertex).iterator());
+
+        try {
+            this.service.postSmallStatistics(this.client, "DEFAULT", "demo");
+            Assert.fail("Expected bounded statistics failure");
+        } catch (ExternalException ignored) {
+            // Expected: the fallback stops as soon as the limit is exceeded.
+        }
+
+        Mockito.verify(graph, Mockito.never()).iterateEdges(Mockito.anyInt());
     }
 }
