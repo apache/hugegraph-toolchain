@@ -368,39 +368,39 @@ public class HubbleOptions extends OptionHolder {
                     5000
             );
 
-    public static final ConfigListOption<String> OPERATIONS_STORE_ALLOWED_HOSTS =
+    public static final ConfigListOption<String> OPERATIONS_STORE_ALLOWED_TARGETS =
             new ConfigListOption<>(
-                    "operations.store.allowed_hosts",
-                    "Operator-managed Store metric host allowlist.",
+                    "operations.store.allowed_targets",
+                    "Operator-managed Store metric origin allowlist.",
                     input -> !CollectionUtils.isEmpty(input) &&
                              input.stream().allMatch(
-                                   HubbleOptions::validOperationsStoreHost),
-                    "127.0.0.1", "::1"
+                                   HubbleOptions::validOperationsStoreTarget),
+                    "http://127.0.0.1:8520", "http://[::1]:8520"
             );
 
-    private static boolean validOperationsStoreHost(String value) {
+    private static boolean validOperationsStoreTarget(String value) {
         if (value == null || value.trim().isEmpty()) {
             return false;
         }
-        String host = value.trim();
-        if (host.contains("/") || host.contains("@") || host.contains("?") ||
-            host.contains("#") || host.contains("*") ||
-            host.matches(".*\\s+.*")) {
+        String origin = value.trim();
+        if (origin.contains("*") || origin.matches(".*\\s+.*")) {
             return false;
         }
-        if (host.startsWith("[") && host.endsWith("]")) {
-            host = host.substring(1, host.length() - 1);
-        } else if (host.startsWith("[") || host.endsWith("]")) {
-            return false;
-        }
-        if (host.indexOf(':') >= 0) {
-            try {
-                return URI.create("http://[" + host + "]:80").getHost() != null;
-            } catch (IllegalArgumentException e) {
+        try {
+            URI target = URI.create(origin);
+            String scheme = target.getScheme();
+            if (!("http".equalsIgnoreCase(scheme) ||
+                  "https".equalsIgnoreCase(scheme)) ||
+                target.getHost() == null || target.getPort() <= 0 ||
+                target.getPort() > 65535 || target.getUserInfo() != null ||
+                target.getQuery() != null || target.getFragment() != null) {
                 return false;
             }
+            String path = target.getPath();
+            return path == null || path.isEmpty();
+        } catch (IllegalArgumentException e) {
+            return false;
         }
-        return HubbleUtil.HOST_PATTERN.matcher(host).matches();
     }
 
     public static final ConfigOption<String> OPERATIONS_PD_USERNAME =

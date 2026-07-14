@@ -273,8 +273,22 @@ public class ExceptionAdvisor {
 
     private static final Pattern URL = Pattern.compile(
             "(?i)https?://[^\\s]+", Pattern.CASE_INSENSITIVE);
+    private static final String SENSITIVE_KEY =
+            "(?:token|password|secret(?:[_-]?key)?|api[_-]?key|" +
+            "client[_-]?secret|credential|endpoint)";
     private static final Pattern SECRET_PARAMETER = Pattern.compile(
-            "(?i)([?&\\s](?:token|password|endpoint)=)[^&\\s]+",
+            "(?i)([?&\\s]" + SENSITIVE_KEY + "=)[^&\\s]+",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern AUTHORIZATION_SECRET = Pattern.compile(
+            "(?i)(authorization\\s*[:=]\\s*(?:basic|bearer)\\s+)[^\\s,;]+",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern JSON_SECRET = Pattern.compile(
+            "(?i)([\"']" + SENSITIVE_KEY + "[\"']" +
+            "\\s*:\\s*[\"'])[^\"']*([\"'])",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern KEY_VALUE_SECRET = Pattern.compile(
+            "(?i)((?:" + SENSITIVE_KEY + ")\\s*[:=]\\s*)" +
+            "(?:\"[^\"]*\"|'[^']*'|[^\\s,;}&]+)",
             Pattern.CASE_INSENSITIVE);
     private static final Pattern NETWORK_ENDPOINT = Pattern.compile(
             "(?i)(?:/)?(?:\\d{1,3}\\.){3}\\d{1,3}:\\d+(?:/[^\\s]*)?");
@@ -297,7 +311,13 @@ public class ExceptionAdvisor {
         if (value == null) {
             return "request_failure";
         }
-        String sanitized = SECRET_PARAMETER.matcher(value)
+        String sanitized = AUTHORIZATION_SECRET.matcher(value)
+                                               .replaceAll("$1[REDACTED]");
+        sanitized = JSON_SECRET.matcher(sanitized)
+                               .replaceAll("$1[REDACTED]$2");
+        sanitized = KEY_VALUE_SECRET.matcher(sanitized)
+                                    .replaceAll("$1[REDACTED]");
+        sanitized = SECRET_PARAMETER.matcher(sanitized)
                                            .replaceAll("$1[REDACTED]");
         sanitized = URL.matcher(sanitized).replaceAll("[REDACTED]");
         return NETWORK_ENDPOINT.matcher(sanitized)

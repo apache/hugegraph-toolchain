@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.InetAddress;
 import java.net.URI;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
@@ -42,7 +43,43 @@ public class OperationsHttpClientTest {
     @Test(expected = IllegalArgumentException.class)
     public void testRejectsTargetOutsideDiscoverySet() {
         OperationsHttpClient.validateTarget(URI.create("http://127.0.0.1:9"),
-                Collections.singleton("127.0.0.1:10"));
+                Collections.singleton("http://127.0.0.1:10"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRejectsSameAuthorityWithWrongScheme() {
+        OperationsHttpClient.validateTarget(
+                URI.create("https://store.internal:8520"),
+                Collections.singleton("http://store.internal:8520"));
+    }
+
+    @Test
+    public void testHttpsResolutionPreservesHostnameForTlsVerification()
+                     throws IOException {
+        URI target = URI.create(
+                     "https://store.internal:9443/metrics/system");
+
+        URI resolved = OperationsHttpClient.resolveTarget(
+                       target, new InetAddress[]{
+                       InetAddress.getByName("10.0.0.8")});
+
+        Assert.assertEquals(target, resolved);
+    }
+
+    @Test
+    public void testPinnedDnsReturnsOnlyPrevalidatedAddresses()
+                     throws IOException {
+        InetAddress pinned = InetAddress.getByName("10.0.0.8");
+
+        java.util.List<InetAddress> resolved = OperationsHttpClient.pinnedDns(
+                "store.internal", new InetAddress[]{pinned})
+                .lookup("store.internal");
+
+        Assert.assertEquals(Collections.singletonList(pinned), resolved);
+        Assert.assertThrows(UnknownHostException.class, () ->
+                OperationsHttpClient.pinnedDns(
+                        "store.internal", new InetAddress[]{pinned})
+                        .lookup("other.internal"));
     }
 
     @Test(expected = IllegalArgumentException.class)

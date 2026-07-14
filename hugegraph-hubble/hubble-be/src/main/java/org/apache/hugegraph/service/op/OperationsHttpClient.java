@@ -21,22 +21,31 @@ package org.apache.hugegraph.service.op;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.InetAddress;
+import java.net.Proxy;
 import java.net.SocketTimeoutException;
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Dns;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class OperationsHttpClient {
 
     private final int connectTimeoutMillis;
     private final int readTimeoutMillis;
     private final int maxResponseBytes;
+    private final OkHttpClient client;
 
     public OperationsHttpClient(int connectTimeoutMillis,
                                 int readTimeoutMillis,
@@ -49,6 +58,14 @@ public class OperationsHttpClient {
         this.connectTimeoutMillis = connectTimeoutMillis;
         this.readTimeoutMillis = readTimeoutMillis;
         this.maxResponseBytes = maxResponseBytes;
+        this.client = new OkHttpClient.Builder()
+                .connectTimeout(this.connectTimeoutMillis,
+                                TimeUnit.MILLISECONDS)
+                .readTimeout(this.readTimeoutMillis, TimeUnit.MILLISECONDS)
+                .followRedirects(false)
+                .followSslRedirects(false)
+                .proxy(Proxy.NO_PROXY)
+                .build();
     }
 
     public String get(URI target, String username, String password) {
@@ -56,63 +73,66 @@ public class OperationsHttpClient {
     }
 
     public String get(URI target, String username, String password,
-                      Set<String> allowedTargets) {
-        return this.get(target, username, password, allowedTargets,
+                      Set<String> allowedOrigins) {
+        return this.get(target, username, password, allowedOrigins,
                         "application/json");
     }
 
     public String get(URI target, String username, String password,
-                      Set<String> allowedTargets, String accept) {
-        validateTarget(target, allowedTargets);
-        URI resolvedTarget = resolveTarget(target);
+                      Set<String> allowedOrigins, String accept) {
+        validateTarget(target, allowedOrigins);
         if (!"application/json".equals(accept) &&
             !"text/plain".equals(accept)) {
             throw new IllegalArgumentException("Invalid operations media type");
         }
-        HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) resolvedTarget.toURL()
-                                                         .openConnection();
-            connection.setConnectTimeout(this.connectTimeoutMillis);
-            connection.setReadTimeout(this.readTimeoutMillis);
-            connection.setRequestMethod("GET");
-            connection.setInstanceFollowRedirects(false);
-            connection.setRequestProperty("Accept", accept);
-            connection.setRequestProperty("Host", target.getRawAuthority());
+            InetAddress[] addresses = InetAddress.getAllByName(target.getHost());
+            validateResolvedAddresses(target.getHost(), addresses);
+            OkHttpClient requestClient = this.client.newBuilder()
+                    .dns(pinnedDns(target.getHost(), addresses))
+                    .build();
+            Request.Builder request = new Request.Builder()
+                    .url(target.toString())
+                    .get()
+                    .header("Accept", accept);
             if (username != null && !username.trim().isEmpty()) {
                 String credential = username + ':' +
                                     (password == null ? "" : password);
                 String encoded = Base64.getEncoder().encodeToString(
                         credential.getBytes(StandardCharsets.UTF_8));
-                connection.setRequestProperty("Authorization",
-                                              "Basic " + encoded);
+                request.header("Authorization", "Basic " + encoded);
             }
-            int status = connection.getResponseCode();
-            if (status < 200 || status >= 300) {
-                throw new UpstreamRequestException(
-                          "upstream_http_status_" + status);
-            }
-            int contentLength = connection.getContentLength();
-            if (contentLength > this.maxResponseBytes) {
-                throw new UpstreamResponseTooLargeException();
-            }
-            try (InputStream input = connection.getInputStream()) {
-                return this.readLimited(input);
+            try (Response response = requestClient.newCall(request.build())
+                                              .execute()) {
+                int status = response.code();
+                if (status < 200 || status >= 300) {
+                    throw new UpstreamRequestException(
+                              "upstream_http_status_" + status);
+                }
+                ResponseBody body = response.body();
+                if (body == null) {
+                    throw new UpstreamRequestException("upstream_empty_body");
+                }
+                if (body.contentLength() > this.maxResponseBytes) {
+                    throw new UpstreamResponseTooLargeException();
+                }
+                try (InputStream input = body.byteStream()) {
+                    return this.readLimited(input);
+                }
             }
         } catch (UpstreamRequestException e) {
             throw e;
         } catch (SocketTimeoutException e) {
             throw new UpstreamRequestException("upstream_timeout", e);
+        } catch (UnknownHostException e) {
+            throw new IllegalArgumentException("Unresolvable operations target",
+                                               e);
         } catch (IOException e) {
             throw new UpstreamRequestException("upstream_unavailable", e);
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
         }
     }
 
-    public static void validateTarget(URI target, Set<String> allowedTargets) {
+    public static void validateTarget(URI target, Set<String> allowedOrigins) {
         if (target == null || target.getScheme() == null ||
             target.getHost() == null || target.getUserInfo() != null ||
             target.getFragment() != null) {
@@ -126,9 +146,9 @@ public class OperationsHttpClient {
         if (port < 0) {
             port = "https".equals(scheme) ? 443 : 80;
         }
-        String authority = normalizedHost(target) + ':' + port;
-        if (allowedTargets != null && !allowedTargets.isEmpty() &&
-            !allowedTargets.contains(authority)) {
+        String origin = scheme + "://" + normalizedHost(target) + ':' + port;
+        if (allowedOrigins != null && !allowedOrigins.isEmpty() &&
+            !allowedOrigins.contains(origin)) {
             throw new IllegalArgumentException("Untrusted operations target");
         }
     }
@@ -143,19 +163,37 @@ public class OperationsHttpClient {
         return normalizedHost(target) + ':' + port;
     }
 
+    public static String origin(URI target) {
+        validateTarget(target, Set.of());
+        return target.getScheme().toLowerCase(Locale.ROOT) + "://" +
+               authority(target);
+    }
+
     static URI resolveTarget(URI target) {
         validateTarget(target, Set.of());
         try {
             InetAddress[] addresses = InetAddress.getAllByName(target.getHost());
-            validateResolvedAddresses(target.getHost(), addresses);
-            InetAddress pinned = addresses[0];
-            return new URI(target.getScheme(), null,
-                           pinned.getHostAddress(), target.getPort(),
-                           target.getPath(), target.getQuery(), null);
-        } catch (UnknownHostException | URISyntaxException e) {
+            return resolveTarget(target, addresses);
+        } catch (UnknownHostException e) {
             throw new IllegalArgumentException("Unresolvable operations target",
                                                e);
         }
+    }
+
+    static URI resolveTarget(URI target, InetAddress[] addresses) {
+        validateTarget(target, Set.of());
+        validateResolvedAddresses(target.getHost(), addresses);
+        return target;
+    }
+
+    static Dns pinnedDns(String expectedHost, InetAddress[] addresses) {
+        List<InetAddress> pinned = Arrays.asList(addresses.clone());
+        return hostname -> {
+            if (!expectedHost.equalsIgnoreCase(hostname)) {
+                throw new UnknownHostException("Unexpected operations host");
+            }
+            return pinned;
+        };
     }
 
     static void validateResolvedAddresses(String requestedHost,

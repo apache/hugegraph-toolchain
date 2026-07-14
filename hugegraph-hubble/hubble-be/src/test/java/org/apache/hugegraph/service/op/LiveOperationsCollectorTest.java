@@ -450,7 +450,7 @@ public class LiveOperationsCollectorTest {
     }
 
     @Test
-    public void testOperatorAllowlistRejectsPdDiscoveredHost() {
+    public void testOperatorAllowlistRejectsWrongOrigin() {
         RecordingHttpClient http = new RecordingHttpClient(
                 storesWithRestAddresses(1, 8520),
                 targets("127.0.0.1:8520"));
@@ -458,7 +458,8 @@ public class LiveOperationsCollectorTest {
                 true, "http://pd:8620", "hubble", "secret",
                 "store-hubble", "store-secret", "server-under-test", http,
                 new OperationsPayloadParser(new ObjectMapper()), CLOCK,
-                4, 1000, Collections.singleton("store.internal"));
+                4, 1000, Collections.singleton(
+                         "http://store.internal:8520"));
         Snapshot snapshot;
         try {
             snapshot = collector.collect(serverClient(), true);
@@ -472,7 +473,7 @@ public class LiveOperationsCollectorTest {
     }
 
     @Test
-    public void testOperatorAllowlistAcceptsExactPrivateStoreHost() {
+    public void testOperatorAllowlistAcceptsExactPrivateStoreOrigin() {
         String stores = "{\"status\":0,\"data\":{\"stores\":[{" +
                         "\"storeId\":\"1\",\"address\":" +
                         "\"store.internal:8500\",\"restAddress\":" +
@@ -483,7 +484,53 @@ public class LiveOperationsCollectorTest {
                 true, "http://pd:8620", "hubble", "secret",
                 "store-hubble", "store-secret", "server-under-test", http,
                 new OperationsPayloadParser(new ObjectMapper()), CLOCK,
-                4, 1000, Collections.singleton("store.internal"));
+                4, 1000, Collections.singleton(
+                         "http://store.internal:8520"));
+        Snapshot snapshot;
+        try {
+            snapshot = collector.collect(serverClient(), true);
+        } finally {
+            collector.close();
+        }
+
+        Assert.assertEquals(3, http.metricRequests());
+        Assert.assertEquals("AVAILABLE",
+                            snapshot.getSources().get("stores")
+                                    .getAvailability());
+    }
+
+    @Test
+    public void testOperatorAllowlistRejectsWrongPort() {
+        RecordingHttpClient http = new RecordingHttpClient(
+                storesWithRestAddresses(1, 8520),
+                targets("127.0.0.1:8520"));
+        LiveOperationsCollector collector = new LiveOperationsCollector(
+                true, "http://pd:8620", "hubble", "secret",
+                "store-hubble", "store-secret", "server-under-test", http,
+                new OperationsPayloadParser(new ObjectMapper()), CLOCK,
+                4, 1000, Collections.singleton("http://127.0.0.1:9520"));
+        Snapshot snapshot;
+        try {
+            snapshot = collector.collect(serverClient(), true);
+        } finally {
+            collector.close();
+        }
+
+        Assert.assertEquals(0, http.metricRequests());
+        Assert.assertEquals("metrics_target_untrusted",
+                            snapshot.getSources().get("stores").getReason());
+    }
+
+    @Test
+    public void testOperatorAllowlistAcceptsConfiguredHttpsOrigin() {
+        RecordingHttpClient http = new RecordingHttpClient(
+                storesWithRestAddresses(1, 8520),
+                targetsWithScheme("https", "127.0.0.1:8520"));
+        LiveOperationsCollector collector = new LiveOperationsCollector(
+                true, "http://pd:8620", "hubble", "secret",
+                "store-hubble", "store-secret", "server-under-test", http,
+                new OperationsPayloadParser(new ObjectMapper()), CLOCK,
+                4, 1000, Collections.singleton("https://127.0.0.1:8520"));
         Snapshot snapshot;
         try {
             snapshot = collector.collect(serverClient(), true);
@@ -647,7 +694,10 @@ public class LiveOperationsCollectorTest {
         return new LiveOperationsCollector(pdEnabled, pdBase, "hubble", "secret",
                 "store-hubble", "store-secret",
                 "server-under-test", http,
-                new OperationsPayloadParser(new ObjectMapper()), CLOCK);
+                new OperationsPayloadParser(new ObjectMapper()), CLOCK,
+                16, 5000, pd == null ? Collections.singleton(
+                        "http://127.0.0.1:8520") : Collections.singleton(
+                        "http://127.0.0.1:" + pd.getAddress().getPort()));
     }
 
     private static LiveOperationsCollector collector(RecordingHttpClient http,
@@ -657,7 +707,10 @@ public class LiveOperationsCollectorTest {
                 "secret", "store-hubble", "store-secret",
                 "server-under-test", http,
                 new OperationsPayloadParser(new ObjectMapper()), CLOCK,
-                threads, deadlineMillis);
+                threads, deadlineMillis, new java.util.LinkedHashSet<>(
+                        java.util.Arrays.asList("http://127.0.0.1:8520",
+                                              "http://127.0.0.1:9520",
+                                              "http://[::1]:8520")));
     }
 
     private static HugeClient serverClient() {
@@ -783,6 +836,11 @@ public class LiveOperationsCollectorTest {
     }
 
     private static String targets(String... authorities) {
+        return targetsWithScheme("http", authorities);
+    }
+
+    private static String targetsWithScheme(String scheme,
+                                            String... authorities) {
         StringBuilder builder = new StringBuilder("[{\"targets\":[");
         for (int i = 0; i < authorities.length; i++) {
             if (i > 0) {
@@ -792,7 +850,8 @@ public class LiveOperationsCollectorTest {
         }
         return builder.append("],\"labels\":{" +
                               "\"__app_name\":\"store\"," +
-                              "\"__scheme__\":\"http\"}}]").toString();
+                              "\"__scheme__\":\"").append(scheme)
+                      .append("\"}}]").toString();
     }
 
     private static final class RecordingHttpClient

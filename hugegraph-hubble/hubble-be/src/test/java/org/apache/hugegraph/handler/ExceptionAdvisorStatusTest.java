@@ -152,6 +152,35 @@ public class ExceptionAdvisorStatusTest {
         Assert.assertTrue(diagnostic.contains("[REDACTED]"));
     }
 
+    @Test
+    public void testDiagnosticRedactsNestedStructuredSecrets() {
+        RuntimeException failure = new RuntimeException(
+                "Authorization: Basic YmFzaWMtY2FuYXJ5 " +
+                "{\"apiKey\":\"json-canary\"," +
+                "\"secretKey\":\"secret-key-canary\"," +
+                "\"client_secret\":\"client-secret-canary\"," +
+                "\"secret\":\"secret-canary\"}",
+                new IllegalStateException(
+                        "token=token-canary credential=credential-canary"));
+        failure.addSuppressed(new IllegalArgumentException(
+                "password: password-canary, api_key=key-canary, " +
+                "endpoint: endpoint-canary"));
+
+        String diagnostic = ExceptionAdvisor.safeStackTrace(failure);
+
+        Assert.assertFalse(diagnostic.contains("YmFzaWMtY2FuYXJ5"));
+        Assert.assertFalse(diagnostic.contains("json-canary"));
+        Assert.assertFalse(diagnostic.contains("secret-canary"));
+        Assert.assertFalse(diagnostic.contains("secret-key-canary"));
+        Assert.assertFalse(diagnostic.contains("client-secret-canary"));
+        Assert.assertFalse(diagnostic.contains("token-canary"));
+        Assert.assertFalse(diagnostic.contains("credential-canary"));
+        Assert.assertFalse(diagnostic.contains("password-canary"));
+        Assert.assertFalse(diagnostic.contains("key-canary"));
+        Assert.assertFalse(diagnostic.contains("endpoint-canary"));
+        Assert.assertTrue(diagnostic.contains("[REDACTED]"));
+    }
+
     private static void operationsRequest() {
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
                 new MockHttpServletRequest("GET", "/api/v1.3/operations/nodes")));
