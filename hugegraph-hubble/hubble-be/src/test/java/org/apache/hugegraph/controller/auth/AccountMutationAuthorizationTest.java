@@ -272,6 +272,19 @@ public class AccountMutationAuthorizationTest {
     }
 
     @Test
+    public void testDeleteUsesFetchedCanonicalUserId() {
+        TestUserController controller = accountController("admin", "ADMIN");
+        UserEntity current = account("canonical-id", "bob", false);
+        Mockito.when(this.authorizationService.get(this.client, "lookup-id"))
+               .thenReturn(current);
+
+        controller.delete("lookup-id");
+
+        Mockito.verify(this.authorizationService)
+               .delete(this.client, "canonical-id");
+    }
+
+    @Test
     public void testExplicitFalseSuperadminFieldRevokesCurrentGrant() {
         TestUserController controller = new TestUserController(this.client,
                                                                "admin");

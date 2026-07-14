@@ -106,7 +106,7 @@ public class UserController extends BaseController {
             throw new ForbiddenException(
                     "Permission denied: modify superadmin");
         }
-        userEntity.setId(current.getId() == null ? id : current.getId());
+        userEntity.setId(current.getId());
         userEntity.setName(current.getName());
         if (!userEntity.hasSuperadmin()) {
             userEntity.setSuperadmin(current.isSuperadmin());
@@ -122,8 +122,7 @@ public class UserController extends BaseController {
     public void delete(@PathVariable("id") String id) {
         HugeClient client = this.requireAccountManager();
         UserEntity current = this.userService.get(client, id);
-        userService.delete(client, current.getId() == null ? id :
-                           current.getId());
+        userService.delete(client, current.getId());
     }
 
     @PostMapping("updatepwd")
