@@ -20,6 +20,7 @@ package org.apache.hugegraph.config;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -32,6 +33,11 @@ import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
@@ -43,6 +49,11 @@ public class DatabaseSchemaMigrator implements ApplicationRunner {
     private static final String FILE_MAPPING_PATH_COLUMN = "path";
     private static final String EXECUTE_HISTORY_TABLE = "execute_history";
     private static final String FAILURE_REASON_COLUMN = "failure_reason";
+    private static final String LOAD_TASK_TABLE = "load_task";
+    private static final String[] LOAD_OPTION_CREDENTIALS = {
+        "password", "token", "pdToken", "trustStoreToken"
+    };
+    private static final ObjectMapper JSON = new ObjectMapper();
 
     @Autowired
     private DataSource dataSource;
@@ -62,6 +73,7 @@ public class DatabaseSchemaMigrator implements ApplicationRunner {
         }
 
         this.migrateExecuteHistoryFailureReason(conn);
+        this.removeLegacyLoadTaskCredentials(conn);
     }
 
     private void migrateFileMappingPath(Connection conn, int currentLength)
@@ -105,6 +117,59 @@ public class DatabaseSchemaMigrator implements ApplicationRunner {
                               "`failure_reason` VARCHAR(64) DEFAULT NULL");
         }
         log.info("Added execute_history.failure_reason VARCHAR(64)");
+    }
+
+    private void removeLegacyLoadTaskCredentials(Connection conn)
+            throws SQLException {
+        if (!this.tableExists(conn, LOAD_TASK_TABLE)) {
+            return;
+        }
+
+        int updated = 0;
+        try (Statement select = conn.createStatement();
+             ResultSet rows = select.executeQuery(
+                     "SELECT `id`, `options` FROM `load_task`");
+             PreparedStatement update = conn.prepareStatement(
+                     "UPDATE `load_task` SET `options` = ? WHERE `id` = ?")) {
+            while (rows.next()) {
+                int id = rows.getInt(1);
+                String options = rows.getString(2);
+                String sanitized = this.removeCredentials(options, id);
+                if (sanitized == null) {
+                    continue;
+                }
+                update.setString(1, sanitized);
+                update.setInt(2, id);
+                update.addBatch();
+                updated++;
+            }
+            if (updated > 0) {
+                update.executeBatch();
+            }
+        }
+        if (updated > 0) {
+            log.info("Removed credentials from {} legacy load tasks", updated);
+        }
+    }
+
+    private String removeCredentials(String options, int id)
+            throws SQLException {
+        try {
+            JsonNode parsed = JSON.readTree(options);
+            if (!(parsed instanceof ObjectNode)) {
+                throw new SQLException("Invalid load task options for task " +
+                                       id);
+            }
+            ObjectNode object = (ObjectNode) parsed;
+            boolean changed = false;
+            for (String credential : LOAD_OPTION_CREDENTIALS) {
+                changed |= object.remove(credential) != null;
+            }
+            return changed ? JSON.writeValueAsString(object) : null;
+        } catch (JsonProcessingException e) {
+            throw new SQLException("Failed to sanitize load task options for " +
+                                   "task " + id, e);
+        }
     }
 
     private boolean tableExists(Connection conn, String table)

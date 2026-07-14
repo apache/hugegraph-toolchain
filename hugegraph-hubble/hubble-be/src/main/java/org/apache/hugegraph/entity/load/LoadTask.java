@@ -26,6 +26,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.apache.hugegraph.annotation.MergeProperty;
 import org.apache.hugegraph.entity.GraphConnection;
 import org.apache.hugegraph.entity.enums.LoadStatus;
+import org.apache.hugegraph.exception.InternalException;
 import org.apache.hugegraph.loader.HugeGraphLoader;
 import org.apache.hugegraph.loader.executor.LoadContext;
 import org.apache.hugegraph.loader.executor.LoadOptions;
@@ -227,6 +228,24 @@ public class LoadTask implements Runnable {
         }
         this.loader = null;
         log.info("LoadTask {} stopped", this.id);
+    }
+
+    public void reconnect(String token) {
+        Ex.check(token != null && !token.isEmpty(),
+                 "A current authentication token is required to resume loading");
+        Ex.check(this.options != null, "Load options shouldn't be null");
+        try {
+            LoadOptions runtimeOptions = (LoadOptions) this.options.clone();
+            runtimeOptions.password = null;
+            runtimeOptions.token = token;
+            runtimeOptions.pdToken = null;
+            runtimeOptions.trustStoreToken = null;
+            this.loader = new HugeGraphLoader(runtimeOptions);
+            this.finished = false;
+        } catch (CloneNotSupportedException e) {
+            throw new InternalException("Failed to prepare load task options",
+                                        e);
+        }
     }
 
     public LoadContext context() {

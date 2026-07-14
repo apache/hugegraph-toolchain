@@ -226,7 +226,7 @@ public class LoadTaskController extends BaseController {
         Ex.check(jobEntity.getJobStatus() == JobStatus.LOADING,
                  "load.task.pause.no-permission");
         try {
-            return this.service.resume(taskId);
+            return this.service.resume(taskId, this.getToken());
         } finally {
             jobEntity.setJobStatus(JobStatus.LOADING);
             jobEntity.setUpdateTime(HubbleUtil.nowDate());
@@ -266,7 +266,7 @@ public class LoadTaskController extends BaseController {
         Ex.check(jobEntity.getJobStatus() == JobStatus.LOADING,
                  "load.task.pause.no-permission");
         try {
-            return this.service.retry(taskId);
+            return this.service.retry(taskId, this.getToken());
         } finally {
             jobEntity.setJobStatus(JobStatus.LOADING);
             jobEntity.setUpdateTime(HubbleUtil.nowDate());

@@ -92,6 +92,40 @@ public class FileMappingSchemaTest {
         }
     }
 
+    @Test
+    public void testSchemaMigratorRemovesLegacyLoadTaskCredentials()
+           throws Exception {
+        String url = "jdbc:h2:mem:load_task_credentials;DB_CLOSE_DELAY=-1";
+        try (Connection conn = DriverManager.getConnection(url);
+             Statement statement = conn.createStatement()) {
+            statement.execute("CREATE TABLE `load_task` (" +
+                              "`id` INT NOT NULL AUTO_INCREMENT, " +
+                              "`options` VARCHAR(65535) NOT NULL, " +
+                              "PRIMARY KEY (`id`))");
+            statement.execute("INSERT INTO `load_task` (`options`) VALUES (" +
+                              "'{\"graph\":\"hugegraph\"," +
+                              "\"password\":\"canary-password\"," +
+                              "\"token\":\"canary-token\"," +
+                              "\"pdToken\":\"canary-pd-token\"," +
+                              "\"trustStoreToken\":" +
+                              "\"canary-truststore-token\"," +
+                              "\"futureOption\":\"preserved\"}')");
+
+            DatabaseSchemaMigrator migrator = new DatabaseSchemaMigrator();
+            migrator.migrate(conn);
+            migrator.migrate(conn);
+
+            try (ResultSet rows = statement.executeQuery(
+                    "SELECT `options` FROM `load_task`")) {
+                Assert.assertTrue(rows.next());
+                String options = rows.getString(1);
+                Assert.assertFalse(options.contains("canary-"));
+                Assert.assertContains("futureOption", options);
+                Assert.assertContains("preserved", options);
+            }
+        }
+    }
+
     private void insertDeepPath(Connection conn, String deepPath)
             throws Exception {
         try (PreparedStatement insert = conn.prepareStatement(

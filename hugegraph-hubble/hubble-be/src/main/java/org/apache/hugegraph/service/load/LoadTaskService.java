@@ -166,15 +166,44 @@ public class LoadTaskService {
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void save(LoadTask entity) {
-        if (this.mapper.insert(entity) != 1) {
-            throw new InternalException("entity.insert.failed", entity);
+        LoadOptions runtimeOptions = entity.getOptions();
+        entity.setOptions(withoutCredentials(runtimeOptions));
+        try {
+            if (this.mapper.insert(entity) != 1) {
+                throw new InternalException("entity.insert.failed");
+            }
+        } finally {
+            entity.setOptions(runtimeOptions);
         }
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)
     public void update(LoadTask entity) {
-        if (this.mapper.updateById(entity) != 1) {
-            throw new InternalException("entity.update.failed", entity);
+        LoadOptions runtimeOptions = entity.getOptions();
+        entity.setOptions(withoutCredentials(runtimeOptions));
+        try {
+            if (this.mapper.updateById(entity) != 1) {
+                throw new InternalException("entity.update.failed");
+            }
+        } finally {
+            entity.setOptions(runtimeOptions);
+        }
+    }
+
+    private static LoadOptions withoutCredentials(LoadOptions options) {
+        if (options == null) {
+            return null;
+        }
+        try {
+            LoadOptions persisted = (LoadOptions) options.clone();
+            persisted.password = null;
+            persisted.token = null;
+            persisted.pdToken = null;
+            persisted.trustStoreToken = null;
+            return persisted;
+        } catch (CloneNotSupportedException e) {
+            throw new InternalException("Failed to prepare load task options",
+                                        e);
         }
     }
 
@@ -291,7 +320,7 @@ public class LoadTaskService {
         return task;
     }
 
-    public LoadTask resume(int taskId) {
+    public LoadTask resume(int taskId, String token) {
         LoadTask task = this.get(taskId);
         Ex.check(task.getStatus() == LoadStatus.PAUSED ||
                  task.getStatus() == LoadStatus.FAILED,
@@ -300,6 +329,7 @@ public class LoadTaskService {
         try {
             // Set work mode in incrental mode, load from last breakpoint
             task.getOptions().incrementalMode = true;
+            task.reconnect(token);
             task.setStatus(LoadStatus.RUNNING);
             this.update(task);
             this.taskExecutor.execute(task, () -> this.update(task));
@@ -334,7 +364,7 @@ public class LoadTaskService {
         return task;
     }
 
-    public LoadTask retry(int taskId) {
+    public LoadTask retry(int taskId, String token) {
         LoadTask task = this.get(taskId);
         Ex.check(task.getStatus() == LoadStatus.FAILED ||
                  task.getStatus() == LoadStatus.STOPPED,
@@ -343,6 +373,7 @@ public class LoadTaskService {
         try {
             // Set work mode in normal mode, load from begin
             task.getOptions().incrementalMode = false;
+            task.reconnect(token);
             task.setStatus(LoadStatus.RUNNING);
             task.setLastDuration(0L);
             task.setCurrDuration(0L);

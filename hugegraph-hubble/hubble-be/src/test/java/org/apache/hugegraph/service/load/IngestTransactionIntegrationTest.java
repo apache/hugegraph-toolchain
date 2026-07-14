@@ -148,6 +148,39 @@ public class IngestTransactionIntegrationTest {
     }
 
     @Test
+    public void testServerTokenIsNotPersistedInLoadOptions() {
+        GraphConnection connection = this.connection();
+        connection.setToken("canary-server-token");
+
+        LoadTask task = this.jobService.createIngestTask(
+                this.job(), this.mapping(), connection, this.client());
+
+        String options = this.jdbc.queryForObject(
+                         "SELECT options FROM load_task WHERE id = ?",
+                         String.class, task.getId());
+        Assert.assertFalse(options.contains("canary-server-token"));
+        Assert.assertEquals("canary-server-token", task.getOptions().token);
+    }
+
+    @Test
+    public void testCredentialsAreNotPersistedWhenLoadTaskIsUpdated() {
+        LoadTask task = this.jobService.createIngestTask(
+                this.job(), this.mapping(), this.connection(), this.client());
+        task.getOptions().password = "canary-password";
+        task.getOptions().token = "canary-server-token";
+        task.getOptions().pdToken = "canary-pd-token";
+        task.getOptions().trustStoreToken = "canary-truststore-token";
+
+        this.taskService.update(task);
+
+        String options = this.jdbc.queryForObject(
+                         "SELECT options FROM load_task WHERE id = ?",
+                         String.class, task.getId());
+        Assert.assertFalse(options.contains("canary-"));
+        Assert.assertEquals("canary-server-token", task.getOptions().token);
+    }
+
+    @Test
     public void testRejectedDispatchCommitsFailedTaskAndJobWithoutThrowing() {
         this.executor.reject(true);
 
@@ -276,13 +309,15 @@ public class IngestTransactionIntegrationTest {
         public LoadTask start(GraphConnection connection, FileMapping mapping,
                               HugeClient client) {
             String graph = this.failTaskInsert ? null : connection.getGraph();
+            LoadOptions options = new LoadOptions();
+            options.token = connection.getToken();
             LoadTask task = LoadTask.builder()
                                     .graphSpace(connection.getGraphSpace())
                                     .graph(graph)
                                     .jobId(mapping.getJobId())
                                     .fileId(mapping.getId())
                                     .fileName(mapping.getName())
-                                    .options(new LoadOptions())
+                                    .options(options)
                                     .vertices(Collections.emptySet())
                                     .edges(Collections.emptySet())
                                     .fileTotalLines(mapping.getTotalLines())

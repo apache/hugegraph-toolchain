@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.junit.Test;
 
 import org.apache.hugegraph.entity.GraphConnection;
+import org.apache.hugegraph.entity.enums.LoadStatus;
 import org.apache.hugegraph.entity.load.FileMapping;
 import org.apache.hugegraph.entity.load.LoadParameter;
 import org.apache.hugegraph.entity.load.LoadTask;
@@ -99,6 +100,80 @@ public class LoadTaskServiceTest {
         } finally {
             TransactionSynchronizationManager.clearSynchronization();
         }
+    }
+
+    @Test
+    public void testResumeRehydratesLoaderWithCurrentSessionToken()
+           throws Exception {
+        LoadTaskService service = new LoadTaskService();
+        LoadTaskMapper mapper = Mockito.mock(LoadTaskMapper.class);
+        LoadTaskExecutor executor = Mockito.mock(LoadTaskExecutor.class);
+        LoadTask task = Mockito.mock(LoadTask.class);
+        LoadOptions options = new LoadOptions();
+        Mockito.when(mapper.selectById(9)).thenReturn(task);
+        Mockito.when(mapper.updateById(task)).thenReturn(1);
+        Mockito.when(task.getStatus()).thenReturn(LoadStatus.PAUSED);
+        Mockito.when(task.getOptions()).thenReturn(options);
+        this.setField(service, "mapper", mapper);
+        this.setField(service, "taskExecutor", executor);
+        this.setField(service, "runningTaskContainer",
+                      new ConcurrentHashMap<>());
+
+        LoadTask resumed = service.resume(9, "current-session-token");
+
+        Assert.assertSame(task, resumed);
+        Mockito.verify(task).reconnect("current-session-token");
+        Mockito.verify(executor).execute(Mockito.eq(task), Mockito.any());
+    }
+
+    @Test
+    public void testResumeDoesNotPersistRunningStateWhenReconnectFails()
+           throws Exception {
+        LoadTaskService service = new LoadTaskService();
+        LoadTaskMapper mapper = Mockito.mock(LoadTaskMapper.class);
+        LoadTaskExecutor executor = Mockito.mock(LoadTaskExecutor.class);
+        LoadTask task = Mockito.mock(LoadTask.class);
+        Mockito.when(mapper.selectById(9)).thenReturn(task);
+        Mockito.when(mapper.updateById(task)).thenReturn(1);
+        Mockito.when(task.getStatus()).thenReturn(LoadStatus.PAUSED);
+        Mockito.when(task.getOptions()).thenReturn(new LoadOptions());
+        Mockito.doThrow(new IllegalArgumentException("missing token"))
+               .when(task).reconnect("current-session-token");
+        this.setField(service, "mapper", mapper);
+        this.setField(service, "taskExecutor", executor);
+        this.setField(service, "runningTaskContainer",
+                      new ConcurrentHashMap<>());
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            service.resume(9, "current-session-token");
+        });
+
+        Mockito.verify(mapper, Mockito.never()).updateById(task);
+        Mockito.verify(executor, Mockito.never())
+               .execute(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testRetryRehydratesLoaderWithCurrentSessionToken()
+           throws Exception {
+        LoadTaskService service = new LoadTaskService();
+        LoadTaskMapper mapper = Mockito.mock(LoadTaskMapper.class);
+        LoadTaskExecutor executor = Mockito.mock(LoadTaskExecutor.class);
+        LoadTask task = Mockito.mock(LoadTask.class);
+        Mockito.when(mapper.selectById(9)).thenReturn(task);
+        Mockito.when(mapper.updateById(task)).thenReturn(1);
+        Mockito.when(task.getStatus()).thenReturn(LoadStatus.STOPPED);
+        Mockito.when(task.getOptions()).thenReturn(new LoadOptions());
+        this.setField(service, "mapper", mapper);
+        this.setField(service, "taskExecutor", executor);
+        this.setField(service, "runningTaskContainer",
+                      new ConcurrentHashMap<>());
+
+        LoadTask retried = service.retry(9, "current-session-token");
+
+        Assert.assertSame(task, retried);
+        Mockito.verify(task).reconnect("current-session-token");
+        Mockito.verify(executor).execute(Mockito.eq(task), Mockito.any());
     }
 
     @Test
