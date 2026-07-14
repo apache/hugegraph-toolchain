@@ -125,20 +125,17 @@ const Login = () => {
                     form={form}
                 >
                     <div className={style.formTools}>
-                        <span>{t('login.language')}</span>
                         <Radio.Group
+                            className={style.languageSwitch}
                             role='radiogroup'
                             aria-label={t('login.language')}
                             value={languageType}
                             onChange={handleLanguageChange}
-                            optionType='button'
-                            buttonStyle='solid'
                             size='small'
-                            options={[
-                                {label: 'CN', value: 'zh-CN'},
-                                {label: 'EN', value: 'en-US'},
-                            ]}
-                        />
+                        >
+                            <Radio.Button value='zh-CN'>中</Radio.Button>
+                            <Radio.Button value='en-US'>EN</Radio.Button>
+                        </Radio.Group>
                     </div>
                     <header className={style.formHeader}>
                         <span className={style.formEyebrow}>Apache HugeGraph</span>

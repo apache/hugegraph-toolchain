@@ -59,6 +59,15 @@ const getWorkbenchPageTitleKey = pathname => {
     if (/^\/(?:profile|my)\/?$/.test(pathname)) {
         return 'workbench.page.profile';
     }
+    if (/^\/operations\/overview\/?$/.test(pathname)) {
+        return 'operations.overview';
+    }
+    if (/^\/operations\/nodes\/[^/]+\/?$/.test(pathname)) {
+        return 'operations.node_detail';
+    }
+    if (/^\/operations\/nodes\/?$/.test(pathname)) {
+        return 'operations.nodes';
+    }
     return 'workbench.page.not_found';
 };
 

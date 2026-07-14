@@ -32,6 +32,7 @@ import org.junit.runners.Suite;
         GraphSpaceAPITest.class,
         ManagerAPITest.class,
         GraphsAPITest.class,
+        PDHugeClientFactoryTest.class,
         CommonUtilTest.class,
         IdUtilTest.class,
         SplicingIdGeneratorTest.class

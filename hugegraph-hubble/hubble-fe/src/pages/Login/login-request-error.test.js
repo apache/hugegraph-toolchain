@@ -130,7 +130,8 @@ describe('Login request errors', () => {
             </MemoryRouter>
         );
 
-        await userEvent.click(screen.getByRole('radio', {name: 'CN'}));
+        expect(screen.queryByText('login.language')).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('radio', {name: '中'}));
 
         expect(localStorage.getItem('languageType')).toBe('zh-CN');
     });

@@ -27,6 +27,12 @@ import org.apache.hugegraph.controller.schema.SchemaControllerSecurityTest;
 import org.apache.hugegraph.controller.space.GraphSpaceControllerTest;
 import org.apache.hugegraph.service.load.IngestTransactionIntegrationTest;
 import org.apache.hugegraph.service.space.GraphSpaceServiceTest;
+import org.apache.hugegraph.service.op.DefaultOperationsDataServiceTest;
+import org.apache.hugegraph.service.op.LiveOperationsCollectorTest;
+import org.apache.hugegraph.service.op.OperationsCapabilityServiceTest;
+import org.apache.hugegraph.service.op.OperationsHttpClientTest;
+import org.apache.hugegraph.service.op.OperationsIdentityContractTest;
+import org.apache.hugegraph.service.op.OperationsPayloadParserTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -45,6 +51,7 @@ import org.junit.runners.Suite;
     FileUtilTest.class,
     GraphServiceImportTest.class,
     GraphMetricsControllerTest.class,
+    HugeClientPoolServiceTest.class,
     GraphSpaceControllerTest.class,
     GraphSpaceAuthMutationAuthorizationTest.class,
     GraphSpaceAuthOwnershipTest.class,
@@ -66,6 +73,14 @@ import org.junit.runners.Suite;
     LoginAttemptGuardTest.class,
     OltpAlgoControllerTest.class,
     OltpAlgoServiceTest.class,
+    OperationsCapabilityServiceTest.class,
+    OperationsControllerTest.class,
+    OperationsAccessContractTest.class,
+    OperationsHttpClientTest.class,
+    OperationsIdentityContractTest.class,
+    OperationsPayloadParserTest.class,
+    DefaultOperationsDataServiceTest.class,
+    LiveOperationsCollectorTest.class,
     PriorityFixTest.class,
     QueryServiceTest.class,
     UrlUtilTest.class

@@ -20,6 +20,9 @@ import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import Sidebar from './index.ant';
 import i18n from '../../i18n';
+import {useOperationsCapabilities} from '../../pages/Operations/capabilities';
+
+jest.mock('../../pages/Operations/capabilities');
 
 beforeEach(() => {
     i18n.changeLanguage('zh-CN');
@@ -37,6 +40,46 @@ beforeEach(() => {
         addEventListener: jest.fn(),
         removeEventListener: jest.fn(),
     }));
+    useOperationsCapabilities.mockReturnValue({
+        loading: false,
+        capabilities: ['operations_health_read', 'operations_topology_read'],
+        error: null,
+    });
+});
+
+test('hides the Nodes entry when only health capability is available', async () => {
+    useOperationsCapabilities.mockReturnValue({
+        loading: false,
+        capabilities: ['operations_health_read'],
+        error: null,
+    });
+
+    render(
+        <MemoryRouter
+            initialEntries={['/operations/overview']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('link', {name: '集群概览'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: '节点'})).not.toBeInTheDocument();
+});
+
+test('keeps monitoring and account links in one operations section', async () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/operations/overview']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findAllByText('系统与运维')).toHaveLength(1);
+    expect(screen.getByRole('link', {name: '集群概览'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '个人中心'})).toBeInTheDocument();
 });
 
 test('exposes the application menu as named primary navigation', async () => {
@@ -54,7 +97,7 @@ test('exposes the application menu as named primary navigation', async () => {
     expect(screen.getByRole('link', {name: '图列表'})).toBeInTheDocument();
     expect(screen.getByText('图导入')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', {name: 'database 图查询'})).toBeInTheDocument();
-    expect(screen.getByText('系统与运维')).toBeInTheDocument();
+    expect(screen.getAllByText('系统与运维').length).toBeGreaterThan(0);
     expect(navigation).toContainElement(screen.getByRole('link', {name: 'GQL 图遍历'}));
     expect(navigation).toContainElement(screen.getByRole('link', {name: '分析任务'}));
     const menuSections = screen.getAllByRole('menuitem')

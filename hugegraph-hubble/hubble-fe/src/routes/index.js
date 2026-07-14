@@ -32,6 +32,10 @@ import Account from '../pages/Account';
 import Navigation from '../pages/Navigation';
 import Error404 from '../pages/Error404';
 import Test from '../pages/Test';
+import OperationsOverview from '../pages/Operations/Overview';
+import OperationsNodes from '../pages/Operations/Nodes';
+import OperationsNodeDetail from '../pages/Operations/NodeDetail';
+import OperationsRoute from '../pages/Operations/OperationsRoute';
 
 // 图分析的路由
 import GraphAnalysis from '../pages/GraphAnalysis';
@@ -174,6 +178,30 @@ const RouteList = ({element}) => {
                 <Route
                     path='/role/graphspace/:graphspace/:role'
                     element={<Navigate to='/navigation' replace />}
+                />
+                <Route
+                    path='/operations/overview'
+                    element={(
+                        <OperationsRoute required='operations_health_read'>
+                            <OperationsOverview />
+                        </OperationsRoute>
+                    )}
+                />
+                <Route
+                    path='/operations/nodes'
+                    element={(
+                        <OperationsRoute required='operations_topology_read'>
+                            <OperationsNodes />
+                        </OperationsRoute>
+                    )}
+                />
+                <Route
+                    path='/operations/nodes/:nodeId'
+                    element={(
+                        <OperationsRoute required='operations_topology_read'>
+                            <OperationsNodeDetail />
+                        </OperationsRoute>
+                    )}
                 />
                 {/* <Route path="/:moduleName" element={<GraphAnalysis />} /> */}
                 <Route path="/gremlin" element={<GraphAnalysis moduleName={'gremlin'} />} />

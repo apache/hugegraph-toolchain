@@ -19,17 +19,18 @@
 const {createProxyMiddleware} = require('http-proxy-middleware');
 
 module.exports = app => {
+    const target = process.env.HUBBLE_API_PROXY || 'http://127.0.0.1:8088';
     app.use(
         '/api/v1.3',
         createProxyMiddleware({
-            target: 'http://127.0.0.1:8088',
+            target,
             changeOrigin: true,
             pathRewrite: {
                 '^/api': '/api',
             },
             // Override Origin so Java backend CORS check passes (dev server runs on different port)
             headers: {
-                origin: 'http://127.0.0.1:8088',
+                origin: target,
             },
         })
     );

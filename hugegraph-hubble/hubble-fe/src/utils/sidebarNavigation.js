@@ -27,5 +27,13 @@ export const getSidebarMenuKey = (pathname, pdEnabled) => {
         return 'schema';
     }
 
+    if (/^\/operations\/overview\/?$/.test(normalizedPath)) {
+        return 'overview';
+    }
+
+    if (/^\/operations\/nodes(?:\/[^/]+)?\/?$/.test(normalizedPath)) {
+        return 'nodes';
+    }
+
     return normalizedPath.split('/')[1] || 'navigation';
 };

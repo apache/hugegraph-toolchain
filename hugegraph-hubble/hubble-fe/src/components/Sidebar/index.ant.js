@@ -21,12 +21,13 @@ import {Button, Layout, Menu} from 'antd';
 import {
     HomeOutlined,
     DatabaseOutlined,
-    AlertOutlined,
     ApartmentOutlined,
     CloudUploadOutlined,
     MenuUnfoldOutlined,
     MenuFoldOutlined,
     MenuOutlined,
+    DashboardOutlined,
+    ClusterOutlined,
 } from '@ant-design/icons';
 import {Link, useLocation} from 'react-router-dom';
 import * as user from '../../utils/user';
@@ -35,10 +36,11 @@ import {getGraphspacePath} from '../../utils/productMode';
 import {getPreparationSchemaPath} from '../../utils/dataPreparationNavigation';
 import {getSidebarMenuKey} from '../../utils/sidebarNavigation';
 import {useTranslation} from 'react-i18next';
+import {useOperationsCapabilities} from '../../pages/Operations/capabilities';
 
 const OPEN_SECTIONS = ['understand', 'prepare', 'query', 'support'];
 
-const items = (t, pathname) => {
+const items = (t, pathname, capabilities = []) => {
     const userInfo = user.getUser();
     const pdMode = isPdEnabled();
     const MY = {label: <Link to='/profile'>{t('home.my')}</Link>, key: 'my'};
@@ -53,6 +55,17 @@ const items = (t, pathname) => {
         // systemList = [MY, RESOURCE, ROLE];
         systemList = [MY, ACCOUNT];
     }
+    const operationsList = capabilities.includes('operations_health_read') ? [
+        {
+            label: <Link to='/operations/overview'>{t('operations.overview')}</Link>,
+            key: 'overview',
+            icon: <ClusterOutlined />,
+        },
+        ...(capabilities.includes('operations_topology_read') ? [{
+            label: <Link to='/operations/nodes'>{t('operations.nodes')}</Link>,
+            key: 'nodes',
+        }] : []),
+    ] : [];
 
     const menu = [
         {
@@ -122,10 +135,10 @@ const items = (t, pathname) => {
             ],
         },
         {
-            label: t('workbench.nav.support'),
+            label: t('operations.section'),
             key: 'support',
-            icon: <AlertOutlined />,
-            children: [...systemList],
+            icon: <DashboardOutlined />,
+            children: [...operationsList, ...systemList],
         },
     ];
 
@@ -144,6 +157,7 @@ const Sidebar = () => {
     ));
     const href = useLocation();
     const {t} = useTranslation();
+    const {capabilities} = useOperationsCapabilities();
     const menuKey = getSidebarMenuKey(href.pathname, isPdEnabled());
 
     useEffect(() => {
@@ -212,7 +226,7 @@ const Sidebar = () => {
                     openKeys={openKeys}
                     onOpenChange={setOpenKeys}
                     mode="inline"
-                    items={items(t, href.pathname)}
+                    items={items(t, href.pathname, capabilities)}
                     selectedKeys={[menuKey]}
                 />
             </Layout.Sider>

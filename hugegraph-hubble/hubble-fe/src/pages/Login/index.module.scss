@@ -94,21 +94,44 @@ form.loginForm {
     position: absolute;
     top: 24px;
     right: 32px;
+}
 
-    select {
-        min-width: 104px;
-        height: 32px;
-        padding: 0 28px 0 10px;
-        border: 1px solid #cbd5e1;
-        border-radius: 6px;
-        background: #fff;
-        color: #344054;
-        cursor: pointer;
+.languageSwitch {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+
+    :global(.ant-radio-button-wrapper) {
+        height: 28px;
+        padding: 0 7px;
+        border: 0;
+        background: transparent;
+        color: #68758a;
+        font-size: 14px;
+        line-height: 28px;
+        box-shadow: none;
+        transition: color 0.2s ease, background-color 0.2s ease;
     }
 
-    select:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 3px rgba(23, 105, 224, 0.18);
+    :global(.ant-radio-button-wrapper)::before {
+        display: none;
+    }
+
+    :global(.ant-radio-button-wrapper:hover) {
+        color: #1769e0;
+    }
+
+    :global(.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled)) {
+        border: 0;
+        background: #edf4ff;
+        color: #1769e0;
+        font-weight: 600;
+        box-shadow: none;
+    }
+
+    :global(.ant-radio-button-wrapper:focus-within) {
+        outline: 2px solid #1769e0;
+        outline-offset: 2px;
     }
 }
 

@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.driver.factory;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -185,6 +186,9 @@ public class PDHugeClientFactory {
                            .build();
 
         NodeInfos nodeInfos = client.getNodeInfos(query);
+        if (nodeInfos == null) {
+            return Collections.emptyList();
+        }
 
         List<String> urls = nodeInfos.getInfoList().stream()
                                      .map(nodeInfo -> nodeInfo.getAddress())
@@ -205,6 +209,9 @@ public class PDHugeClientFactory {
                            .build();
 
         NodeInfos nodeInfos = client.getNodeInfos(query);
+        if (nodeInfos == null) {
+            return Collections.emptyList();
+        }
 
         List<String> urls = nodeInfos.getInfoList().stream()
                                      .map(nodeInfo -> nodeInfo.getAddress())

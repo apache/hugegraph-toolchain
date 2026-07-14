@@ -28,6 +28,7 @@ import org.apache.hugegraph.exception.LoginThrottledException;
 import org.apache.hugegraph.exception.ParameterizedException;
 import org.apache.hugegraph.exception.ServerCapabilityUnavailableException;
 import org.apache.hugegraph.exception.UnauthorizedException;
+import org.apache.hugegraph.service.op.OperationsNodeNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -113,6 +114,18 @@ public class ExceptionAdvisor {
                        .build();
     }
 
+    @ExceptionHandler(OperationsNodeNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Response exceptionHandler(OperationsNodeNotFoundException e) {
+        log.debug("Operations node was not found");
+        closeRequestClient();
+        return Response.builder()
+                       .status(HttpStatus.NOT_FOUND.value())
+                       .message(e.getMessage())
+                       .cause(null)
+                       .build();
+    }
+
     @ExceptionHandler(ParameterizedException.class)
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(ParameterizedException e) {
@@ -130,7 +143,7 @@ public class ExceptionAdvisor {
     public Response exceptionHandler(ServerException e) {
         log.warn("HugeGraph Server request failed");
 
-        String message = this.handleMessage(e.getMessage(), null);
+        String message = safeServerMessage(e);
         closeRequestClient();
         return Response.builder()
                        .status(serverStatus(e.status()))
@@ -147,15 +160,36 @@ public class ExceptionAdvisor {
         return Constant.STATUS_BAD_REQUEST;
     }
 
+    private static boolean transportFailure(ServerException exception) {
+        if (serverStatus(exception.status()) != Constant.STATUS_BAD_REQUEST) {
+            return false;
+        }
+        String message = exception.getMessage();
+        return message != null &&
+               (message.startsWith("Failed to connect to ") ||
+                message.contains("Connection refused"));
+    }
+
+    private static String safeServerMessage(ServerException exception) {
+        if (exception.status() == HttpStatus.UNAUTHORIZED.value()) {
+            return "upstream_unauthorized";
+        }
+        if (exception.status() == HttpStatus.FORBIDDEN.value()) {
+            return "upstream_forbidden";
+        }
+        return transportFailure(exception) ? "upstream_unavailable" :
+               "upstream_request_failed";
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(Exception e) {
-        log.error("Unexpected request failure", e);
-        String message = this.handleMessage(e.getMessage(), null);
+        log.error("Unexpected request failure: {}",
+                  e.getClass().getSimpleName());
         closeRequestClient();
         return Response.builder()
                        .status(Constant.STATUS_BAD_REQUEST)
-                       .message(message)
+                       .message("unexpected_request_failure")
                        .cause(null)
                        .build();
     }

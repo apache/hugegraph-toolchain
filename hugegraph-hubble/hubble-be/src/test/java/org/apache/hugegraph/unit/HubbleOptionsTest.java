@@ -18,6 +18,8 @@
 
 package org.apache.hugegraph.unit;
 
+import org.apache.hugegraph.config.ConfigException;
+import org.apache.hugegraph.config.ConfigOption;
 import org.junit.Test;
 
 import org.apache.hugegraph.options.HubbleOptions;
@@ -31,5 +33,59 @@ public class HubbleOptionsTest {
                               .contains("csv"));
         Assert.assertTrue(HubbleOptions.UPLOAD_FILE_FORMAT_LIST.defaultValue()
                               .contains("txt"));
+    }
+
+    @Test
+    public void testOperationsCollectionUsesBoundedDefaults() {
+        Assert.assertEquals(1500,
+                            HubbleOptions.OPERATIONS_CONNECT_TIMEOUT.defaultValue());
+        Assert.assertEquals(2500,
+                            HubbleOptions.OPERATIONS_READ_TIMEOUT.defaultValue());
+        Assert.assertEquals(1024 * 1024,
+                            HubbleOptions.OPERATIONS_MAX_RESPONSE_BYTES.defaultValue());
+        Assert.assertEquals(5,
+                            HubbleOptions.OPERATIONS_CACHE_TTL.defaultValue());
+        Assert.assertEquals(1024,
+                            HubbleOptions.OPERATIONS_CACHE_MAX_ENTRIES
+                                         .defaultValue());
+        Assert.assertEquals(16,
+                            HubbleOptions.OPERATIONS_STORE_THREADS.defaultValue());
+        Assert.assertEquals(5000,
+                            HubbleOptions.OPERATIONS_STORE_DEADLINE.defaultValue());
+        Assert.assertEquals("hubble",
+                            HubbleOptions.OPERATIONS_PD_USERNAME.defaultValue());
+        Assert.assertEquals("",
+                            HubbleOptions.OPERATIONS_PD_PASSWORD.defaultValue());
+        Assert.assertEquals("hubble",
+                            HubbleOptions.OPERATIONS_STORE_USERNAME.defaultValue());
+        Assert.assertEquals("",
+                            HubbleOptions.OPERATIONS_STORE_PASSWORD.defaultValue());
+    }
+
+    @Test
+    public void testOperationsCacheEntryBoundIsPositive() {
+        ConfigOption<Integer> option =
+                HubbleOptions.OPERATIONS_CACHE_MAX_ENTRIES;
+
+        Assert.assertEquals(1024, option.defaultValue());
+        Assert.assertThrows(ConfigException.class,
+                            () -> option.parseConvert("0"));
+        Assert.assertThrows(ConfigException.class,
+                            () -> option.parseConvert("-1"));
+        Assert.assertEquals(1, option.parseConvert("1"));
+    }
+
+    @Test
+    public void testOperationsStoreFanoutLimitsArePositive() {
+        assertPositive(HubbleOptions.OPERATIONS_STORE_THREADS);
+        assertPositive(HubbleOptions.OPERATIONS_STORE_DEADLINE);
+    }
+
+    private static void assertPositive(ConfigOption<Integer> option) {
+        Assert.assertThrows(ConfigException.class,
+                            () -> option.parseConvert("0"));
+        Assert.assertThrows(ConfigException.class,
+                            () -> option.parseConvert("-1"));
+        Assert.assertEquals(1, option.parseConvert("1"));
     }
 }

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
 import org.apache.commons.collections.CollectionUtils;
@@ -63,13 +64,19 @@ public final class HugeClientPoolService {
 
     private final Map<String, HugeClient> clients = new ConcurrentHashMap<>();
 
-    /**
-     * cache key format: {graphSpace}_{graph}
-     */
-    private static final String CACHE_KEY_FORMAT = "%s_%s";
     private Cache<String, List<String>> urlCache = CacheBuilder.newBuilder()
+            .maximumSize(HubbleOptions.CLIENT_URL_CACHE_MAX_ENTRIES.defaultValue())
             .expireAfterWrite(1, TimeUnit.HOURS)
             .build();
+
+    @PostConstruct
+    private void initializeUrlCache() {
+        this.urlCache = CacheBuilder.newBuilder()
+                .maximumSize(this.config.get(
+                             HubbleOptions.CLIENT_URL_CACHE_MAX_ENTRIES))
+                .expireAfterWrite(1, TimeUnit.HOURS)
+                .build();
+    }
 
     @PreDestroy
     public void destroy() {
@@ -150,7 +157,7 @@ public final class HugeClientPoolService {
             connection.setHost(host.getHost());
             connection.setPort(host.getPort());
         } catch (IllegalArgumentException e) {
-            throw new ParameterizedException("service.url.parse.error", e, url);
+            throw new ParameterizedException("service_url_invalid", e);
         }
 
         connection.setToken(token);
@@ -188,8 +195,7 @@ public final class HugeClientPoolService {
         if (StringUtils.isNotEmpty(graphSpace)) {
             if (StringUtils.isNotEmpty(service)) {
                 // Get realtineurls From service
-                List<String> urls = pdHugeClientFactory.getURLs(cluster, graphSpace,
-                        service);
+                List<String> urls = this.discoverURLs(graphSpace, service);
                 if (!CollectionUtils.isEmpty(urls)) {
                     // 打乱顺序
                     Collections.shuffle(urls);
@@ -197,7 +203,7 @@ public final class HugeClientPoolService {
                 }
             }
 
-            List<String> urls = pdHugeClientFactory.getURLs(cluster, graphSpace, null);
+            List<String> urls = this.discoverURLs(graphSpace, null);
             if (!CollectionUtils.isEmpty(urls)) {
                 // 打乱顺序
                 Collections.shuffle(urls);
@@ -205,10 +211,8 @@ public final class HugeClientPoolService {
             }
         }
 
-        List<String> urls = pdHugeClientFactory.getURLs(cluster, DEFAULT_GRAPHSPACE,
-                DEFAULT_SERVICE);
-        String defaultCacheKey = String.format(CACHE_KEY_FORMAT, DEFAULT_GRAPHSPACE,
-                DEFAULT_SERVICE);
+        List<String> urls = this.discoverURLs(DEFAULT_GRAPHSPACE, DEFAULT_SERVICE);
+        String defaultCacheKey = cacheKey(DEFAULT_GRAPHSPACE, DEFAULT_SERVICE);
         if (!CollectionUtils.isEmpty(urls)) {
             Collections.shuffle(urls);
             // 设置默认URL缓存
@@ -216,16 +220,18 @@ public final class HugeClientPoolService {
             realtimeurls.addAll(urls);
         }
 
-        String cacheKey = String.format(CACHE_KEY_FORMAT, graphSpace, service);
+        String cacheKey = cacheKey(graphSpace, service);
         if (!CollectionUtils.isEmpty(realtimeurls)) {
             urlCache.put(cacheKey, realtimeurls);
             return realtimeurls;
         } else {
 
             List<String> cacheKeys = new ArrayList<>();
-            cacheKeys.add(String.format(CACHE_KEY_FORMAT, graphSpace, service));
-            cacheKeys.add(String.format(CACHE_KEY_FORMAT, graphSpace, null));
-            cacheKeys.add(defaultCacheKey);
+            cacheKeys.add(cacheKey(graphSpace, service));
+            cacheKeys.add(cacheKey(graphSpace, null));
+            if (StringUtils.isEmpty(graphSpace)) {
+                cacheKeys.add(defaultCacheKey);
+            }
             for (String ck : cacheKeys) {
                 List<String> r = urlCache.getIfPresent(ck);
                 if (!CollectionUtils.isEmpty(r)) {
@@ -238,6 +244,28 @@ public final class HugeClientPoolService {
 
             return ImmutableList.of();
         }
+    }
+
+    private List<String> discoverURLs(String graphSpace, String service) {
+        try {
+            List<String> urls = this.pdHugeClientFactory.getURLs(
+                    this.cluster, graphSpace, service);
+            if (CollectionUtils.isEmpty(urls)) {
+                return Collections.emptyList();
+            }
+            return new ArrayList<>(urls);
+        } catch (RuntimeException e) {
+            log.debug("PD service discovery failed for graph space/service");
+            return Collections.emptyList();
+        }
+    }
+
+    private static String cacheKey(String graphSpace, String service) {
+        return cacheKeyPart(graphSpace) + cacheKeyPart(service);
+    }
+
+    private static String cacheKeyPart(String value) {
+        return value == null ? "-1:" : value.length() + ":" + value;
     }
 
     private boolean checkHealth(HugeClient client) {
