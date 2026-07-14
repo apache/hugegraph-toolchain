@@ -18,7 +18,7 @@
 
 import {render, screen, within} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
-import {ClusterTopology} from './components';
+import {ClusterTopology, SourceStrip} from './components';
 import i18n from '../../i18n';
 
 afterEach(() => i18n.changeLanguage('en-US'));
@@ -34,6 +34,25 @@ test('localizes the topology accessible name', async () => {
 
     expect(screen.getByLabelText('Server、PD 与 Store 服务拓扑')).toBeInTheDocument();
     expect(screen.queryByLabelText('Server PD Store topology')).not.toBeInTheDocument();
+});
+
+test('localizes the standalone deployment reason code', async () => {
+    await i18n.changeLanguage('zh-CN');
+
+    render(
+        <SourceStrip
+            sources={{
+                pd: {
+                    status: 'UNKNOWN',
+                    availability: 'UNSUPPORTED',
+                    reason: 'deployment_mode_unsupported',
+                },
+            }}
+        />
+    );
+
+    expect(screen.getByText(/当前部署模式不支持/)).toBeInTheDocument();
+    expect(screen.queryByText(/deployment mode unsupported/)).not.toBeInTheDocument();
 });
 
 test('uses semantic tier icons and keeps the PD leader on the visual axis', () => {

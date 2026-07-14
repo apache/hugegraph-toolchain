@@ -1218,6 +1218,7 @@
     "reason_refresh_failed": "Refresh failed",
     "reason_malformed_response": "Malformed response",
     "reason_unsupported_version": "Unsupported service version",
+    "reason_deployment_mode_unsupported": "Unsupported by the current deployment mode",
     "metric_labels": {
       "basic": "Memory & process",
       "mem_total": "Total memory",
