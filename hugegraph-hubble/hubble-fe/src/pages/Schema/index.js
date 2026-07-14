@@ -303,6 +303,12 @@ const Schema = () => {
     const visibleBuiltins = Object.entries(BUILTIN_SCHEMA_TEMPLATES).filter(
         ([name]) => !hiddenBuiltins.includes(name)
     );
+    const visibleGraphspaceName = graphspace === 'DEFAULT'
+        ? t('graphspace.default_name')
+        : getResourceDisplayName(
+            graphspace,
+            visibleGraphspaceInfo.nickname
+        );
 
     return (
         <>
@@ -311,10 +317,7 @@ const Schema = () => {
                     ghost={false}
                     onBack={handleBack}
                     title={t('schema_template.title', {
-                        name: getResourceDisplayName(
-                            graphspace,
-                            visibleGraphspaceInfo.nickname
-                        ),
+                        name: visibleGraphspaceName,
                     })}
                 >
                     <Row justify='space-between'>

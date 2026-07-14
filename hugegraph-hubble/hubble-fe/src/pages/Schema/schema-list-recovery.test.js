@@ -52,6 +52,7 @@ const mockTranslate = (key, values) => ({
     'schema_template.no_matches': 'No matching templates',
     'schema_template.clear_search': 'Clear search',
     'schema_template.empty': 'No templates yet',
+    'graphspace.default_name': 'Default GraphSpace',
 }[key] || key);
 
 jest.mock('../../api', () => ({
@@ -227,6 +228,26 @@ it('uses the GraphSpace name when its alias is empty', async () => {
     render(<Schema />);
 
     expect(await screen.findByText('SPACE - Schema templates')).toBeInTheDocument();
+    await waitForLoadingToFinish();
+});
+
+it('localizes the default GraphSpace instead of exposing its stored nickname', async () => {
+    mockGraphspace = 'DEFAULT';
+    api.manage.getGraphSpace.mockResolvedValue({
+        status: 200,
+        data: {name: 'DEFAULT', nickname: '默认图空间'},
+    });
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(<Schema />);
+
+    expect(await screen.findByText('Default GraphSpace - Schema templates'))
+        .toBeInTheDocument();
+    expect(screen.queryByText('默认图空间 - Schema templates'))
+        .not.toBeInTheDocument();
     await waitForLoadingToFinish();
 });
 
