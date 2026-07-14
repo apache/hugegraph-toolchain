@@ -38,9 +38,8 @@ public class BaseControllerGremlinClientTest {
     }
 
     @Test
-    public void testGremlinClientUsesShortLivedBasicCredential() {
+    public void testGremlinClientIgnoresLegacyPasswordAndUsesToken() {
         HugeClient tokenClient = Mockito.mock(HugeClient.class);
-        HugeClient basicClient = Mockito.mock(HugeClient.class);
 
         MockHttpServletRequest request = this.requestWithAuth();
         request.setAttribute("hugeClient", tokenClient);
@@ -48,19 +47,16 @@ public class BaseControllerGremlinClientTest {
                 new ServletRequestAttributes(request));
 
         TestController controller = new TestController();
-        controller.basicClient = basicClient;
+        controller.authClient = tokenClient;
 
         HugeClient client = controller.gremlinClient("DEFAULT", "hugegraph");
 
-        Assert.assertSame(basicClient, client);
-        Assert.assertSame(basicClient, request.getAttribute("hugeClient"));
-        Assert.assertTrue(controller.basicClientCreated);
-        Assert.assertFalse(controller.authClientCreated);
+        Assert.assertSame(tokenClient, client);
+        Assert.assertSame(tokenClient, request.getAttribute("hugeClient"));
+        Assert.assertTrue(controller.authClientCreated);
         Assert.assertEquals("DEFAULT", controller.graphSpace);
         Assert.assertEquals("hugegraph", controller.graph);
-        Assert.assertEquals("admin", controller.username);
-        Assert.assertEquals("pa", controller.password);
-        Mockito.verify(tokenClient).close();
+        Mockito.verify(tokenClient, Mockito.never()).close();
     }
 
     @Test
@@ -80,7 +76,6 @@ public class BaseControllerGremlinClientTest {
 
         Assert.assertSame(tokenClient, client);
         Assert.assertSame(tokenClient, request.getAttribute("hugeClient"));
-        Assert.assertFalse(controller.basicClientCreated);
         Assert.assertTrue(controller.authClientCreated);
         Assert.assertEquals("DEFAULT", controller.graphSpace);
         Assert.assertEquals("hugegraph", controller.graph);
@@ -90,38 +85,21 @@ public class BaseControllerGremlinClientTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.getSession().setAttribute(Constant.USERNAME_KEY, "admin");
         request.getSession().setAttribute(Constant.TOKEN_KEY, "jwt");
-        request.getSession().setAttribute(Constant.CREDENTIAL_PASSWORD_KEY, "pa");
-        request.getSession().setAttribute(
-                Constant.CREDENTIAL_EXPIRES_AT_KEY,
-                System.currentTimeMillis() + Constant.CREDENTIAL_TTL_MILLIS);
+        request.getSession().setAttribute("auth_password", "pa");
+        request.getSession().setAttribute("auth_password_expire_at",
+                                          System.currentTimeMillis() + 10000L);
         return request;
     }
 
     private static class TestController extends BaseController {
 
-        private HugeClient basicClient;
         private HugeClient authClient;
-        private boolean basicClientCreated;
         private boolean authClientCreated;
         private String graphSpace;
         private String graph;
-        private String username;
-        private String password;
 
         HugeClient gremlinClient(String graphSpace, String graph) {
             return this.authGremlinClient(graphSpace, graph);
-        }
-
-        @Override
-        protected HugeClient createBasicClient(String graphSpace, String graph,
-                                               String username,
-                                               String password) {
-            this.basicClientCreated = true;
-            this.graphSpace = graphSpace;
-            this.graph = graph;
-            this.username = username;
-            this.password = password;
-            return this.basicClient;
         }
 
         @Override

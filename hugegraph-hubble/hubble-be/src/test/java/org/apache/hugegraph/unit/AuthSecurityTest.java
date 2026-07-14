@@ -458,26 +458,7 @@ public class AuthSecurityTest {
     }
 
     @Test
-    public void testCredentialPasswordIsShortLivedAndNotLegacySessionKey() {
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        RequestContextHolder.setRequestAttributes(
-                new ServletRequestAttributes(request));
-        TestBaseController controller = new TestBaseController();
-
-        controller.savePassword("pa");
-
-        Assert.assertEquals("pa", controller.readPassword());
-        Assert.assertNull(request.getSession().getAttribute("password"));
-
-        request.getSession().setAttribute(Constant.CREDENTIAL_EXPIRES_AT_KEY,
-                                          System.currentTimeMillis() - 1L);
-        Assert.assertNull(controller.readPassword());
-        Assert.assertNull(request.getSession().getAttribute(
-                          Constant.CREDENTIAL_PASSWORD_KEY));
-    }
-
-    @Test
-    public void testClearAuthSessionClearsCredentialState() {
+    public void testClearAuthSessionClearsIdentityAndToken() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         RequestContextHolder.setRequestAttributes(
                 new ServletRequestAttributes(request));
@@ -485,16 +466,11 @@ public class AuthSecurityTest {
 
         request.getSession().setAttribute(Constant.TOKEN_KEY, "token");
         request.getSession().setAttribute(Constant.USERNAME_KEY, "admin");
-        controller.savePassword("pa");
 
         controller.clearAuth();
 
         Assert.assertNull(request.getSession().getAttribute(Constant.TOKEN_KEY));
         Assert.assertNull(request.getSession().getAttribute(Constant.USERNAME_KEY));
-        Assert.assertNull(request.getSession().getAttribute(
-                          Constant.CREDENTIAL_PASSWORD_KEY));
-        Assert.assertNull(request.getSession().getAttribute(
-                          Constant.CREDENTIAL_EXPIRES_AT_KEY));
     }
 
     @Test
@@ -564,6 +540,9 @@ public class AuthSecurityTest {
                             Constant.USERNAME_KEY));
         Assert.assertEquals("server-token", request.getSession().getAttribute(
                             Constant.TOKEN_KEY));
+        Assert.assertNull(request.getSession().getAttribute("auth_password"));
+        Assert.assertNull(request.getSession().getAttribute(
+                          "auth_password_expire_at"));
     }
 
     @Test
@@ -709,14 +688,6 @@ public class AuthSecurityTest {
     }
 
     private static class TestBaseController extends BaseController {
-
-        public void savePassword(String password) {
-            this.setCredentialPassword(password);
-        }
-
-        public String readPassword() {
-            return this.getCredentialPassword();
-        }
 
         public void clearAuth() {
             this.clearAuthSession();

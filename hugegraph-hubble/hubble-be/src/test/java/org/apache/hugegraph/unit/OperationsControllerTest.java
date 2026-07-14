@@ -50,8 +50,7 @@ public class OperationsControllerTest {
 
         Map<String, Object> response = fixture.controller.capabilities();
 
-        Assert.assertEquals(Collections.singleton(
-                            "operations_health_read"),
+        Assert.assertEquals(Collections.emptySet(),
                             response.get("capabilities"));
     }
 

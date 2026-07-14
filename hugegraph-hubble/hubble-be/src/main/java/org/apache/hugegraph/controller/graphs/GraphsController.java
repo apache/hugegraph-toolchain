@@ -79,9 +79,7 @@ public class GraphsController extends BaseController {
     HugeConfig config;
 
     public boolean isVermeerEnabled() {
-        String username = this.getUser();
-        String password = this.getCredentialPassword();
-        return vermeerService.isVermeerEnabled(username, password);
+        return vermeerService.isVermeerEnabled(this.getToken());
     }
 
     public String getGraphFromVermeer(String vermeer) {

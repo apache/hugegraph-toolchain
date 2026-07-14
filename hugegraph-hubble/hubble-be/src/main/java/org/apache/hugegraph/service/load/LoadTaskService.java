@@ -475,11 +475,8 @@ public class LoadTaskService {
             options.port = connection.getPort();
         }
         options.username = connection.getUsername();
-        if (StringUtils.isNotEmpty(connection.getPassword())) {
-            options.password = connection.getPassword();
-        } else {
-            options.token = connection.getToken();
-        }
+        options.password = null;
+        options.token = connection.getToken();
         options.protocol = StringUtils.isNotEmpty(connection.getProtocol()) ?
                            connection.getProtocol() : "http";
         // Load parameters

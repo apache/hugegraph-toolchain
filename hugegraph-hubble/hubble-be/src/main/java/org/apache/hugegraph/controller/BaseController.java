@@ -108,24 +108,6 @@ public abstract class BaseController {
         setSession(Constant.USERNAME_KEY, username);
     }
 
-    protected void setCredentialPassword(String password) {
-        // TODO: Stop retaining the plaintext login password after Vermeer migrates to
-        // token/service credentials and Loader/Ingest token-only paths are verified.
-        setSession(Constant.CREDENTIAL_PASSWORD_KEY, password);
-        setSession(Constant.CREDENTIAL_EXPIRES_AT_KEY,
-                   System.currentTimeMillis() + Constant.CREDENTIAL_TTL_MILLIS);
-    }
-
-    protected String getCredentialPassword() {
-        Long expiresAt = (Long) getSession(Constant.CREDENTIAL_EXPIRES_AT_KEY);
-        if (expiresAt == null || expiresAt <= System.currentTimeMillis()) {
-            delSession(Constant.CREDENTIAL_PASSWORD_KEY);
-            delSession(Constant.CREDENTIAL_EXPIRES_AT_KEY);
-            return null;
-        }
-        return (String) getSession(Constant.CREDENTIAL_PASSWORD_KEY);
-    }
-
     protected void delSession(String key) {
         HttpServletRequest request = getRequest();
         request.getSession().removeAttribute(key);
@@ -151,8 +133,6 @@ public abstract class BaseController {
     protected void clearAuthSession() {
         this.delSession(Constant.TOKEN_KEY);
         this.delSession(Constant.USERNAME_KEY);
-        this.delSession(Constant.CREDENTIAL_PASSWORD_KEY);
-        this.delSession(Constant.CREDENTIAL_EXPIRES_AT_KEY);
     }
 
     protected HugeClient authClient(String graphSpace, String graph) {
@@ -198,27 +178,7 @@ public abstract class BaseController {
     }
 
     protected HugeClient authGremlinClient(String graphSpace, String graph) {
-        String username = this.getUser();
-        String password = this.getCredentialPassword();
-        if (!StringUtils.hasText(username) || !StringUtils.hasText(password)) {
-            return this.authClient(graphSpace, graph);
-        }
-
-        HttpServletRequest request = getRequest();
-        if (request.getAttribute("hugeClient") != null) {
-            HugeClient client = (HugeClient) request.getAttribute("hugeClient");
-            client.close();
-        }
-        HugeClient client = this.createBasicClient(graphSpace, graph, username,
-                                                   password);
-        request.setAttribute("hugeClient", client);
-        return client;
-    }
-
-    protected HugeClient createBasicClient(String graphSpace, String graph,
-                                           String username, String password) {
-        return this.hugeClientPoolService.createBasicClient(graphSpace, graph,
-                                                            username, password);
+        return this.authClient(graphSpace, graph);
     }
 
     protected HugeClient unauthClient() {

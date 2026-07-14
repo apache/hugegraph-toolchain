@@ -58,9 +58,6 @@ public final class Constant {
 
     public static final String TOKEN_KEY = "auth_token";
     public static final String USERNAME_KEY = "username";
-    public static final String CREDENTIAL_PASSWORD_KEY = "auth_password";
-    public static final String CREDENTIAL_EXPIRES_AT_KEY = "auth_password_expire_at";
-    public static final long CREDENTIAL_TTL_MILLIS = 10 * 60 * 1000L;
 
     public static final int NO_LIMIT = -1;
 

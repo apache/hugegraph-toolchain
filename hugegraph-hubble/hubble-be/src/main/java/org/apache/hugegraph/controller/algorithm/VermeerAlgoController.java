@@ -20,23 +20,14 @@ package org.apache.hugegraph.controller.algorithm;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.hugegraph.common.Constant;
-import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.controller.BaseController;
-import org.apache.hugegraph.driver.HugeClient;
-import org.apache.hugegraph.loader.util.JsonUtil;
-import org.apache.hugegraph.options.HubbleOptions;
-import org.apache.hugegraph.service.space.VermeerService;
-import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.HubbleUtil;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.apache.hugegraph.exception.ServerCapabilityUnavailableException;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -44,49 +35,17 @@ import java.util.Map;
         "/{graph}/algorithms/vermeer")
 public class VermeerAlgoController extends BaseController {
 
-    @Autowired
-    VermeerService vermeerService;
-    @Autowired
-    private HugeConfig config;
-
     @PostMapping
     public Map<String, Object> olapView(@PathVariable("graphspace") String graphspace,
                                         @PathVariable("graph") String graph,
                                         @RequestBody VParams body) {
-        String vGraph = vermeerService.convert2VG(graphspace, graph);
-        HugeClient client = this.authClient(null, null);
-
-        Map<String, Object> graphInfo = HubbleUtil.uncheckedCast(
-                client.vermeer().getGraphInfoByName(vGraph).get("graph"));
-        E.checkArgument(graphInfo != null && !graphInfo.isEmpty(),
-                "graph not loaded");
-
-        Map<String, Object> params = new HashMap<>();
-        // default params
-        String pdPeers = config.get(HubbleOptions.PD_PEERS);
-        String pdJson = JsonUtil.toJson(Arrays.asList(pdPeers.split(",")));
-        params.put("output.parallel", "10");
-        params.put("output.type", "hugegraph");
-        params.put("output.hg_pd_peers", pdJson);
-        params.put("output.hugegraph_name", graphspace + "/" + graph + "/g");
-        params.put("output.hugegraph_username", this.getUser());
-        params.put("output.hugegraph_password", this.getCredentialPassword());
-        params.put("output.hugegraph_property", body.params.get("compute" +
-                ".algorithm"));
-        // input params
-        params.putAll(body.analyze());
-        return vermeerService.compute(client, graphspace, graph, params);
+        throw new ServerCapabilityUnavailableException(
+                "server.capability.vermeer-compute-token-auth.unavailable",
+                null);
     }
 
     private static class VParams {
         @JsonProperty("params")
         public Map<String, Object> params;
-
-        public Map<String, Object> analyze() {
-            for (Map.Entry<String, Object> entry : params.entrySet()) {
-                entry.setValue(entry.getValue().toString());
-            }
-            return params;
-        }
     }
 }

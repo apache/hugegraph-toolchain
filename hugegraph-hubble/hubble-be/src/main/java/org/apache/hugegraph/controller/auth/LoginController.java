@@ -94,7 +94,6 @@ public class LoginController extends BaseController {
             this.getRequest().getSession();
             this.getRequest().changeSessionId();
             this.setUser(login.name());
-            this.setCredentialPassword(login.password());
             this.setToken(result.token());
             return user;
         } catch (Throwable e) {

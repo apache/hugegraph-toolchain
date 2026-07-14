@@ -279,9 +279,6 @@ public class IngestControllerTest {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.getSession().setAttribute(Constant.TOKEN_KEY, "token");
         request.getSession().setAttribute(Constant.USERNAME_KEY, username);
-        request.getSession().setAttribute(Constant.CREDENTIAL_PASSWORD_KEY, "pa");
-        request.getSession().setAttribute(Constant.CREDENTIAL_EXPIRES_AT_KEY,
-                                          System.currentTimeMillis() + 10000L);
         RequestContextHolder.setRequestAttributes(
                 new ServletRequestAttributes(request));
     }

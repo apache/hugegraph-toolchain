@@ -61,7 +61,7 @@ public class LoadTaskServiceTest {
     }
 
     @Test
-    public void testLoadOptionsPreferBasicCredentialPassword()
+    public void testLoadOptionsIgnorePasswordAndUseToken()
            throws Exception {
         GraphConnection connection = this.connection("admin-pass",
                                                      "session-token");
@@ -69,8 +69,8 @@ public class LoadTaskServiceTest {
         LoadOptions options = this.buildLoadOptions(connection);
 
         Assert.assertEquals("admin", options.username);
-        Assert.assertEquals("admin-pass", options.password);
-        Assert.assertNull(options.token);
+        Assert.assertNull(options.password);
+        Assert.assertEquals("session-token", options.token);
     }
 
     @Test
@@ -126,8 +126,8 @@ public class LoadTaskServiceTest {
         Assert.assertEquals("cluster-a", options.cluster);
         Assert.assertEquals("BOTH", options.routeType);
         Assert.assertEquals("admin", options.username);
-        Assert.assertEquals("admin-pass", options.password);
-        Assert.assertNull(options.token);
+        Assert.assertNull(options.password);
+        Assert.assertEquals("session-token", options.token);
         Assert.assertEquals("localhost", options.host);
         Assert.assertEquals(8080, options.port);
     }
@@ -149,7 +149,8 @@ public class LoadTaskServiceTest {
         Assert.assertEquals(8080, options.port);
         Assert.assertEquals("DEFAULT", options.graphSpace);
         Assert.assertEquals("hugegraph", options.graph);
-        Assert.assertEquals("admin-pass", options.password);
+        Assert.assertNull(options.password);
+        Assert.assertEquals("session-token", options.token);
     }
 
     private LoadOptions buildLoadOptions(GraphConnection connection)

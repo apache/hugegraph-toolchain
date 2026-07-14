@@ -59,9 +59,7 @@ public class VermeerController extends BaseController {
                                                        required = false,
                                                        defaultValue = "false")
                                                      boolean check) {
-        String username = this.getUser();
-        String password = this.getCredentialPassword();
-        return vermeerService.getVermeer(username, password, check);
+        return vermeerService.getVermeer(this.getToken(), check);
     }
 
     @PostMapping("task")
@@ -89,9 +87,6 @@ public class VermeerController extends BaseController {
         params.put("load.use_outedge", "1");
         params.put("load.use_out_degree", "1");
         params.put("load.hugegraph_name", graphspace + "/" + graph + "/g");
-        params.put("load.hugegraph_username", this.getUser());
-        params.put("load.hugegraph_password", this.getCredentialPassword());
-
         if (body.params != null) {
             params.putAll(body.analyze());
         }

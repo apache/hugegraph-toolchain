@@ -42,16 +42,15 @@ public class VermeerService {
 
     private static final String GET_SYS_CFG = "api/v1.0/memt_clu/config/getsyscfg";
 
-    public boolean isVermeerEnabled(String username, String password) {
-        Map<String, Object> vermeer = this.getVermeer(username, password,
-                                                      false);
+    public boolean isVermeerEnabled(String token) {
+        Map<String, Object> vermeer = this.getVermeer(token, false);
         if (vermeer != null) {
             return (Boolean) vermeer.get("enable");
         }
         return false;
     }
 
-    public Map<String, Object> getVermeer(String username, String password,
+    public Map<String, Object> getVermeer(String token,
                                           boolean throwIfNoConfig) {
         String dashboard = config.get(HubbleOptions.DASHBOARD_ADDRESS);
         String protocol = config.get(HubbleOptions.SERVER_PROTOCOL);
@@ -66,7 +65,7 @@ public class VermeerService {
                                                        null,
                                                        null,
                                                        true)
-                                              .configUser(username, password);
+                                              .configToken(token);
         RestClient client = new RestClient(builder.url(), builder.token(),
                                            builder.timeout(),
                                            builder.maxConns(),
