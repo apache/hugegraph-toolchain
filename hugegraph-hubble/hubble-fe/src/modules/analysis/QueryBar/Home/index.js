@@ -22,26 +22,31 @@
 
 import React, {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Alert, Input, Tabs, Tag} from 'antd';
+import {Alert, Button, Input, Tabs, Tag} from 'antd';
+import {DownOutlined, UpOutlined} from '@ant-design/icons';
 import CodeEditor from '../../../../components/CodeEditor';
 import {ANALYSIS_TYPE} from '../../../../utils/constants';
-import ContentCommon from '../ContentCommon';
+import {PrimaryActions, SecondaryActions} from '../ContentCommon';
 import c from './index.module.scss';
 
 const {GREMLIN, CYPHER, TEXT2GQL} = ANALYSIS_TYPE;
-
-const isFavoritePopoverOpen = (visible, activeTab, tabKey) => {
-    return visible && activeTab === tabKey;
-};
 
 const QueryBar = props => {
     const {t} = useTranslation();
     const {...args} = props;
 
-    const {codeEditorContent, setCodeEditorContent, activeTab, onTabsChange} = args;
+    const {
+        codeEditorContent,
+        setCodeEditorContent,
+        activeTab,
+        onTabsChange,
+        onExecute,
+        isExecuting,
+    } = args;
 
     const [isEmptyQuery, setIsEmptyQuery] = useState(() => !codeEditorContent);
     const [favoriteCardVisible, setFavoriteCardVisible] = useState(false);
+    const [isEditorExpanded, setEditorExpanded] = useState(true);
 
     useEffect(() => {
         setIsEmptyQuery(!codeEditorContent);
@@ -67,66 +72,89 @@ const QueryBar = props => {
         [onTabsChange]
     );
 
+    const onExecution = useCallback(
+        () => {
+            if (!isEmptyQuery && !isExecuting) {
+                onExecute(activeTab);
+            }
+        },
+        [activeTab, isEmptyQuery, isExecuting, onExecute]
+    );
+
+    const onQueryKeyDown = useCallback(
+        event => {
+            const nativeEvent = event.nativeEvent || event;
+            const isEditor = event.target.closest?.('.cm-editor');
+            if (event.key !== 'Enter' || !event.ctrlKey || event.metaKey
+                || nativeEvent.isComposing || !isEditor
+                || isEmptyQuery || isExecuting) {
+                return;
+            }
+            event.preventDefault();
+            onExecution();
+        },
+        [isEmptyQuery, isExecuting, onExecution]
+    );
+
+    const toggleEditor = useCallback(() => {
+        setEditorExpanded(expanded => !expanded);
+    }, []);
+
+    const renderEditor = language => (
+        <div
+            className={c.editorRegion}
+            onKeyDown={onQueryKeyDown}
+        >
+            <Button
+                className={c.editorToggle}
+                type='text'
+                size='small'
+                icon={isEditorExpanded ? <UpOutlined /> : <DownOutlined />}
+                onClick={toggleEditor}
+                aria-expanded={isEditorExpanded}
+                aria-controls={`query-editor-${language}`}
+            >
+                {isEditorExpanded
+                    ? t('analysis.query.collapse')
+                    : t('analysis.query.expand')}
+            </Button>
+            {isEditorExpanded && (
+                <div className={c.editorShell} id={`query-editor-${language}`}>
+                    <CodeEditor
+                        value={codeEditorContent}
+                        onChange={handleCodeEditorChange}
+                        lang={language}
+                        metaEnterNewline
+                        placeholder={language === 'gremlin'
+                            ? t('analysis.query.gremlin_placeholder')
+                            : t('analysis.query.cypher_placeholder')}
+                    />
+                    <span className={c.editorShortcutHint}>
+                        {t('analysis.query.shortcut_hint_command')}
+                    </span>
+                </div>
+            )}
+        </div>
+    );
+
+    const commonActionProps = {
+        ...args,
+        isEmptyQuery,
+        favoriteCardVisible,
+        setFavoriteCardVisible,
+        shortcutHint: t('analysis.query.shortcut_hint_ctrl'),
+    };
+
     const tabItems = [
         {
             label: t('analysis.query.gremlin_tab'),
             key: GREMLIN,
-            children: (
-                <ContentCommon
-                    {...args}
-                    shortcutHint={t('analysis.query.shortcut_hint_ctrl')}
-                    isEmptyQuery={isEmptyQuery}
-                    favoriteCardVisible={isFavoritePopoverOpen(
-                        favoriteCardVisible,
-                        activeTab,
-                        GREMLIN
-                    )}
-                    setFavoriteCardVisible={setFavoriteCardVisible}
-                >
-                    <div className={c.editorShell}>
-                        <CodeEditor
-                            value={codeEditorContent}
-                            onChange={handleCodeEditorChange}
-                            lang={'gremlin'}
-                            metaEnterNewline
-                            placeholder={t('analysis.query.gremlin_placeholder')}
-                        />
-                        <span className={c.editorShortcutHint}>
-                            {t('analysis.query.shortcut_hint_command')}
-                        </span>
-                    </div>
-                </ContentCommon>
-            ),
+            children: renderEditor('gremlin'),
         },
         {
             label: t('analysis.query.cypher_tab'),
             key: CYPHER,
-            children: (
-                <ContentCommon
-                    {...args}
-                    shortcutHint={t('analysis.query.shortcut_hint_ctrl')}
-                    isEmptyQuery={isEmptyQuery}
-                    favoriteCardVisible={isFavoritePopoverOpen(
-                        favoriteCardVisible,
-                        activeTab,
-                        CYPHER
-                    )}
-                    setFavoriteCardVisible={setFavoriteCardVisible}
-                >
-                    <div className={c.editorShell}>
-                        <CodeEditor
-                            value={codeEditorContent}
-                            onChange={handleCodeEditorChange}
-                            lang={'cypher'}
-                            metaEnterNewline
-                            placeholder={t('analysis.query.cypher_placeholder')}
-                        />
-                        <span className={c.editorShortcutHint}>
-                            {t('analysis.query.shortcut_hint_command')}
-                        </span>
-                    </div>
-                </ContentCommon>
-            ),
+            children: renderEditor('cypher'),
         },
         {
             label: (
@@ -160,6 +188,16 @@ const QueryBar = props => {
         },
     ];
 
+    const queryActions = activeTab === TEXT2GQL ? undefined : {
+        left: (
+            <SecondaryActions
+                {...commonActionProps}
+                favoriteCardVisible={favoriteCardVisible}
+            />
+        ),
+        right: <PrimaryActions {...commonActionProps} />,
+    };
+
     return (
         <div className={c.queryBar} id='queryBar'>
             <Tabs
@@ -169,10 +207,10 @@ const QueryBar = props => {
                 onChange={handleTabsChange}
                 items={tabItems}
                 size='small'
+                tabBarExtraContent={queryActions}
             />
         </div>
     );
 };
 
-export {isFavoritePopoverOpen};
 export default QueryBar;

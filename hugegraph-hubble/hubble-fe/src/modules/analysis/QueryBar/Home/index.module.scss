@@ -24,6 +24,7 @@
         .ant-tabs-nav {
             background-color: #f0f2f5;
             margin: 0px !important;
+            padding: 6px 10px;
         }
 
         .ant-tabs-card .ant-tabs-nav .ant-tabs-tab {
@@ -43,11 +44,28 @@
 
 .editorShell {
     position: relative;
+
+    :global(.cm-content) {
+        padding-right: 112px;
+    }
+}
+
+.editorRegion {
+    position: relative;
+    min-height: 32px;
+
+    .editorToggle {
+        position: absolute;
+        top: 6px;
+        right: 10px;
+        z-index: 3;
+        color: #595959;
+    }
 }
 
 .editorShortcutHint {
     position: absolute;
-    right: 14px;
+    right: 112px;
     bottom: 8px;
     z-index: 2;
     color: #98A2B3;
@@ -63,5 +81,19 @@
     p {
         margin: 0;
         color: #595959;
+    }
+}
+
+@media (max-width: 1366px) {
+    .queryBar :global(.ant-tabs-nav-list) {
+        flex: 0 0 auto;
+    }
+
+    .queryBar :global(.ant-tabs-nav-operations) {
+        display: none !important;
+    }
+
+    .editorShortcutHint {
+        display: none;
     }
 }

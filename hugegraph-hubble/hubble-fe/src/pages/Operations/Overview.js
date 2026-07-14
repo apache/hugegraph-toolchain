@@ -258,21 +258,28 @@ const Overview = () => {
                 </div>
                 <div className='operations-header-actions'>
                     {dashboard.status !== 'hidden' && (
-                        <span
-                            title={dashboardReason}
-                            tabIndex={dashboardReason ? 0 : undefined}
-                            aria-label={dashboardReason
-                                ? `${t('operations.advanced_monitoring')}: ${dashboardReason}`
-                                : undefined}
-                        >
-                            <Button
-                                icon={<ExportOutlined />}
-                                disabled={dashboard.status !== 'configured'}
-                                onClick={openDashboard}
-                                aria-label={t('operations.advanced_monitoring')}
+                        <span className='operations-advanced-monitoring'>
+                            <span
+                                title={dashboardReason}
+                                tabIndex={dashboardReason ? 0 : undefined}
+                                aria-label={dashboardReason
+                                    ? `${t('operations.advanced_monitoring')}: ${dashboardReason}`
+                                    : undefined}
                             >
-                                {t('operations.advanced_monitoring')}
-                            </Button>
+                                <Button
+                                    icon={<ExportOutlined />}
+                                    disabled={dashboard.status !== 'configured'}
+                                    onClick={openDashboard}
+                                    aria-label={t('operations.advanced_monitoring')}
+                                >
+                                    {t('operations.advanced_monitoring')}
+                                </Button>
+                            </span>
+                            {dashboardReason && (
+                                <span className='operations-advanced-monitoring-reason'>
+                                    {dashboardReason}
+                                </span>
+                            )}
                         </span>
                     )}
                     <Button

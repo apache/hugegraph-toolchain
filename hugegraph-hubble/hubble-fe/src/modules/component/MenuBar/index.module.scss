@@ -34,3 +34,18 @@
         height: 4px;
     }
 }
+
+@media (max-width: 1366px) {
+    .menuBar {
+        overflow-x: hidden;
+
+        :global(.ant-space) {
+            gap: 0 !important;
+        }
+
+        :global(.ant-btn) {
+            padding-right: 6px;
+            padding-left: 6px;
+        }
+    }
+}

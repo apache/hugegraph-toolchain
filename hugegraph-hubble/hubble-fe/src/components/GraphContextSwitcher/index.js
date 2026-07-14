@@ -211,6 +211,15 @@ const GraphContextSwitcher = () => {
         }
         return [{name: context.graphspace, nickname: context.graphspace}, ...graphspaces];
     }, [context.graphspace, errors.graphspaces, graphspaces, loading.graphspaces]);
+    const selectedGraphspace = graphspaceOptions.find(item => (
+        item.name === context.graphspace
+    ));
+    const selectedGraphspaceLabel = selectedGraphspace?.name === DEFAULT_GRAPHSPACE
+        ? t('workbench.context.default_graphspace')
+        : getResourceDisplayName(
+            selectedGraphspace?.name ?? context.graphspace,
+            selectedGraphspace?.nickname
+        );
 
     const selectGraphspace = useCallback(graphspace => {
         const nextContext = {graphspace};
@@ -255,21 +264,26 @@ const GraphContextSwitcher = () => {
         >
             <Space size={8}>
                 <Select
+                    aria-description={selectedGraphspaceLabel}
                     aria-label={t('workbench.context.graphspace')}
                     className={style.graphspace}
                     disabled={!pdEnabled}
                     loading={loading.graphspaces}
                     onChange={selectGraphspace}
                     placeholder={t('workbench.context.select_graphspace')}
+                    title={selectedGraphspaceLabel}
                     value={context.graphspace}
                 >
-                    {graphspaceOptions.map(item => (
-                        <Option key={item.name} value={item.name}>
-                            {item.name === DEFAULT_GRAPHSPACE
-                                ? t('workbench.context.default_graphspace')
-                                : getResourceDisplayName(item.name, item.nickname)}
-                        </Option>
-                    ))}
+                    {graphspaceOptions.map(item => {
+                        const displayName = item.name === DEFAULT_GRAPHSPACE
+                            ? t('workbench.context.default_graphspace')
+                            : getResourceDisplayName(item.name, item.nickname);
+                        return (
+                            <Option key={item.name} value={item.name} title={displayName}>
+                                {displayName}
+                            </Option>
+                        );
+                    })}
                 </Select>
                 <span className={style.separator}>/</span>
                 <Select

@@ -68,13 +68,21 @@ const HealthStatus = ({status = 'UNKNOWN', reason, stale = false, size = 'normal
     );
 };
 
-const SourceStrip = ({sources = {}}) => {
+const SourceStrip = ({sources = {}, detailed = false}) => {
     const {t, i18n} = useTranslation();
     return (
-        <section className='operations-source-strip' aria-label={t('operations.sources')}>
+        <section
+            className={`operations-source-strip${detailed ? ' is-detailed' : ''}`}
+            aria-label={t('operations.sources')}
+        >
             {['server', 'pd', 'stores'].map(name => {
                 const source = sources[name] ?? {};
                 const age = source.observed_at ? formatObservedAge(
+                    source.observed_at,
+                    i18n.language,
+                    t('operations.unavailable')
+                ) : null;
+                const observed = source.observed_at ? formatObservedAt(
                     source.observed_at,
                     i18n.language,
                     t('operations.unavailable')
@@ -87,7 +95,9 @@ const SourceStrip = ({sources = {}}) => {
                             {t(`operations.availability_${(
                                 source.availability ?? 'UNSUPPORTED'
                             ).toLowerCase()}`, {defaultValue: source.availability ?? 'UNSUPPORTED'})}
-                            {age ? ` · ${age}` : ''}
+                            {detailed && observed
+                                ? ` · ${t('operations.observed_at')}: ${observed}`
+                                : (age ? ` · ${age}` : '')}
                             {source.stale ? ` · ${t('operations.stale')}` : ''}
                             {source.reason ? ` · ${formatReason(source.reason, t)}` : ''}
                             {source.last_success_at

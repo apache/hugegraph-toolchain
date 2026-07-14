@@ -24,7 +24,7 @@
 }
 
 .graphspace {
-  width: 160px;
+  width: clamp(176px, 15vw, 232px);
 }
 
 .graph {
@@ -62,7 +62,7 @@
   }
 
   .graphspace {
-    width: 132px;
+    width: clamp(164px, 15vw, 196px);
   }
 
   .graph {
@@ -84,7 +84,7 @@
 
   .graphspace,
   .graph {
-    width: min(120px, 24vw);
+    width: min(152px, 30vw);
   }
 
   .mode,

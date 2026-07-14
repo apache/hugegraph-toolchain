@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Alert, Button, Input, Select, Space, Table} from 'antd';
+import {Alert, Button, Input, Select, Space, Table, Tooltip} from 'antd';
 import {ReloadOutlined, SearchOutlined} from '@ant-design/icons';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
@@ -116,6 +116,7 @@ const Nodes = () => {
 
     const columns = [
         {title: t('operations.node'), dataIndex: 'name', key: 'name', sorter: true,
+            width: 260,
             sortOrder: sortOrder('name'), render: (value, record) => (
                 <Link
                     to={`/operations/nodes/${record.id}`}
@@ -124,22 +125,26 @@ const Nodes = () => {
                 >
                     <span className='operations-node-name'>
                         <TierIcon type={record.type} />
-                        <span>{value ?? unavailable}</span>
+                        <Tooltip title={value ?? unavailable} placement='topLeft'>
+                            <span className='operations-node-name-label' title={value ?? unavailable}>
+                                {value ?? unavailable}
+                            </span>
+                        </Tooltip>
                     </span>
                 </Link>
             )},
-        {title: t('operations.type'), dataIndex: 'type', key: 'type', width: 100,
+        {title: t('operations.type'), dataIndex: 'type', key: 'type', width: 86,
             sorter: true, sortOrder: sortOrder('type')},
-        {title: t('operations.role'), dataIndex: 'role', key: 'role', width: 120,
+        {title: t('operations.role'), dataIndex: 'role', key: 'role', width: 108,
             render: value => value ?? '—'},
-        {title: t('operations.status'), dataIndex: 'status', key: 'status', width: 150,
+        {title: t('operations.status'), dataIndex: 'status', key: 'status', width: 140,
             sorter: true, sortOrder: sortOrder('status'),
             render: (value, record) => (
                 <HealthStatus status={value} stale={hasStaleMetrics(record)} />
             )},
-        {title: t('operations.last_observed'), key: 'observed_at', width: 190,
+        {title: t('operations.last_observed'), key: 'observed_at', width: 208,
             sorter: true, sortOrder: sortOrder('observed_at'), render: () => observed},
-        {title: t('operations.version'), dataIndex: 'version', key: 'version', width: 120,
+        {title: t('operations.version'), dataIndex: 'version', key: 'version', width: 104,
             responsive: ['lg'], render: value => value ?? '—'},
     ];
 
@@ -198,6 +203,7 @@ const Nodes = () => {
                     </strong>
                 </div>
                 <Table
+                    className='operations-nodes-table'
                     rowKey='id'
                     loading={loading}
                     dataSource={data.items}

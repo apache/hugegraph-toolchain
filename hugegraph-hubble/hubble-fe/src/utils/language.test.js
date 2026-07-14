@@ -15,7 +15,12 @@
  * under the License.
  */
 
-import {DEFAULT_LANGUAGE, getCurrentLanguage} from './language';
+import {
+    DEFAULT_LANGUAGE,
+    getCurrentLanguage,
+    syncDocumentLanguage,
+} from './language';
+import i18n from '../i18n';
 
 beforeEach(() => localStorage.clear());
 
@@ -33,4 +38,21 @@ test.each([
 
 test('keeps English as the explicit product default', () => {
     expect(DEFAULT_LANGUAGE).toBe('en-US');
+});
+
+test.each([
+    ['zh-CN', 'zh-CN'],
+    ['en-US', 'en'],
+    ['unsupported', 'en'],
+])('syncs document language %s to %s', (language, expected) => {
+    syncDocumentLanguage(language);
+    expect(document.documentElement).toHaveAttribute('lang', expected);
+});
+
+test('keeps document language synchronized with runtime locale changes', async () => {
+    await i18n.changeLanguage('zh-CN');
+    expect(document.documentElement).toHaveAttribute('lang', 'zh-CN');
+
+    await i18n.changeLanguage('en-US');
+    expect(document.documentElement).toHaveAttribute('lang', 'en');
 });

@@ -34,10 +34,20 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('antd', () => {
     const React = require('react');
-    const Select = ({'aria-label': ariaLabel, children, disabled, onChange, value}) => (
+    const Select = ({
+        'aria-description': ariaDescription,
+        'aria-label': ariaLabel,
+        children,
+        disabled,
+        onChange,
+        title,
+        value,
+    }) => (
         <select
+            aria-description={ariaDescription}
             aria-label={ariaLabel}
             disabled={disabled}
+            title={title}
             value={value || ''}
             onChange={event => onChange?.(event.target.value)}
         >
@@ -92,8 +102,14 @@ describe('GraphContextSwitcher', () => {
         sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
         renderSwitcher('/navigation');
 
-        expect(screen.getByRole('combobox', {name: 'workbench.context.graphspace'}))
-            .toBeDisabled();
+        const graphspace = screen.getByRole('combobox', {
+            name: 'workbench.context.graphspace',
+        });
+        expect(graphspace).toBeDisabled();
+        expect(graphspace).toHaveAttribute(
+            'aria-description', 'workbench.context.default_graphspace'
+        );
+        expect(graphspace).toHaveAttribute('title', 'workbench.context.default_graphspace');
         await waitFor(() => {
             expect(api.manage.getGraphList).toHaveBeenCalledWith(
                 'DEFAULT',

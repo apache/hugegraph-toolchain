@@ -25,8 +25,8 @@ jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => ({
         'analysis.query.execute_query': 'Run Query',
         'analysis.query.execute_task': 'Run Task',
-        'analysis.query.execute_mode_immediate': 'Immediate Query',
-        'analysis.query.execute_mode_async': 'Async Task',
+        'analysis.query.execute_mode_immediate': 'Immediate',
+        'analysis.query.execute_mode_async': 'Async',
         'analysis.query.execute_shortcut': 'Run Query (Ctrl + Enter)',
     })[key] || key}),
 }));
@@ -59,24 +59,15 @@ const renderContent = overrides => {
     };
     render(
         <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
-            <ContentCommon {...props}>
-                <div className='cm-editor'><textarea aria-label='query editor' /></div>
-            </ContentCommon>
+            <ContentCommon {...props} />
         </GraphAnalysisContext.Provider>
     );
     return props;
 };
 
-it('runs the active Gremlin or Cypher query only with Ctrl+Enter', () => {
+it('presents mode selection and execution as one action group', () => {
     const props = renderContent({activeTab: 'Cypher'});
-    const editor = screen.getByLabelText('query editor');
-
-    fireEvent.keyDown(editor, {key: 'Enter', metaKey: true});
-    expect(props.onExecute).not.toHaveBeenCalled();
-
-    fireEvent.keyDown(editor, {
-        key: 'Enter', ctrlKey: true,
-    });
+    fireEvent.click(screen.getByRole('button', {name: /Run Query/}));
 
     expect(props.onExecute).toHaveBeenCalledTimes(1);
     expect(props.onExecute).toHaveBeenCalledWith('Cypher');
@@ -85,13 +76,8 @@ it('runs the active Gremlin or Cypher query only with Ctrl+Enter', () => {
     );
 });
 
-it('does not run for plain Enter, IME composition, or a pending request', () => {
+it('does not execute while a request is pending', () => {
     const props = renderContent({isExecuting: true});
-    const editor = screen.getByLabelText('query editor');
-
-    fireEvent.keyDown(editor, {key: 'Enter'});
-    fireEvent.keyDown(editor, {key: 'Enter', metaKey: true, isComposing: true});
-    fireEvent.keyDown(editor, {key: 'Enter', metaKey: true});
 
     expect(props.onExecute).not.toHaveBeenCalled();
     expect(screen.getByRole('button', {name: /Run Query/})).toBeDisabled();
@@ -100,8 +86,8 @@ it('does not run for plain Enter, IME composition, or a pending request', () => 
 it('switches explicitly between immediate query and async task modes', () => {
     const props = renderContent();
 
-    expect(screen.getByRole('radio', {name: 'Immediate Query'})).toBeChecked();
-    fireEvent.click(screen.getByRole('radio', {name: 'Async Task'}));
+    expect(screen.getByRole('radio', {name: 'Immediate'})).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', {name: 'Async'}));
 
     expect(props.onExecuteModeChange).toHaveBeenCalledWith('task');
 });

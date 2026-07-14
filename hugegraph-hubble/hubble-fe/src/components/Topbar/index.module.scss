@@ -70,6 +70,40 @@ div.nav {
   margin-left: 10px;
 }
 
+.languageSwitch {
+  :global(.ant-radio-button-wrapper) {
+    height: 24px;
+    padding: 0 5px;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: rgba(255, 255, 255, 0.68);
+    line-height: 24px;
+
+    &::before {
+      display: none;
+    }
+
+    &:hover,
+    &:focus-visible {
+      color: #fff;
+    }
+  }
+
+  :global(.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled)) {
+    background: transparent;
+    box-shadow: none;
+    color: #fff;
+    font-weight: 600;
+  }
+
+  &:focus-within {
+    border-radius: 3px;
+    outline: 2px solid rgba(255, 255, 255, 0.72);
+    outline-offset: 2px;
+  }
+}
+
 .shortcutHelp {
   margin-left: 8px;
   color: rgba(255, 255, 255, 0.88) !important;

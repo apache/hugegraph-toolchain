@@ -204,7 +204,7 @@ const MetricGroup = ({name, values, status = {}}) => {
                         aria-valuemax={100}
                         aria-valuenow={capacity.percent}
                         percent={capacity.percent}
-                        showInfo={false}
+                        showInfo
                         strokeColor='#1769e0'
                     />
                 </div>
@@ -331,8 +331,14 @@ const NodeDetail = () => {
             {error && (
                 <Alert type='warning' showIcon message={t('operations.refresh_failed')} />
             )}
-            <SourceStrip sources={data?.sources} />
-            <section className='operations-surface'>
+            <SourceStrip sources={data?.sources} detailed />
+            <section
+                className='operations-surface operations-node-summary'
+                aria-labelledby='operations-node-summary-heading'
+            >
+                <h3 id='operations-node-summary-heading'>
+                    {t('operations.node_profile')}
+                </h3>
                 <Descriptions column={{xxl: 4, xl: 3, lg: 2, md: 1, sm: 1, xs: 1}}>
                     <Descriptions.Item label={t('operations.type')}>{node.type}</Descriptions.Item>
                     <Descriptions.Item label={t('operations.role')}>
@@ -344,14 +350,19 @@ const NodeDetail = () => {
                     <Descriptions.Item label={t('operations.node_id')}>{node.id}</Descriptions.Item>
                 </Descriptions>
             </section>
-            {['system', 'drive', 'raft', 'backend'].map(group => (
-                <MetricGroup
-                    key={group}
-                    name={t(`operations.metric_${group}`)}
-                    values={node.metrics?.[group]}
-                    status={metricStatus(group)}
-                />
-            ))}
+            <section
+                className='operations-metric-grid'
+                aria-label={t('operations.node_metrics')}
+            >
+                {['system', 'drive', 'raft', 'backend'].map(group => (
+                    <MetricGroup
+                        key={group}
+                        name={t(`operations.metric_${group}`)}
+                        values={node.metrics?.[group]}
+                        status={metricStatus(group)}
+                    />
+                ))}
+            </section>
         </main>
     );
 };

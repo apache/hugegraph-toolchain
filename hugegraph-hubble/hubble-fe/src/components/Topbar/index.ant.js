@@ -131,6 +131,7 @@ const Topbar = () => {
             <GraphContextSwitcher />
             <div className={style.rightContainer}>
                 <Radio.Group
+                    className={style.languageSwitch}
                     aria-label={t('login.language')}
                     data-testid="language-switcher"
                     value={languageType}
@@ -139,7 +140,7 @@ const Topbar = () => {
                     buttonStyle='solid'
                     onChange={handleLanguageChange}
                     options={[
-                        {label: 'CN', value: 'zh-CN'},
+                        {label: '中', value: 'zh-CN'},
                         {label: 'EN', value: 'en-US'},
                     ]}
                 />

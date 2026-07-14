@@ -189,7 +189,7 @@ describe('Topbar request errors', () => {
         expect(screen.getByRole('link', {name: 'workbench.back_home'}))
             .toHaveAttribute('href', '/navigation');
         expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
-        expect(screen.getByRole('radio', {name: 'CN'})).toBeInTheDocument();
+        expect(screen.getByRole('radio', {name: '中'})).toBeInTheDocument();
         expect(screen.getByRole('radio', {name: 'EN'})).toBeInTheDocument();
         expect(screen.getByRole('button', {
             name: 'workbench.shortcuts.open_button',

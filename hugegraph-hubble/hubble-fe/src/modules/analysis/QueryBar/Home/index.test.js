@@ -16,11 +16,12 @@
  */
 
 import {useState} from 'react';
-import {fireEvent, render, screen, within} from '@testing-library/react';
-import QueryBar, {isFavoritePopoverOpen} from './index';
+import {fireEvent, render, screen} from '@testing-library/react';
+import QueryBar from './index';
 
 jest.mock('../../../../components/CodeEditor', () => props => (
     <div
+        className='cm-editor'
         data-testid={`editor-${props.lang}`}
         data-placeholder={props.placeholder}
         data-meta-enter-newline={props.metaEnterNewline ? 'true' : 'false'}
@@ -29,20 +30,23 @@ jest.mock('../../../../components/CodeEditor', () => props => (
     </div>
 ));
 jest.mock('../ContentCommon', () => ({
-    children,
-    favoriteCardVisible,
-    setFavoriteCardVisible,
-    isEmptyQuery,
-    shortcutHint,
-}) => (
-    <div>
-        <button onClick={() => setFavoriteCardVisible(true)}>open favorite</button>
-        <span>{favoriteCardVisible ? 'favorite open' : 'favorite closed'}</span>
-        <span>{isEmptyQuery ? 'query empty' : 'query ready'}</span>
-        <span>{shortcutHint}</span>
-        {children}
-    </div>
-));
+    SecondaryActions: ({
+        favoriteCardVisible,
+        setFavoriteCardVisible,
+        isEmptyQuery,
+        shortcutHint,
+    }) => (
+        <div data-testid='secondary-query-actions'>
+            <button onClick={() => setFavoriteCardVisible(true)}>open favorite</button>
+            <span>{favoriteCardVisible ? 'favorite open' : 'favorite closed'}</span>
+            <span>{isEmptyQuery ? 'query empty' : 'query ready'}</span>
+            <span>{shortcutHint}</span>
+        </div>
+    ),
+    PrimaryActions: ({onExecute, activeTab}) => (
+        <button onClick={() => onExecute(activeTab)}>Run Query</button>
+    ),
+}));
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => ({
         'analysis.query.gremlin_tab': 'Gremlin',
@@ -57,6 +61,8 @@ jest.mock('react-i18next', () => ({
         'analysis.query.text2gql_placeholder': 'Describe the graph question',
         'analysis.query.text2gql_badge': 'Coming soon',
         'analysis.query.text2gql_privacy': 'Nothing is sent or executed.',
+        'analysis.query.collapse': 'Collapse',
+        'analysis.query.expand': 'Expand',
     })[key] || key}),
 }));
 
@@ -98,10 +104,6 @@ it('shows a same-level Text2GQL preview with no executable control', () => {
 });
 
 it('does not transfer an open favorite popover when query tabs change', () => {
-    expect(isFavoritePopoverOpen(true, 'Gremlin', 'Gremlin')).toBe(true);
-    expect(isFavoritePopoverOpen(true, 'Cypher', 'Gremlin')).toBe(false);
-    expect(isFavoritePopoverOpen(false, 'Gremlin', 'Gremlin')).toBe(false);
-
     const ControlledQueryBar = () => {
         const [activeTab, setActiveTab] = useState('Gremlin');
         return (
@@ -120,8 +122,7 @@ it('does not transfer an open favorite popover when query tabs change', () => {
     expect(screen.getByText('favorite open')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', {name: 'Cypher'}));
-    expect(within(screen.getByRole('tabpanel', {name: 'Cypher'}))
-        .getByText('favorite closed')).toBeInTheDocument();
+    expect(screen.getByText('favorite closed')).toBeInTheDocument();
 });
 
 it('matches the editor placeholder to the active query language without promotional help', () => {
@@ -155,4 +156,62 @@ it('matches the editor placeholder to the active query language without promotio
         'For example: MATCH (n) RETURN n LIMIT 10'
     );
     expect(screen.queryByText(/safe example/i)).not.toBeInTheDocument();
+});
+
+it('keeps query actions, language tabs, and Text2GQL in one navigation row', () => {
+    render(
+        <QueryBar
+            activeTab='Gremlin'
+            onTabsChange={jest.fn()}
+            onExecute={jest.fn()}
+            codeEditorContent='g.V()'
+            setCodeEditorContent={jest.fn()}
+        />
+    );
+
+    const navigation = screen.getByRole('tablist').closest('.ant-tabs-nav');
+    expect(navigation).toContainElement(screen.getByTestId('secondary-query-actions'));
+    expect(navigation).toContainElement(screen.getByRole('tab', {
+        name: /Natural language/,
+    }));
+    expect(navigation).toContainElement(screen.getByRole('button', {name: 'Run Query'}));
+});
+
+it('keeps collapse as a keyboard-accessible editor control', () => {
+    render(
+        <QueryBar
+            activeTab='Gremlin'
+            onTabsChange={jest.fn()}
+            onExecute={jest.fn()}
+            codeEditorContent='g.V()'
+            setCodeEditorContent={jest.fn()}
+        />
+    );
+
+    const collapse = screen.getByRole('button', {name: /Collapse/});
+    expect(collapse).toHaveAttribute('aria-expanded', 'true');
+    fireEvent.click(collapse);
+    expect(screen.queryByTestId('editor-gremlin')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: /Expand/})).toHaveAttribute(
+        'aria-expanded', 'false'
+    );
+});
+
+it('preserves Ctrl+Enter execution inside the editor', () => {
+    const onExecute = jest.fn();
+    render(
+        <QueryBar
+            activeTab='Gremlin'
+            onTabsChange={jest.fn()}
+            onExecute={onExecute}
+            codeEditorContent='g.V()'
+            setCodeEditorContent={jest.fn()}
+        />
+    );
+
+    const editor = screen.getByTestId('editor-gremlin');
+    fireEvent.keyDown(editor, {key: 'Enter', metaKey: true});
+    expect(onExecute).not.toHaveBeenCalled();
+    fireEvent.keyDown(editor, {key: 'Enter', ctrlKey: true});
+    expect(onExecute).toHaveBeenCalledWith('Gremlin');
 });

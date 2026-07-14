@@ -81,6 +81,8 @@ test('keeps null metrics safe and distinguishes unavailable groups', async () =>
     const identity = screen.getByRole('region', {name: 'Node identity'});
     expect(within(identity).getByLabelText('STORE icon')).toBeInTheDocument();
     expect(within(identity).getByText('Store A')).toBeInTheDocument();
+    expect(screen.getByRole('region', {name: 'Node metrics'})).toBeInTheDocument();
+    expect(screen.getByText(/Observed:/)).toBeInTheDocument();
 });
 
 test('uses the version instead of an unavailable role in the node identity', async () => {
@@ -211,5 +213,7 @@ test('presents native metric labels, units and capacity instead of raw keys', as
     const capacity = screen.getAllByRole('progressbar', {name: 'Capacity usage'});
     expect(capacity.some(item => item.getAttribute('aria-valuenow') === '75')).toBe(true);
     expect(capacity.some(item => item.getAttribute('aria-valuenow') === '98')).toBe(true);
+    expect(screen.getByText('75%')).toBeInTheDocument();
+    expect(screen.getByText('98%')).toBeInTheDocument();
     expect(screen.getByText(/222.6 GiB \/ 228.3 GiB/)).toBeInTheDocument();
 });

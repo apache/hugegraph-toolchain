@@ -16,87 +16,67 @@
  * under the License.
  */
 
-.tabContent {
+.actionBar,
+.secondaryActions,
+.primaryActions,
+.executionControl {
     display: flex;
+    align-items: center;
+}
+
+.actionBar {
     justify-content: space-between;
-    padding: 10px 10px;
+    gap: 16px;
+}
 
-    .leftHeader {
-        flex: 1;
-        min-width: 0;
+.secondaryActions {
+    gap: 8px;
+    padding-right: 12px;
+    white-space: nowrap;
+}
 
-        .actionBar {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 16px;
-            margin: 12px 0 4px;
+.primaryActions {
+    gap: 10px;
+    padding-left: 12px;
+    white-space: nowrap;
+}
 
-            .secondaryActions,
-            .primaryActions {
-                display: flex;
-                align-items: center;
-                min-height: 32px;
-            }
+.shortcutHint {
+    color: #667085;
+    font-size: 12px;
+}
 
-            .secondaryActions {
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .primaryActions {
-                flex: 0 0 auto;
-                flex-wrap: wrap;
-                justify-content: flex-end;
-                gap: 8px;
-                margin-left: auto;
-            }
-
-            .questionCircleIcon {
-                margin-left: 10px;
-            }
-
-            .btn {
-                position: relative;
-            }
-
-            .shortcutHint {
-                color: #667085;
-                font-size: 12px;
-                white-space: nowrap;
-            }
-
-            .primaryActions > :global(.ant-btn) {
-                min-width: 112px;
-            }
-        }
-    }
-
-    .showMoreButton {
-        flex: 0 0 auto;
-        margin-left: 8px;
-        cursor: pointer;
-        user-select: none;
+.executionControl {
+    :global(.ant-radio-button-wrapper:last-child) {
+        border-radius: 0;
     }
 }
 
-@media (max-width: 900px) {
-    .tabContent .leftHeader .actionBar .primaryActions {
-        width: 100%;
+.executeButton {
+    min-width: 104px;
+    margin-left: -1px;
+    border-radius: 0 4px 4px 0;
+}
+
+.executionControl :global(.ant-tooltip-disabled-compatible-wrapper) {
+    margin-left: -1px;
+}
+
+.executionControl :global(.ant-tooltip-disabled-compatible-wrapper .ant-btn) {
+    min-width: 104px;
+    border-radius: 0 4px 4px 0;
+}
+
+.helpButton {
+    color: #667085;
+
+    :global(.anticon) {
+        font-size: 16px;
     }
 }
 
-.hidden {
-    display: none;
-}
-
-.tabContentCollpased {
-    justify-content: flex-end;
-
-    .leftHeader {
-        display: none;
-    }
+.btn {
+    position: relative;
 }
 
 .favoriteModel {
@@ -110,5 +90,25 @@
 
     :global(.ant-popover-inner-content) {
         padding: 28px 24px 24px;
+    }
+}
+
+@media (max-width: 1366px) {
+    .secondaryActions,
+    .primaryActions {
+        padding-right: 6px;
+        padding-left: 6px;
+    }
+
+    .shortcutHint {
+        display: none;
+    }
+
+    .executeButton {
+        min-width: 96px;
+    }
+
+    .executionControl :global(.ant-tooltip-disabled-compatible-wrapper .ant-btn) {
+        min-width: 96px;
     }
 }

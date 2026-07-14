@@ -22,3 +22,7 @@ export const getCurrentLanguage = () => {
     const language = localStorage.getItem('languageType');
     return SUPPORTED_LANGUAGES.includes(language) ? language : DEFAULT_LANGUAGE;
 };
+
+export const syncDocumentLanguage = language => {
+    document.documentElement.lang = language === 'zh-CN' ? 'zh-CN' : 'en';
+};

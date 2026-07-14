@@ -144,6 +144,7 @@ test.each([
         .toBeDisabled();
     expect(screen.getByLabelText(new RegExp(`Advanced monitoring: ${reason}`)))
         .toHaveAttribute('tabindex', '0');
+    expect(screen.getByText(new RegExp(reason))).toBeVisible();
     expect(screen.getByRole('heading', {name: 'Cluster Overview'})).toBeInTheDocument();
 });
 
