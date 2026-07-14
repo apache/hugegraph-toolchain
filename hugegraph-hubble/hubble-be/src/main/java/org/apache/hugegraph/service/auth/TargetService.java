@@ -26,6 +26,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.extern.log4j.Log4j2;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ForbiddenException;
 import org.apache.hugegraph.structure.auth.Target;
 import org.apache.hugegraph.util.PageUtil;
 import org.springframework.stereotype.Service;
@@ -34,8 +35,12 @@ import org.springframework.stereotype.Service;
 @Service
 public class TargetService extends AuthService {
 
+    private static final String PD_DEFAULT_TARGET = "DEFAULT_SPACE_TARGET";
+
     public List<Target> list(HugeClient client) {
-        return client.auth().listTargets();
+        return client.auth().listTargets().stream()
+                     .filter(target -> !isPdDefaultTarget(target))
+                     .collect(Collectors.toList());
     }
 
     public List<Target> list(HugeClient client, String graphSpace) {
@@ -67,6 +72,7 @@ public class TargetService extends AuthService {
         if (target == null) {
             throw new ExternalException("auth.target.not-exist.id", targetId);
         }
+        requireCustomTarget(target);
         return target;
     }
 
@@ -77,6 +83,7 @@ public class TargetService extends AuthService {
     }
 
     public Target add(HugeClient client, String graphSpace, Target target) {
+        requireCustomTarget(target);
         if (target.graphSpace() != null) {
             requireGraphSpace(graphSpace, target.graphSpace(), "target");
         }
@@ -89,6 +96,7 @@ public class TargetService extends AuthService {
     }
 
     public Target update(HugeClient client, Target target) {
+        requireCustomTarget(target);
         return client.auth().updateTarget(target);
     }
 
@@ -105,5 +113,21 @@ public class TargetService extends AuthService {
     public void delete(HugeClient client, String graphSpace, String targetId) {
         this.get(client, graphSpace, targetId);
         this.delete(client, targetId);
+    }
+
+    static boolean isPdDefaultTarget(Target target) {
+        return target != null && isPdDefaultTargetName(target.name());
+    }
+
+    private static boolean isPdDefaultTargetName(String name) {
+        return name != null && (PD_DEFAULT_TARGET.equals(name) ||
+                                name.endsWith("_" + PD_DEFAULT_TARGET));
+    }
+
+    private static void requireCustomTarget(Target target) {
+        if (isPdDefaultTarget(target)) {
+            throw new ForbiddenException(
+                    "Permission denied: manage PD default target");
+        }
     }
 }

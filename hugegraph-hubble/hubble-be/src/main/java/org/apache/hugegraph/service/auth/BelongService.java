@@ -151,7 +151,7 @@ public class BelongService extends AuthService {
         if (StringUtils.isEmpty(userId) && StringUtils.isEmpty(roleId)) {
             belongs = client.auth().listBelongs();
         } else if (StringUtils.isEmpty(userId)) {
-            RoleService.getGroup(client.auth(), roleId);
+            RoleService.requireScopedGroup(client.auth(), graphSpace, roleId);
             belongs = client.auth().listBelongsByGroup(roleId, -1);
         } else if (StringUtils.isEmpty(roleId)) {
             belongs = client.auth().listBelongsByUser(userId, -1);
@@ -163,7 +163,12 @@ public class BelongService extends AuthService {
             if (!belongsToGraphSpace(graphSpace, belong.graphSpace())) {
                 return;
             }
-            BelongEntity entity = this.convert(client, belong);
+            if (belong.group() == null || belong.user() == null ||
+                graphSpace != null && RoleService.isPdDefaultRoleId(
+                        belong.group().toString())) {
+                return;
+            }
+            BelongEntity entity = this.convert(client, graphSpace, belong);
             if (entity != null &&
                 (StringUtils.isEmpty(userId) ||
                  userId.equals(entity.getUserId()))) {
@@ -191,7 +196,7 @@ public class BelongService extends AuthService {
 
     public BelongEntity get(HugeClient client, String graphSpace,
                             String belongId) {
-        return this.convert(client, this.requireBelong(
+        return this.convert(client, graphSpace, this.requireBelong(
                 client, graphSpace, belongId));
     }
 
@@ -207,9 +212,18 @@ public class BelongService extends AuthService {
     }
 
     protected BelongEntity convert(HugeClient client, Belong belong) {
+        return this.convert(client, null, belong);
+    }
+
+    private BelongEntity convert(HugeClient client, String graphSpace,
+                                 Belong belong) {
         try {
-            Group group = RoleService.getGroup(client.auth(),
-                                               belong.group().toString());
+            Group group = graphSpace == null ?
+                          RoleService.getGroup(
+                                  client.auth(), belong.group().toString()) :
+                          RoleService.requireScopedGroup(
+                                  client.auth(), graphSpace,
+                                  belong.group().toString());
             UserEntity user = this.userService.getUser(client,
                                                        belong.user().toString());
             return new BelongEntity(belong.id().toString(),

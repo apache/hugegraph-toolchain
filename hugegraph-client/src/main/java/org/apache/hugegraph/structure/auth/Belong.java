@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Belong extends AuthElement {
 
-    @JsonProperty(value = "graphspace", access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty(value = "graphspace", access = JsonProperty.Access.WRITE_ONLY)
     protected String graphSpace;
     @JsonProperty("user")
     protected Object user;

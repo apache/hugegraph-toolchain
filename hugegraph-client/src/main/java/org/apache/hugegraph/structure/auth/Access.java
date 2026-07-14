@@ -26,7 +26,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Access extends AuthElement {
 
-    @JsonProperty(value = "graphspace", access = JsonProperty.Access.READ_ONLY)
+    @JsonProperty(value = "graphspace", access = JsonProperty.Access.WRITE_ONLY)
     protected String graphSpace;
     @JsonProperty("group")
     private Object group;

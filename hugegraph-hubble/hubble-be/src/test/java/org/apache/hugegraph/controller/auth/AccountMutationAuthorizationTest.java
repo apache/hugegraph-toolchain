@@ -142,7 +142,7 @@ public class AccountMutationAuthorizationTest {
     }
 
     @Test
-    public void testSpaceAdminCanCreateAccount() {
+    public void testSpaceAdminCannotCreateGlobalAccount() {
         TestUserController controller = new TestUserController(this.client,
                                                                "manager");
         this.setBaseUserService(controller, this.authorizationService);
@@ -152,9 +152,13 @@ public class AccountMutationAuthorizationTest {
                .thenReturn("SPACEADMIN");
         UserEntity account = new UserEntity();
 
-        controller.create(account);
+        ForbiddenException failure = assertForbidden(
+                () -> controller.create(account));
 
-        Mockito.verify(this.authorizationService).add(this.client, account);
+        org.junit.Assert.assertTrue(failure.getMessage()
+                                           .contains("manage accounts"));
+        Mockito.verify(this.authorizationService, Mockito.never())
+               .add(this.client, account);
     }
 
     @Test
@@ -184,7 +188,7 @@ public class AccountMutationAuthorizationTest {
     }
 
     @Test
-    public void testSpaceAdminCannotGrantSuperadmin() {
+    public void testSpaceAdminCannotCreateSuperadminAccount() {
         TestUserController controller = new TestUserController(this.client,
                                                                "manager");
         this.setBaseUserService(controller, this.authorizationService);
@@ -192,8 +196,6 @@ public class AccountMutationAuthorizationTest {
         Mockito.when(this.authorizationService.userLevel(this.client,
                                                          "manager"))
                .thenReturn("SPACEADMIN");
-        Mockito.when(this.authorizationService.isSuperAdmin(this.client))
-               .thenReturn(false);
         UserEntity account = new UserEntity();
         account.setSuperadmin(true);
 
@@ -201,7 +203,7 @@ public class AccountMutationAuthorizationTest {
                 () -> controller.create(account));
 
         org.junit.Assert.assertTrue(failure.getMessage()
-                                           .contains("grant superadmin"));
+                                           .contains("manage accounts"));
     }
 
     @Test

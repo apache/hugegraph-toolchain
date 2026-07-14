@@ -57,8 +57,12 @@ public class AccessService extends AuthService {
             throw new ExternalException("auth.access.not-exist.id", accessId);
         }
         requireGraphSpace(graphSpace, access.graphSpace(), "access");
-        Group group = RoleService.getGroup(client.auth(),
-                                           access.group().toString());
+        Group group = graphSpace == null ?
+                      RoleService.getGroup(client.auth(),
+                                           access.group().toString()) :
+                      RoleService.requireScopedGroup(
+                              client.auth(), graphSpace,
+                              access.group().toString());
         Target target = graphSpace == null ?
                         this.targetService.get(client,
                                                access.target().toString()) :
@@ -106,13 +110,21 @@ public class AccessService extends AuthService {
                 ArrayListMultimap.create();
 
         accesses.forEach(access -> {
+            if (access.group() == null || access.target() == null ||
+                graphSpace != null && RoleService.isPdDefaultRoleId(
+                        access.group().toString())) {
+                return;
+            }
             grouped.put(ImmutableList.of(access.group().toString(),
                                          access.target().toString()), access);
         });
 
         for (ImmutableList<String> key : grouped.keySet()) {
             try {
-                Group group = RoleService.getGroup(client.auth(), key.get(0));
+                Group group = graphSpace == null ?
+                              RoleService.getGroup(client.auth(), key.get(0)) :
+                              RoleService.requireScopedGroup(
+                                      client.auth(), graphSpace, key.get(0));
                 Target target = graphSpace == null ?
                                 this.targetService.get(client, key.get(1)) :
                                 this.targetService.get(client, graphSpace,

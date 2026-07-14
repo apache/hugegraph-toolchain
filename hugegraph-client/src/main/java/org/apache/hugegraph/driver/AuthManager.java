@@ -51,6 +51,7 @@ public class AuthManager {
     private final RestClient client;
     private final TargetAPI targetAPI;
     private final GroupAPI groupAPI;
+    private final GroupAPI graphSpaceGroupAPI;
     private final UserAPI userAPI;
     private final AccessAPI accessAPI;
     private final BelongAPI belongAPI;
@@ -64,6 +65,7 @@ public class AuthManager {
         this.client = client;
         this.targetAPI = new TargetAPI(client, graphSpace);
         this.groupAPI = new GroupAPI(client);
+        this.graphSpaceGroupAPI = new GroupAPI(client, graphSpace);
         this.userAPI = new UserAPI(client, graphSpace);
         this.accessAPI = new AccessAPI(client, graphSpace);
         this.projectAPI = new ProjectAPI(client, graphSpace);
@@ -120,6 +122,30 @@ public class AuthManager {
 
     public void deleteGroup(Object id) {
         this.groupAPI.delete(id);
+    }
+
+    public List<Group> listGraphSpaceGroups() {
+        return this.listGraphSpaceGroups(-1);
+    }
+
+    public List<Group> listGraphSpaceGroups(int limit) {
+        return this.graphSpaceGroupAPI.list(limit);
+    }
+
+    public Group getGraphSpaceGroup(Object id) {
+        return this.graphSpaceGroupAPI.get(id);
+    }
+
+    public Group createGraphSpaceGroup(Group group) {
+        return this.graphSpaceGroupAPI.create(group);
+    }
+
+    public Group updateGraphSpaceGroup(Group group) {
+        return this.graphSpaceGroupAPI.update(group);
+    }
+
+    public void deleteGraphSpaceGroup(Object id) {
+        this.graphSpaceGroupAPI.delete(id);
     }
 
     public List<User> listUsers() {
@@ -310,6 +336,14 @@ public class AuthManager {
         return this.managerAPI(graphSpace).create(userManager);
     }
 
+    public UserManager addSpaceMember(String user, String graphSpace) {
+        UserManager userManager = new UserManager();
+        userManager.type(HugePermission.SPACE_MEMBER);
+        userManager.graphSpace(graphSpace);
+        userManager.user(user);
+        return this.managerAPI(graphSpace).create(userManager);
+    }
+
     public void delSuperAdmin(String user) {
         this.managerAPI.delete(user, HugePermission.ADMIN, null);
     }
@@ -319,8 +353,18 @@ public class AuthManager {
                                            graphSpace);
     }
 
+    public void delSpaceMember(String user, String graphSpace) {
+        this.managerAPI(graphSpace).delete(user, HugePermission.SPACE_MEMBER,
+                                           graphSpace);
+    }
+
     public List<String> listSpaceAdmin(String graphSpace) {
         return this.managerAPI(graphSpace).list(HugePermission.SPACE,
+                                                graphSpace);
+    }
+
+    public List<String> listSpaceMember(String graphSpace) {
+        return this.managerAPI(graphSpace).list(HugePermission.SPACE_MEMBER,
                                                 graphSpace);
     }
 

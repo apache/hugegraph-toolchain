@@ -34,6 +34,7 @@ import org.apache.hugegraph.exception.ParameterizedException;
 import org.apache.hugegraph.structure.auth.Access;
 import org.apache.hugegraph.structure.auth.Belong;
 import org.apache.hugegraph.structure.auth.Group;
+import org.apache.hugegraph.structure.auth.HugePermission;
 import org.apache.hugegraph.structure.auth.Role;
 import org.apache.hugegraph.util.PageUtil;
 import org.springframework.stereotype.Service;
@@ -83,15 +84,19 @@ public class RoleService extends AuthService {
     public List<Role> list(HugeClient client, String graphSpace,
                            boolean includeLegacy) {
         List<Role> roles = new ArrayList<>();
-        client.auth().listGroups().forEach(group -> {
+        client.auth().listGraphSpaceGroups().forEach(group -> {
             String scope = scopeOf(group);
             if (graphSpace.equals(scope)) {
                 roles.add(toRole(scope, group));
-            } else if (scope == null && includeLegacy &&
-                       isVisibleLegacy(group)) {
-                roles.add(toRole(null, group));
             }
         });
+        if (includeLegacy) {
+            client.auth().listGroups().forEach(group -> {
+                if (scopeOf(group) == null && isVisibleLegacy(group)) {
+                    roles.add(toRole(null, group));
+                }
+            });
+        }
         return roles;
     }
 
@@ -142,7 +147,7 @@ public class RoleService extends AuthService {
         Group group = new Group();
         group.name(scopedGroupName(graphSpace));
         group.description(metadata(name, role.description()));
-        Group created = client.auth().createGroup(group);
+        Group created = client.auth().createGraphSpaceGroup(group);
         return toRole(graphSpace, created);
     }
 
@@ -164,7 +169,7 @@ public class RoleService extends AuthService {
                                    displayName(group));
         checkScopedRole(graphSpace, name);
         group.description(metadata(name, role.description()));
-        return toRole(scope, auth.updateGroup(group));
+        return toRole(scope, auth.updateGraphSpaceGroup(group));
     }
 
     public void delete(HugeClient client, String roleId) {
@@ -194,7 +199,11 @@ public class RoleService extends AuthService {
         }
         accesses.forEach(access -> auth.deleteAccess(access.id()));
         belongs.forEach(belong -> auth.deleteBelong(belong.id()));
-        auth.deleteGroup(roleId);
+        if (scope == null) {
+            auth.deleteGroup(roleId);
+        } else {
+            auth.deleteGraphSpaceGroup(roleId);
+        }
     }
 
     protected static Group getGroup(AuthManager auth, String roleId) {
@@ -212,7 +221,8 @@ public class RoleService extends AuthService {
 
     private static Group requireGroup(AuthManager auth, String graphSpace,
                                       String roleId, boolean includeLegacy) {
-        Group group = getGroup(auth, roleId);
+        Group group = includeLegacy ? getGroup(auth, roleId) :
+                      getGraphSpaceGroup(auth, roleId);
         String scope = scopeOf(group);
         if (scope == null) {
             if (!includeLegacy || !isVisibleLegacy(group)) {
@@ -222,6 +232,15 @@ public class RoleService extends AuthService {
         }
         if (!graphSpace.equals(scope)) {
             throw forbiddenRole();
+        }
+        return group;
+    }
+
+    private static Group getGraphSpaceGroup(AuthManager auth,
+                                            String roleId) {
+        Group group = auth.getGraphSpaceGroup(roleId);
+        if (group == null) {
+            throw new ExternalException("auth.role.not-exist", roleId);
         }
         return group;
     }
@@ -241,6 +260,12 @@ public class RoleService extends AuthService {
     static String displayName(Group group) {
         String[] metadata = metadata(group);
         return metadata == null ? group.name() : metadata[0];
+    }
+
+    static boolean isPdDefaultRoleId(String roleId) {
+        return HugePermission.SPACE.string().equalsIgnoreCase(roleId) ||
+               HugePermission.SPACE_MEMBER.string().equalsIgnoreCase(roleId) ||
+               HugePermission.ADMIN.string().equalsIgnoreCase(roleId);
     }
 
     private static String displayDescription(Group group) {

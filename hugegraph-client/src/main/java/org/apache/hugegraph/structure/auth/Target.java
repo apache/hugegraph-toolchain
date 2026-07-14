@@ -33,7 +33,8 @@ public class Target extends AuthElement {
 
     @JsonProperty("target_name")
     protected String name;
-    @JsonProperty("graphspace")
+    @JsonProperty(value = "graphspace",
+                  access = JsonProperty.Access.WRITE_ONLY)
     protected String graphSpace;
     @JsonProperty("target_graph")
     protected String graph;

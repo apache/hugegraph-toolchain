@@ -22,7 +22,11 @@ import java.util.Map;
 import org.apache.hugegraph.client.RestClient;
 import org.apache.hugegraph.driver.AuthManager;
 import org.apache.hugegraph.rest.RestResult;
+import org.apache.hugegraph.structure.auth.Access;
+import org.apache.hugegraph.structure.auth.Belong;
 import org.apache.hugegraph.structure.auth.HugePermission;
+import org.apache.hugegraph.structure.auth.Group;
+import org.apache.hugegraph.structure.auth.Target;
 import org.apache.hugegraph.structure.auth.UserManager;
 import org.apache.hugegraph.testutil.Assert;
 import org.junit.Test;
@@ -30,6 +34,76 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 public class ManagerAPITest extends BaseUnitTest {
+
+    @Test
+    public void testScopedTargetGraphSpaceIsResponseOnly() {
+        Target target = new Target();
+        target.name("target");
+        target.graphSpace("SPACE_A");
+        target.graph("hugegraph");
+        target.description("description");
+
+        String payload = serialize(target);
+
+        Assert.assertFalse(payload.contains("\"graphspace\""));
+        Assert.assertContains("\"target_description\":\"description\"",
+                              payload);
+
+        Target response = deserialize("{\"graphspace\":\"SPACE_A\"}",
+                                      Target.class);
+        Assert.assertEquals("SPACE_A", response.graphSpace());
+
+        Access access = new Access();
+        access.graphSpace("SPACE_A");
+        Assert.assertFalse(serialize(access).contains("\"graphspace\""));
+        Assert.assertEquals("SPACE_A", deserialize(
+                "{\"graphspace\":\"SPACE_A\"}", Access.class)
+                .graphSpace());
+
+        Belong belong = new Belong();
+        belong.graphSpace("SPACE_A");
+        Assert.assertFalse(serialize(belong).contains("\"graphspace\""));
+        Assert.assertEquals("SPACE_A", deserialize(
+                "{\"graphspace\":\"SPACE_A\"}", Belong.class)
+                .graphSpace());
+    }
+
+    @Test
+    public void testGraphSpaceGroupsUseScopedPathWithoutChangingGlobalPath() {
+        RestClient client = Mockito.mock(RestClient.class);
+        RestResult result = Mockito.mock(RestResult.class);
+        Group group = new Group();
+        group.name("role");
+        Mockito.when(result.readObject(Group.class)).thenReturn(group);
+        Mockito.when(result.readList("groups", Group.class))
+               .thenReturn(java.util.Collections.emptyList());
+
+        ArgumentCaptor<String> postPaths =
+                ArgumentCaptor.forClass(String.class);
+        Mockito.when(client.post(postPaths.capture(),
+                                 Mockito.any(Group.class)))
+               .thenReturn(result);
+        ArgumentCaptor<String> listPath =
+                ArgumentCaptor.forClass(String.class);
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Map<String, Object>> params =
+                ArgumentCaptor.forClass(Map.class);
+        Mockito.when(client.get(listPath.capture(), params.capture()))
+               .thenReturn(result);
+
+        AuthManager auth = new AuthManager(client, "SPACE_A", null);
+        auth.createGraphSpaceGroup(group);
+        auth.createGroup(group);
+        auth.listGraphSpaceGroups(10);
+
+        Assert.assertEquals("graphspaces/SPACE_A/auth/groups",
+                            postPaths.getAllValues().get(0));
+        Assert.assertEquals("auth/groups",
+                            postPaths.getAllValues().get(1));
+        Assert.assertEquals("graphspaces/SPACE_A/auth/groups",
+                            listPath.getValue());
+        Assert.assertEquals(10, params.getValue().get("limit"));
+    }
 
     @Test
     public void testSpaceAdminUsesPathGraphSpaceAndMinimalBody() {
@@ -109,37 +183,50 @@ public class ManagerAPITest extends BaseUnitTest {
                 ArgumentCaptor.forClass(Map.class);
         Mockito.when(client.get(getPath.capture(), getParams.capture()))
                .thenReturn(result);
+        Mockito.when(client.post(Mockito.anyString(), Mockito.anyMap()))
+               .thenReturn(result);
 
         AuthManager auth = new AuthManager(client, "DEFAULT", null);
         auth.delSpaceAdmin("alice", "space_a");
+        auth.addSpaceMember("bob", "space_a");
+        auth.delSpaceMember("bob", "space_a");
         Assert.assertEquals(java.util.Collections.singletonList("alice"),
                             auth.listSpaceAdmin("space_b"));
+        Assert.assertEquals(java.util.Collections.singletonList("alice"),
+                            auth.listSpaceMember("space_b"));
         Assert.assertTrue(auth.checkDefaultRole("space_c", "analyst",
                                                 "graph_1"));
 
-        Mockito.verify(client).delete(deletePath.capture(),
-                                      deleteParams.capture());
+        Mockito.verify(client, Mockito.times(2)).delete(deletePath.capture(),
+                                                        deleteParams.capture());
         Assert.assertEquals("graphspaces/space_a/auth/managers",
-                            deletePath.getValue());
+                            deletePath.getAllValues().get(0));
         Assert.assertEquals("space_a",
-                            deleteParams.getValue().get("graphspace"));
+                            deleteParams.getAllValues().get(0)
+                                        .get("graphspace"));
         Assert.assertEquals("alice",
-                            deleteParams.getValue().get("user"));
+                            deleteParams.getAllValues().get(0).get("user"));
         Assert.assertEquals(HugePermission.SPACE,
-                            deleteParams.getValue().get("type"));
+                            deleteParams.getAllValues().get(0).get("type"));
+        Assert.assertEquals("bob",
+                            deleteParams.getAllValues().get(1).get("user"));
+        Assert.assertEquals(HugePermission.SPACE_MEMBER,
+                            deleteParams.getAllValues().get(1).get("type"));
         Assert.assertEquals("graphspaces/space_b/auth/managers",
                             getPath.getAllValues().get(0));
         Assert.assertEquals("space_b",
                             getParams.getAllValues().get(0).get("graphspace"));
         Assert.assertEquals(HugePermission.SPACE,
                             getParams.getAllValues().get(0).get("type"));
+        Assert.assertEquals(HugePermission.SPACE_MEMBER,
+                            getParams.getAllValues().get(1).get("type"));
         Assert.assertEquals("graphspaces/space_c/auth/managers/default",
-                            getPath.getAllValues().get(1));
+                            getPath.getAllValues().get(2));
         Assert.assertEquals("space_c",
-                            getParams.getAllValues().get(1).get("graphspace"));
+                            getParams.getAllValues().get(2).get("graphspace"));
         Assert.assertEquals("analyst",
-                            getParams.getAllValues().get(1).get("role"));
+                            getParams.getAllValues().get(2).get("role"));
         Assert.assertEquals("graph_1",
-                            getParams.getAllValues().get(1).get("graph"));
+                            getParams.getAllValues().get(2).get("graph"));
     }
 }

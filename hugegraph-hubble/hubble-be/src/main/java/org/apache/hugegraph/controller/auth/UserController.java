@@ -73,7 +73,7 @@ public class UserController extends BaseController {
 
     @PostMapping
     public void create(@RequestBody UserEntity userEntity) {
-        HugeClient client = this.requireAccountCreator();
+        HugeClient client = this.requireAccountManager();
         this.checkAccountGrantScope(client, null, userEntity);
         userService.add(client, userEntity);
     }

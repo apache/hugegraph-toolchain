@@ -33,6 +33,10 @@ public class GroupAPI extends AuthAPI {
         super(client);
     }
 
+    public GroupAPI(RestClient client, String graphSpace) {
+        super(client, graphSpace);
+    }
+
     @Override
     protected String type() {
         return HugeType.GROUP.string();

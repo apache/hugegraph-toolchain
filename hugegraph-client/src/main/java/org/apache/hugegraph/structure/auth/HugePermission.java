@@ -27,6 +27,7 @@ public enum HugePermission {
     EXECUTE(0x08),
 
     SPACE(0x1f),
+    SPACE_MEMBER(0x2f),
     ADMIN(0x7f);
 
     private final byte code;

@@ -106,8 +106,16 @@ public class GraphSpaceUserService extends AuthService {
                         .collect(Collectors.toSet());
         newRoles.forEach(roleId -> RoleService.requireScopedGroup(
                 client.auth(), graphSpace, roleId));
+        User account = client.auth().getUser(userView.getId());
+        E.checkNotNull(account, "User");
+        String username = account.name();
+        E.checkArgument(username != null && !username.isEmpty(),
+                        "The user name is empty");
         List<BelongEntity> current = this.belongService.list(
                 client, graphSpace, null, userView.getId());
+        if (!client.auth().listSpaceMember(graphSpace).contains(username)) {
+            client.auth().addSpaceMember(username, graphSpace);
+        }
         current.forEach(belong -> {
             if (!newRoles.contains(belong.getRoleId())) {
                 this.belongService.deleteById(client, graphSpace,
@@ -129,12 +137,15 @@ public class GraphSpaceUserService extends AuthService {
 
     public void unauthUser(HugeClient client, String graphSpace,
                            String userId) {
+        User account = client.auth().getUser(userId);
+        E.checkNotNull(account, "User");
         List<BelongEntity> belongs = this.belongService.list(
                 client, graphSpace, null, userId);
         E.checkState(!belongs.isEmpty(), "The user: (%s) not exists", userId);
         belongs.forEach(belong -> {
             this.belongService.deleteById(client, graphSpace, belong.getId());
         });
+        client.auth().delSpaceMember(account.name(), graphSpace);
     }
 
     public IPage<User> querySpaceAdmins(HugeClient client, String graphSpace,
