@@ -79,7 +79,7 @@ public class UserService extends AuthService {
             if (isPdEnabled()) {
                 ue.setSuperadmin(isSuperAdmin(hugeClient, ue.getId()));
             } else {
-                ue.setSuperadmin(false);
+                ue.setSuperadmin(isStandaloneAdmin(ue.getName()));
             }
             ues.add(ue);
         });
@@ -125,6 +125,10 @@ public class UserService extends AuthService {
                 user.setAdminSpaces(spaceMap.get(user.getName()));
                 user.setSuperadmin(isSuperAdmin(hugeClient, user.getId()));
             }
+        } else {
+            for (UserEntity user : results) {
+                user.setSuperadmin(isStandaloneAdmin(user.getName()));
+            }
         }
         return PageUtil.page(results, pageNo, pageSize);
     }
@@ -155,7 +159,7 @@ public class UserService extends AuthService {
             userEntity.setSpacenum(adminSpaces.size());
             userEntity.setResSpaces(resSpaces);
         } else {
-            userEntity.setSuperadmin(false);
+            userEntity.setSuperadmin(isStandaloneAdmin(user.name()));
             userEntity.setAdminSpaces(new ArrayList<>());
             userEntity.setSpacenum(0);
             userEntity.setResSpaces(new ArrayList<>());
@@ -189,7 +193,7 @@ public class UserService extends AuthService {
             userEntity.setSpacenum(adminSpaces.size());
             userEntity.setResSpaces(resSpaces);
         } else {
-            userEntity.setSuperadmin(false);
+            userEntity.setSuperadmin(isStandaloneAdmin(username));
             userEntity.setAdminSpaces(new ArrayList<>());
             userEntity.setSpacenum(0);
             userEntity.setResSpaces(new ArrayList<>());
@@ -205,7 +209,9 @@ public class UserService extends AuthService {
         user.email(ue.getEmail());
         user.avatar(ue.getAvatar());
         user.description(ue.getDescription());
-        user.nickname(ue.getNickname());
+        if (isPdEnabled()) {
+            user.nickname(ue.getNickname());
+        }
 
         User newUser = client.auth().createUser(user);
         if (ue.getAdminSpaces() != null) {
@@ -377,7 +383,9 @@ public class UserService extends AuthService {
         user.phone(userEntity.getPhone());
         user.email(userEntity.getEmail());
         user.description(userEntity.getDescription());
-        user.nickname(userEntity.getNickname());
+        if (isPdEnabled()) {
+            user.nickname(userEntity.getNickname());
+        }
         updateAdminSpace(hugeClient, userEntity.getName(), userEntity.getAdminSpaces());
 
         // 设置超级管理员权限
@@ -396,7 +404,11 @@ public class UserService extends AuthService {
                                String nickname, String description) {
         AuthManager auth = hugeClient.auth();
         User user = auth.getUserByName(username);
-        user.nickname(nickname);
+        if (isPdEnabled()) {
+            user.nickname(nickname);
+        } else {
+            user.nickname(null);
+        }
         user.description(description);
         user.password(null);
         hugeClient.auth().updateUser(user);
@@ -485,6 +497,10 @@ public class UserService extends AuthService {
         // StandardAuthenticator reserves the configured administrator account
         // name. Other authenticated users still depend on explicit role grants.
         return "admin".equals(username) ? "ADMIN" : "USER";
+    }
+
+    private static boolean isStandaloneAdmin(String username) {
+        return "ADMIN".equals(standaloneUserLevel(username));
     }
 
     public boolean isSuperAdmin(HugeClient client, String uid) {
