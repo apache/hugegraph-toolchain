@@ -34,7 +34,6 @@ import org.apache.hugegraph.service.auth.UserService;
 import org.apache.hugegraph.service.graphs.GraphsService;
 import org.apache.hugegraph.service.space.GraphSpaceService;
 import org.apache.hugegraph.util.E;
-import org.apache.hugegraph.util.Ex;
 import org.apache.hugegraph.util.PageUtil;
 import org.apache.hugegraph.util.UrlUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -147,8 +146,8 @@ public class GraphSpaceController extends BaseController {
     public Object add(@RequestBody GraphSpaceEntity graphSpaceEntity) {
         E.checkArgument(isPdEnabled(),
                 "GraphSpace management is not supported in standalone mode");
+        HugeClient client = this.requireGraphSpaceAdministrator();
         // Create GraphSpace
-        HugeClient client = this.authClient(null, null);
         applyResourceDefaults(graphSpaceEntity);
 
         graphSpaceService.create(client, graphSpaceEntity.convertGraphSpace());
@@ -190,11 +189,10 @@ public class GraphSpaceController extends BaseController {
                          @RequestBody GraphSpaceEntity graphSpaceEntity) {
         E.checkArgument(isPdEnabled(),
                 "GraphSpace management is not supported in standalone mode");
+        HugeClient client = this.requireGraphSpaceAdministrator();
 
         graphSpaceEntity.setName(graphspace);
         applyResourceDefaults(graphSpaceEntity);
-
-        HugeClient client = this.authClient(null, null);
 
         // Update graphspace
         graphSpaceService.update(client, graphSpaceEntity.convertGraphSpace());
@@ -222,10 +220,9 @@ public class GraphSpaceController extends BaseController {
     public void delete(@PathVariable("graphspace") String graphspace) {
         E.checkArgument(isPdEnabled(),
                 "GraphSpace management is not supported in standalone mode");
+        HugeClient client = this.requireGraphSpaceAdministrator();
         E.checkArgument(StringUtils.isNotEmpty(graphspace), "graphspace " +
                 "must not null");
-
-        HugeClient client = this.authClient(null, null);
 
         // Delete graphspace admin
         userService.listGraphSpaceAdmin(client, graphspace).forEach(u -> {
@@ -240,6 +237,7 @@ public class GraphSpaceController extends BaseController {
     public Object initBuiltIn(@RequestBody BuiltInEntity entity) {
         E.checkArgument(isPdEnabled(),
                 "Built-in initialization is not supported in standalone mode");
+        HugeClient client = this.requireGraphSpaceAdministrator();
         GraphConnection connection = new GraphConnection();
 
         String url = this.getUrl();
@@ -254,8 +252,6 @@ public class GraphSpaceController extends BaseController {
         connection.setGraphSpace(Constant.BUILT_IN);
         connection.setToken(this.getToken());
 
-        HugeClient client = this.authClient(null, null);
-        Ex.check(userService.isSuperAdmin(client), "仅限系统管理员操作");
         if (entity.initSpace) {
             graphSpaceService.initBuiltIn(client);
         }

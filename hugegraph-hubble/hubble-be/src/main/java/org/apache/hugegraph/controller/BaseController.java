@@ -177,6 +177,15 @@ public abstract class BaseController {
         return client;
     }
 
+    protected HugeClient requireGraphSpaceAdministrator() {
+        HugeClient client = this.authClient(null, null);
+        if (!this.userService.isSuperAdmin(client)) {
+            throw new ForbiddenException(
+                    "Permission denied: manage graphspaces");
+        }
+        return client;
+    }
+
     protected HugeClient authGremlinClient(String graphSpace, String graph) {
         return this.authClient(graphSpace, graph);
     }
