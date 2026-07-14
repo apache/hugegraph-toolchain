@@ -30,6 +30,7 @@ import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sun.net.httpserver.HttpServer;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpGet;
@@ -78,6 +79,19 @@ public class AuthSecurityTest {
     @After
     public void tearDown() {
         RequestContextHolder.resetRequestAttributes();
+    }
+
+    @Test
+    public void testUserPasswordIsWriteOnlyInJson() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        UserEntity user = mapper.readValue(
+                          "{\"user_name\":\"alice\",\"user_password\":\"secret\"}",
+                          UserEntity.class);
+
+        Assert.assertEquals("secret", user.getPassword());
+        String json = mapper.writeValueAsString(user);
+        Assert.assertFalse(json.contains("user_password"));
+        Assert.assertFalse(json.contains("secret"));
     }
 
     @Test

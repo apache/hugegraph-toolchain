@@ -385,9 +385,9 @@
       "remark": "备注",
       "remark_help": "可选，用于记录账号用途、团队或负责人",
       "remark_placeholder": "输入账号备注",
-      "default_password": "默认密码",
+      "default_password": "初始密码",
       "default_password_help": "创建账号时设置的初始密码；用户登录后应尽快修改",
-      "default_password_placeholder": "123456（创建后可前往个人中心更改）",
+      "default_password_placeholder": "请输入 5–16 位初始密码",
       "permission": "管理权限",
       "permission_help": "选择该账号可以管理的图空间；普通访问权限由 HugeGraph 角色控制"
     }

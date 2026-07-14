@@ -100,7 +100,6 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
         try {
             const values = await form.validateFields();
             if (op === 'create') {
-                values.user_password = values.user_password ?? '123456';
                 await createUser(values);
             }
 
@@ -289,7 +288,9 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
                                     <Form.Item
                                         label={<HelpLabel t={t} labelKey='account.form.default_password' />}
                                         name="user_password"
-                                        rules={[{type: 'string', min: 5, max: 16}]}
+                                        rules={op === 'create'
+                                            ? [rules.required(), {type: 'string', min: 5, max: 16}]
+                                            : [{type: 'string', min: 5, max: 16}]}
                                     >
                                         <Input.Password
                                             placeholder={t('account.form.default_password_placeholder')}

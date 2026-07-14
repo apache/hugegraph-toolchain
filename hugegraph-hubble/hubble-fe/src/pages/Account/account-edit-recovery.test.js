@@ -35,7 +35,7 @@ jest.mock('../../api', () => ({
 jest.mock('../../utils/rules', () => ({
     isName: {},
     isAccountName: {},
-    required: () => ({required: false}),
+    required: () => ({required: true}),
 }));
 
 const mockTranslate = key => key;
@@ -149,6 +149,14 @@ test('loads graphspaces into the visible create account form', async () => {
     fireEvent.mouseDown(screen.getByRole('combobox'));
 
     expect(await screen.findByRole('option', {name: 'analytics'})).toBeInTheDocument();
+});
+
+test('requires an explicit password when creating an account', async () => {
+    render(<EditLayer {...props} data={{}} op='create' />);
+
+    expect(screen.getByPlaceholderText(
+        'account.form.default_password_placeholder'
+    )).toBeRequired();
 });
 
 test('shows the derived space administrator level in account details', async () => {

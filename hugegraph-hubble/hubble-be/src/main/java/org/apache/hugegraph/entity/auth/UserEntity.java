@@ -48,7 +48,7 @@ public class UserEntity implements Identifiable {
     @JsonProperty("user_email")
     private String email;
 
-    @JsonProperty("user_password")
+    @JsonProperty(value = "user_password", access = JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @JsonProperty("user_phone")

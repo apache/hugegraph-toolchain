@@ -385,9 +385,9 @@
       "remark": "Remark",
       "remark_help": "Optional context about the account purpose, team, or owner",
       "remark_placeholder": "Enter account remark",
-      "default_password": "Default Password",
+      "default_password": "Initial Password",
       "default_password_help": "The initial password for a new account. The user should change it after signing in",
-      "default_password_placeholder": "123456 (changeable in profile)",
+      "default_password_placeholder": "Enter a 5–16 character initial password",
       "permission": "Admin Permission",
       "permission_help": "Select the GraphSpaces this account may administer. HugeGraph roles control ordinary access"
     }
