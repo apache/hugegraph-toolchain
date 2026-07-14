@@ -40,6 +40,18 @@ describe('auth API contract', () => {
         expect(mockRequest.put).toHaveBeenCalledWith('/auth/users/personal', profile);
     });
 
+    it('requests the no-store server authorization context', () => {
+        auth.context();
+
+        expect(mockRequest.get).toHaveBeenCalledWith('/auth/context', {
+            suppressBusinessErrorToast: true,
+            headers: {
+                'Cache-Control': 'no-store',
+                Pragma: 'no-cache',
+            },
+        });
+    });
+
     it.each([
         ['getAllUserList', [{page_no: 1}], 'get', '/auth/users'],
         ['getUserInfo', ['user'], 'get', '/auth/users/user'],

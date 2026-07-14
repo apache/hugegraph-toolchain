@@ -153,6 +153,7 @@ test('loads graphspaces into the visible create account form', async () => {
 
 test('requires an explicit password when creating an account', async () => {
     render(<EditLayer {...props} data={{}} op='create' />);
+    await act(async () => undefined);
 
     expect(screen.getByPlaceholderText(
         'account.form.default_password_placeholder'

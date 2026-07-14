@@ -4,8 +4,8 @@
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
  * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -16,23 +16,6 @@
  * under the License.
  */
 
-import Route from './routes';
-import 'antd/dist/antd.css';
-import './App.scss';
-import './App.css';
-import './styles/workbench.scss';
-import Layout from './layout.ant';
-import {AuthContextProvider} from './auth/AuthContext';
+const AUTH_REVALIDATE_EVENT = 'hubble:auth-revalidate';
 
-function App() {
-
-    return (
-        <div>
-            <AuthContextProvider>
-                <Route element={<Layout />} />
-            </AuthContextProvider>
-        </div>
-    );
-};
-
-export default App;
+export {AUTH_REVALIDATE_EVENT};

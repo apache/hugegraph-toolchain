@@ -16,68 +16,15 @@
  * under the License.
  */
 
-import {useEffect, useState} from 'react';
-import {getCapabilities} from '../../api/operations';
-import {getUser, USER_CHANGE_EVENT} from '../../utils/user';
-
-let capabilityRequest;
-
-const getUserIdentity = () => {
-    const currentUser = getUser();
-    return String(currentUser.id ?? currentUser.user_name ?? 'anonymous');
-};
-
-const loadOperationsCapabilities = (identity = getUserIdentity()) => {
-    if (!capabilityRequest || capabilityRequest.identity !== identity) {
-        const request = getCapabilities().then(result => (
-            Array.isArray(result?.capabilities) ? result.capabilities : []
-        )).catch(error => {
-            if (capabilityRequest?.request === request) {
-                capabilityRequest = undefined;
-            }
-            throw error;
-        });
-        capabilityRequest = {identity, request};
-    }
-    return capabilityRequest.request;
-};
-
-const resetOperationsCapabilities = () => {
-    capabilityRequest = undefined;
-};
+import {useAuthContext} from '../../auth/AuthContext';
 
 const useOperationsCapabilities = () => {
-    const [identity, setIdentity] = useState(getUserIdentity);
-    const [state, setState] = useState({loading: true, capabilities: [], error: null});
-
-    useEffect(() => {
-        const updateIdentity = () => setIdentity(getUserIdentity());
-        window.addEventListener(USER_CHANGE_EVENT, updateIdentity);
-        return () => window.removeEventListener(USER_CHANGE_EVENT, updateIdentity);
-    }, []);
-
-    useEffect(() => {
-        let active = true;
-        setState({loading: true, capabilities: [], error: null});
-        loadOperationsCapabilities(identity).then(capabilities => {
-            if (active) {
-                setState({loading: false, capabilities, error: null});
-            }
-        }).catch(error => {
-            if (active) {
-                setState({loading: false, capabilities: [], error});
-            }
-        });
-        return () => {
-            active = false;
-        };
-    }, [identity]);
-
-    return state;
+    const {loading, context, error} = useAuthContext();
+    return {
+        loading,
+        capabilities: context?.capabilities ?? [],
+        error,
+    };
 };
 
-export {
-    loadOperationsCapabilities,
-    resetOperationsCapabilities,
-    useOperationsCapabilities,
-};
+export {useOperationsCapabilities};

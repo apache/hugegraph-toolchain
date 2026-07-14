@@ -65,26 +65,11 @@ const getDefaultGraphspace = () => {
     return '';
 };
 
-const isAdmin = () => {
-    const user = getUser();
-
-    return Boolean(user.is_superadmin);
-};
-
-const canAccessAccount = (pdEnabled, user = {}) => {
-    return Boolean(pdEnabled && (
-        user.is_superadmin
-        || (Array.isArray(user.adminSpaces) && user.adminSpaces.length > 0)
-    ));
-};
-
 export {
-    canAccessAccount,
     setUser,
     getUser,
     clearUser,
     clearLogin,
     getDefaultGraphspace,
-    isAdmin,
     USER_CHANGE_EVENT,
 };

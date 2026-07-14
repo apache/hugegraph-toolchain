@@ -26,6 +26,7 @@ import FormHelpLabel from '../../components/FormHelpLabel';
 import {getAccountLevel} from './level';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
+const DEFAULT_ALLOWED_OPERATIONS = {create: true, edit: true, auth: true};
 
 const HelpLabel = ({t, labelKey}) => (
     <FormHelpLabel
@@ -34,7 +35,14 @@ const HelpLabel = ({t, labelKey}) => (
     />
 );
 
-const EditLayer = ({visible, onCancel, data, op, refresh}) => {
+const EditLayer = ({
+    visible,
+    onCancel,
+    data,
+    op,
+    refresh,
+    allowedOperations = DEFAULT_ALLOWED_OPERATIONS,
+}) => {
     const {t} = useTranslation();
     const [form] = Form.useForm();
     const [graphspaceList, setGraphspaceList] = useState([]);
@@ -126,6 +134,7 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
         if (!visible) {
             detailRequest.current += 1;
             setDetail({});
+            setGraphspaceList([]);
             form.resetFields();
             setLoading(false);
             return;
@@ -133,23 +142,28 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
 
         const request = detailRequest.current + 1;
         detailRequest.current = request;
-        api.manage.getGraphSpaceList(undefined, PAGE_ERROR_CONFIG).then(res => {
-            if (detailRequest.current !== request) {
-                return;
-            }
+        setGraphspaceList([]);
+        if (op !== 'detail') {
+            api.manage.getGraphSpaceList(undefined, PAGE_ERROR_CONFIG).then(res => {
+                if (detailRequest.current !== request) {
+                    return;
+                }
 
-            if (res.status === 200) {
-                setGraphspaceList(res.data.records.map(item => ({label: item.name, value: item.name})));
+                if (res.status === 200) {
+                    setGraphspaceList(res.data.records.map(item => ({
+                        label: item.name,
+                        value: item.name,
+                    })));
+                    return;
+                }
 
-                return;
-            }
-
-            message.error(t('common.msg.load_failed'));
-        }).catch(() => {
-            if (detailRequest.current === request) {
                 message.error(t('common.msg.load_failed'));
-            }
-        });
+            }).catch(() => {
+                if (detailRequest.current === request) {
+                    message.error(t('common.msg.load_failed'));
+                }
+            });
+        }
 
         if (data.id) {
             setLoading(true);
@@ -191,6 +205,10 @@ const EditLayer = ({visible, onCancel, data, op, refresh}) => {
             setLoading(false);
         }
     }, [visible, data.id, form, op, t]);
+
+    if (op !== 'detail' && !allowedOperations[op]) {
+        return null;
+    }
 
     return (
         op === 'detail'

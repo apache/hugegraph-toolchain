@@ -239,6 +239,11 @@ test.each([
 });
 
 test('shows Account for the same authorized-space user accepted by its route', async () => {
+    useOperationsCapabilities.mockReturnValue({
+        loading: false,
+        capabilities: ['graphspace_members_manage'],
+        error: null,
+    });
     sessionStorage.setItem('user_', JSON.stringify({
         id: 'space-admin',
         user_nickname: 'space-admin',

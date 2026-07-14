@@ -24,6 +24,7 @@ import i18n from '../i18n';
 import * as user from '../utils/user';
 import {withLanguageHeader} from './languageHeader';
 import {showThrottleWarning} from './throttleWarning';
+import {AUTH_REVALIDATE_EVENT} from '../utils/authEvents';
 
 const isJsonResponse = headers => {
     const contentType = headers?.['content-type'] || headers?.['Content-Type'] || '';
@@ -58,6 +59,12 @@ const isUnauthorizedError = error => {
     return error.response?.status === 401
            || error.response?.data?.status === 401
            || error.message?.includes('status code 401');
+};
+
+const notifyForbidden = config => {
+    if (!config?.url?.includes('/auth/context')) {
+        window.dispatchEvent(new CustomEvent(AUTH_REVALIDATE_EVENT));
+    }
 };
 
 const instance = axios.create({
@@ -96,6 +103,9 @@ instance.interceptors.response.use(
         else if (response.data?.status === 429) {
             showThrottleWarning(response.data.message);
         }
+        else if (response.status === 403 || response.data?.status === 403) {
+            notifyForbidden(response.config);
+        }
         else if (response.data?.status !== 200
                  && !response.config?.suppressBusinessErrorToast) {
             if (!_.isEmpty(response.data.message)) {
@@ -113,6 +123,10 @@ instance.interceptors.response.use(
             || error.response?.data?.status === 429) {
             showThrottleWarning(error.response?.data?.message);
             return Promise.reject(error);
+        }
+        if (error.response?.status === 403
+            || error.response?.data?.status === 403) {
+            notifyForbidden(error.config);
         }
         if (!error.config?.suppressBusinessErrorToast) {
             const res = error.response?.data;

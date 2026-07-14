@@ -17,6 +17,7 @@
  */
 
 import {render, screen} from '@testing-library/react';
+import {MemoryRouter} from 'react-router-dom';
 import App from './App';
 
 jest.mock('./routes', () => ({element}) => (
@@ -26,7 +27,14 @@ jest.mock('./routes', () => ({element}) => (
 jest.mock('./layout.ant', () => () => <div>Hubble layout</div>);
 
 test('wires the Hubble layout into the application router', () => {
-    render(<App />);
+    sessionStorage.clear();
+    render(
+        <MemoryRouter
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <App />
+        </MemoryRouter>
+    );
     expect(screen.getByTestId('app-route')).toBeInTheDocument();
     expect(screen.getByText('Hubble layout')).toBeInTheDocument();
 });

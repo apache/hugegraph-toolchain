@@ -20,13 +20,14 @@ import {MemoryRouter} from 'react-router-dom';
 
 import NavigationHome from './index';
 import {isPdEnabled} from '../../../utils/config';
-import * as user from '../../../utils/user';
+
+let mockAuthContext;
 
 jest.mock('../../../utils/config', () => ({
     isPdEnabled: jest.fn(),
 }));
-jest.mock('../../../utils/user', () => ({
-    getUser: jest.fn(),
+jest.mock('../../../auth/AuthContext', () => ({
+    useAuthContext: () => mockAuthContext,
 }));
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => key}),
@@ -48,7 +49,7 @@ const renderHome = () => render(
 beforeEach(() => {
     jest.clearAllMocks();
     localStorage.clear();
-    user.getUser.mockReturnValue({is_superadmin: false});
+    mockAuthContext = {context: {capabilities: []}};
 });
 
 test('uses DEFAULT graph context and hides PD-only support in non-PD mode', () => {
@@ -123,13 +124,44 @@ test('orders graph import before graph query in the main journey', () => {
 
 test('keeps GraphSpace and support capabilities available to a PD superadmin', () => {
     isPdEnabled.mockReturnValue(true);
-    user.getUser.mockReturnValue({is_superadmin: true});
+    mockAuthContext = {
+        context: {
+            capabilities: [
+                'accounts_manage',
+                'operations_health_read',
+            ],
+        },
+    };
     renderHome();
 
     expect(screen.getByRole('link', {
         name: /home\.workbench\.journeys\.understand\.primary/,
     })).toHaveAttribute('href', '/graphspace');
     expect(screen.getByText('admin-support')).toBeInTheDocument();
+    expect(screen.getByText('operations-support')).toBeInTheDocument();
+});
+
+test('renders only account support for scoped space administrators', () => {
+    isPdEnabled.mockReturnValue(true);
+    mockAuthContext = {
+        context: {capabilities: ['graphspace_members_manage']},
+    };
+
+    renderHome();
+
+    expect(screen.getByText('admin-support')).toBeInTheDocument();
+    expect(screen.queryByText('operations-support')).not.toBeInTheDocument();
+});
+
+test('renders Operations support for non-PD admins from server capability', () => {
+    isPdEnabled.mockReturnValue(false);
+    mockAuthContext = {
+        context: {capabilities: ['operations_health_read']},
+    };
+
+    renderHome();
+
+    expect(screen.queryByText('admin-support')).not.toBeInTheDocument();
     expect(screen.getByText('operations-support')).toBeInTheDocument();
 });
 

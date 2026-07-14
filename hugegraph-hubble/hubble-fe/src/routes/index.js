@@ -48,6 +48,7 @@ import {
 import * as user from '../utils/user';
 import {isDevelopmentBuild} from '../utils/routeEnvironment';
 import RouteErrorBoundary from '../components/RouteErrorBoundary';
+import {useAuthContext} from '../auth/AuthContext';
 
 const LOGIN_PATH = '/login';
 
@@ -77,17 +78,29 @@ const PdOnlyRoute = ({children, fallback = '/navigation'}) => {
 };
 
 const AccountRoute = () => {
-    const pdEnabled = isPdEnabled();
+    const {loading, hasCapability} = useAuthContext();
 
-    return user.canAccessAccount(pdEnabled, user.getUser())
+    if (loading) {
+        return null;
+    }
+
+    return hasCapability('accounts_manage')
+        || hasCapability('graphspace_members_manage')
         ? <Account />
         : <Navigate to='/profile' replace />;
 };
 
 const GraphSpaceListRoute = () => {
-    return isPdEnabled()
-        ? <GraphSpace />
-        : <Navigate to={`/graphspace/${DEFAULT_GRAPHSPACE}`} replace />;
+    const {loading, hasCapability} = useAuthContext();
+
+    if (!isPdEnabled()) {
+        return <Navigate to={`/graphspace/${DEFAULT_GRAPHSPACE}`} replace />;
+    }
+    if (loading) {
+        return null;
+    }
+    return hasCapability('graphspaces_read')
+        ? <GraphSpace /> : <Navigate to='/profile' replace />;
 };
 
 const LegacyProfileRedirect = () => {

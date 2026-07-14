@@ -31,6 +31,16 @@ const status = () => {
     return request.get('/auth/status', {suppressBusinessErrorToast: true});
 };
 
+const context = () => {
+    return request.get('/auth/context', {
+        suppressBusinessErrorToast: true,
+        headers: {
+            'Cache-Control': 'no-store',
+            Pragma: 'no-cache',
+        },
+    });
+};
+
 const getUserList = (params, config = {}) => {
     return request.get('/auth/users/list', {...config, params});
 };
@@ -65,7 +75,7 @@ const updatePwd = (username, oldpwd, newpwd) => {
 
 const importUserUrl = '/api/v1.3/auth/users/batch';
 
-export {login, logout, status, getUserList, getAllUserList, getUserInfo, delUser,
+export {login, logout, status, context, getUserList, getAllUserList, getUserInfo, delUser,
     updateUser, addUser, updatePwd, importUserUrl, updateAdminspace};
 
 const getPersonal = config => {

@@ -22,6 +22,7 @@ import Account from './index';
 import * as api from '../../api';
 
 let mockCurrentUser;
+let mockAuthContext;
 
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => key}),
@@ -35,11 +36,22 @@ jest.mock('../../api', () => ({
 }));
 
 jest.mock('../../utils/user', () => ({getUser: () => mockCurrentUser}));
+jest.mock('../../auth/AuthContext', () => ({
+    useAuthContext: () => mockAuthContext,
+}));
 jest.mock('./EditLayer', () => () => null);
 
 beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentUser = {id: 'admin', is_superadmin: true};
+    mockAuthContext = {
+        context: {
+            actions: {
+                accounts: ['create', 'read', 'update', 'delete'],
+                authorizations: ['read', 'grant', 'revoke'],
+            },
+        },
+    };
     window.matchMedia = jest.fn().mockImplementation(query => ({
         matches: false,
         media: query,
@@ -91,8 +103,17 @@ test('labels administrators, space administrators, and regular users in the list
 test('space administrators only see account actions allowed by the backend', async () => {
     mockCurrentUser = {
         id: 'space-admin',
-        is_superadmin: false,
-        adminSpaces: ['SPACE'],
+        is_superadmin: true,
+        adminSpaces: ['UNTRUSTED-CACHED-SPACE'],
+    };
+    mockAuthContext = {
+        context: {
+            actions: {
+                accounts: ['read'],
+                authorizations: ['read', 'grant', 'revoke'],
+            },
+            scopes: {admin_graphspaces: ['SPACE']},
+        },
     };
     api.auth.getAllUserList.mockResolvedValue({
         status: 200,
@@ -105,8 +126,34 @@ test('space administrators only see account actions allowed by the backend', asy
     render(<Account />);
 
     expect(await screen.findByText('analyst')).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'account.create'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'account.create'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'common.action.detail'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'common.action.edit'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {
+        name: 'common.action.assign_permission',
+    })).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'common.action.delete'})).not.toBeInTheDocument();
+});
+
+test('ignores cached superadmin fields when the server denies account mutations', async () => {
+    mockCurrentUser = {id: 'cached-admin', is_superadmin: true};
+    mockAuthContext = {
+        context: {
+            actions: {accounts: ['read'], authorizations: ['read']},
+        },
+    };
+    api.auth.getAllUserList.mockResolvedValue({
+        status: 200,
+        data: {
+            records: [{user_name: 'analyst', is_superadmin: false, adminSpaces: []}],
+            total: 1,
+        },
+    });
+
+    render(<Account />);
+
+    expect(await screen.findByText('analyst')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'account.create'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'common.action.edit'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {
         name: 'common.action.assign_permission',

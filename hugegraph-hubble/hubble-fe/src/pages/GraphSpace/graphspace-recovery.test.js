@@ -22,6 +22,8 @@ import GraphSpace from './index';
 import * as api from '../../api';
 import * as user from '../../utils/user';
 
+let mockAuthContext;
+
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => key}),
 }));
@@ -35,13 +37,16 @@ jest.mock('../../api', () => ({
 }));
 
 jest.mock('../../utils/user', () => ({getUser: jest.fn()}));
+jest.mock('../../auth/AuthContext', () => ({
+    useAuthContext: () => mockAuthContext,
+}));
 
 jest.mock('react-router-dom', () => ({
     Link: ({children}) => <span>{children}</span>,
 }));
 
-jest.mock('./Card', () => ({item, canManage}) => (
-    <div>{item.nickname}:{canManage ? 'manage' : 'view'}</div>
+jest.mock('./Card', () => ({item, canUpdate, canDelete}) => (
+    <div>{item.nickname}:{canUpdate && canDelete ? 'manage' : 'view'}</div>
 ));
 jest.mock('./EditLayer', () => ({EditLayer: ({visible}) => (
     visible ? <div>graphspace create layer</div> : null
@@ -50,6 +55,11 @@ jest.mock('./EditLayer', () => ({EditLayer: ({visible}) => (
 beforeEach(() => {
     jest.clearAllMocks();
     user.getUser.mockReturnValue({is_superadmin: true, adminSpaces: []});
+    mockAuthContext = {
+        context: {
+            actions: {graphspaces: ['create', 'read', 'update', 'delete']},
+        },
+    };
     window.matchMedia = jest.fn().mockImplementation(query => ({
         matches: false,
         media: query,
@@ -81,7 +91,10 @@ test('keeps a failed GraphSpace request distinct from a valid empty list', async
 });
 
 test('keeps public spaces readable without exposing GraphSpace mutations', async () => {
-    user.getUser.mockReturnValue({is_superadmin: false, adminSpaces: []});
+    user.getUser.mockReturnValue({is_superadmin: true, adminSpaces: ['public']});
+    mockAuthContext = {
+        context: {actions: {graphspaces: ['read']}},
+    };
     api.manage.getGraphSpaceList.mockResolvedValue({
         status: 200,
         data: {records: [{name: 'public', nickname: 'Public'}], total: 1},
@@ -149,12 +162,41 @@ test('uses one list-mode create button and keeps page size at eleven', async () 
 
 test('hides the list-mode create button for ordinary users and load failures', async () => {
     user.getUser.mockReturnValue({is_superadmin: false, adminSpaces: []});
+    mockAuthContext = {
+        context: {actions: {graphspaces: ['read']}},
+    };
     api.manage.getGraphSpaceList.mockRejectedValue(new Error('down'));
 
     render(<GraphSpace />);
     fireEvent.click(screen.getByLabelText('common.label.list_mode'));
 
     expect(await screen.findByText('graphspace.load.unavailable')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'graphspace.create'}))
+        .not.toBeInTheDocument();
+});
+
+test('does not let a space admin mutate GraphSpace objects from cached scopes', async () => {
+    user.getUser.mockReturnValue({
+        is_superadmin: true,
+        adminSpaces: ['space-a'],
+    });
+    mockAuthContext = {
+        context: {
+            actions: {
+                graphspaces: ['read'],
+                members: ['read', 'add', 'remove'],
+            },
+            scopes: {admin_graphspaces: ['space-a']},
+        },
+    };
+    api.manage.getGraphSpaceList.mockResolvedValue({
+        status: 200,
+        data: {records: [{name: 'space-a', nickname: 'Space A'}], total: 1},
+    });
+
+    render(<GraphSpace />);
+
+    expect(await screen.findByText('Space A:view')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'graphspace.create'}))
         .not.toBeInTheDocument();
 });

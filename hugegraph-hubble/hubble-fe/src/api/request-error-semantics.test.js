@@ -114,6 +114,24 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         expect(messageError).toHaveBeenCalledWith('request.error');
     });
 
+    it('requests authorization revalidation after an HTTP 403', async () => {
+        const {reject} = loadResponseHandlers(modulePath);
+        const revalidate = jest.fn();
+        window.addEventListener('hubble:auth-revalidate', revalidate);
+        const error = {
+            config: {url: '/operations/nodes'},
+            response: {
+                status: 403,
+                data: {status: 403, message: 'Forbidden'},
+            },
+        };
+
+        await expect(reject(error)).rejects.toBe(error);
+
+        expect(revalidate).toHaveBeenCalledTimes(1);
+        window.removeEventListener('hubble:auth-revalidate', revalidate);
+    });
+
     it('rejects HTTP 401 and redirects to login', async () => {
         const {reject, clearLogin, instance} = loadResponseHandlers(modulePath);
         const error = {

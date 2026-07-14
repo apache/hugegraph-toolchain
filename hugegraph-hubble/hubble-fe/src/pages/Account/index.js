@@ -32,7 +32,7 @@ import {useTranslation} from 'react-i18next';
 import TableHeader from '../../components/TableHeader';
 import EditLayer from './EditLayer';
 import * as api from '../../api';
-import {getUser} from '../../utils/user';
+import {useAuthContext} from '../../auth/AuthContext';
 import {getAccountLevel} from './level';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
@@ -45,8 +45,14 @@ const RowAction = ({onAction, row, children}) => {
 
 const Account = () => {
     const {t} = useTranslation();
-    const currentUser = getUser();
-    const canManageAccounts = Boolean(currentUser.is_superadmin);
+    const {context} = useAuthContext();
+    const accountActions = context?.actions?.accounts ?? [];
+    const authorizationActions = context?.actions?.authorizations ?? [];
+    const canCreateAccount = accountActions.includes('create');
+    const canUpdateAccount = accountActions.includes('update');
+    const canDeleteAccount = accountActions.includes('delete');
+    const canGrantAuthorization = authorizationActions.includes('grant');
+    const hasRowMutations = canUpdateAccount || canDeleteAccount || canGrantAuthorization;
     const [editLayerVisible, setEditLayerVisible] = useState(false);
     const [op, setOp] = useState('detail');
     const [detail, setDetail] = useState({});
@@ -147,26 +153,26 @@ const Account = () => {
         },
         {
             title: t('common.operation'),
-            width: canManageAccounts ? 300 : 100,
+            width: hasRowMutations ? 300 : 100,
             align: 'center',
             render: row => (
                 <Space>
                     <RowAction onAction={showDetail} row={row}>
                         {t('common.action.detail')}
                     </RowAction>
-                    {canManageAccounts && (
-                        <>
-                            <RowAction onAction={showEdit} row={row}>
-                                {t('common.action.edit')}
-                            </RowAction>
-                            <RowAction onAction={showAuth} row={row}>
-                                {t('common.action.assign_permission')}
-                            </RowAction>
-                        </>
+                    {canUpdateAccount && (
+                        <RowAction onAction={showEdit} row={row}>
+                            {t('common.action.edit')}
+                        </RowAction>
                     )}
-                    {canManageAccounts
+                    {canGrantAuthorization && (
+                        <RowAction onAction={showAuth} row={row}>
+                            {t('common.action.assign_permission')}
+                        </RowAction>
+                    )}
+                    {canDeleteAccount
                         && row.user_name !== 'admin'
-                        && row.user_name !== currentUser.id && (
+                        && row.user_name !== context?.username && (
                         <RowAction onAction={handleDelete} row={row}>
                             {t('common.action.delete')}
                         </RowAction>
@@ -243,7 +249,11 @@ const Account = () => {
                 )}
                 <TableHeader>
                     <Space>
-                        <Button onClick={showAdd} type='primary'>{t('account.create')}</Button>
+                        {canCreateAccount && (
+                            <Button onClick={showAdd} type='primary'>
+                                {t('account.create')}
+                            </Button>
+                        )}
                     </Space>
                 </TableHeader>
 
@@ -263,6 +273,11 @@ const Account = () => {
                 data={detail}
                 onCancel={handleHideLayer}
                 refresh={handleRefresh}
+                allowedOperations={{
+                    create: canCreateAccount,
+                    edit: canUpdateAccount,
+                    auth: canGrantAuthorization,
+                }}
             />
         </>
     );

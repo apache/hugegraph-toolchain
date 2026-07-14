@@ -42,7 +42,7 @@ import {Link} from 'react-router-dom';
 import GraphSpaceCard from './Card';
 import style from './index.module.scss';
 import * as api from '../../api/index';
-import * as user from '../../utils/user';
+import {useAuthContext} from '../../auth/AuthContext';
 import {getResourceDisplayName} from '../../utils/displayName';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
@@ -70,14 +70,11 @@ const GraphSpace = () => {
     const [listError, setListError] = useState(false);
     const listRequest = useRef(null);
     const {t} = useTranslation();
-    const userInfo = user.getUser();
-    const isSuperAdmin = Boolean(userInfo.is_superadmin);
-    const managedSpaces = new Set(Array.isArray(userInfo.adminSpaces)
-        ? userInfo.adminSpaces.map(space => (
-            typeof space === 'string' ? space : space.name
-        ))
-        : []);
-    const canManageSpace = name => isSuperAdmin || managedSpaces.has(name);
+    const {context} = useAuthContext();
+    const graphspaceActions = context?.actions?.graphspaces ?? [];
+    const canCreateGraphspace = graphspaceActions.includes('create');
+    const canUpdateGraphspace = graphspaceActions.includes('update');
+    const canDeleteGraphspace = graphspaceActions.includes('delete');
 
     const handleCreate = useCallback(() => {
         setEditLayer(true);
@@ -208,14 +205,13 @@ const GraphSpace = () => {
             width: 280,
             align: 'center',
             render: row => {
-                const canManage = canManageSpace(row.name);
                 return (
                     row.name === 'neizhianli' ? (
                         <Space wrap>
                             <Link to={`/graphspace/${row.name}/schema`}>
                                 {t('common.action.schema_manage')}
                             </Link>
-                            {canManage && (
+                            {canCreateGraphspace && (
                                 <Button type='link' onClick={handleInit}>
                                     {t('common.action.init')}
                                 </Button>
@@ -223,7 +219,7 @@ const GraphSpace = () => {
                         </Space>
                     ) : (
                         <Space wrap>
-                            {!canManage ? null : (row.default)
+                            {!canUpdateGraphspace ? null : (row.default)
                                 ? <span className={style.disable}>{t('common.action.edit')}</span>
                                 : (
                                     <GraphSpaceRowAction onAction={editGraphspace} value={row}>
@@ -231,7 +227,7 @@ const GraphSpace = () => {
                                     </GraphSpaceRowAction>
                                 )
                             }
-                            {!canManage ? null : (row.default)
+                            {!canDeleteGraphspace ? null : (row.default)
                                 ? <span className={style.disable}>{t('common.action.delete')}</span>
                                 : (
                                     <GraphSpaceRowAction
@@ -306,7 +302,7 @@ const GraphSpace = () => {
                 <Row justify='space-between'>
                     <Col>
                         <Space>
-                            {listType === 'list' && isSuperAdmin
+                            {listType === 'list' && canCreateGraphspace
                                 && !loading && !listError && (
                                 <Button
                                     type='primary'
@@ -361,7 +357,7 @@ const GraphSpace = () => {
                             <>
                                 <Row gutter={[10, 10]} justify='start'>
                                     {!loading && !listError && data.length === 0 && (
-                                        <Col span={isSuperAdmin ? 16 : 24}>
+                                        <Col span={canCreateGraphspace ? 16 : 24}>
                                             <Empty
                                                 description={t(graphspacename || dateData
                                                     ? 'graphspace.no_matches'
@@ -377,12 +373,14 @@ const GraphSpace = () => {
                                                     deleteGraphspace={deleteGraphspace}
                                                     editGraphspace={editGraphspace}
                                                     handleInit={handleInit}
-                                                    canManage={canManageSpace(item.name)}
+                                                    canUpdate={canUpdateGraphspace}
+                                                    canDelete={canDeleteGraphspace}
+                                                    canInit={canCreateGraphspace}
                                                 />
                                             </Col>
                                         );
                                     })}
-                                    {!loading && !listError && isSuperAdmin && (
+                                    {!loading && !listError && canCreateGraphspace && (
                                         <Col span={8} key='add'>
                                             <Card
                                                 className={style.add_card}

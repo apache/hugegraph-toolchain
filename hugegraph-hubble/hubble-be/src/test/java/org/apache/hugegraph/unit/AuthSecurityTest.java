@@ -28,6 +28,7 @@ import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -40,6 +41,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -69,6 +71,7 @@ import org.apache.hugegraph.handler.ExceptionAdvisor;
 import org.apache.hugegraph.handler.LoginInterceptor;
 import org.apache.hugegraph.handler.MessageSourceHandler;
 import org.apache.hugegraph.options.HubbleOptions;
+import org.apache.hugegraph.service.auth.AuthContextService;
 import org.apache.hugegraph.service.auth.LoginAttemptGuard;
 import org.apache.hugegraph.service.auth.UserService;
 import org.apache.hugegraph.structure.auth.Login;
@@ -543,6 +546,31 @@ public class AuthSecurityTest {
         Assert.assertNull(request.getSession().getAttribute("auth_password"));
         Assert.assertNull(request.getSession().getAttribute(
                           "auth_password_expire_at"));
+    }
+
+    @Test
+    public void testAuthContextUsesCurrentSessionIdentity() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.getSession().setAttribute(Constant.USERNAME_KEY, "alice");
+        request.getSession().setAttribute(Constant.TOKEN_KEY, "server-token");
+        HugeClient client = Mockito.mock(HugeClient.class);
+        request.setAttribute("hugeClient", client);
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(request));
+        TestLoginController controller = new TestLoginController();
+        AuthContextService contexts = Mockito.mock(AuthContextService.class);
+        Map<String, Object> expected = Map.of("role", "USER");
+        Mockito.when(contexts.context(client, "alice")).thenReturn(expected);
+        setField(controller, "authContextService", contexts);
+
+        ResponseEntity<Object> actual = controller.context();
+
+        Assert.assertSame(expected, actual.getBody());
+        Assert.assertEquals("no-store", actual.getHeaders()
+                                             .getCacheControl());
+        Assert.assertEquals("no-cache", actual.getHeaders()
+                                             .getPragma());
+        Mockito.verify(contexts).context(client, "alice");
     }
 
     @Test

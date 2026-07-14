@@ -26,6 +26,7 @@ import org.apache.hugegraph.controller.langchain.LangChainControllerSecurityTest
 import org.apache.hugegraph.controller.schema.SchemaControllerSecurityTest;
 import org.apache.hugegraph.controller.space.GraphSpaceControllerTest;
 import org.apache.hugegraph.service.load.IngestTransactionIntegrationTest;
+import org.apache.hugegraph.service.auth.AuthContextServiceTest;
 import org.apache.hugegraph.service.space.GraphSpaceServiceTest;
 import org.apache.hugegraph.service.op.DefaultOperationsDataServiceTest;
 import org.apache.hugegraph.service.op.LiveOperationsCollectorTest;
@@ -39,6 +40,7 @@ import org.junit.runners.Suite;
 @RunWith(Suite.class)
 @Suite.SuiteClasses({
     AccountMutationAuthorizationTest.class,
+    AuthContextServiceTest.class,
     AuthSecurityTest.class,
     AppTypeTest.class,
     AuthzRouteRegistrationTest.class,

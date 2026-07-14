@@ -21,6 +21,8 @@ import {MemoryRouter, Outlet, useLocation} from 'react-router-dom';
 import RouteList from './index';
 import {isPdEnabled} from '../utils/config';
 
+let mockCapabilities = new Set();
+
 jest.mock('../pages/Datasource', () => () => <div>datasource page</div>);
 jest.mock('../pages/Task', () => () => <div>task page</div>);
 jest.mock('../pages/TaskEdit/index', () => () => <div>task edit page</div>);
@@ -53,6 +55,12 @@ jest.mock('../pages/GraphAnalysis', () => () => <div>graph analysis page</div>);
 jest.mock('../pages/AsyncTaskResult', () => () => <div>async task result page</div>);
 jest.mock('../utils/config', () => ({
     isPdEnabled: jest.fn(() => false),
+}));
+jest.mock('../auth/AuthContext', () => ({
+    useAuthContext: () => ({
+        loading: false,
+        hasCapability: capability => mockCapabilities.has(capability),
+    }),
 }));
 
 const renderRoutes = initialEntry => {
@@ -88,6 +96,7 @@ describe('route guard', () => {
         localStorage.clear();
         sessionStorage.clear();
         mockAccountRender.mockClear();
+        mockCapabilities = new Set();
         isPdEnabled.mockReturnValue(false);
     });
 
@@ -186,6 +195,7 @@ describe('route guard', () => {
 
     it('allows an authorized-space administrator to open the PD account route', () => {
         isPdEnabled.mockReturnValue(true);
+        mockCapabilities.add('graphspace_members_manage');
         sessionStorage.setItem('user_', JSON.stringify({
             id: 'space-admin',
             user_nickname: 'space-admin',
@@ -205,6 +215,8 @@ describe('route guard', () => {
         ['/graphspace/SPACE/schema', 'schema page'],
     ])('allows PD-only route %s when PD mode is enabled', (route, page) => {
         isPdEnabled.mockReturnValue(true);
+        mockCapabilities.add('accounts_manage');
+        mockCapabilities.add('graphspaces_read');
         sessionStorage.setItem('user_', JSON.stringify({
             id: 'admin',
             user_nickname: 'admin',
@@ -231,5 +243,28 @@ describe('route guard', () => {
 
         expect(screen.getByText(page)).toBeTruthy();
         expect(screen.queryByText('not found page')).toBeNull();
+    });
+
+    it('ignores cached role fields when the context denies account access', () => {
+        isPdEnabled.mockReturnValue(true);
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'admin',
+            is_superadmin: true,
+            adminSpaces: ['SPACE'],
+        }));
+
+        renderRoutes('/account');
+
+        expect(screen.getByText('my page')).toBeTruthy();
+        expect(screen.queryByText('account page')).toBeNull();
+    });
+
+    it('allows non-PD account access only with the server capability', () => {
+        mockCapabilities.add('accounts_manage');
+        sessionStorage.setItem('user_', JSON.stringify({id: 'admin'}));
+
+        renderRoutes('/account');
+
+        expect(screen.getByText('account page')).toBeTruthy();
     });
 });

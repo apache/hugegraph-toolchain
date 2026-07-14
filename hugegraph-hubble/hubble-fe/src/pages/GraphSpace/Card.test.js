@@ -178,7 +178,8 @@ test('keeps public GraphSpace navigation but hides mutation actions for viewers'
     render(
         <GraphSpaceCard
             item={item}
-            canManage={false}
+            canUpdate={false}
+            canDelete={false}
             editGraphspace={jest.fn()}
             deleteGraphspace={jest.fn()}
             handleInit={jest.fn()}
@@ -188,5 +189,28 @@ test('keeps public GraphSpace navigation but hides mutation actions for viewers'
     expect(screen.getAllByText('graphspace.card.enter').length).toBeGreaterThan(0);
     expect(screen.getByText('common.action.schema_manage')).toBeInTheDocument();
     expect(screen.queryByText('common.action.edit')).not.toBeInTheDocument();
+    expect(screen.queryByText('common.action.delete')).not.toBeInTheDocument();
+});
+
+test('keeps GraphSpace update and delete actions independently gated', () => {
+    const item = {
+        name: 'managed', nickname: 'Managed', create_time: '2026-07-10',
+        auth: false, max_graph_number: 10, cpu_limit: 2, memory_limit: 4,
+        storage_limit: 100, storage_used: 1, storage_percent: 0.01,
+        statistic: {vertex: 0, edge: 0},
+    };
+
+    render(
+        <GraphSpaceCard
+            item={item}
+            canUpdate
+            canDelete={false}
+            editGraphspace={jest.fn()}
+            deleteGraphspace={jest.fn()}
+            handleInit={jest.fn()}
+        />
+    );
+
+    expect(screen.getByText('common.action.edit')).toBeInTheDocument();
     expect(screen.queryByText('common.action.delete')).not.toBeInTheDocument();
 });

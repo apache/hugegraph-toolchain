@@ -61,7 +61,15 @@ const TitleField = ({item, onClick, onKeyDown}) => {
     );
 };
 
-const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit, canManage = true}) => {
+const GraphSpaceCard = ({
+    item,
+    editGraphspace,
+    deleteGraphspace,
+    handleInit,
+    canUpdate = true,
+    canDelete = true,
+    canInit = true,
+}) => {
     const navigate = useNavigate();
     const {t} = useTranslation();
 
@@ -84,38 +92,34 @@ const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit, can
         }
     }, [handleGotoGraph]);
 
-    const getMenu = item => ({
-        items: item.name === 'neizhianli' && canManage
-            ? [
-                {
-                    key: '1',
-                    label: (
-                        <Link to={`/graphspace/${item.name}/schema`}>
-                            {t('common.action.schema_manage')}
-                        </Link>
-                    ),
-                },
-                {
-                    key: '2',
+    const getMenu = item => {
+        const schema = {
+            key: 'schema',
+            label: (
+                <Link to={`/graphspace/${item.name}/schema`}>
+                    {t('common.action.schema_manage')}
+                </Link>
+            ),
+        };
+        if (item.name === 'neizhianli') {
+            return {
+                items: [schema, ...(canInit ? [{
+                    key: 'init',
                     label: t('common.action.init'),
                     onClick: handleInit,
-                },
-            ]
-            : [
-                {
-                    key: '1',
-                    label: (
-                        <Link to={`/graphspace/${item.name}/schema`}>
-                            {t('common.action.schema_manage')}
-                        </Link>
-                    ),
-                },
-                ...(canManage ? [{
-                    key: '2',
+                }] : [])],
+            };
+        }
+        return {
+            items: [
+                schema,
+                ...(canUpdate ? [{
+                    key: 'edit',
                     label: t('common.action.edit'),
                     onClick: handleEdit,
-                }, {
-                    key: '3',
+                }] : []),
+                ...(canDelete ? [{
+                    key: 'delete',
                     disabled: item.default,
                     label: (item.default)
                         ? <span className={style.disable}>{t('common.action.delete')}</span>
@@ -123,7 +127,8 @@ const GraphSpaceCard = ({item, editGraphspace, deleteGraphspace, handleInit, can
                     onClick: item.default ? undefined : handleDelete,
                 }] : []),
             ],
-    });
+        };
+    };
 
     const unlimited = t('graphspace.unit.unlimited');
     const cpu = showText(item.cpu_limit, t('graphspace.unit.cpu'), unlimited);

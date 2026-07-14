@@ -30,7 +30,6 @@ import {
     ClusterOutlined,
 } from '@ant-design/icons';
 import {Link, useLocation} from 'react-router-dom';
-import * as user from '../../utils/user';
 import {isPdEnabled} from '../../utils/config';
 import {getGraphspacePath} from '../../utils/productMode';
 import {getPreparationSchemaPath} from '../../utils/dataPreparationNavigation';
@@ -41,17 +40,14 @@ import {useOperationsCapabilities} from '../../pages/Operations/capabilities';
 const OPEN_SECTIONS = ['understand', 'prepare', 'query', 'support'];
 
 const items = (t, pathname, capabilities = []) => {
-    const userInfo = user.getUser();
     const pdMode = isPdEnabled();
     const MY = {label: <Link to='/profile'>{t('home.my')}</Link>, key: 'my'};
     const ACCOUNT = {label: <Link to='/account'>{t('home.account')}</Link>, key: 'account'};
 
     // TODO temporary hided the resource and role modules
     let systemList = [MY];
-    if (!pdMode) {
-        systemList = [MY];
-    }
-    else if (user.canAccessAccount(pdMode, userInfo)) {
+    if (capabilities.includes('accounts_manage')
+        || capabilities.includes('graphspace_members_manage')) {
         // systemList = [MY, RESOURCE, ROLE];
         systemList = [MY, ACCOUNT];
     }

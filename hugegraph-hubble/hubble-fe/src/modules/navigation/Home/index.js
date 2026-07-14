@@ -32,9 +32,9 @@ import {
 import {useTranslation} from 'react-i18next';
 import AdminItem from '../AdminItem';
 import ConsoleItem from '../ConsoleItem';
-import * as user from '../../../utils/user';
 import {isPdEnabled} from '../../../utils/config';
 import {Link} from 'react-router-dom';
+import {useAuthContext} from '../../../auth/AuthContext';
 import {getWorkbenchJourneys} from './workbenchHome';
 
 import style from './index.module.scss';
@@ -42,7 +42,12 @@ import style from './index.module.scss';
 
 const NavigationHome = () => {
     const {t} = useTranslation();
-    const userInfo = user.getUser();
+    const {context} = useAuthContext();
+    const capabilities = context?.capabilities ?? [];
+    const canManageAccounts = capabilities.includes('accounts_manage')
+        || capabilities.includes('graphspace_members_manage');
+    const canReadOperations = capabilities.includes('operations_health_read');
+    const hasSupport = canManageAccounts || canReadOperations;
     const pdMode = isPdEnabled();
     const journeys = getWorkbenchJourneys(pdMode);
     const icons = {
@@ -110,7 +115,7 @@ const NavigationHome = () => {
                     ))}
                 </div>
             </section>
-            {pdMode && userInfo.is_superadmin && (
+            {hasSupport && (
                 <section
                     className={style.support}
                     aria-labelledby="workbench-support-title"
@@ -128,8 +133,8 @@ const NavigationHome = () => {
                         )}
                     >
                         <div className={style.supportGrid}>
-                            <AdminItem embedded />
-                            <ConsoleItem embedded />
+                            {canManageAccounts && <AdminItem embedded />}
+                            {canReadOperations && <ConsoleItem embedded />}
                         </div>
                     </Card>
                 </section>
