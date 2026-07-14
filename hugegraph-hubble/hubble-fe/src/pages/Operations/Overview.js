@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Alert, Button, Empty, message, Progress, Radio, Skeleton, Table} from 'antd';
+import {Alert, Button, Empty, message, Progress, Radio, Skeleton, Table, Tooltip} from 'antd';
 import {
     ApartmentOutlined,
     CrownOutlined,
@@ -24,16 +24,15 @@ import {
     DeploymentUnitOutlined,
     ExportOutlined,
     HddOutlined,
-    ReloadOutlined,
     RightOutlined,
 } from '@ant-design/icons';
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import {Link} from 'react-router-dom';
 import {getDashboard} from '../../api/auth';
 import {getOverview} from '../../api/operations';
 import {normalizeDashboardUrl} from '../../modules/navigation/ConsoleItem/dashboard';
-import {ClusterTopology, HealthStatus, SourceStrip} from './components';
+import {ClusterTopology, HealthStatus, RefreshButton, SourceStrip} from './components';
 import {
     formatMetricValue,
     formatObservedAge,
@@ -51,19 +50,32 @@ const Overview = () => {
     const [error, setError] = useState(null);
     const [view, setView] = useState('topology');
     const [dashboard, setDashboard] = useState({status: 'checking', url: ''});
+    const requestSequence = useRef(0);
 
     const load = useCallback(async refresh => {
+        const request = ++requestSequence.current;
         data ? setRefreshing(true) : setLoading(true);
         setError(null);
         try {
-            setData(await getOverview(refresh));
+            const response = await getOverview(refresh);
+            if (request === requestSequence.current) {
+                setData(response);
+            }
         }
         catch (requestError) {
+            if (request !== requestSequence.current) {
+                return;
+            }
+            if ([401, 403].includes(requestError?.status)) {
+                setData(null);
+            }
             setError(requestError);
         }
         finally {
-            setLoading(false);
-            setRefreshing(false);
+            if (request === requestSequence.current) {
+                setLoading(false);
+                setRefreshing(false);
+            }
         }
     }, [data]);
 
@@ -150,6 +162,9 @@ const Overview = () => {
             ? t('navigation_page.dashboard_unconfigured')
             : dashboard.status === 'unavailable'
                 ? t('navigation_page.dashboard_unavailable') : undefined;
+    const dashboardStatus = dashboard.status === 'checking'
+        ? t('operations.dashboard_checking')
+        : t('operations.dashboard_unavailable');
     const nodeColumns = [
         {
             title: t('operations.node'),
@@ -256,40 +271,37 @@ const Overview = () => {
                         {data?.stale && <strong>{t('operations.stale')}</strong>}
                     </div>
                 </div>
-                <div className='operations-header-actions'>
+                <div className='operations-header-actions operations-header-tools'>
                     {dashboard.status !== 'hidden' && (
                         <span className='operations-advanced-monitoring'>
-                            <span
-                                title={dashboardReason}
-                                tabIndex={dashboardReason ? 0 : undefined}
-                                aria-label={dashboardReason
-                                    ? `${t('operations.advanced_monitoring')}: ${dashboardReason}`
-                                    : undefined}
-                            >
-                                <Button
-                                    icon={<ExportOutlined />}
-                                    disabled={dashboard.status !== 'configured'}
-                                    onClick={openDashboard}
-                                    aria-label={t('operations.advanced_monitoring')}
+                            <Tooltip title={dashboardReason}>
+                                <span
+                                    tabIndex={dashboardReason ? 0 : undefined}
+                                    aria-label={dashboardReason
+                                        ? `${t('operations.advanced_monitoring')}: ${dashboardReason}`
+                                        : undefined}
                                 >
-                                    {t('operations.advanced_monitoring')}
-                                </Button>
-                            </span>
+                                    <Button
+                                        icon={<ExportOutlined />}
+                                        disabled={dashboard.status !== 'configured'}
+                                        onClick={openDashboard}
+                                        aria-label={t('operations.advanced_monitoring')}
+                                    >
+                                        {t('operations.advanced_monitoring')}
+                                    </Button>
+                                </span>
+                            </Tooltip>
                             {dashboardReason && (
                                 <span className='operations-advanced-monitoring-reason'>
-                                    {dashboardReason}
+                                    {dashboardStatus}
                                 </span>
                             )}
                         </span>
                     )}
-                    <Button
-                        icon={<ReloadOutlined />}
+                    <RefreshButton
                         loading={refreshing}
                         onClick={refresh}
-                        aria-label={t('operations.refresh')}
-                    >
-                        {refreshing ? t('operations.refreshing') : t('operations.refresh')}
-                    </Button>
+                    />
                 </div>
             </header>
 

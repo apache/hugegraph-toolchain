@@ -31,11 +31,11 @@ jest.mock('../Detail', () => props => (
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => ({
         'analysis.async_task.search_placeholder': 'Search tasks',
-        'analysis.async_task.help_title': 'About analysis tasks',
+        'analysis.async_task.help_title': 'About async tasks',
         'analysis.async_task.help_description': 'Track asynchronous work and results here.',
         'analysis.async_task.get_failed': 'Could not load tasks.',
         'analysis.async_task.retry_list': 'Retry tasks',
-        'analysis.async_task.empty_title': 'No analysis tasks yet',
+        'analysis.async_task.empty_title': 'No async tasks yet',
         'analysis.async_task.empty_description': 'Tasks are created from queries and algorithms.',
         'analysis.async_task.start_query': 'Start a query',
         'analysis.async_task.open_algorithms': 'Open algorithms',
@@ -114,7 +114,7 @@ it('keeps existing task data visible during background polling', async () => {
 
     await act(async () => Promise.resolve());
     expect(await screen.findByText('tasks 1')).toBeInTheDocument();
-    expect(screen.getByRole('region', {name: 'About analysis tasks'}))
+    expect(screen.getByRole('region', {name: 'About async tasks'}))
         .toHaveTextContent('Track asynchronous work and results here.');
     act(() => jest.advanceTimersByTime(5000));
 
@@ -123,7 +123,7 @@ it('keeps existing task data visible during background polling', async () => {
     unmount();
 });
 
-it('explains where analysis tasks come from when the list is empty', async () => {
+it('explains where async tasks come from when the list is empty', async () => {
     api.analysis.fetchManageTaskList.mockResolvedValue({
         status: 200,
         data: {records: [], total: 0},
@@ -135,7 +135,7 @@ it('explains where analysis tasks come from when the list is empty', async () =>
         </GraphAnalysisContext.Provider>
     );
 
-    expect(await screen.findByText('No analysis tasks yet')).toBeInTheDocument();
+    expect(await screen.findByText('No async tasks yet')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Start a query'}))
         .toHaveAttribute('href', '/gremlin/DEFAULT/hugegraph');
     expect(screen.getByRole('link', {name: 'Open algorithms'}))
@@ -152,7 +152,7 @@ it('distinguishes filtered no-results from the first-use empty journey', async (
             <AsyncTaskHome />
         </GraphAnalysisContext.Provider>
     );
-    await screen.findByText('No analysis tasks yet');
+    await screen.findByText('No async tasks yet');
 
     fireEvent.change(screen.getByPlaceholderText('Search tasks'), {
         target: {value: 'missing'},
@@ -164,5 +164,5 @@ it('distinguishes filtered no-results from the first-use empty journey', async (
     expect(await screen.findByText('No matching tasks')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'Start a query'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: 'Clear filters'}));
-    expect(await screen.findByText('No analysis tasks yet')).toBeInTheDocument();
+    expect(await screen.findByText('No async tasks yet')).toBeInTheDocument();
 });

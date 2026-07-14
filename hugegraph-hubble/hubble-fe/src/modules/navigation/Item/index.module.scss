@@ -24,6 +24,13 @@
     background: var(--workbench-color-surface);
 }
 
+.embedded {
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
 .itemList {
     display: grid;
     gap: 10px;

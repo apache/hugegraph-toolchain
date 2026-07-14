@@ -27,6 +27,8 @@ jest.mock('react-i18next', () => ({
         'analysis.query.execute_task': 'Run Task',
         'analysis.query.execute_mode_immediate': 'Immediate',
         'analysis.query.execute_mode_async': 'Async',
+        'analysis.query.switch_async_task': 'Switch to Async Task',
+        'analysis.query.switch_immediate_query': 'Switch to Immediate Query',
         'analysis.query.execute_shortcut': 'Run Query (Ctrl + Enter)',
     })[key] || key}),
 }));
@@ -83,11 +85,11 @@ it('does not execute while a request is pending', () => {
     expect(screen.getByRole('button', {name: /Run Query/})).toBeDisabled();
 });
 
-it('switches explicitly between immediate query and async task modes', () => {
+it('switches between immediate query and async task with one compact control', () => {
     const props = renderContent();
 
-    expect(screen.getByRole('radio', {name: 'Immediate'})).toBeChecked();
-    fireEvent.click(screen.getByRole('radio', {name: 'Async'}));
+    expect(screen.queryByRole('radio')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'Switch to Async Task'}));
 
     expect(props.onExecuteModeChange).toHaveBeenCalledWith('task');
 });

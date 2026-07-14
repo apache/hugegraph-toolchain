@@ -11,19 +11,20 @@
       "text2gql_tab": "Text2GQL",
       "text2gql_badge": "Coming Soon",
       "text2gql_title": "Text2GQL",
-      "text2gql_description": "This is a UI preview for a future Text2GQL workflow. It is not connected to a model or query service.",
+      "text2gql_description": "This is a UI preview for a future Text2GQL workflow. It is not connected to a model or query service",
       "text2gql_placeholder": "Describe the graph question you want to ask",
-      "text2gql_privacy": "Nothing entered here is sent, generated, saved, or executed.",
+      "text2gql_privacy": "Nothing entered here is sent, generated, saved, or executed",
       "execute_query": "Run Query",
       "execute_task": "Run Task",
       "switch_async_task": "Switch to Async Task",
+      "switch_immediate_query": "Switch to Immediate Query",
       "execute_shortcut": "Run query (Ctrl + Enter)",
       "shortcut_hint_ctrl": "Ctrl + Enter to run",
       "shortcut_hint_command": "Command + Enter for a new line",
       "execute_mode": "Execution mode",
       "execute_mode_immediate": "Immediate",
       "execute_mode_async": "Async",
-      "execute_mode_desc": "Query mode is for small analyses that return within 30 seconds. Task mode is for larger analyses that take longer; task details are available in Async Tasks.",
+      "execute_mode_desc": "Query mode is for small analyses that return within 30 seconds. Task mode is for larger analyses that take longer; task details are available in Async Tasks",
       "empty_query": "Query statement cannot be empty",
       "collapse": "Collapse",
       "expand": "Expand",
@@ -52,12 +53,12 @@
       "no_graph_result": "No graph result. Check Table or JSON data.",
       "no_table_result": "No table result. Check Graph or JSON data.",
       "large_table_title": "{{count}} result rows, displayed with pagination",
-      "large_table_description": "Confirm the result scope before browsing or copying. Add a limit to reduce the wait.",
+      "large_table_description": "Confirm the result scope before browsing or copying. Add a limit to reduce the wait",
       "no_json_result": "No JSON result. Check Graph or Table data.",
       "expand_failed": "Failed to expand",
       "no_more_neighbors": "No more adjacent vertices",
       "graph_limit_title": "Graph canvas collapsed for readability",
-      "graph_limit_description": "This result contains {{nodes}} nodes and {{edges}} edges. The canvas limit is {{nodeLimit}} nodes and {{edgeLimit}} edges. Use Table or JSON to inspect the complete result."
+      "graph_limit_description": "This result contains {{nodes}} nodes and {{edges}} edges. The canvas limit is {{nodeLimit}} nodes and {{edgeLimit}} edges. Use Table or JSON to inspect the complete result"
     },
     "canvas": {
       "graph_canvas": "Graph canvas",
@@ -97,7 +98,7 @@
       },
       "clear_graph": {
         "title": "Clear the current canvas?",
-        "description": "Clear the current canvas. This action cannot be undone.",
+        "description": "Clear the current canvas. This action cannot be undone",
         "ok": "OK",
         "cancel": "Cancel"
       },
@@ -112,23 +113,23 @@
         "add_vertex": "Add Vertex"
       },
       "tooltip": {
-        "import_2d": "The current graph already has data. Clear it before importing.",
-        "import_3d": "Import is not supported in 3D mode.",
-        "export_2d": "No graph data to export.",
-        "export_3d": "Export is not supported in 3D mode.",
-        "style_2d": "No graph data to style.",
-        "style_3d": "Style settings are not supported in 3D mode.",
-        "filter_2d": "No graph data to filter.",
-        "filter_3d": "Filter is not supported in 3D mode.",
-        "layout_2d": "No graph data to lay out.",
-        "layout_3d": "Layout settings are not supported in 3D mode.",
-        "setting_2d": "No graph data to configure.",
-        "setting_3d": "Settings are not supported in 3D mode.",
-        "new_2d": "No graph data to edit.",
-        "new_3d": "New graph elements are not supported in 3D mode.",
-        "statistics_2d": "No graph data to analyze.",
-        "statistics_3d": "Statistics are not supported in 3D mode.",
-        "switch_2d": "No graph data to switch."
+        "import_2d": "The current graph already has data. Clear it before importing",
+        "import_3d": "Import is not supported in 3D mode",
+        "export_2d": "No graph data to export",
+        "export_3d": "Export is not supported in 3D mode",
+        "style_2d": "No graph data to style",
+        "style_3d": "Style settings are not supported in 3D mode",
+        "filter_2d": "No graph data to filter",
+        "filter_3d": "Filter is not supported in 3D mode",
+        "layout_2d": "No graph data to lay out",
+        "layout_3d": "Layout settings are not supported in 3D mode",
+        "setting_2d": "No graph data to configure",
+        "setting_3d": "Settings are not supported in 3D mode",
+        "new_2d": "No graph data to edit",
+        "new_3d": "New graph elements are not supported in 3D mode",
+        "statistics_2d": "No graph data to analyze",
+        "statistics_3d": "Statistics are not supported in 3D mode",
+        "switch_2d": "No graph data to switch"
       },
       "canvas_3d": {
         "node": "Node",
@@ -222,7 +223,7 @@
       "layout_panel": {
         "title": "Layout",
         "enable_layout": "Enable Layout",
-        "enable_layout_tooltip": "Enable layout. When disabled, the graph uses the default layout.",
+        "enable_layout_tooltip": "Enable layout. When disabled, the graph uses the default layout",
         "layout_type": "Layout Type",
         "force": "Force Layout",
         "circular": "Circular Layout",
@@ -231,13 +232,13 @@
         "grid": "Grid Layout",
         "radial": "Radial Layout",
         "node_size": "Node Size",
-        "node_size_tooltip": "Node size (diameter), used for collision detection.",
+        "node_size_tooltip": "Node size (diameter), used for collision detection",
         "link_distance": "Link Distance",
         "node_strength": "Node Strength",
-        "node_strength_tooltip": "Node force. Positive values attract nodes, and negative values repel nodes.",
+        "node_strength_tooltip": "Node force. Positive values attract nodes, and negative values repel nodes",
         "prevent_overlap": "Prevent Overlap",
         "node_spacing": "Node Spacing",
-        "node_spacing_tooltip": "Takes effect when preventOverlap is enabled. Minimum spacing between node edges.",
+        "node_spacing_tooltip": "Takes effect when preventOverlap is enabled. Minimum spacing between node edges",
         "start_radius": "Start Radius",
         "start_radius_tooltip": "Start radius of the spiral layout",
         "end_radius": "End Radius",
@@ -253,7 +254,7 @@
         "ordering_degree": "Degree",
         "clockwise": "Clockwise",
         "sweep": "Sweep",
-        "sweep_tooltip": "Sweep between the first node and the last node.",
+        "sweep_tooltip": "Sweep between the first node and the last node",
         "start_angle": "Start Angle",
         "start_angle_tooltip": "Start angle of the layout",
         "equidistant": "Equal Ring Distance",
@@ -262,9 +263,9 @@
         "align": "Align",
         "align_tooltip": "Node alignment",
         "ranksep": "Rank Separation",
-        "ranksep_tooltip": "Layer spacing in px. For TB or BT, it is vertical layer spacing. For LR or RL, it is horizontal layer spacing.",
+        "ranksep_tooltip": "Layer spacing in px. For TB or BT, it is vertical layer spacing. For LR or RL, it is horizontal layer spacing",
         "nodesep": "Node Separation",
-        "nodesep_tooltip": "Node spacing in px. For TB or BT, it is horizontal node spacing. For LR or RL, it is vertical node spacing.",
+        "nodesep_tooltip": "Node spacing in px. For TB or BT, it is horizontal node spacing. For LR or RL, it is vertical node spacing",
         "top_bottom": "Top to Bottom",
         "bottom_top": "Bottom to Top",
         "left_right": "Left to Right",
@@ -275,16 +276,16 @@
         "align_dl": "Lower Left",
         "align_dr": "Lower Right",
         "rows": "Grid Rows",
-        "rows_tooltip": "Number of grid rows. When undefined, the algorithm calculates it from node count, layout space, and cols if specified.",
+        "rows_tooltip": "Number of grid rows. When undefined, the algorithm calculates it from node count, layout space, and cols if specified",
         "cols": "Grid Columns",
-        "cols_tooltip": "Number of grid columns. When undefined, the algorithm calculates it from node count, layout space, and rows if specified.",
+        "cols_tooltip": "Number of grid columns. When undefined, the algorithm calculates it from node count, layout space, and rows if specified",
         "unit_radius": "Level Distance",
-        "unit_radius_tooltip": "Distance between each ring and the previous ring. By default, it fills the canvas based on graph size.",
+        "unit_radius_tooltip": "Distance between each ring and the previous ring. By default, it fills the canvas based on graph size",
         "link_distance_short": "Edge Length",
         "focus_node": "Center Node",
-        "focus_node_tooltip": "Radiation center. Defaults to the first node in data. A node id or node object can be passed.",
-        "radial_node_spacing_tooltip": "Takes effect when preventOverlap is true. Minimum spacing between node edges.",
-        "radial_prevent_overlap_tooltip": "Whether to prevent overlap. Use with nodeSize. Collision detection works only when nodeSize matches the current graph node size.",
+        "focus_node_tooltip": "Radiation center. Defaults to the first node in data. A node id or node object can be passed",
+        "radial_node_spacing_tooltip": "Takes effect when preventOverlap is true. Minimum spacing between node edges",
+        "radial_prevent_overlap_tooltip": "Whether to prevent overlap. Use with nodeSize. Collision detection works only when nodeSize matches the current graph node size",
         "strict_radial": "Strict Radial",
         "strict_radial_tooltip": "Whether the layout must be a strict radial layout"
       },
@@ -292,15 +293,15 @@
         "label_statistics": "Label Statistics",
         "graph_statistics": "Graph Statistics",
         "type_count": "Vertex and Edge Counts",
-        "type_count_desc": "Counts of all vertex and edge types in the current canvas.",
+        "type_count_desc": "Counts of all vertex and edge types in the current canvas",
         "degree_top10": "Top 10 Node Degrees",
-        "degree_top10_desc": "The ten nodes with the highest one-hop edge counts in the current canvas.",
+        "degree_top10_desc": "The ten nodes with the highest one-hop edge counts in the current canvas",
         "zero_degree_nodes": "Isolated Nodes",
-        "zero_degree_nodes_desc": "Isolated nodes are nodes that are not connected to other nodes in the canvas.",
+        "zero_degree_nodes_desc": "Isolated nodes are nodes that are not connected to other nodes in the canvas",
         "zero_degree_edges": "Isolated Edges",
-        "zero_degree_edges_desc": "Edges whose endpoint nodes only have one-hop associations.",
+        "zero_degree_edges_desc": "Edges whose endpoint nodes only have one-hop associations",
         "incidence_nodes": "Adjacent Nodes",
-        "incidence_nodes_desc": "Select a node in the graph to show the number of its adjacent nodes.",
+        "incidence_nodes_desc": "Select a node in the graph to show the number of its adjacent nodes",
         "select_node": "Select a node",
         "highlight": "Highlight",
         "hide": "Hide"
@@ -436,7 +437,7 @@
     },
     "algorithm": {
       "name": "Built-in Graph Algorithms",
-      "guide": "Start with interactive exploration for quick results. Use batch analysis for whole-graph computation; results appear in Analysis Tasks.",
+      "guide": "Start with interactive exploration for quick results. Use batch analysis for whole-graph computation; results appear in Async Tasks",
       "traverser_docs": "Interactive algorithm parameter docs",
       "computer_docs": "Batch graph-computing guide",
       "api_docs": "Open the official API documentation for this algorithm",
@@ -444,7 +445,7 @@
       "reset_parameters": "Reset parameters",
       "parameter_example": "For example: {{value}}",
       "empty_graph_title": "Prepare data before running algorithms",
-      "empty_graph_description": "This graph has no vertices or edges, so algorithms cannot return a useful result.",
+      "empty_graph_description": "This graph has no vertices or edges, so algorithms cannot return a useful result",
       "create_schema": "Create schema",
       "prepare_data": "Prepare data",
       "group": {
@@ -463,7 +464,7 @@
         "input_limit_edges_per_vertex": "Max Outgoing Edges",
         "max_iter_step": "Max Iterations",
         "worker_num": "Worker Threads",
-        "sample_rate": "Edge sample rate. This algorithm grows exponentially and requires high compute capacity, so choose a practical sample rate for an approximate result.",
+        "sample_rate": "Edge sample rate. This algorithm grows exponentially and requires high compute capacity, so choose a practical sample rate for an approximate result",
         "weight_property": "Weight Property Name",
         "property_filter": "Vertex/Edge Property Filter",
         "min_ring_length": "Minimum ring length to output",
@@ -472,16 +473,16 @@
         "request_memory": "Minimum Memory Required per Compute Node",
         "JVM_memory": "JVM memory size, 32 GB by default",
         "source": "Source Vertex ID",
-        "query_tooltip": "OLAP algorithms can be used only after the selected graph data is loaded."
+        "query_tooltip": "OLAP algorithms can be used only after the selected graph data is loaded"
       },
       "form": {
         "vertices_required": "Specify ids, or specify both label and properties",
-        "vertices_ids_tooltip": "Provide source or target vertices by vertex ID list. If ids is empty, label and properties are used together to query vertices.",
+        "vertices_ids_tooltip": "Provide source or target vertices by vertex ID list. If ids is empty, label and properties are used together to query vertices",
         "vertices_ids_placeholder": "For example: [\"1:marko\", \"2:lop\"]",
         "vertices_label_placeholder": "For example: person",
         "vertices_properties_placeholder": "For example: {\"city\": \"Beijing\"}",
-        "vertices_label_tooltip": "Vertex label. label and properties take effect only when ids is empty.",
-        "vertices_properties_tooltip": "Property map. Keys are property names and values are property values defined by schema. Values can be lists; a property matches when its value is in the list.",
+        "vertices_label_tooltip": "Vertex label. label and properties take effect only when ids is empty",
+        "vertices_properties_tooltip": "Property map. Keys are property names and values are property values defined by schema. Values can be lists; a property matches when its value is in the list",
         "direction_options": {
           "out": "Outgoing",
           "in": "Incoming",
@@ -499,12 +500,12 @@
           "steps": "Step list from the source vertex",
           "direction": "Traversal direction from the source vertex",
           "labels": "Edge label list",
-          "edge_properties": "Property map used to filter edges. Keys are property names and values are property values defined by schema. Values can be lists; a property matches when its value is in the list.",
+          "edge_properties": "Property map used to filter edges. Keys are property names and values are property values defined by schema. Values can be lists; a property matches when its value is in the list",
           "max_depth": "Number of steps",
-          "max_times": "Repeat count for the current step. N means this step can be repeated 1 to N times from the source vertex.",
+          "max_times": "Repeat count for the current step. N means this step can be repeated 1 to N times from the source vertex",
           "max_degree": "Maximum adjacent edges traversed from a single vertex during the query",
-          "max_degree_compatible": "Maximum adjacent edges traversed from a single vertex. Before 0.12, step only supported degree; since 0.12 it uses max_degree and remains backward compatible with degree.",
-          "skip_degree": "Minimum edge count for skipping super vertices. When a vertex has more adjacent edges than skip_degree, the vertex is skipped. Optional; when enabled, skip_degree must be >= max_degree. Default 0 disables skipping. Enabling it may add traversal overhead.",
+          "max_degree_compatible": "Maximum adjacent edges traversed from a single vertex. Before 0.12, step only supported degree; since 0.12 it uses max_degree and remains backward compatible with degree",
+          "skip_degree": "Minimum edge count for skipping super vertices. When a vertex has more adjacent edges than skip_degree, the vertex is skipped. Optional; when enabled, skip_degree must be >= max_degree. Default 0 disables skipping. Enabling it may add traversal overhead",
           "edge_steps": "Edge step list",
           "vertex_steps": "Vertex step list"
         }
@@ -548,7 +549,7 @@
         "tooltip": "Traversal direction from the vertex"
       },
       "label_item": {
-        "tooltip": "Edge type. Leave empty to include all edge labels."
+        "tooltip": "Edge type. Leave empty to include all edge labels"
       },
       "max_degree_item": {
         "tooltip": "Maximum adjacent edges traversed from a single vertex during the query"
@@ -557,59 +558,59 @@
         "tooltip": "Number of steps"
       },
       "nearest_item": {
-        "tooltip": "When nearest is true, the shortest path length from the source vertex to the result vertex is depth and no shorter path exists. When nearest is false, there is a path with length depth from the source vertex to the result vertex, but it may not be shortest and may contain cycles.",
+        "tooltip": "When nearest is true, the shortest path length from the source vertex to the result vertex is depth and no shorter path exists. When nearest is false, there is a path with length depth from the source vertex to the result vertex, but it may not be shortest and may contain cycles",
         "placeholder": "Shortest path length"
       },
       "olap": {
         "betweenness_centrality": {
-          "desc": "Betweenness Centrality estimates how likely a node is to act as a bridge on paths between other nodes. Higher values indicate stronger bridge behavior, such as common followed accounts in a social network.",
+          "desc": "Betweenness Centrality estimates how likely a node is to act as a bridge on paths between other nodes. Higher values indicate stronger bridge behavior, such as common followed accounts in a social network",
           "sample_rate": "Edge Sample Rate",
-          "sample_rate_long": "Edge sample rate. This algorithm grows exponentially and requires high compute capacity, so choose a practical sample rate for an approximate result.",
+          "sample_rate_long": "Edge sample rate. This algorithm grows exponentially and requires high compute capacity, so choose a practical sample rate for an approximate result",
           "use_endpoint": "Include the last vertex in computation"
         },
         "closeness_centrality": {
-          "desc": "Computes the reciprocal of the shortest distance from a node to all other reachable nodes, accumulates the values, and normalizes the result. It is used to calculate closeness centrality for each node and supports directed and undirected graphs.",
+          "desc": "Computes the reciprocal of the shortest distance from a node to all other reachable nodes, accumulates the values, and normalizes the result. It is used to calculate closeness centrality for each node and supports directed and undirected graphs",
           "weight_property": "Weight Property Name",
           "sample_rate": "Edge Sample Rate",
           "wf_improved": "Use the Wasserman and Faust closeness centrality formula"
         },
         "cluster_coefficient": {
-          "desc": "Clustering coefficient computes the local clustering coefficient for each vertex. Global clustering coefficient is not available yet.",
-          "minimum_edges_use_superedge_cache": "Use memory to reduce message volume. If memory is insufficient, change 100 to 1000, but the clustering coefficient job may not complete."
+          "desc": "Clustering coefficient computes the local clustering coefficient for each vertex. Global clustering coefficient is not available yet",
+          "minimum_edges_use_superedge_cache": "Use memory to reduce message volume. If memory is insufficient, change 100 to 1000, but the clustering coefficient job may not complete"
         },
         "degree_centrality": {
-          "desc": "Computes degree centrality for each node and supports directed and undirected graphs.",
+          "desc": "Computes degree centrality for each node and supports directed and undirected graphs",
           "direction": "Direction: in/out/both for incoming, outgoing, or both directions"
         },
         "filtered_rings_detection": {
-          "desc": "Filtered Rings Detection detects rings in the graph. Each ring path is recorded by the vertex with the smallest ID in the ring. Vertex and edge property filters can be specified to selectively propagate paths."
+          "desc": "Filtered Rings Detection detects rings in the graph. Each ring path is recorded by the vertex with the smallest ID in the ring. Vertex and edge property filters can be specified to selectively propagate paths"
         },
         "filter_subgraph_matching": {
-          "desc": "Filter Subgraph Matching accepts a query graph with property filters and matches all subgraphs that are isomorphic to the query graph.",
+          "desc": "Filter Subgraph Matching accepts a query graph with property filters and matches all subgraphs that are isomorphic to the query graph",
           "query_graph_config": "Query graph configuration as a JSON array string"
         },
         "k_core": {
-          "desc": "K-Core marks all vertices whose degree is K.",
-          "k": "K value for the K-Core algorithm. Optional, with a default value.",
+          "desc": "K-Core marks all vertices whose degree is K",
+          "k": "K value for the K-Core algorithm. Optional, with a default value",
           "degree_k": "Minimum degree threshold"
         },
         "label_propagation_algorithm": {
-          "desc": "Label Propagation Algorithm is a graph clustering algorithm commonly used in social networks."
+          "desc": "Label Propagation Algorithm is a graph clustering algorithm commonly used in social networks"
         },
         "links": {
-          "desc": "Links tracing starts from a set of source vertices, propagates according to specified rules, stops when the end condition is met, and records the resulting paths.",
+          "desc": "Links tracing starts from a set of source vertices, propagates according to specified rules, stops when the end condition is met, and records the resulting paths",
           "analyze_config": "Link propagation condition configuration"
         },
         "louvain": {
-          "desc": "Louvain is a modularity-based community detection algorithm. Because of its algorithm characteristics, it runs with only one worker instance."
+          "desc": "Louvain is a modularity-based community detection algorithm. Because of its algorithm characteristics, it runs with only one worker instance"
         },
         "computer_item": {
           "computer_cpu": "Master Max CPU",
           "worker_cpu": "Worker Max CPU",
-          "master_request_memory": "Master Minimum Memory. Allocation fails if the minimum is not met.",
-          "worker_request_memory": "Worker Minimum Memory. Allocation fails if the minimum is not met.",
-          "master_memory": "Master Max Memory. The task is terminated by Kubernetes if this limit is exceeded.",
-          "worker_memory": "Worker Max Memory. The task is terminated by Kubernetes if this limit is exceeded."
+          "master_request_memory": "Master Minimum Memory. Allocation fails if the minimum is not met",
+          "worker_request_memory": "Worker Minimum Memory. Allocation fails if the minimum is not met",
+          "master_memory": "Master Max Memory. The task is terminated by Kubernetes if this limit is exceeded",
+          "worker_memory": "Worker Max Memory. The task is terminated by Kubernetes if this limit is exceeded"
         },
         "item": {
           "PAGE_RANK": "PageRank",
@@ -660,14 +661,14 @@
           "KOUT_POST": "K-out API(POST, Advanced)"
         },
         "page_rank": {
-          "desc": "PageRank ranks web pages or graph nodes by computing relationships through links, reflecting node relevance and importance.",
+          "desc": "PageRank ranks web pages or graph nodes by computing relationships through links, reflecting node relevance and importance",
           "alpha": "Weight coefficient, also known as damping factor",
-          "l1": "Convergence precision. It is the upper bound of the accumulated absolute changes between two iterations. The algorithm stops when the value is below this threshold.",
+          "l1": "Convergence precision. It is the upper bound of the accumulated absolute changes between two iterations. The algorithm stops when the value is below this threshold",
           "damping": "Damping factor, the percentage propagated to the next node",
-          "diff": "Convergence precision. It is the upper bound of the accumulated absolute changes between two iterations. The algorithm stops when the value is below this threshold."
+          "diff": "Convergence precision. It is the upper bound of the accumulated absolute changes between two iterations. The algorithm stops when the value is below this threshold"
         },
         "personal_page_bank": {
-          "desc": "PersonalPageRank is a personalized recommendation algorithm that computes relevance and importance from links between pages or graph nodes.",
+          "desc": "PersonalPageRank is a personalized recommendation algorithm that computes relevance and importance from links between pages or graph nodes",
           "source": "Source Vertex",
           "alpha": "Weight coefficient, also known as damping factor",
           "l1": "Convergence Precision",
@@ -675,18 +676,18 @@
           "use_id_fixlength_query": "Whether to use auto-increment ID calculation"
         },
         "ring_detection": {
-          "desc": "Rings Detection detects rings in the graph. Each ring path is recorded by the vertex with the smallest ID in the ring."
+          "desc": "Rings Detection detects rings in the graph. Each ring path is recorded by the vertex with the smallest ID in the ring"
         },
         "SSSPVermeer": {
-          "desc": "Single Source Shortest Path computes the shortest distance from one vertex to all other vertices."
+          "desc": "Single Source Shortest Path computes the shortest distance from one vertex to all other vertices"
         },
         "triangle_count": {
-          "desc": "Triangle Count computes the number of triangles that each vertex participates in.",
+          "desc": "Triangle Count computes the number of triangles that each vertex participates in",
           "limit_edges_in_one_vertex": "Max Outgoing Edges",
-          "minimum_edges_use_superedge_cache": "Use memory to reduce message volume. If memory is insufficient, change 100 to 1000, but the triangle count job may not complete."
+          "minimum_edges_use_superedge_cache": "Use memory to reduce message volume. If memory is insufficient, change 100 to 1000, but the triangle count job may not complete"
         },
         "weakly_connected_component": {
-          "desc": "Weakly Connected Component computes all connected subgraphs in an undirected graph and outputs the weakly connected component ID for each vertex."
+          "desc": "Weakly Connected Component computes all connected subgraphs in an undirected graph and outputs the weakly connected component ID for each vertex"
         }
       },
       "oltp": {
@@ -695,17 +696,17 @@
           "target_vertex_id": "Target vertex ID",
           "vertex_id": "Vertex ID",
           "other_vertex_id": "Other vertex ID",
-          "direction_source_target": "Direction from the source vertex to the target vertex. The reverse direction is target to source. BOTH ignores direction.",
+          "direction_source_target": "Direction from the source vertex to the target vertex. The reverse direction is target to source. BOTH ignores direction",
           "limit_crosspoints": "Maximum number of returned crosspoints",
           "max_steps": "Maximum number of steps",
-          "weight_property": "Edge weight property. The property type must be numeric. If it is empty or an edge does not have the property, the weight is 1.0.",
-          "alpha": "Probability of walking outward from a vertex in each iteration, similar to alpha in PageRank.",
+          "weight_property": "Edge weight property. The property type must be numeric. If it is empty or an edge does not have the property, the weight is 1.0",
+          "alpha": "Probability of walking outward from a vertex in each iteration, similar to alpha in PageRank",
           "iterations": "Number of iterations",
           "limit_vertices": "Maximum number of returned vertices",
           "source_target_path": "Path traversed from the source vertex to the target vertex"
         },
         "template_paths": {
-          "desc": "Find all paths that match a set of source vertices, edge rules including direction, labels, and property filters, and max depth.",
+          "desc": "Find all paths that match a set of source vertices, edge rules including direction, labels, and property filters, and max depth",
           "sources": "Source Vertices",
           "targets": "Target Vertices",
           "with_ring": "true includes rings; false excludes rings",
@@ -713,124 +714,124 @@
           "limit": "Maximum number of returned paths"
         },
         "kout_get": {
-          "desc": "Find vertices reachable from the source vertex in exactly depth steps, using optional direction and edge label filters."
+          "desc": "Find vertices reachable from the source vertex in exactly depth steps, using optional direction and edge label filters"
         },
         "kneighbor_get": {
-          "desc": "Find all vertices reachable within depth steps from the source vertex, including the source vertex, using optional direction and edge label filters."
+          "desc": "Find all vertices reachable within depth steps from the source vertex, including the source vertex, using optional direction and edge label filters"
         },
         "kout_post": {
-          "desc": "Find vertices reachable from the source vertex in exactly depth steps using step rules.",
+          "desc": "Find vertices reachable from the source vertex in exactly depth steps using step rules",
           "source": "Source Vertex ID",
           "capacity": "Maximum number of vertices visited during traversal",
           "limit": "Maximum number of returned vertices",
-          "algorithm": "Traversal strategy. deep_first usually performs better, but when nearest is true it may include non-nearest vertices, especially on large datasets.",
+          "algorithm": "Traversal strategy. deep_first usually performs better, but when nearest is true it may include non-nearest vertices, especially on large datasets",
           "algorithm_placeholder": "Select traversal strategy",
           "breadth_first": "Breadth First",
           "deep_first": "Depth First"
         },
         "same_neighbors": {
-          "desc": "Find common neighbors of two vertices.",
+          "desc": "Find common neighbors of two vertices",
           "limit": "Maximum number of returned common neighbors"
         },
         "rings": {
-          "desc": "Find reachable rings from the source vertex using optional direction, edge label, and max depth filters.",
+          "desc": "Find reachable rings from the source vertex using optional direction, edge label, and max depth filters",
           "source_in_ring": "Whether the ring must contain the source vertex"
         },
         "shortest_path": {
-          "desc": "Find one shortest path using source vertex, target vertex, direction, optional edge label, and max depth."
+          "desc": "Find one shortest path using source vertex, target vertex, direction, optional edge label, and max depth"
         },
         "jaccard_similarity_get": {
-          "desc": "Compute the Jaccard similarity of two vertices: the intersection of their neighbors divided by the union of their neighbors."
+          "desc": "Compute the Jaccard similarity of two vertices: the intersection of their neighbors divided by the union of their neighbors"
         },
         "crosspoints": {
-          "desc": "Find crosspoints using source vertex, target vertex, direction, optional edge label, and max depth."
+          "desc": "Find crosspoints using source vertex, target vertex, direction, optional edge label, and max depth"
         },
         "find_shortest_path": {
-          "desc": "Find all shortest paths between two vertices using source vertex, target vertex, direction, optional edge label, and max depth."
+          "desc": "Find all shortest paths between two vertices using source vertex, target vertex, direction, optional edge label, and max depth"
         },
         "find_shortest_path_with_weight": {
-          "desc": "Find one weighted shortest path using source vertex, target vertex, direction, optional edge label, and max depth."
+          "desc": "Find one weighted shortest path using source vertex, target vertex, direction, optional edge label, and max depth"
         },
         "paths": {
-          "desc": "Find all paths using source vertex, target vertex, direction, optional edge label, and max depth.",
+          "desc": "Find all paths using source vertex, target vertex, direction, optional edge label, and max depth",
           "limit": "Number of target vertices to query and number of returned shortest paths"
         },
         "rays": {
-          "desc": "Find paths that radiate from the source vertex to boundary vertices using optional direction, edge label, and max depth filters."
+          "desc": "Find paths that radiate from the source vertex to boundary vertices using optional direction, edge label, and max depth filters"
         },
         "rank_api": {
-          "desc": "Recommend other vertices with similar or related connections based on a source vertex's existing outgoing edges.",
-          "label": "Edge label starting from the source vertex. It must connect two different vertex categories.",
+          "desc": "Recommend other vertices with similar or related connections based on a source vertex's existing outgoing edges",
+          "label": "Edge label starting from the source vertex. It must connect two different vertex categories",
           "max_diff": "Convergence precision for early stop",
           "sorted": "Whether to sort returned results by rank",
-          "with_label": "Choose which result categories to keep: SAME_LABEL, OTHER_LABEL, or BOTH_LABEL.",
+          "with_label": "Choose which result categories to keep: SAME_LABEL, OTHER_LABEL, or BOTH_LABEL",
           "same_label": "Keep only vertices with the same category as the source vertex",
           "other_label": "Keep only vertices with a different category from the source vertex, usually the other side of a bipartite graph",
           "both_label": "Keep vertices from both the same and opposite categories as the source vertex"
         },
         "neighbor_rank_api": {
-          "desc": "Find the top N vertices most related to the source vertex at each layer in a general graph structure, along with their relevance scores.",
+          "desc": "Find the top N vertices most related to the source vertex at each layer in a general graph structure, along with their relevance scores",
           "top": "Keep only the top N weighted results at each layer"
         },
         "jaccard_similarity_post": {
-          "desc": "Find the top N vertices with the highest Jaccard similarity to the specified vertex.",
+          "desc": "Find the top N vertices with the highest Jaccard similarity to the specified vertex",
           "top": "Return the top vertices with the highest Jaccard similarity to a source vertex"
         },
         "kneighbor_post": {
-          "desc": "Find all vertices reachable within depth steps from the source vertex using step rules, including direction, edge labels, and property filters."
+          "desc": "Find all vertices reachable within depth steps from the source vertex using step rules, including direction, edge labels, and property filters"
         },
         "single_source_shortest_path": {
-          "desc": "Starting from one vertex, find shortest paths from that vertex to other vertices in the graph, optionally with edge weights."
+          "desc": "Starting from one vertex, find shortest paths from that vertex to other vertices in the graph, optionally with edge weights"
         },
         "multi_nodes_shortest_path": {
-          "desc": "Find shortest paths between every pair in a specified vertex set.",
+          "desc": "Find shortest paths between every pair in a specified vertex set",
           "vertices": "Source Vertices"
         },
         "all_paths": {
-          "desc": "Find all paths using source vertices, target vertices, step rules, and max depth."
+          "desc": "Find all paths using source vertices, target vertices, step rules, and max depth"
         },
         "fusiform_similarity": {
-          "desc": "Find fusiform-similar vertices for a set of source vertices under the specified conditions.",
-          "min_neighbors": "Minimum neighbor count. If a source vertex has fewer neighbors than this threshold, it is not considered to have fusiform-similar vertices.",
-          "alpha": "Similarity threshold: the ratio of common neighbors shared by the source vertex and the fusiform-similar vertex to all neighbors of the source vertex.",
-          "min_similars": "Minimum number of fusiform-similar vertices. The source vertex and its similar vertices are returned only when the count is greater than or equal to this value.",
-          "top": "Return the top N fusiform-similar vertices with the highest similarity for each source vertex. 0 means all.",
-          "group_property": "Used with min_groups. When the source vertex and its fusiform-similar vertices have at least min_groups different values for this property, the source vertex and its similar vertices are returned. Leave empty to skip this property filter.",
-          "min_groups": "Used with group_property; meaningful only when group_property is set.",
-          "limit": "Maximum number of returned result groups. One source vertex and its fusiform-similar vertices count as one result.",
-          "with_intermediary": "Whether to return intermediate vertices shared by the source vertex and its fusiform-similar vertices."
+          "desc": "Find fusiform-similar vertices for a set of source vertices under the specified conditions",
+          "min_neighbors": "Minimum neighbor count. If a source vertex has fewer neighbors than this threshold, it is not considered to have fusiform-similar vertices",
+          "alpha": "Similarity threshold: the ratio of common neighbors shared by the source vertex and the fusiform-similar vertex to all neighbors of the source vertex",
+          "min_similars": "Minimum number of fusiform-similar vertices. The source vertex and its similar vertices are returned only when the count is greater than or equal to this value",
+          "top": "Return the top N fusiform-similar vertices with the highest similarity for each source vertex. 0 means all",
+          "group_property": "Used with min_groups. When the source vertex and its fusiform-similar vertices have at least min_groups different values for this property, the source vertex and its similar vertices are returned. Leave empty to skip this property filter",
+          "min_groups": "Used with group_property; meaningful only when group_property is set",
+          "limit": "Maximum number of returned result groups. One source vertex and its fusiform-similar vertices count as one result",
+          "with_intermediary": "Whether to return intermediate vertices shared by the source vertex and its fusiform-similar vertices"
         },
         "resource_allocation": {
-          "desc": "Resource Allocation is commonly used in social networks to estimate how closely two vertices are related based on their common neighbors."
+          "desc": "Resource Allocation is commonly used in social networks to estimate how closely two vertices are related based on their common neighbors"
         },
         "same_neighbors_batch": {
-          "desc": "Batch query common neighbors for pairs of vertices.",
+          "desc": "Batch query common neighbors for pairs of vertices",
           "vertex_list": "List of vertex ID pairs, for example: [[\"0000000001\",\"0000376440\"],[\"0000000001\",\"0001822679\"]]"
         },
         "egonet": {
-          "desc": "Find K-hop neighbors of multiple source vertices, with optional filters for different vertex and edge labels. Results include the source vertices.",
-          "sources": "Source vertex ID list. Multiple vertices are supported."
+          "desc": "Find K-hop neighbors of multiple source vertices, with optional filters for different vertex and edge labels. Results include the source vertices",
+          "sources": "Source vertex ID list. Multiple vertices are supported"
         },
         "customized_paths": {
-          "desc": "Find all paths that match a set of source vertices, edge rules including direction, labels, and property filters, and max depth.",
-          "sort_by": "Sort by path weight: NONE means no sorting, INCR sorts by ascending path weight, and DECR sorts by descending path weight.",
+          "desc": "Find all paths that match a set of source vertices, edge rules including direction, labels, and property filters, and max depth",
+          "sort_by": "Sort by path weight: NONE means no sorting, INCR sorts by ascending path weight, and DECR sorts by descending path weight",
           "sort_none": "No sorting",
           "sort_incr": "Sort by path weight ascending",
           "sort_decr": "Sort by path weight descending",
-          "weight_by": "Use the specified property to calculate edge weight. It is effective when sort_by is not NONE and is mutually exclusive with default_weight.",
-          "default_weight": "Default edge weight used when an edge does not have the weight property. It is effective when sort_by is not NONE and is mutually exclusive with weight_by.",
-          "sample": "Sample matching edges for the current step. -1 means no sampling."
+          "weight_by": "Use the specified property to calculate edge weight. It is effective when sort_by is not NONE and is mutually exclusive with default_weight",
+          "default_weight": "Default edge weight used when an edge does not have the weight property. It is effective when sort_by is not NONE and is mutually exclusive with weight_by",
+          "sample": "Sample matching edges for the current step. -1 means no sampling"
         },
         "customized_crosspoints": {
-          "desc": "Find the intersection of path endpoints that match multiple path rules, including direction, edge labels, property filters, and max depth.",
+          "desc": "Find the intersection of path endpoints that match multiple path rules, including direction, edge labels, property filters, and max depth",
           "path_patterns": "Path rule list traversed from the source vertex",
           "limit": "Maximum number of returned paths"
         },
         "adamic_adar": {
-          "desc": "Adamic-Adar is commonly used in social networks to estimate how closely two vertices are related based on the density of their common neighbors.",
+          "desc": "Adamic-Adar is commonly used in social networks to estimate how closely two vertices are related based on the density of their common neighbors",
           "vertex": "Source Vertex",
           "other": "Target Vertex",
-          "direction": "Direction from the source vertex to the target vertex. The reverse direction is target to source. BOTH ignores direction.",
+          "direction": "Direction from the source vertex to the target vertex. The reverse direction is target to source. BOTH ignores direction",
           "label": "Leave empty to include all edge labels",
           "max_degree": "Maximum adjacent edges traversed from a single vertex during the query",
           "select_direction": "Traversal direction from the vertex"
@@ -838,16 +839,16 @@
       }
     },
     "async_task": {
-      "name": "Analysis Tasks",
-      "help_title": "About analysis tasks",
-      "help_description": "Queries and built-in graph algorithms can run asynchronously. Track progress and results here, or stop and delete tasks. The list refreshes every 5 seconds.",
+      "name": "Async Tasks",
+      "help_title": "About async tasks",
+      "help_description": "Queries and built-in graph algorithms can run asynchronously. Track progress and results here, or stop and delete tasks. The list refreshes every 5 seconds",
       "search_placeholder": "Enter a task ID or name",
       "get_failed": "Failed to get async tasks",
       "retry_list": "Retry tasks",
-      "empty_title": "No analysis tasks yet",
-      "empty_description": "Analysis tasks are created when queries or algorithms run asynchronously.",
-      "no_matches_title": "No matching analysis tasks",
-      "no_matches_description": "Try another search term or status filter.",
+      "empty_title": "No async tasks yet",
+      "empty_description": "Async tasks are created when queries or algorithms run asynchronously",
+      "no_matches_title": "No matching async tasks",
+      "no_matches_description": "Try another search term or status filter",
       "clear_filters": "Clear filters",
       "start_query": "Start a query",
       "open_algorithms": "Open algorithms",
@@ -861,9 +862,9 @@
       "delete_failed": "Delete failed",
       "abort_failed": "Abort failed",
       "delete_confirm_title": "Delete Task",
-      "delete_confirm_content": "Delete this task? This cannot be undone.",
+      "delete_confirm_content": "Delete this task? This cannot be undone",
       "batch_delete_title": "Batch Delete",
-      "batch_delete_content": "Delete the selected tasks? This cannot be undone.",
+      "batch_delete_content": "Delete the selected tasks? This cannot be undone",
       "selected_count": "{{count}} selected",
       "clear_selection": "Clear selection",
       "batch_delete": "Batch Delete",

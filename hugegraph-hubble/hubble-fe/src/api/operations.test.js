@@ -17,7 +17,7 @@
  */
 
 import request from './request';
-import {getCapabilities, getNode, getOverview} from './operations';
+import {getCapabilities, getNode, getNodes, getOverview} from './operations';
 
 jest.mock('./request');
 
@@ -33,13 +33,37 @@ test('unwraps the Hubble response envelope for operations pages', async () => {
     await expect(getCapabilities()).resolves.toEqual({
         capabilities: ['operations_health_read'],
     });
+    expect(request.get).toHaveBeenNthCalledWith(1, '/operations/capabilities', {
+        suppressBusinessErrorToast: true,
+        headers: {'Cache-Control': 'no-store', Pragma: 'no-cache'},
+    });
     await expect(getOverview()).resolves.toEqual({status: 'UP', nodes: []});
 });
 
 test('rejects a failed operations business response', async () => {
     request.get.mockResolvedValue({status: 403, message: 'Forbidden'});
 
-    await expect(getCapabilities()).rejects.toThrow('operations_request_403');
+    await expect(getCapabilities()).rejects.toMatchObject({
+        message: 'operations_request_403',
+        status: 403,
+    });
+});
+
+test('preserves an HTTP authorization status for stale-data cleanup', async () => {
+    const error = new Error('Request failed with status code 403');
+    error.response = {status: 403};
+    request.get.mockRejectedValue(error);
+
+    await expect(getNodes({page: 1})).rejects.toMatchObject({status: 403});
+});
+
+test('preserves a business authorization status from an HTTP 200 envelope', async () => {
+    const error = new Error('Unauthorized');
+    error.status = 200;
+    error.data = {status: 401, message: 'Unauthorized'};
+    request.get.mockRejectedValue(error);
+
+    await expect(getOverview()).rejects.toMatchObject({status: 401});
 });
 
 test('preserves the snake case metric status contract for node details', async () => {

@@ -62,19 +62,34 @@
     gap: 8px;
 }
 
+.operations-header-tools {
+    flex-wrap: nowrap;
+}
+
+.operations-refresh-button {
+    color: var(--workbench-color-text-secondary);
+
+    &:hover,
+    &:focus-visible {
+        background: #e6f4ff;
+        color: var(--workbench-color-brand-strong);
+        box-shadow: var(--workbench-focus-ring);
+    }
+}
+
 .operations-advanced-monitoring {
-    display: flex;
-    align-items: flex-end;
-    flex-direction: column;
-    gap: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 }
 
 .operations-advanced-monitoring-reason {
-    max-width: 240px;
+    max-width: 132px;
     color: var(--workbench-color-text-tertiary);
     font-size: 12px;
     line-height: 18px;
     text-align: right;
+    white-space: nowrap;
 }
 
 .operations-eyebrow {
@@ -327,6 +342,10 @@
     }
 }
 
+.tier-server .operations-topology-node::before {
+    display: none;
+}
+
 .operations-node-icon {
     display: inline-flex;
     align-items: center;
@@ -487,6 +506,38 @@
     box-shadow: inset var(--workbench-focus-ring);
 }
 
+.operations-node-identity-cell {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+    gap: 6px;
+
+    > a { min-width: 0; }
+}
+
+.operations-node-role {
+    flex: 0 0 auto;
+    margin-inline-end: 0;
+    color: var(--workbench-color-text-secondary);
+
+    &.is-leader {
+        border-color: #d4b106;
+        background: #fffbe6;
+        color: #614700;
+        font-weight: 600;
+    }
+}
+
+.operations-copy-node-id {
+    flex: 0 0 auto;
+    color: var(--workbench-color-text-tertiary);
+
+    &:hover,
+    &:focus-visible {
+        color: var(--workbench-color-brand-strong);
+    }
+}
+
 .operations-node-detail {
     display: grid;
     gap: 16px;
@@ -529,25 +580,37 @@
     }
 }
 
-.operations-metric-heading {
+.operations-metric-header {
+    display: grid;
+    gap: 6px;
+    min-height: 54px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--workbench-color-border);
+}
+
+.operations-metric-title-row {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 16px;
 
-    h3 { text-transform: capitalize; }
+    h3 {
+        margin: 0;
+        text-transform: capitalize;
+    }
+
+    > strong {
+        flex: 0 0 auto;
+        font-size: 12px;
+    }
 }
 
 .operations-metric-status {
     display: flex;
-    justify-content: flex-end;
     flex-wrap: wrap;
     gap: 4px 10px;
     color: var(--workbench-color-text-secondary);
     font-size: 12px;
-    text-align: right;
-
-    strong { color: var(--workbench-color-text); }
 }
 
 .operations-capacity-summary {

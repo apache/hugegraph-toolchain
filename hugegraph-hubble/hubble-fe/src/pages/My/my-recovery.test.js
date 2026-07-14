@@ -108,7 +108,7 @@ test('renders localized placeholders for empty profile fields', async () => {
         data: {
             user_name: 'admin',
             user_nickname: 'Administrator',
-            user_description: '',
+            user_description: 'None',
             adminSpaces: [],
             user_create: null,
         },
@@ -119,6 +119,23 @@ test('renders localized placeholders for empty profile fields', async () => {
     expect(await screen.findByText('Administrator')).toBeInTheDocument();
     expect(screen.getAllByText('my.empty_value')).toHaveLength(2);
     expect(screen.getByText('my.level.ADMIN')).toBeInTheDocument();
+});
+
+test('keeps sentinel-like identity names visible while normalizing an optional remark', async () => {
+    api.auth.getPersonal.mockResolvedValue({
+        status: 200,
+        data: {
+            user_name: 'None',
+            user_description: 'None',
+            user_create: '2026-07-14',
+        },
+    });
+
+    render(<My />);
+
+    expect(await screen.findByRole('heading', {name: 'None'})).toBeInTheDocument();
+    expect(screen.getAllByText('None').length).toBeGreaterThan(1);
+    expect(screen.getByText('my.empty_value')).toBeInTheDocument();
 });
 
 test('shows the authoritative capability level instead of an empty role placeholder', async () => {
@@ -231,6 +248,8 @@ test('keeps loading during a password request and closes the form only on succes
 
     request.resolve({status: 200});
 
-    expect(await screen.findByText('Administrator')).toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('my.edit.new_password_placeholder')).not.toBeInTheDocument();
+    await waitFor(() => expect(
+        screen.queryByPlaceholderText('my.edit.new_password_placeholder')
+    ).not.toBeInTheDocument());
+    expect(screen.getByRole('heading', {name: 'Administrator'})).toBeInTheDocument();
 });

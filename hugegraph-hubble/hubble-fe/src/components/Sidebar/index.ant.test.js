@@ -45,6 +45,11 @@ beforeEach(() => {
         capabilities: ['operations_health_read', 'operations_topology_read'],
         error: null,
     });
+    window.HTMLElement.prototype.scrollIntoView = jest.fn();
+});
+
+afterEach(() => {
+    delete window.HTMLElement.prototype.scrollIntoView;
 });
 
 test('hides the Nodes entry when only health capability is available', async () => {
@@ -82,6 +87,22 @@ test('keeps monitoring and account links in one operations section', async () =>
     expect(screen.getByRole('link', {name: '个人中心'})).toBeInTheDocument();
 });
 
+test('keeps the selected operations entry within the scrollable navigation', async () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/operations/nodes/server-1']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect((await screen.findByRole('link', {name: '节点'})).closest('li'))
+        .toHaveClass('ant-menu-item-selected');
+    await waitFor(() => expect(window.HTMLElement.prototype.scrollIntoView)
+        .toHaveBeenCalledWith({block: 'nearest'}));
+});
+
 test('exposes the application menu as named primary navigation', async () => {
     render(
         <MemoryRouter
@@ -99,7 +120,7 @@ test('exposes the application menu as named primary navigation', async () => {
     expect(screen.getByRole('menuitem', {name: 'database 图查询'})).toBeInTheDocument();
     expect(screen.getAllByText('系统与运维').length).toBeGreaterThan(0);
     expect(navigation).toContainElement(screen.getByRole('link', {name: 'GQL 图遍历'}));
-    expect(navigation).toContainElement(screen.getByRole('link', {name: '分析任务'}));
+    expect(navigation).toContainElement(screen.getByRole('link', {name: '异步任务'}));
     const menuSections = screen.getAllByRole('menuitem')
         .map(item => item.textContent);
     expect(menuSections.indexOf('图查询')).toBeLessThan(menuSections.indexOf('图导入'));

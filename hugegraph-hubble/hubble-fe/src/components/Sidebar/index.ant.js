@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {Button, Layout, Menu} from 'antd';
 import {
     HomeOutlined,
@@ -146,6 +146,7 @@ const items = (t, pathname, capabilities = []) => {
 };
 
 const Sidebar = () => {
+    const navigationRef = useRef(null);
     const mediaQuery = '(max-width: 900px)';
     const getNarrow = () => typeof window !== 'undefined'
         && typeof window.matchMedia === 'function'
@@ -181,6 +182,18 @@ const Sidebar = () => {
         }
     }, [href.pathname, narrow]);
 
+    useEffect(() => {
+        const selected = navigationRef.current?.querySelector('.ant-menu-item-selected');
+        const operationsNodes = href.pathname.startsWith('/operations')
+            ? navigationRef.current?.querySelector('a[href="/operations/nodes"]')
+                ?.closest('.ant-menu-item')
+            : null;
+        const target = operationsNodes ?? selected;
+        if (typeof target?.scrollIntoView === 'function') {
+            target.scrollIntoView({block: 'nearest'});
+        }
+    }, [capabilities, href.pathname, openKeys]);
+
     const setNavigationCollapsed = useCallback(value => {
         setCollapsed(value);
         setOpenKeys(value ? [] : OPEN_SECTIONS);
@@ -195,6 +208,7 @@ const Sidebar = () => {
 
     return (
         <nav
+            ref={navigationRef}
             className={`workbench-navigation ${narrow ? 'is-narrow' : ''}`}
             aria-label={t('workbench.navigation')}
         >

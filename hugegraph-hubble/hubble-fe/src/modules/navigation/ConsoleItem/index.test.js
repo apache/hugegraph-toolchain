@@ -21,6 +21,7 @@ import {MemoryRouter} from 'react-router-dom';
 import * as api from '../../../api';
 import ConsoleItem from './index';
 import itemStyle from '../Item/index.module.scss';
+import {useOperationsCapabilities} from '../../../pages/Operations/capabilities';
 
 const mockMessageError = jest.fn();
 
@@ -28,6 +29,9 @@ jest.mock('../../../api', () => ({
     auth: {
         getDashboard: jest.fn(),
     },
+}));
+jest.mock('../../../pages/Operations/capabilities', () => ({
+    useOperationsCapabilities: jest.fn(),
 }));
 jest.mock('antd', () => ({
     ...jest.requireActual('antd'),
@@ -53,6 +57,15 @@ beforeEach(() => {
             protocol: 'http',
         },
     });
+    useOperationsCapabilities.mockReturnValue({
+        loading: false,
+        capabilities: [
+            'operations_health_read',
+            'operations_topology_read',
+            'operations_metrics_read',
+        ],
+        error: null,
+    });
 });
 
 const renderConsole = () => render(
@@ -70,7 +83,7 @@ test('opens a configured and healthy Dashboard capability', async () => {
     renderConsole();
 
     const monitor = await screen.findByRole('button', {
-        name: 'navigation_page.monitor_manage',
+        name: 'navigation_page.advanced_monitoring',
     });
     await waitFor(() => expect(monitor).toBeEnabled());
     fireEvent.click(monitor);
@@ -82,6 +95,27 @@ test('opens a configured and healthy Dashboard capability', async () => {
     );
 });
 
+test('links native operations independently of the optional Dashboard', async () => {
+    api.auth.getDashboard.mockResolvedValue({
+        status: 200,
+        data: {configured: false},
+    });
+    renderConsole();
+
+    expect(await screen.findByRole('button', {
+        name: 'navigation_page.cluster_overview',
+    })).toHaveAttribute('data-url', '/operations/overview');
+    expect(screen.getByRole('button', {
+        name: 'navigation_page.nodes',
+    })).toHaveAttribute('data-url', '/operations/nodes');
+    expect(screen.getByRole('button', {
+        name: 'navigation_page.alert_manage',
+    })).toHaveTextContent('navigation_page.coming_soon');
+    expect(screen.getByRole('group', {
+        name: 'navigation_page.alert_manage, navigation_page.coming_soon',
+    })).toHaveAttribute('tabindex', '0');
+});
+
 test('labels an unconfigured Dashboard instead of Coming Soon', async () => {
     api.auth.getDashboard.mockResolvedValue({
         status: 200,
@@ -90,13 +124,13 @@ test('labels an unconfigured Dashboard instead of Coming Soon', async () => {
     renderConsole();
 
     const monitor = await screen.findByRole('button', {
-        name: 'navigation_page.monitor_manage',
+        name: 'navigation_page.advanced_monitoring',
     });
     await waitFor(() => expect(monitor).toHaveAttribute(
         'title', 'navigation_page.dashboard_unconfigured'
     ));
-    expect(screen.getAllByText('navigation_page.not_configured')).toHaveLength(4);
-    expect(screen.queryByText('navigation_page.coming_soon')).not.toBeInTheDocument();
+    expect(screen.getAllByText('navigation_page.not_configured')).toHaveLength(1);
+    expect(screen.getByText('navigation_page.coming_soon')).toBeInTheDocument();
 });
 
 test('disables a configured but unavailable Dashboard capability', async () => {
@@ -112,18 +146,18 @@ test('disables a configured but unavailable Dashboard capability', async () => {
     renderConsole();
 
     const monitor = await screen.findByRole('button', {
-        name: 'navigation_page.monitor_manage',
+        name: 'navigation_page.advanced_monitoring',
     });
     await waitFor(() => expect(monitor).toHaveAttribute(
         'title', 'navigation_page.dashboard_unavailable'
     ));
     expect(monitor).toBeDisabled();
-    expect(screen.getAllByText('navigation_page.unavailable')).toHaveLength(4);
+    expect(screen.getAllByText('navigation_page.unavailable')).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveClass(itemStyle.reason);
     expect(screen.getByRole('status')).toHaveTextContent(
         'navigation_page.dashboard_unavailable'
     );
-    expect(screen.queryByText('navigation_page.coming_soon')).not.toBeInTheDocument();
+    expect(screen.getByText('navigation_page.coming_soon')).toBeInTheDocument();
     expect(window.open).not.toHaveBeenCalled();
 });
 
@@ -135,7 +169,7 @@ test('shows a diagnostic state when Dashboard configuration cannot be read', asy
     });
 
     const monitor = await screen.findByRole('button', {
-        name: 'navigation_page.monitor_manage',
+        name: 'navigation_page.advanced_monitoring',
     });
     await waitFor(() => expect(monitor).toHaveAttribute(
         'title', 'navigation_page.dashboard_unavailable'

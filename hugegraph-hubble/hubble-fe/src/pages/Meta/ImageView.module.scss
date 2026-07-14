@@ -54,6 +54,49 @@
   font-size: 12px;
 }
 
+.toolbar {
+  min-height: 40px;
+  margin-bottom: 8px;
+  text-align: left;
+}
+
+.tooltip {
+  color: #262626;
+  text-align: left;
+
+  > strong {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 15px;
+  }
+
+  dl {
+    margin: 10px 0;
+  }
+
+  dl > div {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    gap: 8px;
+    padding: 4px 0;
+  }
+
+  dt {
+    color: #667085;
+  }
+
+  dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+.tooltipType,
+.tooltipHint {
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .empty {
     margin-top: 24px;

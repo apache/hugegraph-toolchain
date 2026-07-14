@@ -23,4 +23,7 @@ const sourceTypeOptions = [
     {label: 'JDBC', value: 'JDBC'},
 ];
 
-export {sourceTypeOptions};
+const LOADER_DOCS_URL
+    = 'https://hugegraph.apache.org/docs/quickstart/toolchain/hugegraph-loader/';
+
+export {LOADER_DOCS_URL, sourceTypeOptions};

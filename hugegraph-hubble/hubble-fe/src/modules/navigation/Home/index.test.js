@@ -77,9 +77,9 @@ test('ships every rendered secondary action in both languages', () => {
     expect(en.home.workbench.journeys.prepare.secondary_1).toBe('Import data sources');
     expect(zh.home.workbench.journeys.query.secondary_2).toBe('查看异步任务');
     expect(en.home.workbench.journeys.query.secondary_2).toBe('View async tasks');
-    expect(zh.home.workbench.intro).toBe('Hubble 面向图可视化人群。');
+    expect(zh.home.workbench.intro).toBe('Hubble 面向图可视化人群');
     expect(en.home.workbench.intro).toBe(
-        'Hubble is designed for graph visualization users.'
+        'Hubble is designed for graph visualization users'
     );
     expect(zh.home.workbench.mode.pd).toBe('PD / 集群模式');
     expect(en.home.workbench.mode.pd).toBe('PD / cluster mode');

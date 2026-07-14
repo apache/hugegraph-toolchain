@@ -54,6 +54,8 @@ test('uses semantic tier icons and keeps the PD leader on the visual axis', () =
     expect(screen.getByLabelText('STORE icon')).toBeInTheDocument();
     expect(screen.getByText('pd-1').closest('a')).toHaveClass('is-axis-node');
     expect(screen.getByText('pd-2').closest('a')).not.toHaveClass('is-axis-node');
+    expect(screen.getByRole('link', {name: 'Server tier'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'SERVER tier'})).not.toBeInTheDocument();
 });
 
 test('shows stale metrics beside an up topology status', () => {

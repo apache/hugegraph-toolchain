@@ -16,11 +16,12 @@
  * under the License.
  */
 
-import {render, screen, waitFor} from '@testing-library/react';
+import {act, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import OperationsRoute from './OperationsRoute';
 import {resetOperationsCapabilities} from './capabilities';
 import * as operationsApi from '../../api/operations';
+import {setUser} from '../../utils/user';
 import '../../i18n';
 
 jest.mock('../../api/operations');
@@ -77,4 +78,31 @@ test('does not misreport a capability request failure as permission denied', asy
     expect(screen.queryByText('cluster content')).not.toBeInTheDocument();
     expect(screen.getByText(/unable to load/i)).toBeInTheDocument();
     expect(screen.queryByText(/permission required/i)).not.toBeInTheDocument();
+});
+
+test('drops an earlier user capability snapshot when the signed-in user changes', async () => {
+    sessionStorage.setItem('user_', JSON.stringify({id: 'admin'}));
+    operationsApi.getCapabilities
+        .mockResolvedValueOnce({
+            capabilities: ['operations_health_read', 'operations_topology_read'],
+        })
+        .mockResolvedValueOnce({capabilities: ['operations_health_read']});
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <OperationsRoute required='operations_topology_read'>
+                <div>administrator node data</div>
+            </OperationsRoute>
+        </MemoryRouter>
+    );
+    expect(await screen.findByText('administrator node data')).toBeInTheDocument();
+
+    await act(async () => {
+        setUser({id: 'space-admin'});
+    });
+
+    await waitFor(() => expect(screen.queryByText('administrator node data'))
+        .not.toBeInTheDocument());
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(operationsApi.getCapabilities).toHaveBeenCalledTimes(2);
 });

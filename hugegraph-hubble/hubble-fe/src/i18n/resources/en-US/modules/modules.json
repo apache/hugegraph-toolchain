@@ -14,7 +14,7 @@
     "load_to_vermeer": "Load to Vermeer",
     "meta_config": "Metadata Config",
     "meta_config_tooltip": "Click to navigate to the metadata configuration page",
-    "olap_switch": "Query OLAP results:",
+    "olap_switch": "Query OLAP properties:",
     "olap_on": "On",
     "olap_off": "Off",
     "load_fail": "Failed to load Vermeer task"

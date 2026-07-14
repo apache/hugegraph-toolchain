@@ -47,32 +47,29 @@
 }
 
 .executionControl {
-    :global(.ant-radio-button-wrapper:last-child) {
-        border-radius: 0;
-    }
+    gap: 8px;
 }
 
 .executeButton {
-    min-width: 104px;
-    margin-left: -1px;
-    border-radius: 0 4px 4px 0;
+    min-width: 132px;
+    height: 36px;
+    font-size: 15px;
+    font-weight: 600;
 }
 
 .executionControl :global(.ant-tooltip-disabled-compatible-wrapper) {
-    margin-left: -1px;
+    display: inline-flex;
 }
 
 .executionControl :global(.ant-tooltip-disabled-compatible-wrapper .ant-btn) {
-    min-width: 104px;
-    border-radius: 0 4px 4px 0;
+    min-width: 132px;
+    height: 36px;
 }
 
-.helpButton {
-    color: #667085;
-
-    :global(.anticon) {
-        font-size: 16px;
-    }
+.modeButton {
+    min-width: 88px;
+    height: 32px;
+    color: #43516a;
 }
 
 .btn {
@@ -105,10 +102,10 @@
     }
 
     .executeButton {
-        min-width: 96px;
+        min-width: 120px;
     }
 
     .executionControl :global(.ant-tooltip-disabled-compatible-wrapper .ant-btn) {
-        min-width: 96px;
+        min-width: 120px;
     }
 }

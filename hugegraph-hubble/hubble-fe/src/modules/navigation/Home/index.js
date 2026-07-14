@@ -25,7 +25,9 @@ import {
     ApartmentOutlined,
     ArrowRightOutlined,
     DatabaseOutlined,
+    HddOutlined,
     SearchOutlined,
+    ToolOutlined,
 } from '@ant-design/icons';
 import {useTranslation} from 'react-i18next';
 import AdminItem from '../AdminItem';
@@ -57,7 +59,11 @@ const NavigationHome = () => {
                     <p className={style.subtitle}>{t('home.workbench.subtitle')}</p>
                     <p>{t('home.workbench.intro')}</p>
                 </div>
-                <Tag color={pdMode ? 'blue' : 'default'}>
+                <Tag
+                    className={style.modeTag}
+                    color={pdMode ? 'blue' : 'default'}
+                    icon={pdMode ? <ApartmentOutlined /> : <HddOutlined />}
+                >
                     {t(`home.workbench.mode.${pdMode ? 'pd' : 'non_pd'}`)}
                 </Tag>
             </div>
@@ -109,13 +115,23 @@ const NavigationHome = () => {
                     className={style.support}
                     aria-labelledby="workbench-support-title"
                 >
-                    <h2 id="workbench-support-title" className={style.sectionTitle}>
-                        {t('home.workbench.support')}
-                    </h2>
-                    <div className={style.supportGrid}>
-                        <AdminItem />
-                        <ConsoleItem />
-                    </div>
+                    <Card
+                        className={`${style.journeyCard} ${style.supportCard}`}
+                        title={(
+                            <Space>
+                                <span className={style.step}>4</span>
+                                <ToolOutlined />
+                                <span id="workbench-support-title">
+                                    {t('home.workbench.support')}
+                                </span>
+                            </Space>
+                        )}
+                    >
+                        <div className={style.supportGrid}>
+                            <AdminItem embedded />
+                            <ConsoleItem embedded />
+                        </div>
+                    </Card>
                 </section>
             )}
         </div>

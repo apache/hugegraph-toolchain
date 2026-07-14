@@ -16,10 +16,54 @@
  * under the License.
  */
 
-import {useCallback} from 'react';
-import Graphin, {Behaviors} from '@antv/graphin';
+import {useCallback, useContext, useEffect} from 'react';
+import Graphin, {Behaviors, Components, GraphinContext} from '@antv/graphin';
 
-const GraphView =  ({data, width, height, layout, style, onClick, config, behaviors}) => {
+const GRAPH_TOOLTIP_STYLE = {
+    width: 300,
+    padding: 12,
+    borderRadius: 4,
+    background: '#fff',
+    pointerEvents: 'none',
+};
+
+const GraphDoubleClick = ({onDoubleClick}) => {
+    const {graph} = useContext(GraphinContext);
+
+    useEffect(() => {
+        if (typeof onDoubleClick !== 'function') {
+            return undefined;
+        }
+        const handleDoubleClick = evt => {
+            const {item} = evt;
+            const {id, type} = item._cfg;
+            const model = item.getModel();
+            onDoubleClick(id, type, model.data, model, item, evt);
+        };
+        graph.on('node:dblclick', handleDoubleClick);
+        graph.on('edge:dblclick', handleDoubleClick);
+        return () => {
+            graph.off('node:dblclick', handleDoubleClick);
+            graph.off('edge:dblclick', handleDoubleClick);
+        };
+    }, [graph, onDoubleClick]);
+
+    return null;
+};
+
+const GraphView =  ({
+    data,
+    width,
+    height,
+    layout,
+    style,
+    onClick,
+    onDoubleClick,
+    config,
+    behaviors,
+    nodeTooltip,
+    edgeTooltip,
+}) => {
     // const [graphData, setGraphData] = useState([]);
 
     const {DragCanvas, ZoomCanvas, DragNode, ClickSelect, Hoverable} = Behaviors;
@@ -58,6 +102,17 @@ const GraphView =  ({data, width, height, layout, style, onClick, config, behavi
                 />
                 <Hoverable bindType="edge" {...behaviors?.hoverable} />
                 <Hoverable bindType="node" {...behaviors?.hoverable} />
+                <GraphDoubleClick onDoubleClick={onDoubleClick} />
+                {nodeTooltip && (
+                    <Components.Tooltip bindType='node' style={GRAPH_TOOLTIP_STYLE}>
+                        {nodeTooltip}
+                    </Components.Tooltip>
+                )}
+                {edgeTooltip && (
+                    <Components.Tooltip bindType='edge' style={GRAPH_TOOLTIP_STYLE}>
+                        {edgeTooltip}
+                    </Components.Tooltip>
+                )}
                 {/* <ActivateRelations trigger='click' /> */}
             </Graphin>
         </div>
@@ -65,3 +120,5 @@ const GraphView =  ({data, width, height, layout, style, onClick, config, behavi
 };
 
 export default GraphView;
+
+export {GraphDoubleClick};

@@ -116,6 +116,18 @@ describe('route guard', () => {
         expect(sessionStorage.getItem('redirect')).toBeNull();
     });
 
+    it('renders the standard 404 surface for an unknown operations route', () => {
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'admin',
+            user_nickname: 'admin',
+        }));
+
+        renderRoutes('/operations/not-a-real-page');
+
+        expect(screen.getByText('not found page')).toBeTruthy();
+        expect(screen.queryByText('protected layout')).toBeTruthy();
+    });
+
     it('redirects the legacy profile deep link to the semantic route', () => {
         sessionStorage.setItem('user_', JSON.stringify({id: 'admin'}));
 

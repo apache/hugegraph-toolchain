@@ -29,22 +29,23 @@ import {useTranslation} from 'react-i18next';
 import {getCurrentLanguage} from '../../utils/language';
 
 const LOGIN_PATH = '/login';
+const DEFAULT_AFTER_LOGIN = '/navigation';
 const UNSAFE_REDIRECT_RE = /[\x00-\x1F\x7F\\]/;
 
 const getSafeRedirect = redirect => {
     if (!redirect || !redirect.startsWith('/') || UNSAFE_REDIRECT_RE.test(redirect)) {
-        return '/';
+        return DEFAULT_AFTER_LOGIN;
     }
 
     try {
         const target = new URL(redirect, window.location.origin);
         if (target.origin !== window.location.origin || target.pathname === LOGIN_PATH) {
-            return '/';
+            return DEFAULT_AFTER_LOGIN;
         }
         return `${target.pathname}${target.search}${target.hash}`;
     }
     catch {
-        return '/';
+        return DEFAULT_AFTER_LOGIN;
     }
 };
 
@@ -63,8 +64,7 @@ const Login = () => {
 
     const navigateAfterLogin = useCallback(() => {
         const queryRedirect = new URLSearchParams(location.search).get('redirect');
-        const redirect = queryRedirect || sessionStorage.getItem('redirect');
-        const safeRedirect = getSafeRedirect(redirect);
+        const safeRedirect = getSafeRedirect(queryRedirect);
 
         sessionStorage.removeItem('redirect');
         window.location.replace(safeRedirect);

@@ -133,8 +133,12 @@ const GraphAnalysisHome = props => {
 
     return (
         <GraphAnalysisContext.Provider value={context}>
-            <PageHeader ghost={false} onBack={false} title={t(pageHeaderNameKeys[moduleName])}>
-                <TopBar
+            <PageHeader
+                className='graphAnalysisHeader'
+                ghost={false}
+                onBack={false}
+                title={t(pageHeaderNameKeys[moduleName])}
+                extra={<TopBar
                     moduleName={moduleName}
                     onGraphInfoChange={onGraphInfoChange}
                     showOlapSwitch={moduleName !== ASYNCTASKS}
@@ -142,8 +146,8 @@ const GraphAnalysisHome = props => {
                     isOlapModeEnable={currentOlapMode}
                     isOlapModeLoading={isOlapModeLoading}
                     onOlapModeChange={onOlapModeChange}
-                />
-            </PageHeader>
+                />}
+            />
             {renderModule()}
         </GraphAnalysisContext.Provider>
     );

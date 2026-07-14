@@ -24,8 +24,10 @@ import {
     DeploymentUnitOutlined,
     ExclamationCircleFilled,
     QuestionCircleOutlined,
+    ReloadOutlined,
     SafetyCertificateOutlined,
 } from '@ant-design/icons';
+import {Button, Tooltip} from 'antd';
 import {Link} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {
@@ -87,6 +89,8 @@ const SourceStrip = ({sources = {}, detailed = false}) => {
                     i18n.language,
                     t('operations.unavailable')
                 ) : null;
+                const showLastSuccess = detailed || source.stale
+                    || source.status !== 'UP' || source.availability !== 'AVAILABLE';
                 return (
                     <div className='operations-source' key={name}>
                         <strong>{name === 'stores' ? 'Store' : name.toUpperCase()}</strong>
@@ -100,7 +104,7 @@ const SourceStrip = ({sources = {}, detailed = false}) => {
                                 : (age ? ` · ${age}` : '')}
                             {source.stale ? ` · ${t('operations.stale')}` : ''}
                             {source.reason ? ` · ${formatReason(source.reason, t)}` : ''}
-                            {source.last_success_at
+                            {showLastSuccess && source.last_success_at
                                 ? ` · ${t('operations.last_success')}: ${formatObservedAt(
                                     source.last_success_at,
                                     i18n.language,
@@ -130,6 +134,24 @@ const TierIcon = ({type}) => {
     );
 };
 
+const RefreshButton = ({loading = false, onClick}) => {
+    const {t} = useTranslation();
+    const label = t('operations.refresh');
+    return (
+        <Tooltip title={label}>
+            <Button
+                className='operations-refresh-button'
+                type='text'
+                shape='circle'
+                icon={<ReloadOutlined />}
+                loading={loading}
+                onClick={onClick}
+                aria-label={label}
+            />
+        </Tooltip>
+    );
+};
+
 const TierNode = ({node}) => (
     <Link
         className={[
@@ -156,7 +178,8 @@ const TopologyTier = ({type, nodes}) => {
         <section className={`operations-tier tier-${type.toLowerCase()}`}>
             <div className='operations-tier-label'>
                 <Link className='operations-tier-title' to={`/operations/nodes?type=${type}`}>
-                    {type} {t('operations.tier')}
+                    {type === 'SERVER' ? t('operations.tier_server') : type} {' '}
+                    {t('operations.tier')}
                 </Link>
                 <span>
                     {t('operations.node_count', {
@@ -201,4 +224,11 @@ const ClusterTopology = ({nodes = []}) => {
     );
 };
 
-export {HealthStatus, SourceStrip, ClusterTopology, TierIcon, formatReason};
+export {
+    HealthStatus,
+    SourceStrip,
+    ClusterTopology,
+    TierIcon,
+    RefreshButton,
+    formatReason,
+};

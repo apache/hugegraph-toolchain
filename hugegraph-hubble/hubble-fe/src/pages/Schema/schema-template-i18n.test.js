@@ -52,3 +52,31 @@ test('Schema template translations are symmetric and English contains no Chinese
     expect(zhKeys.filter(key => !enKeys.includes(key))).toEqual([]);
     expect(enEntries.filter(([, value]) => /[\u3400-\u9fff]/u.test(value))).toEqual([]);
 });
+
+test('Schema template UI consistently calls built-ins example templates', () => {
+    const enCopy = flatten(enPages.schema_template).map(([, value]) => value).join(' ');
+    const zhCopy = flatten(zhPages.schema_template).map(([, value]) => value).join(' ');
+
+    expect(enPages.schema_template.builtin_section.title).toBe('Example Templates');
+    expect(zhPages.schema_template.builtin_section.title).toBe('示例模板');
+    expect(enCopy).not.toMatch(/starting point/i);
+    expect(zhCopy).not.toMatch(/起点/u);
+});
+
+test('Schema template supporting copy has no terminal sentence punctuation', () => {
+    const keys = [
+        ['builtin_section', 'description'],
+        ['user_section', 'description'],
+        ['form', 'name_help'],
+        ['form', 'schema_help'],
+        ['form', 'starting_point_help'],
+        ['builtin_description', 'people_network'],
+        ['builtin_description', 'product_catalog'],
+    ];
+
+    keys.forEach(keyPath => {
+        const getCopy = pages => keyPath.reduce((value, key) => value[key], pages);
+        expect(getCopy(zhPages.schema_template)).not.toMatch(/[。.]$/);
+        expect(getCopy(enPages.schema_template)).not.toMatch(/[。.]$/);
+    });
+});

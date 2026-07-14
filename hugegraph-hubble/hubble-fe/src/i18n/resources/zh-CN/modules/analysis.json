@@ -11,12 +11,13 @@
       "text2gql_tab": "Text2GQL",
       "text2gql_badge": "Coming Soon",
       "text2gql_title": "Text2GQL",
-      "text2gql_description": "这是未来 Text2GQL 工作流的界面预览，尚未连接模型或查询服务。",
+      "text2gql_description": "这是未来 Text2GQL 工作流的界面预览，尚未连接模型或查询服务",
       "text2gql_placeholder": "描述你希望查询的图问题",
-      "text2gql_privacy": "当前不会发送、生成、保存或执行任何内容。",
+      "text2gql_privacy": "当前不会发送、生成、保存或执行任何内容",
       "execute_query": "执行查询",
       "execute_task": "执行任务",
       "switch_async_task": "切换异步任务",
+      "switch_immediate_query": "切换即时查询",
       "execute_shortcut": "执行查询（Ctrl + Enter）",
       "shortcut_hint_ctrl": "Ctrl + 回车执行",
       "shortcut_hint_command": "Command + 回车换行",
@@ -52,12 +53,12 @@
       "no_graph_result": "无图结果，请查看表格或 JSON 数据",
       "no_table_result": "无表格结果，请查看图或 JSON 数据",
       "large_table_title": "当前结果共 {{count}} 行，已使用分页展示",
-      "large_table_description": "浏览和复制前请确认结果范围；可在查询中增加 limit 以缩短等待时间。",
+      "large_table_description": "浏览和复制前请确认结果范围；可在查询中增加 limit 以缩短等待时间",
       "no_json_result": "无 JSON 结果，请查看图或表格数据",
       "expand_failed": "展开失败",
       "no_more_neighbors": "不存在更多邻接点",
       "graph_limit_title": "结果过大，已默认收起图画布",
-      "graph_limit_description": "当前结果包含 {{nodes}} 个节点、{{edges}} 条边，画布上限为 {{nodeLimit}} 个节点、{{edgeLimit}} 条边。请使用表格或 JSON 查看完整结果。"
+      "graph_limit_description": "当前结果包含 {{nodes}} 个节点、{{edges}} 条边，画布上限为 {{nodeLimit}} 个节点、{{edgeLimit}} 条边。请使用表格或 JSON 查看完整结果"
     },
     "canvas": {
       "graph_canvas": "图画布",
@@ -231,13 +232,13 @@
         "grid": "网格布局",
         "radial": "径向布局",
         "node_size": "节点大小",
-        "node_size_tooltip": "节点大小（直径），用于碰撞检测。",
+        "node_size_tooltip": "节点大小（直径），用于碰撞检测",
         "link_distance": "边长度",
         "node_strength": "点作用力",
         "node_strength_tooltip": "节点作用力，正数代表节点之间的引力作用，负数代表节点之间的斥力作用",
         "prevent_overlap": "是否防止重叠",
         "node_spacing": "节点间距",
-        "node_spacing_tooltip": "preventOverlap开启时生效，防止重叠时节点边缘间距的最小值。",
+        "node_spacing_tooltip": "preventOverlap开启时生效，防止重叠时节点边缘间距的最小值",
         "start_radius": "起始半径",
         "start_radius_tooltip": "螺旋状布局的起始半径",
         "end_radius": "结束半径",
@@ -253,7 +254,7 @@
         "ordering_degree": "度数",
         "clockwise": "是否顺时针排列",
         "sweep": "弧度差",
-        "sweep_tooltip": "第一个节点与最后一个节点之间的弧度差。",
+        "sweep_tooltip": "第一个节点与最后一个节点之间的弧度差",
         "start_angle": "起始弧度",
         "start_angle_tooltip": "开始方式节点的弧度",
         "equidistant": "环与环距离是否相等",
@@ -294,13 +295,13 @@
         "type_count": "点边数量统计",
         "type_count_desc": "当前画布中所有类型的点边和对应的点边数量",
         "degree_top10": "节点权重Top10",
-        "degree_top10_desc": "当前画布中一度边数量最多的十个节点。",
+        "degree_top10_desc": "当前画布中一度边数量最多的十个节点",
         "zero_degree_nodes": "孤立点",
-        "zero_degree_nodes_desc": "孤立点是指和其余点没有关联，在画布中独立存在的点。",
+        "zero_degree_nodes_desc": "孤立点是指和其余点没有关联，在画布中独立存在的点",
         "zero_degree_edges": "孤立边",
-        "zero_degree_edges_desc": "只有一度关联的点的边。",
+        "zero_degree_edges_desc": "只有一度关联的点的边",
         "incidence_nodes": "关联点",
-        "incidence_nodes_desc": "只有选中图上的一个点，才能显示相应的关联点的数量。",
+        "incidence_nodes_desc": "只有选中图上的一个点，才能显示相应的关联点的数量",
         "select_node": "请选择节点",
         "highlight": "高亮",
         "hide": "隐藏"
@@ -436,7 +437,7 @@
     },
     "algorithm": {
       "name": "内置图算法",
-      "guide": "快速查看局部结果请从交互式探索开始；全图计算使用异步批量分析，结果会进入分析任务。",
+      "guide": "快速查看局部结果请从交互式探索开始；全图计算使用异步批量分析，结果会进入异步任务",
       "traverser_docs": "交互式算法参数文档",
       "computer_docs": "批量图计算使用指南",
       "api_docs": "查看此算法的官方 API 文档",
@@ -444,7 +445,7 @@
       "reset_parameters": "重置参数",
       "parameter_example": "例如：{{value}}",
       "empty_graph_title": "请先准备数据再运行算法",
-      "empty_graph_description": "当前图没有顶点或边，算法无法产生有意义的结果。",
+      "empty_graph_description": "当前图没有顶点或边，算法无法产生有意义的结果",
       "create_schema": "创建 Schema",
       "prepare_data": "准备数据",
       "group": {
@@ -472,7 +473,7 @@
         "request_memory": "计算节点最小内存需求",
         "JVM_memory": "jvm环境内存大小，默认为32g",
         "source": "起始点ID",
-        "query_tooltip": "仅当选择的图数据加载完成后，才可以使用OLAP算法。"
+        "query_tooltip": "仅当选择的图数据加载完成后，才可以使用OLAP算法"
       },
       "form": {
         "vertices_required": "未指定 ids 或 label 和 properties 的联合查询",
@@ -568,40 +569,40 @@
           "use_endpoint": "是否计算最后一个点"
         },
         "closeness_centrality": {
-          "desc": "计算一个节点到所有其他可达节点的最短距离的倒数，进行累积后归一化的值。用于计算图中每个节点的度中心性值，支持无向图和有向图。",
+          "desc": "计算一个节点到所有其他可达节点的最短距离的倒数，进行累积后归一化的值。用于计算图中每个节点的度中心性值，支持无向图和有向图",
           "weight_property": "权重属性名",
           "sample_rate": "边的采样率",
           "wf_improved": "是否使用 Wasserman and Faust 紧密中心性公式"
         },
         "cluster_coefficient": {
-          "desc": "聚集系数，计算每个点局部的聚集系数, 暂时未提供全局聚集系数。",
+          "desc": "聚集系数，计算每个点局部的聚集系数, 暂时未提供全局聚集系数",
           "minimum_edges_use_superedge_cache": "利用内存减少消息量，如果内存不够，可以从100改成1000，但聚集系数可能计算不完"
         },
         "degree_centrality": {
-          "desc": "用于计算图中每个节点的度中心性值，支持无向图和有向图。",
+          "desc": "用于计算图中每个节点的度中心性值，支持无向图和有向图",
           "direction": "方向，in/out/both 入边/出边/双边"
         },
         "filtered_rings_detection": {
-          "desc": "带过滤条件的环路检测算法（Filtered Rings Detection）用于检测图中的环路，\n        环路的路径由环路中最小id的顶点来记录。可通过指定点、边属性过滤规则让算法选择性的做路径传播。"
+          "desc": "带过滤条件的环路检测算法（Filtered Rings Detection）用于检测图中的环路，\n        环路的路径由环路中最小id的顶点来记录。可通过指定点、边属性过滤规则让算法选择性的做路径传播"
         },
         "filter_subgraph_matching": {
-          "desc": "带属性过滤的子图匹配算法。用户可以传入一个带属性过滤的查询图结构，算法会在图中匹配所有与该查询图同构的子图。",
+          "desc": "带属性过滤的子图匹配算法。用户可以传入一个带属性过滤的查询图结构，算法会在图中匹配所有与该查询图同构的子图",
           "query_graph_config": "查询图配置，json数组字符串"
         },
         "k_core": {
-          "desc": "K-Core算法，标记所有度数为K的顶点。",
+          "desc": "K-Core算法，标记所有度数为K的顶点",
           "k": "K-Core算法的k值，非必需，有默认值",
           "degree_k": "最小度数阈值"
         },
         "label_propagation_algorithm": {
-          "desc": "标签传递算法，是一种图聚类算法，常用在社交网络中。"
+          "desc": "标签传递算法，是一种图聚类算法，常用在社交网络中"
         },
         "links": {
-          "desc": "链路追踪算法，通过指定的一批开始顶点，按照指定的传播规则进行传播，到指定的结束条件后停止并记录下路径。",
+          "desc": "链路追踪算法，通过指定的一批开始顶点，按照指定的传播规则进行传播，到指定的结束条件后停止并记录下路径",
           "analyze_config": "链路传播条件配置"
         },
         "louvain": {
-          "desc": "Louvain 算法是基于模块度的社区发现算法。由于Louvain算法的特殊性，只用一个worker instance运行。"
+          "desc": "Louvain 算法是基于模块度的社区发现算法。由于Louvain算法的特殊性，只用一个worker instance运行"
         },
         "computer_item": {
           "computer_cpu": "master最大CPU",
@@ -660,11 +661,11 @@
           "KOUT_POST": "K-out API(POST, 高级版)"
         },
         "page_rank": {
-          "desc": "PageRank算法又称网页排名算法，是一种由搜索引擎根据网页（节点）之间相互的超链接进行计算的技术，用来体现网页（节点）的相关性和重要性。",
+          "desc": "PageRank算法又称网页排名算法，是一种由搜索引擎根据网页（节点）之间相互的超链接进行计算的技术，用来体现网页（节点）的相关性和重要性",
           "alpha": "权重系数(又称阻尼系数)",
-          "l1": "收敛精度,为每次迭代各个点相较于上次迭代变化的绝对值累加和上限，当小于这个值时认为计算收敛，算法停止。",
+          "l1": "收敛精度,为每次迭代各个点相较于上次迭代变化的绝对值累加和上限，当小于这个值时认为计算收敛，算法停止",
           "damping": "阻尼系数，传导到下个点的百分比",
-          "diff": "收敛精度,为每次迭代各个点相较于上次迭代变化的绝对值累加和上限，当小于这个值时认为计算收敛，算法停止。"
+          "diff": "收敛精度,为每次迭代各个点相较于上次迭代变化的绝对值累加和上限，当小于这个值时认为计算收敛，算法停止"
         },
         "personal_page_bank": {
           "desc": "PersonalPageRank 算法又称个性化推荐算法，是一种由搜索引擎根据网页（节点）之间相互的超链接进行计算的技术，用来体现网页（节点）的相关性和重要性",
@@ -675,13 +676,13 @@
           "use_id_fixlength_query": "是否采用自增id运算"
         },
         "ring_detection": {
-          "desc": "环路检测算法（Rings Detection），用于检测图中的环路，环路的路径由环路中最小id的顶点来记录。"
+          "desc": "环路检测算法（Rings Detection），用于检测图中的环路，环路的路径由环路中最小id的顶点来记录"
         },
         "SSSPVermeer": {
           "desc": "单元最短路径算法，求一个点到其他所有点的最短距离"
         },
         "triangle_count": {
-          "desc": "三角形计数算法，用于计算通过每个顶点的三角形个数。",
+          "desc": "三角形计数算法，用于计算通过每个顶点的三角形个数",
           "limit_edges_in_one_vertex": "最大出边限制",
           "minimum_edges_use_superedge_cache": "利用内存减少消息量，如果内存不够，可以从100改成1000，但三角计数可能计算不完"
         },
@@ -791,7 +792,7 @@
         },
         "fusiform_similarity": {
           "desc": "按照条件查询一批顶点对应的“梭形相似点”",
-          "min_neighbors": "最少邻居数目。邻居数目少于这个阈值时，认为起点不具备“梭形相似点”。",
+          "min_neighbors": "最少邻居数目。邻居数目少于这个阈值时，认为起点不具备“梭形相似点”",
           "alpha": "相似度，代表起点与梭形相似点的共同邻居数目占起点全部邻居数目的比例",
           "min_similars": "“梭形相似点”的最少个数。只有当起点的“梭形相似点”数目大于或等于该值时，才会返回起点及其“梭形相似点”",
           "top": "返回一个起点的“梭形相似点”中相似度最高的 top 个，0 表示全部",
@@ -838,16 +839,16 @@
       }
     },
     "async_task": {
-      "name": "分析任务",
-      "help_title": "分析任务有什么用？",
-      "help_description": "图查询或内置图算法以异步方式运行时，可在这里查看进度和结果，也可终止或删除任务。列表每 5 秒自动刷新。",
+      "name": "异步任务",
+      "help_title": "异步任务有什么用？",
+      "help_description": "图查询或内置图算法以异步方式运行时，可在这里查看进度和结果，也可终止或删除任务。列表每 5 秒自动刷新",
       "search_placeholder": "请输入任务ID或名称",
       "get_failed": "获取异步任务失败",
       "retry_list": "重试任务列表",
-      "empty_title": "还没有分析任务",
-      "empty_description": "图查询或图算法异步执行后，任务会显示在这里。",
-      "no_matches_title": "没有匹配的分析任务",
-      "no_matches_description": "请调整搜索词或状态筛选后重试。",
+      "empty_title": "还没有异步任务",
+      "empty_description": "图查询或图算法异步执行后，任务会显示在这里",
+      "no_matches_title": "没有匹配的异步任务",
+      "no_matches_description": "请调整搜索词或状态筛选后重试",
       "clear_filters": "清除筛选",
       "start_query": "开始图查询",
       "open_algorithms": "打开图算法",

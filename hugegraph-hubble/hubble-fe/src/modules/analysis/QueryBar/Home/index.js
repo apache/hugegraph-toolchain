@@ -124,6 +124,7 @@ const QueryBar = props => {
                         value={codeEditorContent}
                         onChange={handleCodeEditorChange}
                         lang={language}
+                        minHeight={64}
                         metaEnterNewline
                         placeholder={language === 'gremlin'
                             ? t('analysis.query.gremlin_placeholder')

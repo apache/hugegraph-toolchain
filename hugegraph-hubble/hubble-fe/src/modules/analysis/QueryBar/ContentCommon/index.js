@@ -22,8 +22,8 @@
 
 import React, {useCallback, useContext, useState} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Button, Tooltip, Popover, message, Radio, Space} from 'antd';
-import {QuestionCircleOutlined} from '@ant-design/icons';
+import {Button, Tooltip, Popover, message, Space} from 'antd';
+import {ClockCircleOutlined, ThunderboltOutlined} from '@ant-design/icons';
 import {GREMLIN_EXECUTES_MODE} from '../../../../utils/constants';
 import GraphAnalysisContext from '../../../Context';
 import {isValidFavoriteName} from '../../../../utils/rules';
@@ -177,11 +177,9 @@ const PrimaryActions = props => {
     const isQueryMode = executeMode === QUERY;
     const emptyDesc = t('analysis.query.empty_query');
 
-    const onSwitchExecuteMenu = useCallback(
-        event => {
-            onExecuteModeChange(event.target.value);
-        },
-        [onExecuteModeChange]
+    const onSwitchExecuteMode = useCallback(
+        () => onExecuteModeChange(isQueryMode ? TASK : QUERY),
+        [isQueryMode, onExecuteModeChange]
     );
 
     const onExecution = useCallback(
@@ -196,24 +194,27 @@ const PrimaryActions = props => {
     return (
         <div className={c.primaryActions}>
             <div className={c.executionControl}>
-                <Radio.Group
-                    aria-label={t('analysis.query.execute_mode')}
-                    value={executeMode}
-                    onChange={onSwitchExecuteMenu}
-                    optionType='button'
-                    buttonStyle='solid'
-                    size='small'
-                    options={[
-                        {
-                            label: t('analysis.query.execute_mode_immediate'),
-                            value: QUERY,
-                        },
-                        {
-                            label: t('analysis.query.execute_mode_async'),
-                            value: TASK,
-                        },
-                    ]}
-                />
+                <Tooltip
+                    placement='top'
+                    title={t(isQueryMode
+                        ? 'analysis.query.switch_async_task'
+                        : 'analysis.query.switch_immediate_query')}
+                >
+                    <Button
+                        className={c.modeButton}
+                        icon={isQueryMode
+                            ? <ThunderboltOutlined />
+                            : <ClockCircleOutlined />}
+                        onClick={onSwitchExecuteMode}
+                        aria-label={t(isQueryMode
+                            ? 'analysis.query.switch_async_task'
+                            : 'analysis.query.switch_immediate_query')}
+                    >
+                        {t(isQueryMode
+                            ? 'analysis.query.execute_mode_immediate'
+                            : 'analysis.query.execute_mode_async')}
+                    </Button>
+                </Tooltip>
                 <Tooltip
                     placement='top'
                     title={isEmptyQuery
@@ -223,7 +224,6 @@ const PrimaryActions = props => {
                     <Button
                         className={c.executeButton}
                         type='primary'
-                        size='small'
                         disabled={isEmptyQuery || isExecuting}
                         onClick={onExecution}
                         title={t('analysis.query.execute_shortcut')}
@@ -234,15 +234,6 @@ const PrimaryActions = props => {
                     </Button>
                 </Tooltip>
             </div>
-            <Tooltip placement='top' title={t('analysis.query.execute_mode_desc')}>
-                <Button
-                    className={c.helpButton}
-                    type='text'
-                    size='small'
-                    icon={<QuestionCircleOutlined />}
-                    aria-label={t('analysis.query.execute_mode_desc')}
-                />
-            </Tooltip>
         </div>
     );
 };

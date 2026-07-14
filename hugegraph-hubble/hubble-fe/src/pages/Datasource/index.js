@@ -17,16 +17,19 @@
  */
 
 import {
-    Alert, Button, Empty, Row, Col, PageHeader, Input, Modal, Table, Space, Spin, message,
+    Alert, Button, Empty, Row, Col, PageHeader, Input, Modal, Table, Space, Spin, Tag,
+    message,
 } from 'antd';
+import {LinkOutlined} from '@ant-design/icons';
 import {useState, useEffect, useCallback, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import EditLayer from './EditLayer';
 import TableHeader from '../../components/TableHeader';
-import {sourceTypeOptions} from './config';
+import {LOADER_DOCS_URL, sourceTypeOptions} from './config';
 import * as api from '../../api';
 import RowActionButton from '../../components/RowActionButton';
 import DataPreparationNav from '../../components/DataPreparationNav';
+import styles from './index.module.scss';
 
 const Datasource = () => {
     const {t} = useTranslation();
@@ -198,7 +201,18 @@ const Datasource = () => {
                 onBack={false}
                 title={t('datasource.title')}
             >
-                <Row justify='end'>
+                <Row justify='space-between' align='middle' gutter={[12, 12]}>
+                    <Col>
+                        <Button
+                            type='link'
+                            href={LOADER_DOCS_URL}
+                            target='_blank'
+                            rel='noopener noreferrer'
+                            icon={<LinkOutlined />}
+                        >
+                            {t('datasource.form.loader_docs')}
+                        </Button>
+                    </Col>
                     <Col><Input.Search placeholder={t('datasource.search_placeholder')} onSearch={handleSearch} /></Col>
                 </Row>
             </PageHeader>
@@ -251,6 +265,25 @@ const Datasource = () => {
                                         <div>
                                             <strong>{t('datasource.empty_title')}</strong>
                                             <p>{t('datasource.empty_description')}</p>
+                                            <div className={styles.supportedSources}>
+                                                <span>{t('datasource.supported_types')}</span>
+                                                <Space size={[6, 6]} wrap>
+                                                    {sourceTypeOptions.map(option => (
+                                                        <Tag key={option.value}>
+                                                            {option.labelKey
+                                                                ? t(option.labelKey)
+                                                                : option.label}
+                                                        </Tag>
+                                                    ))}
+                                                </Space>
+                                            </div>
+                                            <a
+                                                href={LOADER_DOCS_URL}
+                                                target='_blank'
+                                                rel='noopener noreferrer'
+                                            >
+                                                {t('datasource.form.loader_docs')}
+                                            </a>
                                         </div>
                                     )}
                                 >

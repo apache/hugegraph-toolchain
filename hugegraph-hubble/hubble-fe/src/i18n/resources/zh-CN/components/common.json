@@ -39,7 +39,7 @@
     "navigation_close": "关闭主导航",
     "shortcuts": {
       "title": "快捷键总览",
-      "description": "在非输入区域按 ? 可随时打开或关闭此总览。",
+      "description": "在非输入区域按 ? 可随时打开或关闭此总览",
       "open_button": "查看快捷键",
       "open_help": "打开或关闭快捷键总览",
       "run_query": "在图查询编辑器中执行当前语句",
@@ -48,10 +48,11 @@
     "context": {
       "name": "当前图上下文",
       "graphspace": "当前 GraphSpace",
+      "graphspace_label": "图空间",
       "graph": "当前图",
       "select_graphspace": "选择 GraphSpace",
       "select_graph": "选择图",
-      "default_graphspace": "默认图空间",
+      "default_graphspace": "DEFAULT (默认)",
       "non_pd_fixed": "固定 DEFAULT",
       "graphspaces_load_failed": "GraphSpace 列表暂时无法加载，当前页面内容不会丢失。",
       "graphs_load_failed": "图列表暂时无法加载，当前页面内容不会丢失。",
@@ -81,8 +82,8 @@
       "import_detail": "导入任务详情",
       "query": "图查询",
       "algorithms": "图算法",
-      "async_tasks": "分析任务",
-      "async_result": "分析任务结果",
+      "async_tasks": "异步任务",
+      "async_result": "异步任务结果",
       "account": "账号管理",
       "profile": "个人中心",
       "not_found": "页面未找到"

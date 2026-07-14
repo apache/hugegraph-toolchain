@@ -28,6 +28,11 @@
         }
 
         .ant-tabs-card .ant-tabs-nav .ant-tabs-tab {
+            flex: 0 0 auto;
+            width: auto;
+            min-width: 0;
+            padding-right: 14px;
+            padding-left: 14px;
             background: #f0f2f5;
             border: 0px;
         }
@@ -35,6 +40,11 @@
         .ant-tabs-card  .ant-tabs-nav .ant-tabs-tab-active {
             background: #fff;
         }
+    }
+
+    :global(.ant-tabs-nav-list) {
+        flex: 0 0 auto;
+        width: auto;
     }
 
     .hidden {

@@ -17,9 +17,15 @@
  */
 
 const key = 'user_'; // 防止缓存问题
+const USER_CHANGE_EVENT = 'hubble:user-change';
+
+const notifyUserChange = () => {
+    window.dispatchEvent(new CustomEvent(USER_CHANGE_EVENT));
+};
 
 const setUser = user => {
     sessionStorage.setItem(key, JSON.stringify(user));
+    notifyUserChange();
 };
 
 const getUser = () => {
@@ -33,6 +39,7 @@ const getUser = () => {
 
 const clearUser = () => {
     sessionStorage.removeItem(key);
+    notifyUserChange();
 };
 
 const clearLogin = () => {
@@ -79,4 +86,5 @@ export {
     clearLogin,
     getDefaultGraphspace,
     isAdmin,
+    USER_CHANGE_EVENT,
 };

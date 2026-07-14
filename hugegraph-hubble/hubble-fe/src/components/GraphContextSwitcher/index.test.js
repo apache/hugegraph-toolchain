@@ -110,6 +110,7 @@ describe('GraphContextSwitcher', () => {
             'aria-description', 'workbench.context.default_graphspace'
         );
         expect(graphspace).toHaveAttribute('title', 'workbench.context.default_graphspace');
+        expect(screen.getByText('workbench.context.graphspace_label')).toBeInTheDocument();
         await waitFor(() => {
             expect(api.manage.getGraphList).toHaveBeenCalledWith(
                 'DEFAULT',

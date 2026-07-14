@@ -24,11 +24,19 @@
 }
 
 .graphspace {
-  width: clamp(176px, 15vw, 232px);
+  width: clamp(156px, 12vw, 196px);
+}
+
+.contextLabel {
+  flex: none;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .graph {
-  width: 180px;
+  width: 156px;
 }
 
 .separator {
@@ -62,11 +70,11 @@
   }
 
   .graphspace {
-    width: clamp(164px, 15vw, 196px);
+    width: 156px;
   }
 
   .graph {
-    width: 148px;
+    width: 140px;
   }
 }
 
@@ -88,7 +96,8 @@
   }
 
   .mode,
-  .separator {
+  .separator,
+  .contextLabel {
     display: none;
   }
 

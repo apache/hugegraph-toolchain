@@ -16,17 +16,70 @@
  * under the License.
  */
 
-import {Alert, Button, Input, Select, Space, Table, Tooltip} from 'antd';
-import {ReloadOutlined, SearchOutlined} from '@ant-design/icons';
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {Alert, Button, Input, message, Select, Space, Table, Tag, Tooltip} from 'antd';
+import {CopyOutlined, CrownOutlined, SearchOutlined} from '@ant-design/icons';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getNodes} from '../../api/operations';
-import {HealthStatus, TierIcon} from './components';
+import {HealthStatus, RefreshButton, TierIcon} from './components';
 import {formatObservedAt, hasStaleMetrics} from './topology';
 import './operations.scss';
 
 const stopRowNavigation = event => event.stopPropagation();
+
+const NodeIdentityCell = ({record, unavailable, t}) => {
+    const name = record.name ?? unavailable;
+    const copyId = useCallback(async event => {
+        stopRowNavigation(event);
+        try {
+            await navigator.clipboard.writeText(record.id);
+            message.success(t('operations.node_id_copied'));
+        }
+        catch (error) {
+            message.error(t('operations.node_id_copy_failed'));
+        }
+    }, [record.id, t]);
+    const identityLabel = t('operations.node_identity_help', {name, id: record.id});
+    const leader = record.role === 'LEADER';
+    return (
+        <span className='operations-node-identity-cell' aria-label={identityLabel}>
+            <Link
+                to={`/operations/nodes/${record.id}`}
+                onClick={stopRowNavigation}
+                aria-label={t('operations.view_node_details', {name})}
+            >
+                <span className='operations-node-name'>
+                    <TierIcon type={record.type} />
+                    <Tooltip title={identityLabel} placement='topLeft'>
+                        <span className='operations-node-name-label'>{name}</span>
+                    </Tooltip>
+                </span>
+            </Link>
+            {record.role && (
+                <Tag
+                    className={leader ? 'operations-node-role is-leader' : 'operations-node-role'}
+                    icon={leader ? <CrownOutlined aria-hidden='true' /> : null}
+                    aria-label={leader ? t('operations.leader_role') : record.role}
+                >
+                    {record.role}
+                </Tag>
+            )}
+            <Tooltip title={record.id}>
+                <Button
+                    className='operations-copy-node-id'
+                    type='text'
+                    shape='circle'
+                    size='small'
+                    icon={<CopyOutlined />}
+                    aria-label={t('operations.copy_node_id')}
+                    onClick={copyId}
+                    onKeyDown={stopRowNavigation}
+                />
+            </Tooltip>
+        </span>
+    );
+};
 
 const Nodes = () => {
     const {t, i18n} = useTranslation();
@@ -35,6 +88,7 @@ const Nodes = () => {
     const [data, setData] = useState({items: [], total: 0, observed_at: null, stale: false});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const requestSequence = useRef(0);
     const params = useMemo(() => ({
         type: searchParams.get('type') || undefined,
         status: searchParams.get('status') || undefined,
@@ -47,16 +101,28 @@ const Nodes = () => {
     const [searchValue, setSearchValue] = useState(params.query ?? '');
 
     const load = useCallback(async () => {
+        const request = ++requestSequence.current;
         setLoading(true);
         setError(null);
         try {
-            setData(await getNodes(params));
+            const response = await getNodes(params);
+            if (request === requestSequence.current) {
+                setData(response);
+            }
         }
         catch (requestError) {
+            if (request !== requestSequence.current) {
+                return;
+            }
+            if ([401, 403].includes(requestError?.status)) {
+                setData({items: [], total: 0, observed_at: null, stale: false});
+            }
             setError(requestError);
         }
         finally {
-            setLoading(false);
+            if (request === requestSequence.current) {
+                setLoading(false);
+            }
         }
     }, [params]);
 
@@ -116,27 +182,12 @@ const Nodes = () => {
 
     const columns = [
         {title: t('operations.node'), dataIndex: 'name', key: 'name', sorter: true,
-            width: 260,
-            sortOrder: sortOrder('name'), render: (value, record) => (
-                <Link
-                    to={`/operations/nodes/${record.id}`}
-                    onClick={stopRowNavigation}
-                    aria-label={t('operations.view_node_details', {name: value})}
-                >
-                    <span className='operations-node-name'>
-                        <TierIcon type={record.type} />
-                        <Tooltip title={value ?? unavailable} placement='topLeft'>
-                            <span className='operations-node-name-label' title={value ?? unavailable}>
-                                {value ?? unavailable}
-                            </span>
-                        </Tooltip>
-                    </span>
-                </Link>
+            width: 330,
+            sortOrder: sortOrder('name'), render: (_, record) => (
+                <NodeIdentityCell record={record} unavailable={unavailable} t={t} />
             )},
         {title: t('operations.type'), dataIndex: 'type', key: 'type', width: 86,
             sorter: true, sortOrder: sortOrder('type')},
-        {title: t('operations.role'), dataIndex: 'role', key: 'role', width: 108,
-            render: value => value ?? '—'},
         {title: t('operations.status'), dataIndex: 'status', key: 'status', width: 140,
             sorter: true, sortOrder: sortOrder('status'),
             render: (value, record) => (
@@ -161,9 +212,7 @@ const Nodes = () => {
                         {data.stale && <strong>{t('operations.stale')}</strong>}
                     </div>
                 </div>
-                <Button icon={<ReloadOutlined />} loading={loading} onClick={load}>
-                    {t('operations.refresh')}
-                </Button>
+                <RefreshButton loading={loading} onClick={load} />
             </header>
             {error && (
                 <Alert type='warning' showIcon message={t('operations.load_failed')} />

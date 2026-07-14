@@ -9,7 +9,7 @@
     "workbench": {
       "title": "Graph Data Workbench",
       "subtitle": "Understand your graph, query it, and import data efficiently",
-      "intro": "Hubble is designed for graph visualization users.",
+      "intro": "Hubble is designed for graph visualization users",
       "mode": {
         "pd": "PD / cluster mode",
         "non_pd": "non-PD / RocksDB standalone mode"
@@ -18,19 +18,19 @@
         "title": "Start working",
         "understand": {
           "title": "Graph Overview",
-          "description": "Open graphs and GraphSpaces to inspect graph details, schema, and current data state.",
+          "description": "Open graphs and GraphSpaces to inspect graph details, schema, and current data state",
           "primary": "View GraphSpaces and graphs"
         },
         "prepare": {
           "title": "Graph Import",
-          "description": "Configure data sources, schema, and import tasks while tracking import status.",
+          "description": "Configure data sources, schema, and import tasks while tracking import status",
           "primary": "Manage Schema",
           "secondary_1": "Import data sources",
           "secondary_2": "View import tasks"
         },
         "query": {
           "title": "Graph Query",
-          "description": "Explore graph data with queries, algorithms, and asynchronous analysis tasks.",
+          "description": "Explore graph data with queries, algorithms, and asynchronous analysis tasks",
           "primary": "Start graph query",
           "secondary_1": "Run algorithms",
           "secondary_2": "View async tasks"

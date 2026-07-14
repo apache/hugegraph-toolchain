@@ -17,12 +17,12 @@
  */
 
 import {Alert, Button, Descriptions, Empty, Progress, Skeleton} from 'antd';
-import {ArrowLeftOutlined, ReloadOutlined} from '@ant-design/icons';
-import {useCallback, useEffect, useState} from 'react';
+import {ArrowLeftOutlined} from '@ant-design/icons';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getNode} from '../../api/operations';
-import {HealthStatus, SourceStrip, TierIcon} from './components';
+import {HealthStatus, RefreshButton, SourceStrip, TierIcon} from './components';
 import {formatMetricValue, formatObservedAt} from './topology';
 import './operations.scss';
 
@@ -159,8 +159,11 @@ const MetricGroup = ({name, values, status = {}}) => {
         defaultValue: status.reason.replaceAll('_', ' '),
     }) : null;
     const statusDetails = (
-        <div className='operations-metric-status'>
-            <strong>{availabilityLabel}</strong>
+        <div
+            className='operations-metric-status'
+            role='status'
+            aria-label={availabilityLabel}
+        >
             {status.fresh && <span>{t('operations.fresh')}</span>}
             {status.stale && <span>{t('operations.stale')}</span>}
             {reasonLabel && <span>{reasonLabel}</span>}
@@ -168,14 +171,22 @@ const MetricGroup = ({name, values, status = {}}) => {
             {lastSuccess && <span>{t('operations.last_success')}: {lastSuccess}</span>}
         </div>
     );
+    const metricHeader = (
+        <header className='operations-metric-header'>
+            <div className='operations-metric-title-row'>
+                <h3>{name}</h3>
+                <strong className={`availability-${availability.toLowerCase()}`}>
+                    {availabilityLabel}
+                </strong>
+            </div>
+            {statusDetails}
+        </header>
+    );
     const capacity = capacitySummary(values);
     if (entries.length === 0) {
         return (
             <section className='operations-surface operations-metric-group'>
-                <div className='operations-metric-heading'>
-                    <h3>{name}</h3>
-                    {statusDetails}
-                </div>
+                {metricHeader}
                 <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
                     description={t(`operations.${emptyState}`)}
@@ -185,10 +196,7 @@ const MetricGroup = ({name, values, status = {}}) => {
     }
     return (
         <section className='operations-surface operations-metric-group'>
-            <div className='operations-metric-heading'>
-                <h3>{name}</h3>
-                {statusDetails}
-            </div>
+            {metricHeader}
             {capacity && (
                 <div className='operations-capacity-summary'>
                     <div>
@@ -209,7 +217,11 @@ const MetricGroup = ({name, values, status = {}}) => {
                     />
                 </div>
             )}
-            <Descriptions column={{xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1}}>
+            <Descriptions
+                layout='vertical'
+                colon={false}
+                column={{xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1}}
+            >
                 {entries.map(([key, value]) => (
                     <Descriptions.Item key={key} label={metricLabel(key, t)}>
                         {value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -239,17 +251,30 @@ const NodeDetail = () => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const requestSequence = useRef(0);
     const load = useCallback(async refresh => {
+        const request = ++requestSequence.current;
         setLoading(true);
         setError(null);
         try {
-            setData(await getNode(nodeId, refresh));
+            const response = await getNode(nodeId, refresh);
+            if (request === requestSequence.current) {
+                setData(response);
+            }
         }
         catch (requestError) {
+            if (request !== requestSequence.current) {
+                return;
+            }
+            if ([401, 403].includes(requestError?.status)) {
+                setData(null);
+            }
             setError(requestError);
         }
         finally {
-            setLoading(false);
+            if (request === requestSequence.current) {
+                setLoading(false);
+            }
         }
     }, [nodeId]);
 
@@ -320,13 +345,7 @@ const NodeDetail = () => {
                         {data?.stale && <strong>{t('operations.stale')}</strong>}
                     </div>
                 </div>
-                <Button
-                    icon={<ReloadOutlined />}
-                    loading={loading}
-                    onClick={refresh}
-                >
-                    {t('operations.refresh')}
-                </Button>
+                <RefreshButton loading={loading} onClick={refresh} />
             </header>
             {error && (
                 <Alert type='warning' showIcon message={t('operations.refresh_failed')} />

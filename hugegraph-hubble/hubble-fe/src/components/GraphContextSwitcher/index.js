@@ -263,6 +263,9 @@ const GraphContextSwitcher = () => {
             aria-label={t('workbench.context.name')}
         >
             <Space size={8}>
+                <span className={style.contextLabel}>
+                    {t('workbench.context.graphspace_label')}
+                </span>
                 <Select
                     aria-description={selectedGraphspaceLabel}
                     aria-label={t('workbench.context.graphspace')}

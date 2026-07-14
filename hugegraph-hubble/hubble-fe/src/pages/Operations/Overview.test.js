@@ -17,7 +17,7 @@
  */
 
 import {message} from 'antd';
-import {render, screen, waitFor, within} from '@testing-library/react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import Overview from './Overview';
@@ -92,6 +92,91 @@ test('shows loading without fabricating an empty cluster', () => {
     expect(screen.queryByText(/empty cluster/i)).not.toBeInTheDocument();
 });
 
+test('keeps the current snapshot visible while a refresh is pending', async () => {
+    let finishRefresh;
+    getOverview
+        .mockResolvedValueOnce({
+            status: 'UP',
+            observed_at: 1000,
+            sources: {},
+            facts: {pd_leader: 'pd-current'},
+            nodes: [
+                {id: 'server-current', name: 'server-current', type: 'SERVER', status: 'UP'},
+            ],
+        })
+        .mockReturnValueOnce(new Promise(resolve => {
+            finishRefresh = resolve;
+        }));
+
+    renderOverview();
+    expect(await screen.findByText('server-current')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Refresh'}));
+
+    expect(screen.getByText('server-current')).toBeInTheDocument();
+    expect(screen.getByText('pd-current')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Refresh'})).toHaveClass(
+        'operations-refresh-button', 'ant-btn-text', 'ant-btn-circle', 'ant-btn-loading'
+    );
+    expect(screen.getByRole('button', {name: 'Refresh'})).toHaveTextContent('');
+
+    finishRefresh({
+        status: 'UP', observed_at: 2000, sources: {}, facts: {}, nodes: [],
+    });
+    await waitFor(() => expect(screen.getByRole('button', {name: 'Refresh'}))
+        .not.toHaveClass('ant-btn-loading'));
+});
+
+test('does not restore an older overview after a newer refresh is forbidden', async () => {
+    let resolveOlder;
+    getOverview
+        .mockResolvedValueOnce({
+            status: 'UP',
+            observed_at: 1000,
+            sources: {},
+            facts: {},
+            nodes: [{id: 'initial-node', name: 'initial-node', type: 'SERVER', status: 'UP'}],
+        })
+        .mockReturnValueOnce(new Promise(resolve => {
+            resolveOlder = resolve;
+        }))
+        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status: 403}));
+
+    renderOverview();
+    await screen.findByText('initial-node');
+
+    const refresh = screen.getByRole('button', {name: 'Refresh'});
+    act(() => {
+        refresh.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+        refresh.dispatchEvent(new MouseEvent('click', {bubbles: true}));
+    });
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+
+    await act(async () => resolveOlder({
+        status: 'UP',
+        observed_at: 2000,
+        sources: {},
+        facts: {},
+        nodes: [{id: 'stale-node', name: 'stale-node', type: 'SERVER'}],
+    }));
+
+    expect(screen.queryByText('stale-node')).not.toBeInTheDocument();
+    expect(screen.queryByText('initial-node')).not.toBeInTheDocument();
+});
+
+test('shows an explicit empty cluster instead of a healthy-state claim', async () => {
+    getOverview.mockResolvedValue({
+        status: 'UNKNOWN', observed_at: 1000, sources: {}, facts: {}, nodes: [],
+    });
+
+    renderOverview();
+
+    expect(await screen.findByText(
+        'No nodes were discovered. Check the trusted Hubble service configuration.'
+    )).toBeInTheDocument();
+    expect(screen.queryByText('All discovered nodes are healthy')).not.toBeInTheDocument();
+});
+
 test('shows a bounded error state when no snapshot exists', async () => {
     getOverview.mockRejectedValue(new Error('upstream secret detail'));
 
@@ -99,6 +184,24 @@ test('shows a bounded error state when no snapshot exists', async () => {
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(screen.queryByText('upstream secret detail')).not.toBeInTheDocument();
+});
+
+test('removes an earlier privileged overview when a refresh is forbidden', async () => {
+    getOverview
+        .mockResolvedValueOnce({
+            status: 'UP', observed_at: 1000, sources: {}, facts: {},
+            nodes: [{id: 'admin-node', name: 'admin-node', type: 'SERVER', status: 'UP'}],
+        })
+        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status: 403}));
+
+    renderOverview();
+    expect(await screen.findByText('admin-node')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', {name: 'Refresh'}))
+        .not.toHaveClass('ant-btn-loading'));
+    await userEvent.click(screen.getByRole('button', {name: 'Refresh'}));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(screen.queryByText('admin-node')).not.toBeInTheDocument();
 });
 
 test('opens configured advanced monitoring with a safe external target', async () => {
@@ -144,7 +247,8 @@ test.each([
         .toBeDisabled();
     expect(screen.getByLabelText(new RegExp(`Advanced monitoring: ${reason}`)))
         .toHaveAttribute('tabindex', '0');
-    expect(screen.getByText(new RegExp(reason))).toBeVisible();
+    expect(screen.queryByText(new RegExp(reason))).not.toBeInTheDocument();
+    expect(screen.getByText('Dashboard unavailable')).toBeVisible();
     expect(screen.getByRole('heading', {name: 'Cluster Overview'})).toBeInTheDocument();
 });
 
@@ -203,6 +307,24 @@ test('localizes unavailable facts and safely degrades malformed observation data
     expect(screen.queryByText('Unavailable')).not.toBeInTheDocument();
 });
 
+test('uses explicit Chinese topology labels and a compact monitoring tool status', async () => {
+    await i18n.changeLanguage('zh-CN');
+    getDashboard.mockResolvedValue({status: 200, data: {configured: false}});
+    getOverview.mockResolvedValue({
+        status: 'UP', observed_at: 1000, sources: {}, facts: {},
+        nodes: [{id: 'server-1', name: 'server-1', type: 'SERVER', status: 'UP'}],
+    });
+
+    renderOverview();
+
+    expect(await screen.findByRole('radio', {name: '拓扑图'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: '服务拓扑图'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Server 层'})).toBeInTheDocument();
+    const tools = document.querySelector('.operations-header-tools');
+    expect(tools).toHaveTextContent('Dashboard 不可用');
+    expect(tools).not.toHaveTextContent('dashboard.address 配置和服务健康状态');
+});
+
 test('shows a bounded, failure-first list of nodes needing attention', async () => {
     getOverview.mockResolvedValue({
         status: 'DEGRADED',
@@ -232,6 +354,61 @@ test('shows a bounded, failure-first list of nodes needing attention', async () 
         expect.stringContaining('degraded'),
         expect.stringContaining('unknown a'),
     ]);
+});
+
+test('keeps every failed source visible when the whole cluster is down', async () => {
+    getOverview.mockResolvedValue({
+        status: 'DOWN',
+        observed_at: 1000,
+        sources: {
+            server: {status: 'DOWN', availability: 'UNAVAILABLE'},
+            pd: {status: 'DOWN', availability: 'UNAVAILABLE'},
+            stores: {status: 'DOWN', availability: 'UNAVAILABLE'},
+        },
+        facts: {},
+        nodes: [
+            {id: 'server-down', name: 'server-down', type: 'SERVER', status: 'DOWN'},
+            {id: 'pd-down', name: 'pd-down', type: 'PD', status: 'DOWN'},
+            {id: 'store-down', name: 'store-down', type: 'STORE', status: 'DOWN'},
+        ],
+    });
+
+    renderOverview();
+
+    const sources = await screen.findByRole('region', {name: 'Source freshness'});
+    expect(within(sources).getAllByText('DOWN')).toHaveLength(3);
+    expect(within(sources).getAllByText('Unavailable')).toHaveLength(3);
+    expect(screen.getByRole('region', {name: 'Nodes needing attention'}))
+        .toBeInTheDocument();
+});
+
+test('keeps healthy freshness compact but preserves stale-source recovery context', async () => {
+    getOverview.mockResolvedValue({
+        status: 'DEGRADED',
+        observed_at: 2000,
+        sources: {
+            server: {
+                status: 'UP', availability: 'AVAILABLE', observed_at: 2000,
+                last_success_at: 2000,
+            },
+            pd: {
+                status: 'UP', availability: 'AVAILABLE', observed_at: 2000,
+                last_success_at: 2000,
+            },
+            stores: {
+                status: 'DOWN', availability: 'UNAVAILABLE', observed_at: 2000,
+                stale: true, last_success_at: 1000,
+            },
+        },
+        facts: {},
+        nodes: [{id: 'store-down', name: 'store-down', type: 'STORE', status: 'DOWN'}],
+    });
+
+    renderOverview();
+
+    const sources = await screen.findByRole('region', {name: 'Source freshness'});
+    expect(within(sources).getAllByText(/Last success/)).toHaveLength(1);
+    expect(within(sources).getByText(/Stale/)).toBeInTheDocument();
 });
 
 test('shows a concise healthy state when no node needs attention', async () => {
@@ -294,7 +471,7 @@ test('renders leader, capacity and attention facts in the visual hierarchy', asy
     renderOverview();
 
     expect(await screen.findByText(
-        'Understand cluster topology, service tiers and node status at a glance.'
+        'Understand cluster topology, service tiers and node status at a glance'
     ))
         .toBeInTheDocument();
     expect(screen.getByText('1 Store is down')).toBeInTheDocument();

@@ -16,3 +16,18 @@
  * under the License.
  */
 
+.supportedSources {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin: 12px 0 10px;
+    color: #596780;
+    font-size: 13px;
+}
+
+@media (max-width: 1280px) {
+    .supportedSources {
+        flex-direction: column;
+    }
+}

@@ -62,11 +62,33 @@
 .workbench-navigation {
     display: flex;
     flex: none;
+    position: sticky;
+    top: var(--workbench-header-height);
+    align-self: flex-start;
+    height: calc(100vh - var(--workbench-header-height));
     background: var(--workbench-color-surface);
     border-right: 1px solid var(--workbench-color-border);
 
     .ant-layout-sider {
+        display: flex;
+        min-height: 0;
+        height: 100%;
+        padding-bottom: 0;
+        flex-direction: column;
         background: var(--workbench-color-surface);
+    }
+
+    .ant-layout-sider-children {
+        min-height: 0;
+        flex: 1 1 auto;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+
+    .ant-layout-sider-trigger {
+        position: static;
+        width: 100% !important;
+        flex: 0 0 48px;
     }
 
     .ant-menu-inline {

@@ -66,8 +66,7 @@
     }
 }
 
-.eyebrow,
-.formEyebrow {
+.eyebrow {
     letter-spacing: 0.08em;
     text-transform: uppercase;
 }
@@ -104,7 +103,7 @@ form.loginForm {
     :global(.ant-radio-button-wrapper) {
         height: 28px;
         padding: 0 7px;
-        border: 0;
+        border: 0 !important;
         background: transparent;
         color: #68758a;
         font-size: 14px;
@@ -114,7 +113,24 @@ form.loginForm {
     }
 
     :global(.ant-radio-button-wrapper)::before {
-        display: none;
+        display: none !important;
+    }
+
+    :global(.ant-radio-button-wrapper + .ant-radio-button-wrapper) {
+        margin-left: 8px;
+
+        &::before {
+            display: block !important;
+            position: absolute;
+            top: 0;
+            left: -7px;
+            width: auto;
+            height: 28px;
+            background: transparent !important;
+            color: #98a2b3;
+            content: '/';
+            line-height: 28px;
+        }
     }
 
     :global(.ant-radio-button-wrapper:hover) {
@@ -143,6 +159,8 @@ form.loginForm {
     color: #1769e0;
     font-size: 12px;
     font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: none;
 }
 
 .title {

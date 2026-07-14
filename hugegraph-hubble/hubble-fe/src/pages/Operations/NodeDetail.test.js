@@ -16,8 +16,8 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
-import {MemoryRouter, Route, Routes} from 'react-router-dom';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
+import {MemoryRouter, Route, Routes, useNavigate} from 'react-router-dom';
 import NodeDetail from './NodeDetail';
 import {getNode} from '../../api/operations';
 import '../../i18n';
@@ -68,6 +68,15 @@ const renderDetail = () => render(
     </MemoryRouter>
 );
 
+const NodeHistoryControls = () => {
+    const navigate = useNavigate();
+    return (
+        <button type='button' onClick={() => navigate('/operations/nodes/store-new')}>
+            next node
+        </button>
+    );
+};
+
 test('keeps null metrics safe and distinguishes unavailable groups', async () => {
     getNode.mockResolvedValue(response);
 
@@ -83,6 +92,10 @@ test('keeps null metrics safe and distinguishes unavailable groups', async () =>
     expect(within(identity).getByText('Store A')).toBeInTheDocument();
     expect(screen.getByRole('region', {name: 'Node metrics'})).toBeInTheDocument();
     expect(screen.getByText(/Observed:/)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Refresh'})).toHaveClass(
+        'operations-refresh-button', 'ant-btn-text', 'ant-btn-circle'
+    );
+    expect(screen.getByRole('button', {name: 'Refresh'})).toHaveTextContent('');
 });
 
 test('uses the version instead of an unavailable role in the node identity', async () => {
@@ -109,6 +122,51 @@ test('keeps the snapshot visible and reports a refresh failure', async () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(screen.getByRole('heading', {name: 'Store A'})).toBeInTheDocument();
     expect(screen.queryByText('secret')).not.toBeInTheDocument();
+});
+
+test('removes an earlier privileged node detail when refresh is forbidden', async () => {
+    getNode
+        .mockResolvedValueOnce(response)
+        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status: 403}));
+
+    renderDetail();
+    expect(await screen.findByRole('heading', {name: 'Store A'})).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('button', {name: /Refresh/}))
+        .not.toHaveClass('ant-btn-loading'));
+
+    fireEvent.click(screen.getByRole('button', {name: /Refresh/}));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+    expect(screen.queryByRole('heading', {name: 'Store A'})).not.toBeInTheDocument();
+});
+
+test('does not restore an older node detail after a newer request is forbidden', async () => {
+    let resolveOlder;
+    getNode
+        .mockReturnValueOnce(new Promise(resolve => {
+            resolveOlder = resolve;
+        }))
+        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status: 403}));
+
+    render(
+        <MemoryRouter
+            initialEntries={['/operations/nodes/store-old']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <NodeHistoryControls />
+            <Routes>
+                <Route path='/operations/nodes/:nodeId' element={<NodeDetail />} />
+            </Routes>
+        </MemoryRouter>
+    );
+
+    fireEvent.click(screen.getByRole('button', {name: 'next node'}));
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+
+    await act(async () => resolveOlder(response));
+
+    expect(screen.queryByRole('heading', {name: 'Store A'})).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toBeInTheDocument();
 });
 
 test('renders each metric group from its own metric status', async () => {
@@ -178,6 +236,12 @@ test('renders each metric group from its own metric status', async () => {
     expect(within(backend).getByText('Available')).toBeInTheDocument();
     expect(within(backend).getByText('2')).toBeInTheDocument();
     expect(within(backend).queryByText('Refresh failed')).not.toBeInTheDocument();
+
+    for (const name of ['System', 'Drive', 'Raft', 'Backend']) {
+        const group = screen.getByRole('heading', {name}).closest('section');
+        expect(group.querySelector('.operations-metric-header')).toBeInTheDocument();
+        expect(within(group).getByRole('status')).toBeInTheDocument();
+    }
 });
 
 test('presents native metric labels, units and capacity instead of raw keys', async () => {

@@ -367,68 +367,6 @@ const Schema = () => {
                             )}
                         />
                     )}
-                    <section aria-labelledby='schema-builtins-heading'>
-                        <Row justify='space-between' align='middle'>
-                            <Col>
-                                <Typography.Title level={4} id='schema-builtins-heading'>
-                                    {t('schema_template.builtin_section.title')}
-                                </Typography.Title>
-                                <Typography.Paragraph type='secondary'>
-                                    {t('schema_template.builtin_section.description')}
-                                </Typography.Paragraph>
-                            </Col>
-                            {hiddenBuiltins.length > 0 && (
-                                <Col>
-                                    <Button onClick={restoreBuiltins}>
-                                        {t('schema_template.builtin_section.restore')}
-                                    </Button>
-                                </Col>
-                            )}
-                        </Row>
-                        <Row gutter={[16, 16]}>
-                            {visibleBuiltins.map(([name]) => (
-                                <Col xs={24} lg={12} key={name}>
-                                    <Card
-                                        size='small'
-                                        title={t(`schema_template.builtin.${name}`)}
-                                        extra={<Tag>{t('schema_template.builtin_section.unsaved')}</Tag>}
-                                        actions={[
-                                            <Button
-                                                key='use'
-                                                type='link'
-                                                data-template={name}
-                                                aria-label={t(
-                                                    'schema_template.builtin_section.use_named',
-                                                    {name: t(`schema_template.builtin.${name}`)}
-                                                )}
-                                                onClick={applyBuiltinFromEvent}
-                                            >
-                                                {t('schema_template.builtin_section.use')}
-                                            </Button>,
-                                            <Button
-                                                key='hide'
-                                                type='link'
-                                                data-template={name}
-                                                aria-label={t(
-                                                    'schema_template.builtin_section.remove_named',
-                                                    {name: t(`schema_template.builtin.${name}`)}
-                                                )}
-                                                onClick={hideBuiltinFromEvent}
-                                            >
-                                                {t('schema_template.builtin_section.remove')}
-                                            </Button>,
-                                        ]}
-                                    >
-                                        <Typography.Paragraph type='secondary'>
-                                            {t(`schema_template.builtin_description.${name}`)}
-                                        </Typography.Paragraph>
-                                    </Card>
-                                </Col>
-                            ))}
-                        </Row>
-                    </section>
-
-                    <Divider />
                     <Typography.Title level={4} id='schema-user-templates-heading'>
                         {t('schema_template.user_section.title')}
                     </Typography.Title>
@@ -477,6 +415,73 @@ const Schema = () => {
                             ),
                         }}
                     />
+
+                    <Divider />
+                    <section aria-labelledby='schema-builtins-heading'>
+                        <Row justify='space-between' align='middle'>
+                            <Col>
+                                <Typography.Title level={4} id='schema-builtins-heading'>
+                                    {t('schema_template.builtin_section.title')}
+                                </Typography.Title>
+                                <Typography.Paragraph type='secondary'>
+                                    {t('schema_template.builtin_section.description')}
+                                </Typography.Paragraph>
+                            </Col>
+                            {hiddenBuiltins.length > 0 && (
+                                <Col>
+                                    <Button onClick={restoreBuiltins}>
+                                        {t('schema_template.builtin_section.restore')}
+                                    </Button>
+                                </Col>
+                            )}
+                        </Row>
+                        <Row gutter={[16, 16]}>
+                            {visibleBuiltins.map(([name]) => (
+                                <Col xs={24} lg={12} key={name}>
+                                    <Card
+                                        size='small'
+                                        title={t(`schema_template.builtin.${name}`)}
+                                        extra={(
+                                            <Space size={4}>
+                                                <Button
+                                                    type='link'
+                                                    size='small'
+                                                    data-template={name}
+                                                    aria-label={t(
+                                                        'schema_template.builtin_section.use_named',
+                                                        {name: t(`schema_template.builtin.${name}`)}
+                                                    )}
+                                                    onClick={applyBuiltinFromEvent}
+                                                >
+                                                    {t('schema_template.builtin_section.use')}
+                                                </Button>
+                                                <Button
+                                                    type='link'
+                                                    size='small'
+                                                    data-template={name}
+                                                    aria-label={t(
+                                                        'schema_template.builtin_section'
+                                                            + '.remove_named',
+                                                        {name: t(`schema_template.builtin.${name}`)}
+                                                    )}
+                                                    onClick={hideBuiltinFromEvent}
+                                                >
+                                                    {t('schema_template.builtin_section.remove')}
+                                                </Button>
+                                                <Tag>
+                                                    {t('schema_template.builtin_section.unsaved')}
+                                                </Tag>
+                                            </Space>
+                                        )}
+                                    >
+                                        <Typography.Paragraph type='secondary'>
+                                            {t(`schema_template.builtin_description.${name}`)}
+                                        </Typography.Paragraph>
+                                    </Card>
+                                </Col>
+                            ))}
+                        </Row>
+                    </section>
                     <Typography.Paragraph style={{marginTop: 20}}>
                         {t('schema_template.docs.intro')}{' '}
                         <a href={SCHEMA_DESIGN_URL} target='_blank' rel='noreferrer'>

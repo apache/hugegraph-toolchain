@@ -16,7 +16,8 @@
  * under the License.
  */
 
-import {Alert, PageHeader, Button, Form, Input, Space, message, Spin} from 'antd';
+import {Alert, Avatar, PageHeader, Button, Form, Input, Space, Tag, message, Spin} from 'antd';
+import {EditOutlined, LockOutlined, UserOutlined} from '@ant-design/icons';
 import {useEffect, useRef, useState, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
 import style from './index.module.scss';
@@ -46,6 +47,22 @@ const My = () => {
         }
         return value;
     };
+    const displayOptionalValue = value => {
+        const normalized = value === null || value === undefined
+            ? ''
+            : String(value).trim();
+        if (!normalized || ['none', 'null', 'undefined'].includes(normalized.toLowerCase())) {
+            return emptyValue;
+        }
+        return value;
+    };
+    const profileName = data.user_nickname || data.user_name;
+    const avatarText = profileName ? String(profileName).trim().charAt(0).toUpperCase() : '';
+    const accessLabel = accessLevel
+        ? t(`my.level.${accessLevel}`)
+        : (Array.isArray(data.adminSpaces) && data.adminSpaces.length > 0
+            ? data.adminSpaces.join(', ')
+            : '');
 
     const handleForm = useCallback(async () => {
         try {
@@ -143,22 +160,6 @@ const My = () => {
                 ghost={false}
                 onBack={false}
                 title={t('my.title')}
-                extra={[
-                    <Button
-                        key='1'
-                        onClick={handleShowLayer}
-                        disabled={spinning || profileError}
-                    >
-                        {t('common.action.edit')}
-                    </Button>,
-                    <Button
-                        key='2'
-                        onClick={handleChange}
-                        disabled={spinning || profileError}
-                    >
-                        {t('my.edit.title')}
-                    </Button>,
-                ]}
             />
 
             <div className={style.pageCanvas}>
@@ -179,6 +180,40 @@ const My = () => {
                     data-testid='profile-surface'
                     aria-label={t('my.title')}
                 >
+                    <header className={style.profileHero}>
+                        <Avatar
+                            className={style.avatar}
+                            size={64}
+                            icon={!avatarText ? <UserOutlined /> : undefined}
+                        >
+                            {avatarText}
+                        </Avatar>
+                        <div className={style.identity}>
+                            <h2>{displayValue(profileName)}</h2>
+                            <p>{displayValue(data.user_name)}</p>
+                            {accessLabel
+                                ? <Tag color='blue'>{accessLabel}</Tag>
+                                : !spinning && emptyValue}
+                        </div>
+                        {!changePass && (
+                            <Space className={style.profileActions} wrap>
+                                <Button
+                                    icon={<EditOutlined aria-hidden='true' />}
+                                    onClick={handleShowLayer}
+                                    disabled={spinning || profileError}
+                                >
+                                    {t('common.action.edit')}
+                                </Button>
+                                <Button
+                                    icon={<LockOutlined aria-hidden='true' />}
+                                    onClick={handleChange}
+                                    disabled={spinning || profileError}
+                                >
+                                    {t('my.edit.title')}
+                                </Button>
+                            </Space>
+                        )}
+                    </header>
                     <Form
                         className={style.form}
                         labelCol={{span: 7}}
@@ -188,23 +223,20 @@ const My = () => {
                         {!profileError && changePass === false
                             ? (
                                 <Spin spinning={spinning}>
-                                    <Form.Item label={t('my.col.id')} className={style.item}>
-                                        {displayValue(data.user_name)}
-                                    </Form.Item>
-                                    <Form.Item label={t('my.col.name')} className={style.item}>
-                                        {displayValue(data.user_nickname)}
-                                    </Form.Item>
-                                    <Form.Item label={t('my.col.remark')} className={style.item}>
-                                        {displayValue(data.user_description)}
-                                    </Form.Item>
-                                    <Form.Item label={t('my.col.permission_roles')} className={style.item}>
-                                        {displayValue(accessLevel
-                                            ? t(`my.level.${accessLevel}`)
-                                            : data.adminSpaces)}
-                                    </Form.Item>
-                                    <Form.Item label={t('my.col.create_time')} className={style.item}>
-                                        {displayValue(data.user_create)}
-                                    </Form.Item>
+                                    <dl className={style.detailGrid}>
+                                        <div className={style.detailItem}>
+                                            <dt>{t('my.col.id')}</dt>
+                                            <dd>{displayValue(data.user_name)}</dd>
+                                        </div>
+                                        <div className={`${style.detailItem} ${style.detailWide}`}>
+                                            <dt>{t('my.col.remark')}</dt>
+                                            <dd>{displayOptionalValue(data.user_description)}</dd>
+                                        </div>
+                                        <div className={style.detailItem}>
+                                            <dt>{t('my.col.create_time')}</dt>
+                                            <dd>{displayValue(data.user_create)}</dd>
+                                        </div>
+                                    </dl>
                                 </Spin>
                             )
                             : !profileError ? (

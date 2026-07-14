@@ -14,7 +14,7 @@
     "load_to_vermeer": "加载到Vermeer",
     "meta_config": "元数据配置",
     "meta_config_tooltip": "点击可跳转到对应图的元数据配置的页面",
-    "olap_switch": "是否查询OLAP结果:",
+    "olap_switch": "查询 OLAP 属性:",
     "olap_on": "开启",
     "olap_off": "关闭",
     "load_fail": "加载Vermeer任务失败"

@@ -24,12 +24,18 @@ import {useCallback, useEffect, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 
 import * as api from '../../../api';
+import {useOperationsCapabilities} from '../../../pages/Operations/capabilities';
 import Item from '../Item';
 import {normalizeDashboardUrl} from './dashboard';
 
-const ConsoleItem = () => {
+const ConsoleItem = ({embedded = false}) => {
 
     const {t} = useTranslation();
+    const {
+        loading: capabilitiesLoading,
+        capabilities,
+        error: capabilitiesError,
+    } = useOperationsCapabilities();
     const [dashboard, setDashboard] = useState({status: 'loading', url: ''});
 
     useEffect(() => {
@@ -78,7 +84,7 @@ const ConsoleItem = () => {
             : dashboard.status === 'unavailable'
                 ? t('navigation_page.dashboard_unavailable')
                 : '';
-    const item = (titleKey, path = '') => ({
+    const dashboardItem = (titleKey, path = '') => ({
         title: t(titleKey),
         url: configured ? dashboard.url + path : '',
         disabled: !configured || dashboard.status !== 'configured',
@@ -91,16 +97,42 @@ const ConsoleItem = () => {
             ? () => openDashboard(dashboard.url + path)
             : undefined,
     });
+    const nativeItem = (titleKey, path, required) => {
+        const available = capabilities.includes(required);
+        const disabled = capabilitiesLoading || Boolean(capabilitiesError) || !available;
+        return {
+            title: t(titleKey),
+            url: available ? path : '',
+            disabled,
+            reason: disabled ? t('navigation_page.operations_unavailable') : '',
+            badge: disabled ? t('navigation_page.unavailable') : '',
+        };
+    };
+    const comingSoonItem = titleKey => ({
+        title: t(titleKey),
+        url: '',
+        disabled: true,
+        badge: t('navigation_page.coming_soon'),
+    });
 
     return (
         <Item
             btnIndex={4}
             btnTitle={t('navigation_page.operation_manage')}
+            embedded={embedded}
             listData={[
-                item('navigation_page.cluster_manage'),
-                item('navigation_page.monitor_manage', '/monitor/machine'),
-                item('navigation_page.node_manage', '/operate/node'),
-                item('navigation_page.alert_manage', '/alert/rule'),
+                nativeItem(
+                    'navigation_page.cluster_overview',
+                    '/operations/overview',
+                    'operations_health_read'
+                ),
+                nativeItem(
+                    'navigation_page.nodes',
+                    '/operations/nodes',
+                    'operations_topology_read'
+                ),
+                dashboardItem('navigation_page.advanced_monitoring', '/monitor/machine'),
+                comingSoonItem('navigation_page.alert_manage'),
             ]}
         />
     );

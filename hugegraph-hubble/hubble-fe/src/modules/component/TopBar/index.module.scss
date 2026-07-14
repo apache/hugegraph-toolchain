@@ -54,6 +54,39 @@
       padding: 0 0;
   }
 
+:global(.graphAnalysisHeader) {
+  padding: 12px 24px;
+
+  :global(.ant-page-header-heading) {
+    align-items: center;
+  }
+
+  :global(.ant-page-header-heading-extra) {
+    min-width: 0;
+    margin: 0 0 0 24px;
+  }
+}
+
+@media (max-width: 1366px) {
+  :global(.graphAnalysisHeader) {
+    :global(.ant-page-header-heading) {
+      align-items: flex-start;
+      flex-wrap: wrap;
+      gap: 8px 16px;
+    }
+
+    :global(.ant-page-header-heading-extra) {
+      width: 100%;
+      margin-left: 0;
+    }
+  }
+
+  .pageHeader {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+}
+
     :global(.ant-btn-default){
         height: 22px;
         font-size: 12px;

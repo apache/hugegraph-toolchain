@@ -40,6 +40,9 @@ jest.mock('react-i18next', () => ({
         'datasource.selected_count': '0 selected',
         'datasource.empty_title': 'No data sources yet',
         'datasource.empty_description': 'Add a source before creating an import task.',
+        'datasource.supported_types': 'Supported sources:',
+        'datasource.form.loader_docs': 'Read the Loader documentation',
+        'task.source.file': 'File',
         'datasource.col.name': 'Name',
         'datasource.col.type': 'Type',
         'datasource.col.creator': 'Creator',
@@ -84,6 +87,16 @@ it('explains the empty state and disables bulk deletion without a selection', as
     expect(await screen.findByText('No data sources yet')).toBeInTheDocument();
     expect(screen.getByText('Add a source before creating an import task.'))
         .toBeInTheDocument();
+    expect(screen.getByText('Supported sources:')).toBeInTheDocument();
+    for (const sourceType of ['HDFS', 'File', 'Kafka', 'JDBC']) {
+        expect(screen.getByText(sourceType)).toBeInTheDocument();
+    }
+    for (const link of screen.getAllByRole('link', {
+        name: 'Read the Loader documentation',
+    })) {
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    }
     expect(screen.getByRole('button', {name: 'Delete data source'})).toBeDisabled();
     expect(screen.getAllByRole('button', {name: 'Add data source'}).length)
         .toBeGreaterThan(1);

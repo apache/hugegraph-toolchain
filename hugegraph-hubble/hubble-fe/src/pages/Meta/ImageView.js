@@ -29,6 +29,81 @@ import {formatToGraphInData} from '../../utils/formatGraphInData';
 import {useTranslation} from 'react-i18next';
 import styles from './ImageView.module.scss';
 
+const SCHEMA_LABEL_DOCS_URL
+    = 'https://hugegraph.apache.org/docs/clients/restful-api/schema/';
+
+const enlargeSmallSchema = data => {
+    if (!data.nodes?.length || data.nodes.length >= 10) {
+        return data;
+    }
+    return {
+        nodes: data.nodes.map(node => ({
+            ...node,
+            style: {
+                ...node.style,
+                label: {...node.style?.label, fontSize: 18},
+                keyshape: {...node.style?.keyshape, size: 72},
+                icon: {...node.style?.icon, fontSize: 20},
+            },
+        })),
+        edges: data.edges.map(edge => ({
+            ...edge,
+            style: {
+                ...edge.style,
+                label: {...edge.style?.label, fontSize: 16},
+                keyshape: {...edge.style?.keyshape, lineWidth: 2.5},
+            },
+        })),
+    };
+};
+
+const formatProperties = properties => {
+    if (Array.isArray(properties)) {
+        return properties.join(', ');
+    }
+    return Object.entries(properties || {})
+        .map(([name, type]) => `${name} (${String(type).toLowerCase()})`)
+        .join(', ');
+};
+
+const formatKeys = keys => {
+    return Array.isArray(keys) ? keys.join(', ') : '';
+};
+
+const SchemaTooltip = ({model, type, t}) => {
+    const schema = model?.data || {};
+    const properties = formatProperties(schema.properties);
+    const isVertex = type === 'vertex';
+    const details = isVertex ? [
+        [t('schema.image_view.hover.properties'), properties],
+        [t('schema.image_view.hover.primary_keys'), formatKeys(schema.primary_keys)],
+    ] : [
+        [t('schema.image_view.hover.source'), schema.source],
+        [t('schema.image_view.hover.target'), schema.target],
+        [t('schema.image_view.hover.properties'), properties],
+        [t('schema.image_view.hover.sort_keys'), formatKeys(schema.sort_keys)],
+    ];
+    return (
+        <section className={styles.tooltip}>
+            <strong>{schema.label || schema.id}</strong>
+            <span className={styles.tooltipType}>
+                {t(`schema.image_view.hover.${isVertex ? 'vertex' : 'edge'}`)}
+            </span>
+            <dl>
+                {details.map(([label, value]) => (
+                    <div key={label}>
+                        <dt>{label}</dt>
+                        <dd>{value || t('schema.image_view.hover.none')}</dd>
+                    </div>
+                ))}
+            </dl>
+            <span className={styles.tooltipHint}>
+                {t('schema.image_view.hover.edit_hint')}
+            </span>
+        </section>
+    );
+};
+
 const ImageView = () => {
     const {t} = useTranslation();
     // const graphRef = useRef(null);
@@ -85,7 +160,7 @@ const ImageView = () => {
         setPropertyListVisible(true);
     }, []);
 
-    const handleClick = useCallback((id, type, data) => {
+    const handleDoubleClick = useCallback((id, type, data) => {
         if (type === 'node') {
             setVertexVisible(true);
             setEdgeVisible(false);
@@ -98,6 +173,14 @@ const ImageView = () => {
             setEdgeName(data.label);
         }
     }, []);
+
+    const renderVertexTooltip = useCallback(({model}) => (
+        <SchemaTooltip model={model} type='vertex' t={t} />
+    ), [t]);
+
+    const renderEdgeTooltip = useCallback(({model}) => (
+        <SchemaTooltip model={model} type='edge' t={t} />
+    ), [t]);
 
     const loadSchemaView = useCallback(() => {
         const token = Symbol('schema-image');
@@ -122,7 +205,7 @@ const ImageView = () => {
                 setLoadError(true);
                 return;
             }
-            setData(formatToGraphInData(view.value.data));
+            setData(enlargeSmallSchema(formatToGraphInData(view.value.data)));
             setVertexList(vertices.value.data.records.map(item => ({
                 label: item.name, value: item.name,
             })));
@@ -147,6 +230,7 @@ const ImageView = () => {
 
     const schemaIsEmpty = !loading && !loadError
         && !data.nodes?.length && !data.edges?.length;
+    const smallSchema = Boolean(data.nodes?.length && data.nodes.length < 10);
 
     const schemaActions = (
         <Space wrap>
@@ -187,9 +271,18 @@ const ImageView = () => {
                 />
             )}
             {/* <div ref={graphRef} style={{display: 'inline-block', width: 1000, height: 600}} /> */}
-            <Row>
+            <Row justify='space-between' align='middle' className={styles.toolbar}>
                 <Col>
                     {!schemaIsEmpty && schemaActions}
+                </Col>
+                <Col>
+                    <a
+                        href={SCHEMA_LABEL_DOCS_URL}
+                        target='_blank'
+                        rel='noopener noreferrer'
+                    >
+                        {t('schema.image_view.docs_link')}
+                    </a>
                 </Col>
             </Row>
             <Spin spinning={loading}>
@@ -220,9 +313,11 @@ const ImageView = () => {
                         layout={{
                             type: 'gForce',
                             gravity: 10,
-                            linkDistance: 150,
+                            linkDistance: smallSchema ? 240 : 150,
                         }}
-                        onClick={handleClick}
+                        onDoubleClick={handleDoubleClick}
+                        nodeTooltip={renderVertexTooltip}
+                        edgeTooltip={renderEdgeTooltip}
                         height={600}
                     />
                 )}

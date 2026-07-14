@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import Schema from './index';
 import * as api from '../../api';
 
@@ -34,14 +34,20 @@ const mockTranslate = (key, values) => ({
     'schema_template.column.updated_at': 'Updated',
     'schema_template.column.creator': 'Creator',
     'schema_template.column.operation': 'Actions',
-    'schema_template.builtin_section.title': 'Built-in starting points',
+    'schema_template.builtin_section.title': 'Example templates',
+    'schema_template.builtin_section.description': 'Review an example before saving it.',
     'schema_template.builtin_section.unsaved': 'Not saved',
-    'schema_template.builtin_section.use': 'Use starting point',
-    'schema_template.builtin_section.use_named': `Use ${values?.name}`,
-    'schema_template.builtin_section.remove': 'Hide this starting point',
-    'schema_template.builtin_section.remove_named': `Hide ${values?.name}`,
-    'schema_template.builtin_section.restore': 'Restore built-in starting points',
+    'schema_template.builtin_section.use': 'Use example',
+    'schema_template.builtin_section.use_named': `Use example ${values?.name}`,
+    'schema_template.builtin_section.remove': 'Remove example',
+    'schema_template.builtin_section.remove_named': `Remove example ${values?.name}`,
+    'schema_template.builtin_section.restore': 'Restore example templates',
     'schema_template.user_section.title': 'Saved user templates',
+    'schema_template.user_section.description': 'Templates saved on the Server.',
+    'schema_template.builtin.people_network': 'People network',
+    'schema_template.builtin.product_catalog': 'Product catalog',
+    'schema_template.builtin_description.people_network': 'People relationships.',
+    'schema_template.builtin_description.product_catalog': 'Product relationships.',
     'schema_template.row.expand': `Expand ${values?.name}`,
     'schema_template.docs.intro': 'Need help designing a schema?',
     'schema_template.docs.link': 'Read the Schema design documentation',
@@ -104,7 +110,7 @@ afterEach(() => {
     window.localStorage.clear();
 });
 
-it('keeps unsaved built-in starting points separate from saved user templates', async () => {
+it('puts user templates before compact example-template cards', async () => {
     api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
     api.manage.getSchemaList.mockResolvedValue({
         status: 200,
@@ -113,15 +119,26 @@ it('keeps unsaved built-in starting points separate from saved user templates', 
 
     render(<Schema />);
 
-    expect(await screen.findByText('Built-in starting points')).toBeInTheDocument();
+    const examplesHeading = await screen.findByText('Example templates');
     await waitForLoadingToFinish();
     expect(screen.getAllByText('Not saved').length).toBeGreaterThanOrEqual(2);
-    expect(screen.getByText('Saved user templates')).toBeInTheDocument();
+    const usersHeading = screen.getByText('Saved user templates');
+    expect(usersHeading.compareDocumentPosition(examplesHeading)
+        & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.queryByText(/starting point/i)).not.toBeInTheDocument();
+
+    const peopleCard = screen.getByText('People network').closest('.ant-card');
+    const peopleHeader = peopleCard.querySelector('.ant-card-head');
+    expect(within(peopleHeader).getByRole('button', {name: 'Use example People network'}))
+        .toBeInTheDocument();
+    expect(within(peopleHeader).getByRole('button', {name: 'Remove example People network'}))
+        .toBeInTheDocument();
+    expect(peopleCard.querySelector('.ant-card-actions')).not.toBeInTheDocument();
     expect(api.manage.addSchema).not.toHaveBeenCalled();
     expect(api.manage.updateSchema).not.toHaveBeenCalled();
     expect(api.manage.delSchema).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getAllByRole('button', {name: /^Use /})[0]);
+    fireEvent.click(screen.getByRole('button', {name: 'Use example People network'}));
     expect(screen.getByTestId('schema-edit-layer')).toHaveTextContent(
         'create:people_network:schema.propertyKey'
     );
@@ -130,7 +147,7 @@ it('keeps unsaved built-in starting points separate from saved user templates', 
     expect(api.manage.delSchema).not.toHaveBeenCalled();
 });
 
-it('hides built-in starting points locally and offers an explicit restore action', async () => {
+it('removes example templates locally and offers an explicit restore action', async () => {
     api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Space'}});
     api.manage.getSchemaList.mockResolvedValue({
         status: 200,
@@ -141,9 +158,9 @@ it('hides built-in starting points locally and offers an explicit restore action
     expect(await screen.findAllByText('Not saved')).toHaveLength(2);
     await waitForLoadingToFinish();
 
-    fireEvent.click(screen.getAllByRole('button', {name: /^Hide /})[0]);
+    fireEvent.click(screen.getByRole('button', {name: 'Remove example People network'}));
     expect(screen.getAllByText('Not saved')).toHaveLength(1);
-    expect(screen.getByRole('button', {name: 'Restore built-in starting points'}))
+    expect(screen.getByRole('button', {name: 'Restore example templates'}))
         .toBeInTheDocument();
     expect(api.manage.addSchema).not.toHaveBeenCalled();
     expect(api.manage.updateSchema).not.toHaveBeenCalled();
@@ -154,7 +171,7 @@ it('hides built-in starting points locally and offers an explicit restore action
     expect(await screen.findAllByText('Not saved')).toHaveLength(1);
     await waitForLoadingToFinish();
 
-    fireEvent.click(screen.getByRole('button', {name: 'Restore built-in starting points'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Restore example templates'}));
     expect(screen.getAllByText('Not saved')).toHaveLength(2);
     expect(api.manage.addSchema).not.toHaveBeenCalled();
     expect(api.manage.updateSchema).not.toHaveBeenCalled();

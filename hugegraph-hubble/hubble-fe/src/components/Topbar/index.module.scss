@@ -42,6 +42,9 @@ div.nav {
 }
 
 .logo {
+  display: flex;
+  height: 100%;
+  align-items: center;
   flex: 0 0 156px;
   width: 156px;
   color: #fff;
@@ -95,6 +98,23 @@ div.nav {
     box-shadow: none;
     color: #fff;
     font-weight: 600;
+  }
+
+  :global(.ant-radio-button-wrapper + .ant-radio-button-wrapper) {
+    margin-left: 8px;
+
+    &::before {
+      display: block;
+      position: absolute;
+      top: 0;
+      left: -7px;
+      width: auto;
+      height: 24px;
+      background: transparent;
+      color: rgba(255, 255, 255, 0.48);
+      content: '/';
+      line-height: 24px;
+    }
   }
 
   &:focus-within {

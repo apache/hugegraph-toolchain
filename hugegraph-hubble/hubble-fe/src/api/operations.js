@@ -18,35 +18,56 @@
 
 import request from './request';
 
-const QUIET = {suppressBusinessErrorToast: true};
+const QUIET = {
+    suppressBusinessErrorToast: true,
+    headers: {
+        'Cache-Control': 'no-store',
+        Pragma: 'no-cache',
+    },
+};
 
 const unwrap = response => {
     if (response?.status !== 200) {
-        throw new Error(`operations_request_${response?.status ?? 'failed'}`);
+        const error = new Error(`operations_request_${response?.status ?? 'failed'}`);
+        error.status = response?.status;
+        throw error;
     }
     return response.data;
 };
 
-const getCapabilities = async () => unwrap(
-    await request.get('/operations/capabilities', QUIET)
+const requestOperation = async requestPromise => {
+    try {
+        return unwrap(await requestPromise);
+    }
+    catch (error) {
+        error.status = error.data?.status
+            ?? error.response?.data?.status
+            ?? error.response?.status
+            ?? error.status;
+        throw error;
+    }
+};
+
+const getCapabilities = async () => requestOperation(
+    request.get('/operations/capabilities', QUIET)
 );
 
-const getOverview = async (refresh = false) => unwrap(
-    await request.get('/operations/overview', {
+const getOverview = async (refresh = false) => requestOperation(
+    request.get('/operations/overview', {
         ...QUIET,
         params: {refresh},
     })
 );
 
-const getNodes = async params => unwrap(
-    await request.get('/operations/nodes', {
+const getNodes = async params => requestOperation(
+    request.get('/operations/nodes', {
         ...QUIET,
         params,
     })
 );
 
-const getNode = async (nodeId, refresh = false) => unwrap(
-    await request.get(`/operations/nodes/${encodeURIComponent(nodeId)}`, {
+const getNode = async (nodeId, refresh = false) => requestOperation(
+    request.get(`/operations/nodes/${encodeURIComponent(nodeId)}`, {
         ...QUIET,
         params: {refresh},
     })

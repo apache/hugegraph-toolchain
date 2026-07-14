@@ -117,10 +117,13 @@ describe('Login request errors', () => {
 
     it('uses Hubble-specific sign-in copy in both languages', () => {
         expect(zhPages.login.title).toBe('登录 Hubble');
-        expect(zhPages.login.form_hint).toBe('使用 HugeGraph 账号进入工作台。');
+        expect(zhPages.login.subtitle).toBe('面向图技术爱好者的一站式分析平台');
+        expect(zhPages.login.form_hint).toBe('用 HugeGraph 账号探索图可视化');
         expect(enPages.login.title).toBe('Sign in to Hubble');
+        expect(enPages.login.subtitle)
+            .toBe('A one-stop analysis platform for graph technology enthusiasts');
         expect(enPages.login.form_hint)
-            .toBe('Use your HugeGraph account to enter the workbench.');
+            .toBe('Use your HugeGraph account to explore graph visualization');
     });
 
     it('lets users choose a language before authentication', async () => {
@@ -205,5 +208,30 @@ describe('Login request errors', () => {
         });
         expect(api.auth.login).toHaveBeenCalledTimes(1);
         expect(api.config.getConfig).toHaveBeenCalledTimes(1);
+    });
+
+    it('uses navigation for a plain login instead of a stale stored redirect', async () => {
+        sessionStorage.setItem('redirect', '/operations/overview');
+        api.auth.login.mockResolvedValue({
+            status: 200,
+            data: {user_name: 'admin'},
+        });
+        api.config.getConfig.mockResolvedValue({status: 200, data: {}});
+
+        render(
+            <MemoryRouter
+                initialEntries={['/login']}
+                future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+            >
+                <Login />
+            </MemoryRouter>
+        );
+        await userEvent.type(screen.getByPlaceholderText('login.username'), 'admin');
+        await userEvent.type(screen.getByPlaceholderText('login.password'), 'password');
+        await userEvent.click(screen.getByRole('button', {name: 'login.submit'}));
+
+        await waitFor(() => expect(window.location.replace)
+            .toHaveBeenCalledWith('/navigation'));
+        expect(sessionStorage.getItem('redirect')).toBeNull();
     });
 });

@@ -34,6 +34,7 @@ const Item = props => {
         btnTitle,
         btnIndex,
         listData,
+        embedded = false,
     } = props;
 
     const navigate = useNavigate();
@@ -62,8 +63,17 @@ const Item = props => {
                 badge = '',
                 onClick,
             } = item;
+            const disabledDescription = [title, badge, reason]
+                .filter(Boolean)
+                .join(', ');
             const content = (
-                <div className={style.item} key={title}>
+                <div
+                    className={style.item}
+                    key={title}
+                    role={disabled ? 'group' : undefined}
+                    tabIndex={disabled ? 0 : undefined}
+                    aria-label={disabled ? disabledDescription : undefined}
+                >
                     <Button
                         block
                         type={'primary'}
@@ -95,8 +105,8 @@ const Item = props => {
         return res;
     };
     return (
-        <div className={style.container}>
-            <ModuleButton index={btnIndex} title={btnTitle} />
+        <div className={`${style.container} ${embedded ? style.embedded : ''}`}>
+            <ModuleButton index={embedded ? undefined : btnIndex} title={btnTitle} />
             <div className={style.itemList}>
                 {renderList()}
             </div>

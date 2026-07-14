@@ -18,19 +18,28 @@
 
 import {useEffect, useState} from 'react';
 import {getCapabilities} from '../../api/operations';
+import {getUser, USER_CHANGE_EVENT} from '../../utils/user';
 
 let capabilityRequest;
 
-const loadOperationsCapabilities = () => {
-    if (!capabilityRequest) {
-        capabilityRequest = getCapabilities().then(result => (
+const getUserIdentity = () => {
+    const currentUser = getUser();
+    return String(currentUser.id ?? currentUser.user_name ?? 'anonymous');
+};
+
+const loadOperationsCapabilities = (identity = getUserIdentity()) => {
+    if (!capabilityRequest || capabilityRequest.identity !== identity) {
+        const request = getCapabilities().then(result => (
             Array.isArray(result?.capabilities) ? result.capabilities : []
         )).catch(error => {
-            capabilityRequest = undefined;
+            if (capabilityRequest?.request === request) {
+                capabilityRequest = undefined;
+            }
             throw error;
         });
+        capabilityRequest = {identity, request};
     }
-    return capabilityRequest;
+    return capabilityRequest.request;
 };
 
 const resetOperationsCapabilities = () => {
@@ -38,11 +47,19 @@ const resetOperationsCapabilities = () => {
 };
 
 const useOperationsCapabilities = () => {
+    const [identity, setIdentity] = useState(getUserIdentity);
     const [state, setState] = useState({loading: true, capabilities: [], error: null});
 
     useEffect(() => {
+        const updateIdentity = () => setIdentity(getUserIdentity());
+        window.addEventListener(USER_CHANGE_EVENT, updateIdentity);
+        return () => window.removeEventListener(USER_CHANGE_EVENT, updateIdentity);
+    }, []);
+
+    useEffect(() => {
         let active = true;
-        loadOperationsCapabilities().then(capabilities => {
+        setState({loading: true, capabilities: [], error: null});
+        loadOperationsCapabilities(identity).then(capabilities => {
             if (active) {
                 setState({loading: false, capabilities, error: null});
             }
@@ -54,7 +71,7 @@ const useOperationsCapabilities = () => {
         return () => {
             active = false;
         };
-    }, []);
+    }, [identity]);
 
     return state;
 };

@@ -23,13 +23,14 @@
 import Item from '../Item';
 import {useTranslation} from 'react-i18next';
 
-const AdminItem = () => {
+const AdminItem = ({embedded = false}) => {
     const {t} = useTranslation();
 
     return (
         <Item
             btnIndex={3}
             btnTitle={t('navigation_page.step3')}
+            embedded={embedded}
             listData={[
                 {
                     title: t('navigation_page.account_manage'),
