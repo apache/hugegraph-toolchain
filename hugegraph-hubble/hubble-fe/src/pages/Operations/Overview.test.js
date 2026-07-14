@@ -248,7 +248,7 @@ test.each([
     expect(screen.getByLabelText(new RegExp(`Advanced monitoring: ${reason}`)))
         .toHaveAttribute('tabindex', '0');
     expect(screen.queryByText(new RegExp(reason))).not.toBeInTheDocument();
-    expect(screen.getByText('Dashboard unavailable')).toBeVisible();
+    expect(screen.queryByText('Dashboard unavailable')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Cluster Overview'})).toBeInTheDocument();
 });
 
@@ -321,7 +321,9 @@ test('uses explicit Chinese topology labels and a compact monitoring tool status
     expect(screen.getByRole('heading', {name: '服务拓扑图'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Server 层'})).toBeInTheDocument();
     const tools = document.querySelector('.operations-header-tools');
-    expect(tools).toHaveTextContent('Dashboard 不可用');
+    expect(tools).not.toHaveTextContent('Dashboard 不可用');
+    expect(screen.getByLabelText(/高级监控: Dashboard 尚未配置/))
+        .toHaveAttribute('tabindex', '0');
     expect(tools).not.toHaveTextContent('dashboard.address 配置和服务健康状态');
 });
 

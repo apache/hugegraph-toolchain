@@ -117,20 +117,7 @@ form.loginForm {
     }
 
     :global(.ant-radio-button-wrapper + .ant-radio-button-wrapper) {
-        margin-left: 8px;
-
-        &::before {
-            display: block !important;
-            position: absolute;
-            top: 0;
-            left: -7px;
-            width: auto;
-            height: 28px;
-            background: transparent !important;
-            color: #98a2b3;
-            content: '/';
-            line-height: 28px;
-        }
+        margin-left: 2px;
     }
 
     :global(.ant-radio-button-wrapper:hover) {

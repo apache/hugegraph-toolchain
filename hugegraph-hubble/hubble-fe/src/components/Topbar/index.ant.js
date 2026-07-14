@@ -16,11 +16,11 @@
  * under the License.
  */
 
-import {Layout, Space, Avatar, Button, Dropdown, message, Modal, Radio} from 'antd';
+import {Layout, Space, Avatar, Button, Dropdown, message, Radio} from 'antd';
 import {QuestionCircleOutlined, UserOutlined} from '@ant-design/icons';
 import style from './index.module.scss';
 import BrandLockup from '../BrandLockup';
-import {Link, useNavigate, useLocation} from 'react-router-dom';
+import {Link, useLocation} from 'react-router-dom';
 import * as api from '../../api/index';
 import * as user from '../../utils/user';
 import {useCallback, useEffect, useState} from 'react';
@@ -33,7 +33,6 @@ import {
 
 const Topbar = () => {
     const userInfo = user.getUser();
-    const navigate = useNavigate();
     const location = useLocation();
     const {t} = useTranslation();
     const [languageType, setLanguageType] = useState(getCurrentLanguage);
@@ -93,26 +92,17 @@ const Topbar = () => {
                 clearPersistedAlgorithmFormsForUser();
                 user.clearLogin();
                 message.success(t('Topbar.exit.success'));
-                navigate('/login');
+                window.location.replace('/login');
             }
         });
-    }, [navigate, t]);
-
-    const confirm = useCallback(() => {
-        Modal.confirm({
-            title: t('Topbar.exit.confirm'),
-            okText: t('common.verify.ok'),
-            cancelText: t('common.verify.cancel'),
-            onOk: logout,
-        });
-    }, [logout, t]);
+    }, [t]);
 
     const userMenu = {
         items: [{
             key: 'logout',
             label: t('Topbar.exit.name'),
         }],
-        onClick: confirm,
+        onClick: logout,
     };
     const userLabel = userInfo?.user_name === 'admin'
         && (!userInfo.user_nickname || userInfo.user_nickname === '超级管理员')

@@ -81,6 +81,8 @@ test('shows stale observation metadata and exposes real detail links', async () 
         .toBeInTheDocument();
     expect(screen.getByText('1 node')).toBeInTheDocument();
     expect(screen.getByLabelText('SERVER icon')).toBeInTheDocument();
+    expect(screen.getByText('Node ID: server-safe')).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Server'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Refresh'})).toHaveClass(
         'operations-refresh-button', 'ant-btn-text', 'ant-btn-circle'
     );

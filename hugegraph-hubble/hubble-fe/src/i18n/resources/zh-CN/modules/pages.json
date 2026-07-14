@@ -1160,7 +1160,7 @@
     "back": "返回",
     "metric_system": "系统",
     "metric_drive": "磁盘",
-    "metric_raft": "Raft",
+    "metric_raft": "Raft 共识",
     "metric_backend": "后端",
     "capacity_usage": "容量使用",
     "availability_available": "可用",

@@ -107,8 +107,9 @@ test('uses the version instead of an unavailable role in the node identity', asy
     renderDetail();
 
     const identity = await screen.findByRole('region', {name: 'Node identity'});
-    expect(within(identity).getByText('STORE · 1.7.0')).toBeInTheDocument();
-    expect(within(identity).queryByText('STORE · Unavailable')).not.toBeInTheDocument();
+    expect(within(identity).getByText('Store · 1.7.0')).toBeInTheDocument();
+    expect(within(identity).queryByText('Store · Unavailable')).not.toBeInTheDocument();
+    expect(screen.queryByText('Role')).not.toBeInTheDocument();
 });
 
 test('keeps the snapshot visible and reports a refresh failure', async () => {

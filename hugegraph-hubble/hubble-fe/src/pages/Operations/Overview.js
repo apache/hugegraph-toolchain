@@ -32,7 +32,13 @@ import {Link} from 'react-router-dom';
 import {getDashboard} from '../../api/auth';
 import {getOverview} from '../../api/operations';
 import {normalizeDashboardUrl} from '../../modules/navigation/ConsoleItem/dashboard';
-import {ClusterTopology, HealthStatus, RefreshButton, SourceStrip} from './components';
+import {
+    ClusterTopology,
+    displayNodeType,
+    HealthStatus,
+    RefreshButton,
+    SourceStrip,
+} from './components';
 import {
     formatMetricValue,
     formatObservedAge,
@@ -162,9 +168,6 @@ const Overview = () => {
             ? t('navigation_page.dashboard_unconfigured')
             : dashboard.status === 'unavailable'
                 ? t('navigation_page.dashboard_unavailable') : undefined;
-    const dashboardStatus = dashboard.status === 'checking'
-        ? t('operations.dashboard_checking')
-        : t('operations.dashboard_unavailable');
     const nodeColumns = [
         {
             title: t('operations.node'),
@@ -173,7 +176,7 @@ const Overview = () => {
                 <Link to={`/operations/nodes/${node.id}`}>{name ?? unavailable}</Link>
             ),
         },
-        {title: t('operations.tier_header'), dataIndex: 'type'},
+        {title: t('operations.tier_header'), dataIndex: 'type', render: displayNodeType},
         {title: t('operations.role'), dataIndex: 'role', render: value => value ?? '—'},
         {
             title: t('operations.status'),
@@ -189,7 +192,7 @@ const Overview = () => {
             dataIndex: 'name',
             render: name => <strong>{name ?? unavailable}</strong>,
         },
-        {title: t('operations.tier_header'), dataIndex: 'type'},
+        {title: t('operations.tier_header'), dataIndex: 'type', render: displayNodeType},
         {title: t('operations.role'), dataIndex: 'role', render: value => value ?? '—'},
         {
             title: t('operations.status'),
@@ -282,6 +285,7 @@ const Overview = () => {
                                         : undefined}
                                 >
                                     <Button
+                                        type='text'
                                         icon={<ExportOutlined />}
                                         disabled={dashboard.status !== 'configured'}
                                         onClick={openDashboard}
@@ -291,11 +295,6 @@ const Overview = () => {
                                     </Button>
                                 </span>
                             </Tooltip>
-                            {dashboardReason && (
-                                <span className='operations-advanced-monitoring-reason'>
-                                    {dashboardStatus}
-                                </span>
-                            )}
                         </span>
                     )}
                     <RefreshButton

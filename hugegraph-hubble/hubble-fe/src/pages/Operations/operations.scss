@@ -67,6 +67,9 @@
 }
 
 .operations-refresh-button {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
     color: var(--workbench-color-text-secondary);
 
     &:hover,
@@ -81,15 +84,6 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
-}
-
-.operations-advanced-monitoring-reason {
-    max-width: 132px;
-    color: var(--workbench-color-text-tertiary);
-    font-size: 12px;
-    line-height: 18px;
-    text-align: right;
-    white-space: nowrap;
 }
 
 .operations-eyebrow {
@@ -486,11 +480,26 @@
     }
 }
 
+.operations-node-name-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
 .operations-node-name-label {
     display: block;
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.operations-node-id-label {
+    color: var(--workbench-color-text-tertiary);
+    font-size: 12px;
+    line-height: 18px;
+    font-variant-numeric: tabular-nums;
     white-space: nowrap;
 }
 
@@ -611,6 +620,15 @@
     gap: 4px 10px;
     color: var(--workbench-color-text-secondary);
     font-size: 12px;
+}
+
+.operations-metric-empty {
+    display: flex;
+    align-items: center;
+    min-height: 72px;
+    padding: 16px 0 4px;
+    color: var(--workbench-color-text-secondary);
+    line-height: 22px;
 }
 
 .operations-capacity-summary {

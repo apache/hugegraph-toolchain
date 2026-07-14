@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import Topbar from './index.ant';
 import * as api from '../../api/index';
@@ -77,7 +77,16 @@ jest.mock('antd', () => {
         Space: ({children}) => <div>{children}</div>,
         Avatar: () => <span>avatar</span>,
         Button: ({children, icon, ...props}) => <button {...props}>{icon}{children}</button>,
-        Dropdown: ({children}) => <div>{children}</div>,
+        Dropdown: ({children, menu}) => (
+            <div>
+                {children}
+                {menu?.items?.map(item => (
+                    <button key={item.key} type='button' onClick={menu.onClick}>
+                        {item.label}
+                    </button>
+                ))}
+            </div>
+        ),
         Menu: ({items}) => (
             <div>
                 {items?.map(item => (
@@ -87,9 +96,6 @@ jest.mock('antd', () => {
         ),
         message: {
             success: jest.fn(),
-        },
-        Modal: {
-            confirm: jest.fn(),
         },
         Select,
         Radio,
@@ -109,6 +115,11 @@ describe('Topbar request errors', () => {
         });
         localStorage.clear();
         sessionStorage.clear();
+        delete window.location;
+        window.location = {
+            href: 'http://localhost/navigation',
+            replace: jest.fn(),
+        };
         sessionStorage.setItem('user_', JSON.stringify({id: 'admin', user_nickname: 'admin'}));
     });
 
@@ -194,5 +205,24 @@ describe('Topbar request errors', () => {
         expect(screen.getByRole('button', {
             name: 'workbench.shortcuts.open_button',
         })).toBeInTheDocument();
+    });
+
+    it('logs out immediately without a confirmation dialog', async () => {
+        api.auth.status.mockResolvedValue({status: 200});
+        api.auth.logout.mockResolvedValue({status: 200});
+
+        render(
+            <MemoryRouter
+                initialEntries={['/navigation']}
+                future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+            >
+                <Topbar />
+            </MemoryRouter>
+        );
+
+        fireEvent.click(screen.getByRole('button', {name: 'Topbar.exit.name'}));
+
+        await waitFor(() => expect(api.auth.logout).toHaveBeenCalledTimes(1));
+        expect(window.location.replace).toHaveBeenCalledWith('/login');
     });
 });

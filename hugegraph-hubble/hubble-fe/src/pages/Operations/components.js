@@ -50,6 +50,14 @@ const formatReason = (reason, t) => {
     }) : null;
 };
 
+const NODE_TYPE_LABELS = {
+    SERVER: 'Server',
+    PD: 'PD',
+    STORE: 'Store',
+};
+
+const displayNodeType = type => NODE_TYPE_LABELS[type] ?? type ?? '—';
+
 const HealthStatus = ({status = 'UNKNOWN', reason, stale = false, size = 'normal'}) => {
     const {t} = useTranslation();
     const normalized = STATUS_ICON[status] ? status : 'UNKNOWN';
@@ -93,7 +101,10 @@ const SourceStrip = ({sources = {}, detailed = false}) => {
                     || source.status !== 'UP' || source.availability !== 'AVAILABLE';
                 return (
                     <div className='operations-source' key={name}>
-                        <strong>{name === 'stores' ? 'Store' : name.toUpperCase()}</strong>
+                        <strong>
+                            {displayNodeType(name === 'stores'
+                                ? 'STORE' : name.toUpperCase())}
+                        </strong>
                         <HealthStatus status={source.status} />
                         <span className='operations-source-state'>
                             {t(`operations.availability_${(
@@ -178,8 +189,7 @@ const TopologyTier = ({type, nodes}) => {
         <section className={`operations-tier tier-${type.toLowerCase()}`}>
             <div className='operations-tier-label'>
                 <Link className='operations-tier-title' to={`/operations/nodes?type=${type}`}>
-                    {type === 'SERVER' ? t('operations.tier_server') : type} {' '}
-                    {t('operations.tier')}
+                    {displayNodeType(type)} {t('operations.tier')}
                 </Link>
                 <span>
                     {t('operations.node_count', {
@@ -231,4 +241,5 @@ export {
     TierIcon,
     RefreshButton,
     formatReason,
+    displayNodeType,
 };

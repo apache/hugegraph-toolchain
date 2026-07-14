@@ -16,13 +16,19 @@
  * under the License.
  */
 
-import {Alert, Button, Descriptions, Empty, Progress, Skeleton} from 'antd';
+import {Alert, Button, Descriptions, Progress, Skeleton} from 'antd';
 import {ArrowLeftOutlined} from '@ant-design/icons';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getNode} from '../../api/operations';
-import {HealthStatus, RefreshButton, SourceStrip, TierIcon} from './components';
+import {
+    displayNodeType,
+    HealthStatus,
+    RefreshButton,
+    SourceStrip,
+    TierIcon,
+} from './components';
 import {formatMetricValue, formatObservedAt} from './topology';
 import './operations.scss';
 
@@ -187,10 +193,9 @@ const MetricGroup = ({name, values, status = {}}) => {
         return (
             <section className='operations-surface operations-metric-group'>
                 {metricHeader}
-                <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={t(`operations.${emptyState}`)}
-                />
+                <div className='operations-metric-empty' role='note'>
+                    {t(`operations.${emptyState}`)}
+                </div>
             </section>
         );
     }
@@ -334,7 +339,7 @@ const NodeDetail = () => {
                         <div>
                             <h2>{node.name ?? t('operations.unavailable')}</h2>
                             <span>
-                                {node.type} · {node.role ?? node.version
+                                {displayNodeType(node.type)} · {node.role ?? node.version
                                     ?? t('operations.unavailable')}
                             </span>
                         </div>
@@ -359,10 +364,14 @@ const NodeDetail = () => {
                     {t('operations.node_profile')}
                 </h3>
                 <Descriptions column={{xxl: 4, xl: 3, lg: 2, md: 1, sm: 1, xs: 1}}>
-                    <Descriptions.Item label={t('operations.type')}>{node.type}</Descriptions.Item>
-                    <Descriptions.Item label={t('operations.role')}>
-                        {node.role ?? '—'}
+                    <Descriptions.Item label={t('operations.type')}>
+                        {displayNodeType(node.type)}
                     </Descriptions.Item>
+                    {node.role && (
+                        <Descriptions.Item label={t('operations.role')}>
+                            {node.role}
+                        </Descriptions.Item>
+                    )}
                     <Descriptions.Item label={t('operations.version')}>
                         {node.version ?? '—'}
                     </Descriptions.Item>

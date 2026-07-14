@@ -22,11 +22,16 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getNodes} from '../../api/operations';
-import {HealthStatus, RefreshButton, TierIcon} from './components';
+import {displayNodeType, HealthStatus, RefreshButton, TierIcon} from './components';
 import {formatObservedAt, hasStaleMetrics} from './topology';
 import './operations.scss';
 
 const stopRowNavigation = event => event.stopPropagation();
+
+const shortNodeId = id => {
+    const normalized = String(id ?? '');
+    return normalized.length > 12 ? `…${normalized.slice(-12)}` : normalized;
+};
 
 const NodeIdentityCell = ({record, unavailable, t}) => {
     const name = record.name ?? unavailable;
@@ -51,9 +56,14 @@ const NodeIdentityCell = ({record, unavailable, t}) => {
             >
                 <span className='operations-node-name'>
                     <TierIcon type={record.type} />
-                    <Tooltip title={identityLabel} placement='topLeft'>
-                        <span className='operations-node-name-label'>{name}</span>
-                    </Tooltip>
+                    <span className='operations-node-name-copy'>
+                        <Tooltip title={identityLabel} placement='topLeft'>
+                            <span className='operations-node-name-label'>{name}</span>
+                        </Tooltip>
+                        <span className='operations-node-id-label'>
+                            {t('operations.node_id')}: {shortNodeId(record.id)}
+                        </span>
+                    </span>
                 </span>
             </Link>
             {record.role && (
@@ -187,7 +197,7 @@ const Nodes = () => {
                 <NodeIdentityCell record={record} unavailable={unavailable} t={t} />
             )},
         {title: t('operations.type'), dataIndex: 'type', key: 'type', width: 86,
-            sorter: true, sortOrder: sortOrder('type')},
+            sorter: true, sortOrder: sortOrder('type'), render: displayNodeType},
         {title: t('operations.status'), dataIndex: 'status', key: 'status', width: 140,
             sorter: true, sortOrder: sortOrder('status'),
             render: (value, record) => (
@@ -226,7 +236,10 @@ const Nodes = () => {
                             placeholder={t('operations.all_types')}
                             aria-label={t('operations.node_type_filter')}
                             onChange={changeType}
-                            options={['SERVER', 'PD', 'STORE'].map(value => ({value}))}
+                            options={['SERVER', 'PD', 'STORE'].map(value => ({
+                                value,
+                                label: displayNodeType(value),
+                            }))}
                         />
                         <Select
                             allowClear
