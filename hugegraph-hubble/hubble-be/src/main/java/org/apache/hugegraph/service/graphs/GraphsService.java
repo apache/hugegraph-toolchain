@@ -627,8 +627,8 @@ public class GraphsService {
     }
 
     private static void incrementLabel(Map<String, Object> counts, String label) {
-        Integer count = (Integer) counts.getOrDefault(label, 0);
-        counts.put(label, count + 1);
+        Number count = (Number) counts.getOrDefault(label, 0L);
+        counts.put(label, Math.addExact(count.longValue(), 1L));
     }
 
     public String getCountFromLabels(Map<String, Object> labels) {

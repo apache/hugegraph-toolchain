@@ -172,8 +172,8 @@ public class GraphsServiceDefaultTest {
 
         Assert.assertEquals("2", result.getVertexCount());
         Assert.assertEquals("1", result.getEdgeCount());
-        Assert.assertEquals(2, result.getVertices().get("人物"));
-        Assert.assertEquals(1, result.getEdges().get("关系"));
+        Assert.assertEquals(2L, result.getVertices().get("人物"));
+        Assert.assertEquals(1L, result.getEdges().get("关系"));
     }
 
     @Test

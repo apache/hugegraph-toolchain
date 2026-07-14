@@ -63,6 +63,15 @@ public class SampleGraphControllerTest {
         Mockito.verify(schema).propertyKey("name");
         Mockito.verify(schema).vertexLabel("person");
         Mockito.verify(schema).edgeLabel("knows");
+        Mockito.verify(schema.propertyKey("name").asText()).ifNotExist();
+        Mockito.verify(schema.vertexLabel("person")
+                             .properties("name", "age", "city")
+                             .primaryKeys("name")
+                             .nullableKeys("age", "city")).ifNotExist();
+        Mockito.verify(schema.edgeLabel("knows")
+                             .sourceLabel("person")
+                             .targetLabel("person")
+                             .properties("date", "weight")).ifNotExist();
         Mockito.verify(gremlin).execute(requests.capture());
         Assert.assertTrue(requests.getValue().gremlin.startsWith(
                           "// hugegraph-client:idempotent-traversal-fallback\n"));
@@ -120,6 +129,7 @@ public class SampleGraphControllerTest {
         Mockito.when(vertex.properties("name", "gender", "age", "title",
                                        "feature")).thenReturn(vertex);
         Mockito.when(vertex.primaryKeys("name")).thenReturn(vertex);
+        Mockito.when(vertex.ifNotExist()).thenReturn(vertex);
         Mockito.when(client.gremlin()).thenReturn(gremlin);
         Mockito.when(client.schema()).thenReturn(schema);
         Mockito.when(gremlin.gremlin(Mockito.anyString()))

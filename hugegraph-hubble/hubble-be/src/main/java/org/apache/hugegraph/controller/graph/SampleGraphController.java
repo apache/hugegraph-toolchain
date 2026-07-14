@@ -28,7 +28,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.BooleanSupplier;
 
 import lombok.extern.log4j.Log4j2;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -51,9 +50,6 @@ public class SampleGraphController extends BaseController {
 
     private static final String IDEMPOTENT_TRAVERSAL_FALLBACK_MARKER =
             "// hugegraph-client:idempotent-traversal-fallback\n";
-    private static final int SCHEMA_CREATE_RETRIES = 20;
-    private static final long SCHEMA_CREATE_RETRY_DELAY_MS = 100L;
-
     public static final String LOADER_SOURCE = "hugegraph-loader/example/file";
     public static final String RANK_SOURCE =
             "hugegraph-doc/rank-api/neighbor-rank-example";
@@ -201,163 +197,106 @@ public class SampleGraphController extends BaseController {
                                            Set<String> propertyKeys,
                                            Set<String> vertexLabels,
                                            Set<String> edgeLabels) {
-        createPropertyIfMissing(schema, propertyKeys, "name", () ->
-                schema.propertyKey("name").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "age", () ->
-                schema.propertyKey("age").asInt().create());
-        createPropertyIfMissing(schema, propertyKeys, "city", () ->
-                schema.propertyKey("city").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "weight", () ->
-                schema.propertyKey("weight").asDouble().create());
-        createPropertyIfMissing(schema, propertyKeys, "lang", () ->
-                schema.propertyKey("lang").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "date", () ->
-                schema.propertyKey("date").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "price", () ->
-                schema.propertyKey("price").asDouble().create());
-        createVertexIfMissing(schema, vertexLabels, "person", () ->
+        createIfMissing(propertyKeys, "name", () ->
+                schema.propertyKey("name").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "age", () ->
+                schema.propertyKey("age").asInt().ifNotExist().create());
+        createIfMissing(propertyKeys, "city", () ->
+                schema.propertyKey("city").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "weight", () ->
+                schema.propertyKey("weight").asDouble().ifNotExist().create());
+        createIfMissing(propertyKeys, "lang", () ->
+                schema.propertyKey("lang").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "date", () ->
+                schema.propertyKey("date").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "price", () ->
+                schema.propertyKey("price").asDouble().ifNotExist().create());
+        createIfMissing(vertexLabels, "person", () ->
                 schema.vertexLabel("person")
               .properties("name", "age", "city")
               .primaryKeys("name")
               .nullableKeys("age", "city")
-              .create());
-        createVertexIfMissing(schema, vertexLabels, "software", () ->
+              .ifNotExist().create());
+        createIfMissing(vertexLabels, "software", () ->
                 schema.vertexLabel("software")
               .useCustomizeNumberId()
               .properties("name", "lang", "price")
-              .create());
-        createEdgeIfMissing(schema, edgeLabels, "knows", () ->
+              .ifNotExist().create());
+        createIfMissing(edgeLabels, "knows", () ->
                 schema.edgeLabel("knows")
               .sourceLabel("person").targetLabel("person")
               .properties("date", "weight")
-              .create());
-        createEdgeIfMissing(schema, edgeLabels, "created", () ->
+              .ifNotExist().create());
+        createIfMissing(edgeLabels, "created", () ->
                 schema.edgeLabel("created")
               .sourceLabel("person").targetLabel("software")
               .properties("date", "weight")
-              .create());
+              .ifNotExist().create());
     }
 
     private static void createRankSchema(SchemaManager schema,
                                          Set<String> propertyKeys,
                                          Set<String> vertexLabels,
                                          Set<String> edgeLabels) {
-        createPropertyIfMissing(schema, propertyKeys, "name", () ->
-                schema.propertyKey("name").asText().create());
-        createVertexIfMissing(schema, vertexLabels, "person", () ->
+        createIfMissing(propertyKeys, "name", () ->
+                schema.propertyKey("name").asText().ifNotExist().create());
+        createIfMissing(vertexLabels, "person", () ->
                 schema.vertexLabel("person")
-              .properties("name").useCustomizeStringId().create());
-        createVertexIfMissing(schema, vertexLabels, "movie", () ->
+              .properties("name").useCustomizeStringId()
+              .ifNotExist().create());
+        createIfMissing(vertexLabels, "movie", () ->
                 schema.vertexLabel("movie")
-              .properties("name").useCustomizeStringId().create());
-        createEdgeIfMissing(schema, edgeLabels, "follow", () ->
+              .properties("name").useCustomizeStringId()
+              .ifNotExist().create());
+        createIfMissing(edgeLabels, "follow", () ->
                 schema.edgeLabel("follow")
               .sourceLabel("person").targetLabel("person")
-              .create());
-        createEdgeIfMissing(schema, edgeLabels, "like", () ->
+              .ifNotExist().create());
+        createIfMissing(edgeLabels, "like", () ->
                 schema.edgeLabel("like")
               .sourceLabel("person").targetLabel("movie")
-              .create());
-        createEdgeIfMissing(schema, edgeLabels, "directedBy", () ->
+              .ifNotExist().create());
+        createIfMissing(edgeLabels, "directedBy", () ->
                 schema.edgeLabel("directedBy")
               .sourceLabel("movie").targetLabel("person")
-              .create());
+              .ifNotExist().create());
     }
 
     private static void createHlmSchema(SchemaManager schema,
                                         Set<String> propertyKeys,
                                         Set<String> vertexLabels,
                                         Set<String> edgeLabels) {
-        createPropertyIfMissing(schema, propertyKeys, "name", () ->
-                schema.propertyKey("name").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "gender", () ->
-                schema.propertyKey("gender").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "age", () ->
-                schema.propertyKey("age").asInt().create());
-        createPropertyIfMissing(schema, propertyKeys, "title", () ->
-                schema.propertyKey("title").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "feature", () ->
-                schema.propertyKey("feature").asText().create());
-        createPropertyIfMissing(schema, propertyKeys, "intimacy", () ->
-                schema.propertyKey("intimacy").asText().create());
-        createVertexIfMissing(schema, vertexLabels, "人物", () ->
+        createIfMissing(propertyKeys, "name", () ->
+                schema.propertyKey("name").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "gender", () ->
+                schema.propertyKey("gender").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "age", () ->
+                schema.propertyKey("age").asInt().ifNotExist().create());
+        createIfMissing(propertyKeys, "title", () ->
+                schema.propertyKey("title").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "feature", () ->
+                schema.propertyKey("feature").asText().ifNotExist().create());
+        createIfMissing(propertyKeys, "intimacy", () ->
+                schema.propertyKey("intimacy").asText().ifNotExist().create());
+        createIfMissing(vertexLabels, "人物", () ->
                 schema.vertexLabel("人物")
               .properties("name", "gender", "age", "title", "feature")
               .primaryKeys("name")
-              .create());
-        createEdgeIfMissing(schema, edgeLabels, "关系", () ->
+              .ifNotExist().create());
+        createIfMissing(edgeLabels, "关系", () ->
                 schema.edgeLabel("关系")
               .sourceLabel("人物").targetLabel("人物")
               .properties("intimacy")
-              .create());
-    }
-
-    private static void createPropertyIfMissing(SchemaManager schema,
-                                                Set<String> existing,
-                                                String name, Runnable create) {
-        createIfMissing(existing, name, create,
-                        () -> schema.getPropertyKey(name) != null);
-    }
-
-    private static void createVertexIfMissing(SchemaManager schema,
-                                              Set<String> existing,
-                                              String name, Runnable create) {
-        createIfMissing(existing, name, create,
-                        () -> schema.getVertexLabel(name) != null);
-    }
-
-    private static void createEdgeIfMissing(SchemaManager schema,
-                                            Set<String> existing,
-                                            String name, Runnable create) {
-        createIfMissing(existing, name, create,
-                        () -> schema.getEdgeLabel(name) != null);
+              .ifNotExist().create());
     }
 
     private static void createIfMissing(Set<String> existing, String name,
-                                        Runnable create,
-                                        BooleanSupplier exists) {
+                                        Runnable create) {
         if (existing.contains(name)) {
             return;
         }
-        RuntimeException conflict = null;
-        for (int attempt = 0; attempt < SCHEMA_CREATE_RETRIES; attempt++) {
-            try {
-                create.run();
-                existing.add(name);
-                return;
-            } catch (RuntimeException e) {
-                if (!causedByExistingSchema(e)) {
-                    throw e;
-                }
-                conflict = e;
-                try {
-                    if (exists.getAsBoolean()) {
-                        existing.add(name);
-                        return;
-                    }
-                } catch (RuntimeException ignored) {
-                    // HStore can briefly report a create conflict before the
-                    // schema becomes visible through the read endpoint.
-                }
-                try {
-                    Thread.sleep(SCHEMA_CREATE_RETRY_DELAY_MS);
-                } catch (InterruptedException interrupted) {
-                    Thread.currentThread().interrupt();
-                    throw e;
-                }
-            }
-        }
-        throw conflict;
-    }
-
-    private static boolean causedByExistingSchema(Throwable throwable) {
-        for (Throwable cause = throwable; cause != null; cause = cause.getCause()) {
-            if (cause.getMessage() != null &&
-                cause.getMessage().contains(" has existed")) {
-                return true;
-            }
-        }
-        return false;
+        create.run();
+        existing.add(name);
     }
 
     private static String vertex(String variable, String name, int age,
