@@ -100,7 +100,7 @@ public class QueryService {
 
     public ResultSet executeQueryCount(HugeClient client, String query) {
 
-        log.debug("The original gremlin ==> {}", query);
+        log.debug("Execute Gremlin count query");
         // Execute gremlin query
         ResultSet resultSet = this.executeGremlin(query, client);
         return resultSet;
@@ -108,9 +108,9 @@ public class QueryService {
 
     public GremlinResult executeGremlinQuery(HugeClient client, GremlinQuery query) {
 
-        log.debug("The original gremlin ==> {}", query.getContent());
+        log.debug("Execute Gremlin query");
         String gremlin = this.optimize(query.getContent());
-        log.debug("The optimized gremlin ==> {}", gremlin);
+        log.debug("Gremlin query optimized");
         // Execute gremlin query
         ResultSet resultSet = this.executeGremlin(gremlin, client);
         // Scan data, vote the result type
@@ -131,9 +131,9 @@ public class QueryService {
 
     public JsonView executeSingleGremlinQuery(HugeClient client, GremlinQuery query) {
 
-        log.debug("The original gremlin ==> {}", query.getContent());
+        log.debug("Execute single Gremlin query");
         String gremlin = this.optimize(query.getContent());
-        log.debug("The optimized gremlin ==> {}", gremlin);
+        log.debug("Single Gremlin query optimized");
         // Execute gremlin query
         ResultSet resultSet = this.executeGremlin(gremlin, client);
         // Scan data, vote the result type
@@ -167,7 +167,7 @@ public class QueryService {
             return client.cypher().cypher(cypher);
         } catch (ServerException e) {
             String exception = e.exception();
-            log.error("Gremlin execute failed: {}", exception);
+            log.error("Cypher execute failed with HTTP status {}", e.status());
             if (ILLEGAL_GREMLIN_EXCEPTIONS.contains(exception)) {
                 throw new IllegalGremlinException("gremlin.illegal-statemnt", e,
                         e.message());
@@ -188,7 +188,8 @@ public class QueryService {
             }
             throw e;
         } catch (Exception e) {
-            log.error("Gremlin execute failed", e);
+            log.error("Cypher execute failed with {}",
+                      e.getClass().getSimpleName());
             throw new ExternalException("gremlin.execute.failed", e,
                     e.getMessage());
         }
@@ -196,7 +197,7 @@ public class QueryService {
 
     public Long executeGremlinAsyncTask(HugeClient client, GremlinQuery query) {
 
-        log.debug("The async gremlin ==> {}", query.getContent());
+        log.debug("Execute asynchronous Gremlin query");
         // Execute optimized gremlin query
         GremlinRequest request = new GremlinRequest(query.getContent());
         return client.gremlin().executeAsTask(request);
@@ -204,7 +205,7 @@ public class QueryService {
 
     public Long executeCypherAsyncTask(HugeClient client, String query) {
 
-        log.debug("The async gremlin ==> {}", query);
+        log.debug("Execute asynchronous Cypher query");
         // Execute optimized gremlin query
         return client.cypher().executeAsTask(query);
     }
@@ -213,7 +214,7 @@ public class QueryService {
 
         // Build gremlin query
         String gremlin = this.buildGremlinQuery(client, query);
-        log.debug("expand vertex gremlin ==> {}", gremlin);
+        log.debug("Execute vertex expansion query");
         // Execute gremlin query
         ResultSet resultSet = this.executeGremlin(gremlin, client);
 
@@ -260,7 +261,7 @@ public class QueryService {
             return client.gremlin().gremlin(gremlin).execute();
         } catch (ServerException e) {
             String exception = e.exception();
-            log.error("Gremlin execute failed: {}", exception);
+            log.error("Gremlin execute failed with HTTP status {}", e.status());
             if (ILLEGAL_GREMLIN_EXCEPTIONS.contains(exception)) {
                 throw new IllegalGremlinException("gremlin.illegal-statemnt", e,
                                                   e.message());
@@ -281,7 +282,8 @@ public class QueryService {
             }
             throw e;
         } catch (Exception e) {
-            log.error("Gremlin execute failed", e);
+            log.error("Gremlin execute failed with {}",
+                      e.getClass().getSimpleName());
             throw new ExternalException("gremlin.execute.failed", e,
                                         e.getMessage());
         }
@@ -289,16 +291,16 @@ public class QueryService {
 
     private ExternalException serverQueryException(ServerException exception) {
         int status = exception.status() > 0 ? exception.status() : 400;
+        if (status == 503) {
+            return new ExternalException(status, "gremlin.server.unavailable",
+                                         exception);
+        }
         String detail = exception.message();
         if (StringUtils.isBlank(detail)) {
             detail = exception.cause();
         }
         if (StringUtils.isBlank(detail)) {
             detail = exception.exception();
-        }
-        if (StringUtils.isBlank(detail) && status == 503) {
-            return new ExternalException(status, "gremlin.server.unavailable",
-                                         exception);
         }
         if (StringUtils.isBlank(detail)) {
             detail = "HTTP " + status;

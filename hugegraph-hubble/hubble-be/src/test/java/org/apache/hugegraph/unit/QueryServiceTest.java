@@ -162,7 +162,7 @@ public class QueryServiceTest {
     }
 
     @Test
-    public void testGremlinPreservesServerErrorDetail() throws Exception {
+    public void testGremlinHidesServerUnavailableDetail() throws Exception {
         String detail = "The server is too busy to process the request";
         ServerException server = new ServerException(detail);
         server.status(503);
@@ -177,8 +177,8 @@ public class QueryServiceTest {
         });
 
         Assert.assertEquals(503, error.status());
-        Assert.assertEquals("gremlin.execute.failed", error.getMessage());
-        Assert.assertEquals(detail, error.args()[0]);
+        Assert.assertEquals("gremlin.server.unavailable", error.getMessage());
+        Assert.assertEquals(0, error.args().length);
     }
 
     private QueryService serviceWithConfig() throws Exception {
