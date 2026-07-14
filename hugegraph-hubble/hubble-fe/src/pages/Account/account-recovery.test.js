@@ -40,6 +40,7 @@ jest.mock('../../auth/AuthContext', () => ({
     useAuthContext: () => mockAuthContext,
 }));
 jest.mock('./EditLayer', () => () => null);
+jest.mock('./SpaceAccess', () => () => <div>space access</div>);
 
 beforeEach(() => {
     jest.clearAllMocks();
@@ -100,7 +101,7 @@ test('labels administrators, space administrators, and regular users in the list
     expect(screen.getByText('account.level.USER')).toBeInTheDocument();
 });
 
-test('space administrators only see account actions allowed by the backend', async () => {
+test('space administrators use scoped management without loading global accounts', async () => {
     mockCurrentUser = {
         id: 'space-admin',
         is_superadmin: true,
@@ -109,30 +110,18 @@ test('space administrators only see account actions allowed by the backend', asy
     mockAuthContext = {
         context: {
             actions: {
-                accounts: ['read'],
+                accounts: [],
+                members: ['read', 'add', 'remove'],
+                roles: ['read', 'create', 'update', 'delete'],
                 authorizations: ['read', 'grant', 'revoke'],
             },
             scopes: {admin_graphspaces: ['SPACE']},
         },
     };
-    api.auth.getAllUserList.mockResolvedValue({
-        status: 200,
-        data: {
-            records: [{user_name: 'analyst', is_superadmin: false, adminSpaces: []}],
-            total: 1,
-        },
-    });
-
     render(<Account />);
 
-    expect(await screen.findByText('analyst')).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'account.create'})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'common.action.detail'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'common.action.edit'})).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {
-        name: 'common.action.assign_permission',
-    })).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'common.action.delete'})).not.toBeInTheDocument();
+    expect(await screen.findByText('space access')).toBeInTheDocument();
+    expect(api.auth.getAllUserList).not.toHaveBeenCalled();
 });
 
 test('ignores cached superadmin fields when the server denies account mutations', async () => {

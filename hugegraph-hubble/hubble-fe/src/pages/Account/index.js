@@ -26,6 +26,7 @@ import {
     Tooltip,
     Modal,
     Tag,
+    Tabs,
 } from 'antd';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'react-i18next';
@@ -34,6 +35,7 @@ import EditLayer from './EditLayer';
 import * as api from '../../api';
 import {useAuthContext} from '../../auth/AuthContext';
 import {getAccountLevel} from './level';
+import SpaceAccess from './SpaceAccess';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
@@ -43,7 +45,7 @@ const RowAction = ({onAction, row, children}) => {
     return <Button type='link' onClick={handleClick}>{children}</Button>;
 };
 
-const Account = () => {
+const GlobalAccounts = () => {
     const {t} = useTranslation();
     const {context} = useAuthContext();
     const accountActions = context?.actions?.accounts ?? [];
@@ -228,44 +230,36 @@ const Account = () => {
 
     return (
         <>
-            <PageHeader
-                ghost={false}
-                onBack={false}
-                title={t('account.title')}
-            />
-
-            <div className='container'>
-                {listError && (
-                    <Alert
-                        type='error'
-                        showIcon
-                        message={t('account.load.unavailable')}
-                        action={(
-                            <Button size='small' onClick={loadAccounts}>
-                                {t('account.load.retry')}
-                            </Button>
-                        )}
-                    />
-                )}
-                <TableHeader>
-                    <Space>
-                        {canCreateAccount && (
-                            <Button onClick={showAdd} type='primary'>
-                                {t('account.create')}
-                            </Button>
-                        )}
-                    </Space>
-                </TableHeader>
-
-                <Table
-                    columns={columns}
-                    dataSource={data}
-                    rowKey={rowKey}
-                    pagination={pagination}
-                    onChange={handleTable}
-                    loading={listLoading}
+            {listError && (
+                <Alert
+                    type='error'
+                    showIcon
+                    message={t('account.load.unavailable')}
+                    action={(
+                        <Button size='small' onClick={loadAccounts}>
+                            {t('account.load.retry')}
+                        </Button>
+                    )}
                 />
-            </div>
+            )}
+            <TableHeader>
+                <Space>
+                    {canCreateAccount && (
+                        <Button onClick={showAdd} type='primary'>
+                            {t('account.create')}
+                        </Button>
+                    )}
+                </Space>
+            </TableHeader>
+
+            <Table
+                columns={columns}
+                dataSource={data}
+                rowKey={rowKey}
+                pagination={pagination}
+                onChange={handleTable}
+                loading={listLoading}
+            />
 
             <EditLayer
                 visible={editLayerVisible}
@@ -279,6 +273,51 @@ const Account = () => {
                     auth: canGrantAuthorization,
                 }}
             />
+        </>
+    );
+};
+
+const Account = () => {
+    const {t} = useTranslation();
+    const {context} = useAuthContext();
+    const actions = context?.actions ?? {};
+    const canReadGlobalAccounts = (actions.accounts ?? []).includes('read');
+    const canReadScopedAccess = [
+        ...(actions.members ?? []),
+        ...(actions.roles ?? []),
+        ...(actions.authorizations ?? []),
+    ].includes('read');
+
+    let content = null;
+    if (canReadGlobalAccounts && canReadScopedAccess) {
+        content = (
+            <Tabs
+                items={[
+                    {
+                        key: 'global',
+                        label: t('account.space_access.global_tab'),
+                        children: <GlobalAccounts />,
+                    },
+                    {
+                        key: 'scoped',
+                        label: t('account.space_access.scoped_tab'),
+                        children: <SpaceAccess />,
+                    },
+                ]}
+            />
+        );
+    }
+    else if (canReadGlobalAccounts) {
+        content = <GlobalAccounts />;
+    }
+    else if (canReadScopedAccess) {
+        content = <SpaceAccess />;
+    }
+
+    return (
+        <>
+            <PageHeader ghost={false} onBack={false} title={t('account.title')} />
+            <div className='container'>{content}</div>
         </>
     );
 };

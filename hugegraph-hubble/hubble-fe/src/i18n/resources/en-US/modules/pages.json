@@ -27,6 +27,7 @@
       "upload": "Upload",
       "download": "Download",
       "refresh": "Refresh",
+      "retry": "Retry",
       "submit": "Submit",
       "clear": "Clear",
       "next": "Next",
@@ -390,6 +391,50 @@
       "default_password_placeholder": "Enter a 5–16 character initial password",
       "permission": "Admin Permission",
       "permission_help": "Select the GraphSpaces this account may administer. HugeGraph roles control ordinary access"
+    },
+    "space_access": {
+      "global_tab": "Global Accounts",
+      "scoped_tab": "GraphSpace Access",
+      "graphspace": "GraphSpace",
+      "no_spaces": "No GraphSpaces are available for this account.",
+      "load_error": "Unable to load access data for this GraphSpace.",
+      "tabs": {
+        "members": "Members",
+        "roles": "Roles",
+        "targets": "Resource Targets",
+        "authorizations": "Authorizations"
+      },
+      "member": {
+        "add": "Add Member",
+        "dialog": "GraphSpace Member",
+        "id": "Account ID",
+        "name": "Account Name",
+        "roles": "Roles",
+        "remove_confirm": "Remove this member from the GraphSpace?"
+      },
+      "role": {
+        "add": "Create Role",
+        "dialog": "GraphSpace Role",
+        "name": "Role Name",
+        "description": "Description",
+        "delete_confirm": "Delete this role?"
+      },
+      "target": {
+        "add": "Create Resource Target",
+        "dialog": "Resource Target",
+        "name": "Target Name",
+        "graph": "Graph",
+        "description": "Description",
+        "resources": "Resource Rules (JSON)",
+        "resources_invalid": "Enter a valid JSON array of resource rules.",
+        "delete_confirm": "Delete this resource target?"
+      },
+      "authorization": {
+        "add": "Grant Authorization",
+        "dialog": "GraphSpace Authorization",
+        "permissions": "Permissions",
+        "delete_confirm": "Revoke this authorization?"
+      }
     }
   },
   "my": {

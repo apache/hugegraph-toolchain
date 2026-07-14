@@ -27,6 +27,7 @@
       "upload": "上传",
       "download": "下载",
       "refresh": "刷新",
+      "retry": "重试",
       "submit": "提交",
       "clear": "清空",
       "next": "下一步",
@@ -390,6 +391,50 @@
       "default_password_placeholder": "请输入 5–16 位初始密码",
       "permission": "管理权限",
       "permission_help": "选择该账号可以管理的图空间；普通访问权限由 HugeGraph 角色控制"
+    },
+    "space_access": {
+      "global_tab": "全局账号",
+      "scoped_tab": "GraphSpace 权限",
+      "graphspace": "GraphSpace",
+      "no_spaces": "当前账号没有可管理的 GraphSpace。",
+      "load_error": "无法加载该 GraphSpace 的权限数据。",
+      "tabs": {
+        "members": "成员",
+        "roles": "角色",
+        "targets": "资源目标",
+        "authorizations": "授权"
+      },
+      "member": {
+        "add": "添加成员",
+        "dialog": "GraphSpace 成员",
+        "id": "账号 ID",
+        "name": "账号名",
+        "roles": "角色",
+        "remove_confirm": "确定从该 GraphSpace 移除此成员吗？"
+      },
+      "role": {
+        "add": "创建角色",
+        "dialog": "GraphSpace 角色",
+        "name": "角色名称",
+        "description": "描述",
+        "delete_confirm": "确定删除此角色吗？"
+      },
+      "target": {
+        "add": "创建资源目标",
+        "dialog": "资源目标",
+        "name": "目标名称",
+        "graph": "图",
+        "description": "描述",
+        "resources": "资源规则（JSON）",
+        "resources_invalid": "请输入合法的资源规则 JSON 数组。",
+        "delete_confirm": "确定删除此资源目标吗？"
+      },
+      "authorization": {
+        "add": "添加授权",
+        "dialog": "GraphSpace 授权",
+        "permissions": "权限",
+        "delete_confirm": "确定撤销此授权吗？"
+      }
     }
   },
   "my": {
