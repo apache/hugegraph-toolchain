@@ -78,7 +78,7 @@ public class GraphSpaceUserController extends AuthController {
         return this.userService.getUser(client, graphSpace, userId);
     }
 
-    @PutMapping("spaceadmin/{id}")
+    @PostMapping("spaceadmin/{id}")
     public UserManager setGraphSpaceAdmin(
             @PathVariable("graphspace") String graphSpace,
             @PathVariable("id") String userId) {

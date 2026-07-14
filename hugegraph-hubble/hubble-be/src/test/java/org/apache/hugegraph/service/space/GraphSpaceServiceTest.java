@@ -119,6 +119,24 @@ public class GraphSpaceServiceTest {
     }
 
     @Test
+    public void testMetricsAcceptsIntegerAndLongCountValues() {
+        GraphSpaceService spy = Mockito.spy(this.service);
+        Mockito.doReturn(java.util.Collections.singletonList("space"))
+               .when(spy).listAll(this.client);
+        Map<String, Object> counts = new HashMap<>();
+        counts.put("vertex", Integer.valueOf(2));
+        counts.put("edge", Long.valueOf(3L));
+        Mockito.doReturn(counts).when(spy).evCount(this.client, "space");
+        Mockito.when(this.graphsService.listGraphNames(this.client, "space", ""))
+               .thenReturn(java.util.Collections.emptySet());
+
+        Map<String, Long> result = spy.metrics(this.client);
+
+        Assert.assertEquals(Long.valueOf(2L), result.get("vCount"));
+        Assert.assertEquals(Long.valueOf(3L), result.get("eCount"));
+    }
+
+    @Test
     public void testStatisticDoesNotClaimMixedDates() {
         LinkedHashSet<String> graphs = new LinkedHashSet<>();
         graphs.add("g1");

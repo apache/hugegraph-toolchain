@@ -78,8 +78,7 @@ public class JobManagerController {
                      "common.param.cannot-be-null-or-empty", "job_name");
             Ex.check(entity.getJobName().length() <= 48,
                      "job.manager.job-name.reached-limit");
-            Ex.check(true, () ->
-                     Constant.COMMON_NAME_PATTERN.matcher(
+            Ex.check(Constant.COMMON_NAME_PATTERN.matcher(
                      entity.getJobName()).matches(),
                      "job.manager.job-name.unmatch-regex");
             if (entity.getJobRemarks() == null) {
@@ -160,8 +159,7 @@ public class JobManagerController {
                  "common.param.cannot-be-null-or-empty", "job_name");
         Ex.check(newEntity.getJobName().length() <= 48,
                  "job.manager.job-name.reached-limit");
-        Ex.check(true, () ->
-                 Constant.COMMON_NAME_PATTERN.matcher(
+        Ex.check(Constant.COMMON_NAME_PATTERN.matcher(
                  newEntity.getJobName()).matches(),
                  "job.manager.job-name.unmatch-regex");
         if (newEntity.getJobRemarks() == null) {

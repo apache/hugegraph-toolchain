@@ -144,8 +144,6 @@ public class SampleGraphController extends BaseController {
             ".targetLabel('人物').properties('intimacy')" +
             ".ifNotExist().create();";
 
-    public static final String HLM_DATA = loadHlmData();
-
     @PostMapping
     public Map<String, Object> load(@PathVariable("graphspace") String graphSpace,
                                     @PathVariable("graph") String graph,
@@ -422,9 +420,18 @@ public class SampleGraphController extends BaseController {
 
     private static String data(String dataset) {
         if ("hlm".equals(dataset)) {
-            return HLM_DATA;
+            return hlmData();
         }
         return "rank".equals(dataset) ? RANK_DATA : LOADER_DATA;
+    }
+
+    public static String hlmData() {
+        return HlmDataHolder.DATA;
+    }
+
+    private static class HlmDataHolder {
+
+        private static final String DATA = loadHlmData();
     }
 
     private static String source(String dataset) {

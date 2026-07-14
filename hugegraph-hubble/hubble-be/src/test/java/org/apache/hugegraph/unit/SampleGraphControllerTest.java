@@ -34,6 +34,15 @@ import org.apache.hugegraph.testutil.Assert;
 public class SampleGraphControllerTest {
 
     @Test
+    public void testRedChamberDataIsNotEagerControllerState() {
+        boolean eagerField = java.util.Arrays.stream(
+                SampleGraphController.class.getDeclaredFields())
+                .anyMatch(field -> "HLM_DATA".equals(field.getName()));
+
+        Assert.assertFalse(eagerField);
+    }
+
+    @Test
     public void testLoadExecutesSchemaBeforeIdempotentData() {
         HugeClient client = Mockito.mock(HugeClient.class);
         GremlinManager gremlin = Mockito.mock(GremlinManager.class);
@@ -69,7 +78,7 @@ public class SampleGraphControllerTest {
         String schema = SampleGraphController.LOADER_SCHEMA +
                         SampleGraphController.HLM_SCHEMA;
         String data = SampleGraphController.LOADER_DATA +
-                      SampleGraphController.HLM_DATA;
+                      SampleGraphController.hlmData();
 
         Assert.assertTrue(schema.contains("ifNotExist()"));
         Assert.assertTrue(data.contains("fold().coalesce(unfold(),addV"));
@@ -77,9 +86,9 @@ public class SampleGraphControllerTest {
         Assert.assertTrue(data.contains(".hasNext()"));
         Assert.assertTrue(SampleGraphController.HLM_SCHEMA.contains(
                           ".primaryKeys('name')"));
-        Assert.assertTrue(SampleGraphController.HLM_DATA.contains(
+        Assert.assertTrue(SampleGraphController.hlmData().contains(
                           ".has('name','贾宝玉')"));
-        Assert.assertFalse(SampleGraphController.HLM_DATA.contains(
+        Assert.assertFalse(SampleGraphController.hlmData().contains(
                            "property(T.id"));
         Assert.assertFalse((schema + data).contains("clear"));
         Assert.assertFalse((schema + data).contains("drop("));
@@ -94,9 +103,9 @@ public class SampleGraphControllerTest {
                                            "coalesce(unfold(),addV"));
         Assert.assertEquals(6, occurrences(SampleGraphController.LOADER_DATA,
                                            ".addEdge("));
-        Assert.assertEquals(14, occurrences(SampleGraphController.HLM_DATA,
+        Assert.assertEquals(14, occurrences(SampleGraphController.hlmData(),
                                             "coalesce(unfold(),addV"));
-        Assert.assertEquals(15, occurrences(SampleGraphController.HLM_DATA,
+        Assert.assertEquals(15, occurrences(SampleGraphController.hlmData(),
                                             ".addEdge("));
     }
 
@@ -134,7 +143,7 @@ public class SampleGraphControllerTest {
         Assert.assertTrue(requests.getValue().gremlin.startsWith(
                           "// hugegraph-client:idempotent-traversal-fallback\n"));
         Assert.assertTrue(requests.getValue().gremlin.endsWith(
-                          SampleGraphController.HLM_DATA));
+                          SampleGraphController.hlmData()));
         Assert.assertEquals(14, result.get("vertices"));
         Assert.assertEquals(15, result.get("edges"));
     }

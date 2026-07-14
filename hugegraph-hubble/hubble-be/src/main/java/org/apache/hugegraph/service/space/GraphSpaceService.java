@@ -86,11 +86,11 @@ public class GraphSpaceService {
                 Map<String, Object> elVl = elAndVlCount(client, gs);
                 Map<String, Object> task = preDayTaskCount(client, gs);
 
-                vCount += (Long) ev.get("vertex");
-                eCount += (Long) ev.get("edge");
-                vlCount += (Long) elVl.get("vertexlabel");
-                elCount += (Long) elVl.get("edgelabel");
-                preDayTaskCount += (Long) task.get("task");
+                vCount += ((Number) ev.get("vertex")).longValue();
+                eCount += ((Number) ev.get("edge")).longValue();
+                vlCount += ((Number) elVl.get("vertexlabel")).longValue();
+                elCount += ((Number) elVl.get("edgelabel")).longValue();
+                preDayTaskCount += ((Number) task.get("task")).longValue();
 
                 gCount += Long.valueOf(
                         graphsService.listGraphNames(client, gs, "").size());

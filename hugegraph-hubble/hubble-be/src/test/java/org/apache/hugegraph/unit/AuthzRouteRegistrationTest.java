@@ -34,6 +34,8 @@ import org.apache.hugegraph.structure.auth.Target;
 import org.junit.Assert;
 import org.junit.Test;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -53,6 +55,17 @@ public class AuthzRouteRegistrationTest {
                          "graphspaces/{graphspace}/auth/belongs");
         assertController("org.apache.hugegraph.controller.auth.GraphSpaceUserController",
                          "graphspaces/{graphspace}/auth/users");
+    }
+
+    @Test
+    public void testSpaceAdminCreationUsesPost() throws Exception {
+        Class<?> type = Class.forName(
+                "org.apache.hugegraph.controller.auth.GraphSpaceUserController");
+        java.lang.reflect.Method method = type.getMethod(
+                "setGraphSpaceAdmin", String.class, String.class);
+
+        Assert.assertNotNull(method.getAnnotation(PostMapping.class));
+        Assert.assertNull(method.getAnnotation(PutMapping.class));
     }
 
     @Test
