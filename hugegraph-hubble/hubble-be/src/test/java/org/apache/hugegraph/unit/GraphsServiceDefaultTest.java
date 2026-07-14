@@ -29,6 +29,7 @@ import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import org.apache.hugegraph.api.graph.GraphMetricsAPI;
 import org.apache.hugegraph.driver.GraphManager;
 import org.apache.hugegraph.driver.GraphsManager;
 import org.apache.hugegraph.driver.HugeClient;
@@ -38,6 +39,7 @@ import org.apache.hugegraph.service.graphs.GraphsService;
 import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.structure.graph.Edge;
 import org.apache.hugegraph.structure.graph.Vertex;
+import org.apache.hugegraph.structure.gremlin.ResultSet;
 
 public class GraphsServiceDefaultTest {
 
@@ -197,5 +199,100 @@ public class GraphsServiceDefaultTest {
         }
 
         Mockito.verify(graph, Mockito.never()).iterateEdges(Mockito.anyInt());
+    }
+
+    @Test
+    public void testSmallStatisticsRejectsEmptyGremlinCountResponse() {
+        QueryService query = Mockito.mock(QueryService.class);
+        ResultSet empty = Mockito.mock(ResultSet.class);
+        Mockito.when(empty.data()).thenReturn(Collections.emptyList());
+        Mockito.when(query.executeQueryCount(Mockito.eq(this.client),
+                                             Mockito.anyString()))
+               .thenReturn(empty);
+        ReflectionTestUtils.setField(this.service, "queryService", query);
+
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        Mockito.when(this.client.graph()).thenReturn(graph);
+        Vertex vertex = Mockito.mock(Vertex.class);
+        Edge edge = Mockito.mock(Edge.class);
+        Mockito.when(vertex.label()).thenReturn("person");
+        Mockito.when(edge.label()).thenReturn("knows");
+        Mockito.when(graph.iterateVertices(1000))
+               .thenReturn(Collections.singletonList(vertex).iterator());
+        Mockito.when(graph.iterateEdges(1000))
+               .thenReturn(Collections.singletonList(edge).iterator());
+
+        GraphStatisticsEntity result =
+                this.service.postSmallStatistics(this.client, "DEFAULT", "demo");
+
+        Assert.assertEquals("1", result.getVertexCount());
+        Assert.assertEquals("1", result.getEdgeCount());
+    }
+
+    @Test
+    public void testElementCountPrefersAvailableDailySnapshot() {
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        Mockito.when(this.client.graph()).thenReturn(graph);
+        GraphMetricsAPI.ElementCount snapshot = new GraphMetricsAPI.ElementCount();
+        snapshot.setVertices(12L);
+        snapshot.setEdges(8L);
+        Mockito.when(graph.getEVCount(Mockito.anyString())).thenReturn(snapshot);
+
+        Map<String, Object> result =
+                this.service.evCount(this.client, "DEFAULT", "demo");
+
+        Assert.assertEquals(12L, result.get("vertex"));
+        Assert.assertEquals(8L, result.get("edge"));
+        Assert.assertNotNull(result.get("date"));
+        Mockito.verify(graph, Mockito.never()).iterateVertices(Mockito.anyInt());
+        Mockito.verify(graph, Mockito.never()).iterateEdges(Mockito.anyInt());
+    }
+
+    @Test
+    public void testElementCountFallsBackToLiveSmallGraph() {
+        QueryService query = Mockito.mock(QueryService.class);
+        ReflectionTestUtils.setField(this.service, "queryService", query);
+
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        Mockito.when(this.client.graph()).thenReturn(graph);
+        Mockito.when(graph.getEVCount(Mockito.anyString())).thenReturn(null);
+        Vertex vertex = Mockito.mock(Vertex.class);
+        Edge edge = Mockito.mock(Edge.class);
+        Mockito.when(vertex.label()).thenReturn("person");
+        Mockito.when(edge.label()).thenReturn("knows");
+        Mockito.when(graph.iterateVertices(1000))
+               .thenReturn(Collections.nCopies(7, vertex).iterator());
+        Mockito.when(graph.iterateEdges(1000))
+               .thenReturn(Collections.nCopies(6, edge).iterator());
+
+        Map<String, Object> result =
+                this.service.evCount(this.client, "DEFAULT", "demo");
+
+        Assert.assertEquals(7L, result.get("vertex"));
+        Assert.assertEquals(6L, result.get("edge"));
+        Assert.assertNotNull(result.get("date"));
+        Mockito.verifyZeroInteractions(query);
+    }
+
+    @Test
+    public void testElementCountReturnsUnavailableWhenLiveFallbackFails() {
+        QueryService query = Mockito.mock(QueryService.class);
+        Mockito.when(query.executeQueryCount(Mockito.eq(this.client),
+                                             Mockito.anyString()))
+               .thenThrow(new ExternalException("gremlin.execute.failed"));
+        ReflectionTestUtils.setField(this.service, "queryService", query);
+
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        Mockito.when(this.client.graph()).thenReturn(graph);
+        Mockito.when(graph.getEVCount(Mockito.anyString())).thenReturn(null);
+        Mockito.when(graph.iterateVertices(1000))
+               .thenThrow(new ExternalException("paging.unsupported"));
+
+        Map<String, Object> result =
+                this.service.evCount(this.client, "DEFAULT", "demo");
+
+        Assert.assertNull(result.get("vertex"));
+        Assert.assertNull(result.get("edge"));
+        Assert.assertNull(result.get("date"));
     }
 }
