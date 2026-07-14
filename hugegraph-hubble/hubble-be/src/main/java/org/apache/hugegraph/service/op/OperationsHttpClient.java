@@ -22,8 +22,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.InetAddress;
 import java.net.SocketTimeoutException;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.Locale;
@@ -61,18 +64,21 @@ public class OperationsHttpClient {
     public String get(URI target, String username, String password,
                       Set<String> allowedTargets, String accept) {
         validateTarget(target, allowedTargets);
+        URI resolvedTarget = resolveTarget(target);
         if (!"application/json".equals(accept) &&
             !"text/plain".equals(accept)) {
             throw new IllegalArgumentException("Invalid operations media type");
         }
         HttpURLConnection connection = null;
         try {
-            connection = (HttpURLConnection) target.toURL().openConnection();
+            connection = (HttpURLConnection) resolvedTarget.toURL()
+                                                         .openConnection();
             connection.setConnectTimeout(this.connectTimeoutMillis);
             connection.setReadTimeout(this.readTimeoutMillis);
             connection.setRequestMethod("GET");
             connection.setInstanceFollowRedirects(false);
             connection.setRequestProperty("Accept", accept);
+            connection.setRequestProperty("Host", target.getRawAuthority());
             if (username != null && !username.trim().isEmpty()) {
                 String credential = username + ':' +
                                     (password == null ? "" : password);
@@ -135,6 +141,43 @@ public class OperationsHttpClient {
             port = "https".equals(scheme) ? 443 : 80;
         }
         return normalizedHost(target) + ':' + port;
+    }
+
+    static URI resolveTarget(URI target) {
+        validateTarget(target, Set.of());
+        try {
+            InetAddress[] addresses = InetAddress.getAllByName(target.getHost());
+            validateResolvedAddresses(target.getHost(), addresses);
+            InetAddress pinned = addresses[0];
+            return new URI(target.getScheme(), null,
+                           pinned.getHostAddress(), target.getPort(),
+                           target.getPath(), target.getQuery(), null);
+        } catch (UnknownHostException | URISyntaxException e) {
+            throw new IllegalArgumentException("Unresolvable operations target",
+                                               e);
+        }
+    }
+
+    static void validateResolvedAddresses(String requestedHost,
+                                          InetAddress[] addresses) {
+        if (addresses == null || addresses.length == 0) {
+            throw new IllegalArgumentException("Unresolvable operations target");
+        }
+        boolean literal = isIpLiteral(requestedHost);
+        for (InetAddress address : addresses) {
+            if (address.isAnyLocalAddress() || address.isLinkLocalAddress() ||
+                address.isMulticastAddress() ||
+                address.isLoopbackAddress() && !literal) {
+                throw new IllegalArgumentException("Untrusted operations address");
+            }
+        }
+    }
+
+    private static boolean isIpLiteral(String host) {
+        if (host.indexOf(':') >= 0) {
+            return true;
+        }
+        return host.matches("(?:\\d{1,3}\\.){3}\\d{1,3}");
     }
 
     private static String normalizedHost(URI target) {

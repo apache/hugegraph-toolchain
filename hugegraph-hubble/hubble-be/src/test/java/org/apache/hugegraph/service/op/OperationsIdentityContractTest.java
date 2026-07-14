@@ -50,7 +50,7 @@ public class OperationsIdentityContractTest {
                 true, "http://pd.internal:8620", PD_USER, PD_SECRET,
                 STORE_USER, STORE_SECRET, "server-under-test", http,
                 new OperationsPayloadParser(new ObjectMapper()), CLOCK,
-                2, 1000);
+                2, 1000, Set.of("store.internal"));
         try {
             collector.collect(serverClient(), true);
         } finally {

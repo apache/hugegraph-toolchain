@@ -18,6 +18,14 @@
 
 package org.apache.hugegraph.handler;
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.List;
+import java.util.Map;
+import java.util.regex.Pattern;
+
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.exception.ExternalException;
@@ -45,11 +53,6 @@ import org.apache.hugegraph.util.JsonUtil;
 import org.apache.hugegraph.util.HubbleUtil;
 
 import lombok.extern.log4j.Log4j2;
-
-import java.util.List;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
 
 @Log4j2
 @RestControllerAdvice
@@ -141,9 +144,13 @@ public class ExceptionAdvisor {
     @ExceptionHandler(ServerException.class)
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(ServerException e) {
-        log.warn("HugeGraph Server request failed");
+        boolean operations = this.isOperationsRequest();
+        log.error("HugeGraph Server request failed: {}",
+                  operations ? safeStackTraceWithoutMessage(e) :
+                  safeStackTrace(e));
 
-        String message = safeServerMessage(e);
+        String message = operations ? safeServerMessage(e) :
+                         this.handleMessage(sanitize(e.getMessage()), null);
         closeRequestClient();
         return Response.builder()
                        .status(serverStatus(e.status()))
@@ -184,12 +191,17 @@ public class ExceptionAdvisor {
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(Exception e) {
+        boolean operations = this.isOperationsRequest();
         log.error("Unexpected request failure: {}",
-                  e.getClass().getSimpleName());
+                  operations ? safeStackTraceWithoutMessage(e) :
+                  safeStackTrace(e));
+        String message = operations ?
+                         "unexpected_request_failure" :
+                         this.handleMessage(sanitize(e.getMessage()), null);
         closeRequestClient();
         return Response.builder()
                        .status(Constant.STATUS_BAD_REQUEST)
-                       .message("unexpected_request_failure")
+                       .message(message)
                        .cause(null)
                        .build();
     }
@@ -251,6 +263,45 @@ public class ExceptionAdvisor {
     protected HttpServletRequest getRequest() {
         return ((ServletRequestAttributes)
                 RequestContextHolder.getRequestAttributes()).getRequest();
+    }
+
+    private boolean isOperationsRequest() {
+        HttpServletRequest request = this.getRequest();
+        return request != null && request.getRequestURI() != null &&
+               request.getRequestURI().startsWith("/api/v1.3/operations");
+    }
+
+    private static final Pattern URL = Pattern.compile(
+            "(?i)https?://[^\\s]+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern SECRET_PARAMETER = Pattern.compile(
+            "(?i)([?&\\s](?:token|password|endpoint)=)[^&\\s]+",
+            Pattern.CASE_INSENSITIVE);
+    private static final Pattern NETWORK_ENDPOINT = Pattern.compile(
+            "(?i)(?:/)?(?:\\d{1,3}\\.){3}\\d{1,3}:\\d+(?:/[^\\s]*)?");
+
+    static String safeStackTrace(Throwable failure) {
+        StringWriter output = new StringWriter();
+        failure.printStackTrace(new PrintWriter(output));
+        return sanitize(output.toString());
+    }
+
+    private static String safeStackTraceWithoutMessage(Throwable failure) {
+        StringBuilder output = new StringBuilder(failure.getClass().getName());
+        for (StackTraceElement frame : failure.getStackTrace()) {
+            output.append(System.lineSeparator()).append("\tat ").append(frame);
+        }
+        return output.toString();
+    }
+
+    private static String sanitize(String value) {
+        if (value == null) {
+            return "request_failure";
+        }
+        String sanitized = SECRET_PARAMETER.matcher(value)
+                                           .replaceAll("$1[REDACTED]");
+        sanitized = URL.matcher(sanitized).replaceAll("[REDACTED]");
+        return NETWORK_ENDPOINT.matcher(sanitized)
+                               .replaceAll("[REDACTED]");
     }
 
     public void closeRequestClient() {

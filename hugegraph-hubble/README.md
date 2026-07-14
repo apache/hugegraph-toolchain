@@ -37,6 +37,12 @@ shortcut. Build
 the release package with `mvnd package -DskipTests`; these development commands
 do not change packaged runtime behavior.
 
+Native Store metrics use an operator-managed host allowlist in addition to PD
+topology and metrics-target discovery. The packaged default
+`operations.store.allowed_hosts=[127.0.0.1,::1]` is only for local testing.
+Production deployments must explicitly list their trusted Store hostnames or
+literal addresses; discovery cannot add hosts to this allowlist.
+
 ## Functional Modules Overview
 
 ```mermaid

@@ -65,8 +65,7 @@ public class ExceptionAdvisorStatusTest {
 
     @Test
     public void testServerConnectionFailureDoesNotExposeAddress() {
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
-                new MockHttpServletRequest()));
+        operationsRequest();
         ServerException failure = new ServerException(
                 "Failed to connect to /127.0.0.1:8080/private");
         failure.status(HttpStatus.INTERNAL_SERVER_ERROR.value());
@@ -83,8 +82,7 @@ public class ExceptionAdvisorStatusTest {
 
     @Test
     public void testServerAuthenticationFailureKeepsStatusWithoutBody() {
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
-                new MockHttpServletRequest()));
+        operationsRequest();
         ServerException failure = new ServerException(
                                   "Authentication failed secret-canary");
         failure.status(HttpStatus.UNAUTHORIZED.value());
@@ -99,8 +97,7 @@ public class ExceptionAdvisorStatusTest {
 
     @Test
     public void testServerPermissionFailureKeepsStatusWithoutBody() {
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
-                new MockHttpServletRequest()));
+        operationsRequest();
         ServerException failure = new ServerException(
                                   "Forbidden http://user:secret@host/private");
         failure.status(HttpStatus.FORBIDDEN.value());
@@ -115,8 +112,7 @@ public class ExceptionAdvisorStatusTest {
 
     @Test
     public void testUnexpectedFailureUsesStableSafeMessage() {
-        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
-                new MockHttpServletRequest()));
+        operationsRequest();
         RuntimeException failure = new RuntimeException(
                 "http://user:secret@127.0.0.1:8080/private secret-canary");
 
@@ -127,6 +123,38 @@ public class ExceptionAdvisorStatusTest {
                             response.getMessage());
         Assert.assertFalse(response.getMessage().contains("127.0.0.1"));
         Assert.assertFalse(response.getMessage().contains("secret-canary"));
+    }
+
+    @Test
+    public void testNonOperationsBusinessErrorPreservesSafeMessage() {
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
+                new MockHttpServletRequest("GET", "/api/v1.3/graphs")));
+        ServerException failure = new ServerException("graph_not_found");
+        failure.status(HttpStatus.NOT_FOUND.value());
+
+        Response response = advisor().exceptionHandler(failure);
+
+        Assert.assertEquals("graph_not_found", response.getMessage());
+    }
+
+    @Test
+    public void testDiagnosticStackTraceRedactsCredentialsAndEndpoints() {
+        RuntimeException failure = new RuntimeException(
+                "http://user:secret@host/private?token=abc&password=xyz&" +
+                "endpoint=10.0.0.1:8080");
+
+        String diagnostic = ExceptionAdvisor.safeStackTrace(failure);
+
+        Assert.assertFalse(diagnostic.contains("secret"));
+        Assert.assertFalse(diagnostic.contains("abc"));
+        Assert.assertFalse(diagnostic.contains("xyz"));
+        Assert.assertFalse(diagnostic.contains("10.0.0.1"));
+        Assert.assertTrue(diagnostic.contains("[REDACTED]"));
+    }
+
+    private static void operationsRequest() {
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
+                new MockHttpServletRequest("GET", "/api/v1.3/operations/nodes")));
     }
 
     private static ExceptionAdvisor advisor() {

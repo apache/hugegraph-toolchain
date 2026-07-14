@@ -51,6 +51,7 @@ import org.apache.hugegraph.structure.auth.Role;
 import org.apache.hugegraph.structure.auth.Target;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -298,7 +299,7 @@ public class GraphSpaceAuthOwnershipTest {
     }
 
     @Test
-    public void testSpaceAdminAssignmentUsesPutAndNotGet() throws Exception {
+    public void testSpaceAdminAssignmentUsesPostOnly() throws Exception {
         UserService authorization = Mockito.mock(UserService.class);
         Mockito.when(authorization.isAssignSpaceAdmin(this.client, "SPACE"))
                .thenReturn(true);
@@ -313,6 +314,10 @@ public class GraphSpaceAuthOwnershipTest {
            .andExpect(status().isMethodNotAllowed());
         mvc.perform(put("/api/v1.3/graphspaces/SPACE/auth/users/" +
                         "spaceadmin/user-id")
+                    .contentType(MediaType.APPLICATION_JSON))
+           .andExpect(status().isMethodNotAllowed());
+        mvc.perform(post("/api/v1.3/graphspaces/SPACE/auth/users/" +
+                         "spaceadmin/user-id")
                     .contentType(MediaType.APPLICATION_JSON))
            .andExpect(status().isOk());
     }

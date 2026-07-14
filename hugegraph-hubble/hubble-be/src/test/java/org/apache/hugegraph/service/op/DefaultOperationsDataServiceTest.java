@@ -349,7 +349,8 @@ public class DefaultOperationsDataServiceTest {
                 forcedRefresh(service, capabilities, start);
             });
             Assert.assertTrue(collectorEntered.await(1, TimeUnit.SECONDS));
-            Assert.assertTrue(awaitWaiting(firstThread.get(), secondThread.get()));
+            Assert.assertTrue(awaitInFlightJoin(firstThread.get(),
+                                                secondThread.get()));
             Assert.assertEquals(1L, secondCollection.getCount());
             releaseCollector.countDown();
             first.get(2, TimeUnit.SECONDS);
@@ -362,10 +363,10 @@ public class DefaultOperationsDataServiceTest {
         Assert.assertEquals(1, calls.get());
     }
 
-    private static boolean awaitWaiting(Thread first, Thread second) {
+    private static boolean awaitInFlightJoin(Thread first, Thread second) {
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1L);
         while (System.nanoTime() < deadline) {
-            if (waiting(first) && waiting(second)) {
+            if (joiningInFlight(first) || joiningInFlight(second)) {
                 return true;
             }
             Thread.yield();
@@ -373,10 +374,15 @@ public class DefaultOperationsDataServiceTest {
         return false;
     }
 
-    private static boolean waiting(Thread thread) {
-        Thread.State state = thread.getState();
-        return state == Thread.State.WAITING ||
-               state == Thread.State.TIMED_WAITING;
+    private static boolean joiningInFlight(Thread thread) {
+        for (StackTraceElement frame : thread.getStackTrace()) {
+            if (DefaultOperationsDataService.class.getName()
+                                                  .equals(frame.getClassName()) &&
+                "await".equals(frame.getMethodName())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static void forcedRefresh(DefaultOperationsDataService service,

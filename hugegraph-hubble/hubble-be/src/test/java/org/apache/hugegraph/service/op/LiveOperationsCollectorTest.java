@@ -407,8 +407,9 @@ public class LiveOperationsCollectorTest {
     }
 
     @Test
-    public void testLegacySameHostTargetsAreAmbiguousAndNeverRead() {
-        RecordingHttpClient http = new RecordingHttpClient(stores(), targets(
+    public void testLegacyStoreWithoutRestAddressIsNeverRead() {
+        RecordingHttpClient http = new RecordingHttpClient(
+                                     storesWithoutRestAddress(), targets(
                                      "127.0.0.1:8520",
                                      "127.0.0.1:9520"));
         LiveOperationsCollector collector = collector(http, 4, 1000);
@@ -423,9 +424,9 @@ public class LiveOperationsCollectorTest {
         Assert.assertEquals("PARTIAL",
                             snapshot.getSources().get("stores")
                                     .getAvailability());
-        Assert.assertEquals("metrics_target_ambiguous",
+        Assert.assertEquals("metrics_target_missing",
                             snapshot.getSources().get("stores").getReason());
-        Assert.assertEquals("metrics_target_ambiguous",
+        Assert.assertEquals("metrics_target_missing",
                             store(snapshot).getMetricStatuses().get("system")
                                            .getReason());
     }
@@ -446,6 +447,76 @@ public class LiveOperationsCollectorTest {
         Assert.assertEquals(0, http.metricRequests());
         Assert.assertEquals("metrics_target_missing",
                             snapshot.getSources().get("stores").getReason());
+    }
+
+    @Test
+    public void testOperatorAllowlistRejectsPdDiscoveredHost() {
+        RecordingHttpClient http = new RecordingHttpClient(
+                storesWithRestAddresses(1, 8520),
+                targets("127.0.0.1:8520"));
+        LiveOperationsCollector collector = new LiveOperationsCollector(
+                true, "http://pd:8620", "hubble", "secret",
+                "store-hubble", "store-secret", "server-under-test", http,
+                new OperationsPayloadParser(new ObjectMapper()), CLOCK,
+                4, 1000, Collections.singleton("store.internal"));
+        Snapshot snapshot;
+        try {
+            snapshot = collector.collect(serverClient(), true);
+        } finally {
+            collector.close();
+        }
+
+        Assert.assertEquals(0, http.metricRequests());
+        Assert.assertEquals("metrics_target_untrusted",
+                            snapshot.getSources().get("stores").getReason());
+    }
+
+    @Test
+    public void testOperatorAllowlistAcceptsExactPrivateStoreHost() {
+        String stores = "{\"status\":0,\"data\":{\"stores\":[{" +
+                        "\"storeId\":\"1\",\"address\":" +
+                        "\"store.internal:8500\",\"restAddress\":" +
+                        "\"store.internal:8520\",\"state\":\"Up\"}]}}";
+        RecordingHttpClient http = new RecordingHttpClient(
+                                     stores, targets("store.internal:8520"));
+        LiveOperationsCollector collector = new LiveOperationsCollector(
+                true, "http://pd:8620", "hubble", "secret",
+                "store-hubble", "store-secret", "server-under-test", http,
+                new OperationsPayloadParser(new ObjectMapper()), CLOCK,
+                4, 1000, Collections.singleton("store.internal"));
+        Snapshot snapshot;
+        try {
+            snapshot = collector.collect(serverClient(), true);
+        } finally {
+            collector.close();
+        }
+
+        Assert.assertEquals(3, http.metricRequests());
+        Assert.assertEquals("AVAILABLE",
+                            snapshot.getSources().get("stores")
+                                    .getAvailability());
+    }
+
+    @Test
+    public void testDefaultOperatorAllowlistAcceptsIpv6Loopback() {
+        String stores = "{\"status\":0,\"data\":{\"stores\":[{" +
+                        "\"storeId\":\"1\",\"address\":" +
+                        "\"[::1]:8500\",\"restAddress\":\"[::1]:8520\"," +
+                        "\"state\":\"Up\"}]}}";
+        RecordingHttpClient http = new RecordingHttpClient(
+                                     stores, targets("[::1]:8520"));
+        LiveOperationsCollector collector = collector(http, 4, 1000);
+        Snapshot snapshot;
+        try {
+            snapshot = collector.collect(serverClient(), true);
+        } finally {
+            collector.close();
+        }
+
+        Assert.assertEquals(3, http.metricRequests());
+        Assert.assertEquals("AVAILABLE",
+                            snapshot.getSources().get("stores")
+                                    .getAvailability());
     }
 
     @Test
@@ -621,6 +692,8 @@ public class LiveOperationsCollectorTest {
                                        int storesStatus, String stores)
                                        throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
+        stores = stores.replace("PD_TEST_PORT",
+                                String.valueOf(server.getAddress().getPort()));
         context(server, "/v1/cluster", clusterStatus, cluster);
         context(server, "/v1/stores", storesStatus, stores);
         context(server, "/actuator/prometheus", 200,
@@ -674,6 +747,13 @@ public class LiveOperationsCollectorTest {
     }
 
     private static String stores() {
+        return "{\"status\":0,\"data\":{\"stores\":[{" +
+               "\"storeId\":\"1\",\"address\":\"127.0.0.1:8500\"," +
+               "\"restAddress\":\"127.0.0.1:PD_TEST_PORT\"," +
+               "\"state\":\"Up\"}]}}";
+    }
+
+    private static String storesWithoutRestAddress() {
         return "{\"status\":0,\"data\":{\"stores\":[{" +
                "\"storeId\":\"1\",\"address\":\"127.0.0.1:8500\"," +
                "\"state\":\"Up\"}]}}";

@@ -109,7 +109,8 @@ public class GraphSpaceServiceTest {
                .thenReturn(new LinkedHashSet<>(java.util.Collections
                                                        .singletonList("g1")));
         Mockito.when(this.graphsService.evCount(this.client, "space", "g1"))
-               .thenReturn(statistic("20260712", 2L, 3L));
+               .thenReturn(statistic("20260712", Integer.valueOf(2),
+                                     Long.valueOf(3L)));
 
         Map<String, Object> result = this.service.evCount(this.client, "space");
 
@@ -215,8 +216,8 @@ public class GraphSpaceServiceTest {
         Assert.assertEquals(0L, result.get("edge"));
     }
 
-    private static Map<String, Object> statistic(String date, long vertex,
-                                                 long edge) {
+    private static Map<String, Object> statistic(String date, Number vertex,
+                                                  Number edge) {
         Map<String, Object> statistic = new HashMap<>();
         statistic.put("date", date);
         statistic.put("vertex", vertex);

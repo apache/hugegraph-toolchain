@@ -157,7 +157,8 @@ public final class HugeClientPoolService {
             connection.setHost(host.getHost());
             connection.setPort(host.getPort());
         } catch (IllegalArgumentException e) {
-            throw new ParameterizedException("service_url_invalid", e);
+            throw new ParameterizedException("service.url.parse.error", e,
+                                             "[REDACTED]");
         }
 
         connection.setToken(token);

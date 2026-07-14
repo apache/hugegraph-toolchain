@@ -52,6 +52,9 @@ public class HubbleOptionsTest {
                             HubbleOptions.OPERATIONS_STORE_THREADS.defaultValue());
         Assert.assertEquals(5000,
                             HubbleOptions.OPERATIONS_STORE_DEADLINE.defaultValue());
+        Assert.assertEquals(java.util.Arrays.asList("127.0.0.1", "::1"),
+                            HubbleOptions.OPERATIONS_STORE_ALLOWED_HOSTS
+                                         .defaultValue());
         Assert.assertEquals("hubble",
                             HubbleOptions.OPERATIONS_PD_USERNAME.defaultValue());
         Assert.assertEquals("",
@@ -79,6 +82,19 @@ public class HubbleOptionsTest {
     public void testOperationsStoreFanoutLimitsArePositive() {
         assertPositive(HubbleOptions.OPERATIONS_STORE_THREADS);
         assertPositive(HubbleOptions.OPERATIONS_STORE_DEADLINE);
+    }
+
+    @Test
+    public void testOperationsStoreAllowedHostsRejectPortsAndPatterns() {
+        Assert.assertThrows(ConfigException.class, () ->
+                HubbleOptions.OPERATIONS_STORE_ALLOWED_HOSTS.parseConvert(
+                        "[store.internal:8520]"));
+        Assert.assertThrows(ConfigException.class, () ->
+                HubbleOptions.OPERATIONS_STORE_ALLOWED_HOSTS.parseConvert(
+                        "[*.internal]"));
+        Assert.assertEquals(java.util.Arrays.asList("store.internal", "::1"),
+                HubbleOptions.OPERATIONS_STORE_ALLOWED_HOSTS.parseConvert(
+                        "[store.internal,::1]"));
     }
 
     private static void assertPositive(ConfigOption<Integer> option) {

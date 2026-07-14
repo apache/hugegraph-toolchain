@@ -18,6 +18,8 @@
 
 package org.apache.hugegraph.options;
 
+import java.net.URI;
+
 import static org.apache.hugegraph.config.OptionChecker.allowValues;
 import static org.apache.hugegraph.config.OptionChecker.disallowEmpty;
 import static org.apache.hugegraph.config.OptionChecker.positiveInt;
@@ -365,6 +367,41 @@ public class HubbleOptions extends OptionHolder {
                     positiveInt(),
                     5000
             );
+
+    public static final ConfigListOption<String> OPERATIONS_STORE_ALLOWED_HOSTS =
+            new ConfigListOption<>(
+                    "operations.store.allowed_hosts",
+                    "Operator-managed Store metric host allowlist.",
+                    input -> !CollectionUtils.isEmpty(input) &&
+                             input.stream().allMatch(
+                                   HubbleOptions::validOperationsStoreHost),
+                    "127.0.0.1", "::1"
+            );
+
+    private static boolean validOperationsStoreHost(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return false;
+        }
+        String host = value.trim();
+        if (host.contains("/") || host.contains("@") || host.contains("?") ||
+            host.contains("#") || host.contains("*") ||
+            host.matches(".*\\s+.*")) {
+            return false;
+        }
+        if (host.startsWith("[") && host.endsWith("]")) {
+            host = host.substring(1, host.length() - 1);
+        } else if (host.startsWith("[") || host.endsWith("]")) {
+            return false;
+        }
+        if (host.indexOf(':') >= 0) {
+            try {
+                return URI.create("http://[" + host + "]:80").getHost() != null;
+            } catch (IllegalArgumentException e) {
+                return false;
+            }
+        }
+        return HubbleUtil.HOST_PATTERN.matcher(host).matches();
+    }
 
     public static final ConfigOption<String> OPERATIONS_PD_USERNAME =
             new ConfigOption<>(

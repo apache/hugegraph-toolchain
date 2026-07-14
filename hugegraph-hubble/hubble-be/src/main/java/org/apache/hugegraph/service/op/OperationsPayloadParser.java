@@ -54,24 +54,32 @@ public class OperationsPayloadParser {
         JsonNode stores = this.data(storesPayload, "pd_stores");
         List<Node> nodes = new ArrayList<>();
         Map<String, Node> pdNodes = new LinkedHashMap<>();
-        JsonNode leader = cluster.path("pdLeader");
-        String leaderId = leader.isObject() ? this.pdId(leader) : null;
-        JsonNode pdList = cluster.path("pdList");
-        if (pdList.isArray()) {
-            for (JsonNode pd : pdList) {
-                this.addPd(pdNodes, pd,
-                           leaderId != null && leaderId.equals(this.pdId(pd)),
-                           leaderId != null, observedAt);
-            }
+        JsonNode leader = cluster.get("pdLeader");
+        if (leader != null && !leader.isNull()) {
+            this.requireObject(leader, "pd_cluster");
         }
-        if (leader.isObject()) {
+        String leaderId = leader != null && leader.isObject() ?
+                          this.pdId(leader) : null;
+        JsonNode pdList = this.requiredArray(cluster, "pdList", "pd_cluster");
+        for (JsonNode pd : pdList) {
+            this.requireObject(pd, "pd_cluster");
+            this.addPd(pdNodes, pd,
+                       leaderId != null && leaderId.equals(this.pdId(pd)),
+                       leaderId != null, observedAt);
+        }
+        if (leader != null && leader.isObject()) {
             this.addPd(pdNodes, leader, true, true, observedAt);
         }
         nodes.addAll(pdNodes.values());
 
         Map<String, JsonNode> storeNodes = new LinkedHashMap<>();
-        this.indexStores(storeNodes, cluster.path("stores"));
-        this.indexStores(storeNodes, stores.path("stores"));
+        JsonNode clusterStores = cluster.get("stores");
+        if (clusterStores != null) {
+            this.indexStores(storeNodes, this.requiredArray(
+                             cluster, "stores", "pd_cluster"));
+        }
+        this.indexStores(storeNodes, this.requiredArray(
+                         stores, "stores", "pd_stores"));
         for (Map.Entry<String, JsonNode> entry : storeNodes.entrySet()) {
             nodes.add(this.store(entry.getKey(), entry.getValue(), observedAt));
         }
@@ -82,19 +90,17 @@ public class OperationsPayloadParser {
         this.putLong(facts, "replicas", cluster.get("shardCount"));
         this.putLong(facts, "stores", cluster.get("storeSize"));
         this.putLong(facts, "stores_up", cluster.get("onlineStoreSize"));
-        return new Topology(this.clusterStatus(cluster.path("state")),
+        return new Topology(this.clusterStatus(this.text(cluster, "state")),
                             nodes, facts);
     }
 
     public Map<String, String> parseStoreHosts(String storesPayload) {
         JsonNode stores = this.data(storesPayload, "pd_stores");
         Map<String, String> result = new LinkedHashMap<>();
-        JsonNode values = stores.path("stores");
-        if (!values.isArray()) {
-            return result;
-        }
+        JsonNode values = this.requiredArray(stores, "stores", "pd_stores");
         for (JsonNode store : values) {
-            String rawId = this.text(store, "storeId");
+            this.requireObject(store, "pd_stores");
+            String rawId = this.identity(store, "storeId");
             String address = this.text(store, "address");
             if (rawId == null || address == null) {
                 continue;
@@ -110,12 +116,10 @@ public class OperationsPayloadParser {
     public Map<String, String> parseStoreRestAddresses(String storesPayload) {
         JsonNode stores = this.data(storesPayload, "pd_stores");
         Map<String, String> result = new LinkedHashMap<>();
-        JsonNode values = stores.path("stores");
-        if (!values.isArray()) {
-            return result;
-        }
+        JsonNode values = this.requiredArray(stores, "stores", "pd_stores");
         for (JsonNode store : values) {
-            String rawId = this.text(store, "storeId");
+            this.requireObject(store, "pd_stores");
+            String rawId = this.identity(store, "storeId");
             String restAddress = this.text(store, "restAddress");
             if (rawId == null || restAddress == null) {
                 continue;
@@ -140,7 +144,9 @@ public class OperationsPayloadParser {
             }
             Map<String, URI> result = new LinkedHashMap<>();
             for (JsonNode group : root) {
-                JsonNode labels = group.path("labels");
+                this.requireObject(group, "pd_prom_targets");
+                JsonNode labels = group.get("labels");
+                this.requireObject(labels, "pd_prom_targets");
                 if (!"store".equals(this.text(labels, "__app_name"))) {
                     continue;
                 }
@@ -148,12 +154,14 @@ public class OperationsPayloadParser {
                 if (scheme == null) {
                     scheme = "http";
                 }
-                JsonNode targets = group.path("targets");
-                if (!targets.isArray()) {
-                    continue;
-                }
+                JsonNode targets = this.requiredArray(group, "targets",
+                                                      "pd_prom_targets");
                 for (JsonNode target : targets) {
-                    String authority = target.asText("").trim();
+                    if (!target.isTextual()) {
+                        throw new MalformedUpstreamException(
+                                  "pd_prom_targets");
+                    }
+                    String authority = target.textValue().trim();
                     URI uri = URI.create(scheme + "://" + authority);
                     OperationsHttpClient.validateTarget(uri,
                                                         Collections.emptySet());
@@ -283,11 +291,9 @@ public class OperationsPayloadParser {
     }
 
     private void indexStores(Map<String, JsonNode> stores, JsonNode values) {
-        if (!values.isArray()) {
-            return;
-        }
         for (JsonNode store : values) {
-            String id = this.text(store, "storeId");
+            this.requireObject(store, "pd_stores");
+            String id = this.identity(store, "storeId");
             if (id != null) {
                 stores.put(id, store);
             }
@@ -473,18 +479,48 @@ public class OperationsPayloadParser {
 
     private String text(JsonNode node, String field) {
         JsonNode value = node.get(field);
-        if (value == null || value.isNull() || value.isContainerNode()) {
+        if (value == null || value.isNull()) {
             return null;
+        }
+        if (!value.isTextual()) {
+            throw new MalformedUpstreamException("upstream_field_" + field);
         }
         String text = value.asText().trim();
         return text.isEmpty() ? null : text;
     }
 
-    private String clusterStatus(JsonNode state) {
-        if (state == null || state.isMissingNode()) {
+    private String identity(JsonNode node, String field) {
+        JsonNode value = node.get(field);
+        if (value == null || value.isNull()) {
+            return null;
+        }
+        if (!value.isTextual() && !value.isIntegralNumber()) {
+            throw new MalformedUpstreamException("upstream_field_" + field);
+        }
+        String identity = value.asText().trim();
+        return identity.isEmpty() ? null : identity;
+    }
+
+    private JsonNode requiredArray(JsonNode parent, String field,
+                                   String source) {
+        JsonNode value = parent.get(field);
+        if (value == null || !value.isArray()) {
+            throw new MalformedUpstreamException(source);
+        }
+        return value;
+    }
+
+    private void requireObject(JsonNode value, String source) {
+        if (value == null || !value.isObject()) {
+            throw new MalformedUpstreamException(source);
+        }
+    }
+
+    private String clusterStatus(String state) {
+        if (state == null) {
             return "UNKNOWN";
         }
-        String value = state.asText("").toUpperCase(Locale.ROOT);
+        String value = state.toUpperCase(Locale.ROOT);
         if (value.contains("OK") || value.equals("UP")) {
             return "UP";
         }

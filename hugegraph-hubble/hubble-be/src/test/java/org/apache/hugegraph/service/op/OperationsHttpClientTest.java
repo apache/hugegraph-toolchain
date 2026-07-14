@@ -20,6 +20,7 @@ package org.apache.hugegraph.service.op;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.net.InetAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
@@ -42,6 +43,38 @@ public class OperationsHttpClientTest {
     public void testRejectsTargetOutsideDiscoverySet() {
         OperationsHttpClient.validateTarget(URI.create("http://127.0.0.1:9"),
                 Collections.singleton("127.0.0.1:10"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRejectsMetadataAddress() {
+        OperationsHttpClient.resolveTarget(
+                URI.create("http://169.254.169.254/latest/meta-data"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRejectsIpv6LinkLocalAddress() {
+        OperationsHttpClient.resolveTarget(URI.create("http://[fe80::1]:8520"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRejectsMixedSafeAndLinkLocalDnsAnswers() throws IOException {
+        OperationsHttpClient.validateResolvedAddresses("store.internal",
+                new InetAddress[]{
+                InetAddress.getByName("127.0.0.1"),
+                InetAddress.getByName("169.254.169.254")
+        });
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testRejectsHostnameResolvingToLoopback() {
+        OperationsHttpClient.resolveTarget(
+                URI.create("http://localhost:8520/metrics/system"));
+    }
+
+    @Test
+    public void testAllowsConfiguredPrivateHostnameResolution() throws IOException {
+        OperationsHttpClient.validateResolvedAddresses("store.internal",
+                new InetAddress[]{InetAddress.getByName("10.0.0.8")});
     }
 
     @Test(expected = UpstreamRequestException.class)

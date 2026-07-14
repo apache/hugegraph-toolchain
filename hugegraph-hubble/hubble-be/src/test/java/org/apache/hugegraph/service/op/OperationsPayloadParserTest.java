@@ -237,4 +237,45 @@ public class OperationsPayloadParserTest {
         parser.parseTopology("{\"status\":0,\"data\":[]}",
                              "{\"status\":0,\"data\":{\"stores\":[]}}");
     }
+
+    @Test(expected = MalformedUpstreamException.class)
+    public void testRejectsNonArrayPdList() {
+        OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
+
+        parser.parseTopology("{\"status\":0,\"data\":{\"pdList\":{}}}",
+                             "{\"status\":0,\"data\":{\"stores\":[]}}");
+    }
+
+    @Test(expected = MalformedUpstreamException.class)
+    public void testRejectsNonArrayStores() {
+        OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
+
+        parser.parseTopology("{\"status\":0,\"data\":{\"pdList\":[]}}",
+                             "{\"status\":0,\"data\":{\"stores\":{}}}");
+    }
+
+    @Test(expected = MalformedUpstreamException.class)
+    public void testRejectsNonObjectTopologyElement() {
+        OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
+
+        parser.parseTopology("{\"status\":0,\"data\":{\"pdList\":[1]}}",
+                             "{\"status\":0,\"data\":{\"stores\":[]}}");
+    }
+
+    @Test(expected = MalformedUpstreamException.class)
+    public void testRejectsBooleanTextField() {
+        OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
+
+        parser.parseTopology("{\"status\":0,\"data\":{\"pdList\":[{" +
+                             "\"restUrl\":true}]}}",
+                             "{\"status\":0,\"data\":{\"stores\":[]}}");
+    }
+
+    @Test(expected = MalformedUpstreamException.class)
+    public void testRejectsNumericPrometheusTarget() {
+        OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
+
+        parser.parseStoreMetricTargets("[{\"targets\":[8520],\"labels\":{" +
+                                       "\"__app_name\":\"store\"}}]");
+    }
 }

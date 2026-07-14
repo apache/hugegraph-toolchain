@@ -219,8 +219,8 @@ public class GraphSpaceService {
                 statisticDate = null;
             }
 
-            vertexTotal += (long) graphEvCount.get("vertex");
-            edgeTotal += (long) graphEvCount.get("edge");
+            vertexTotal += ((Number) graphEvCount.get("vertex")).longValue();
+            edgeTotal += ((Number) graphEvCount.get("edge")).longValue();
         }
         if (graphs.isEmpty()) {
             statisticDate = HubbleUtil.dateFormatDay(HubbleUtil.nowDate());

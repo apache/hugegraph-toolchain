@@ -208,8 +208,9 @@ public class HugeClientPoolServiceTest {
             this.service.create(raw, GRAPH_SPACE, SERVICE, "token");
             Assert.fail("Expected invalid service URL to be rejected");
         } catch (ParameterizedException e) {
-            Assert.assertEquals("service_url_invalid", e.getMessage());
-            Assert.assertEquals(0, e.args().length);
+            Assert.assertEquals("service.url.parse.error", e.getMessage());
+            Assert.assertEquals(1, e.args().length);
+            Assert.assertEquals("[REDACTED]", e.args()[0]);
             Assert.assertFalse(e.toString().contains("user"));
             Assert.assertFalse(e.toString().contains("secret"));
             Assert.assertFalse(e.toString().contains("malformed"));
