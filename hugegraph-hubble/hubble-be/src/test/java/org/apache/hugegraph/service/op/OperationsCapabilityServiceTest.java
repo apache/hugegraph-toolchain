@@ -36,13 +36,11 @@ public class OperationsCapabilityServiceTest {
     }
 
     @Test
-    public void testSpaceAdminReceivesOnlyRedactedHealth() {
+    public void testSpaceAdminHasNoGlobalOperationsCapability() {
         Set<String> capabilities = OperationsCapabilityService.forLevel(
                                            "SPACEADMIN");
 
-        Assert.assertTrue(capabilities.contains("operations_health_read"));
-        Assert.assertFalse(capabilities.contains("operations_topology_read"));
-        Assert.assertFalse(capabilities.contains("operations_metrics_read"));
+        Assert.assertTrue(capabilities.isEmpty());
     }
 
     @Test

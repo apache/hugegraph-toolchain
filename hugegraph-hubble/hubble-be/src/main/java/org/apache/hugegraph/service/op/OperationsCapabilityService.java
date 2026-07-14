@@ -39,8 +39,6 @@ public final class OperationsCapabilityService {
             capabilities.add(HEALTH_READ);
             capabilities.add(TOPOLOGY_READ);
             capabilities.add(METRICS_READ);
-        } else if ("SPACEADMIN".equals(level)) {
-            capabilities.add(HEALTH_READ);
         }
         return Collections.unmodifiableSet(capabilities);
     }

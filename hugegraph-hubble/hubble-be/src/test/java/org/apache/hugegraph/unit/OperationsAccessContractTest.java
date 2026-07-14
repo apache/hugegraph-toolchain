@@ -34,7 +34,6 @@ import org.apache.hugegraph.handler.ExceptionAdvisor;
 import org.apache.hugegraph.handler.LoginInterceptor;
 import org.apache.hugegraph.handler.MessageSourceHandler;
 import org.apache.hugegraph.service.auth.UserService;
-import org.apache.hugegraph.service.op.OperationsCapabilityService;
 import org.apache.hugegraph.service.op.OperationsDataService;
 import org.apache.hugegraph.service.op.OperationsNodeNotFoundException;
 import org.junit.Before;
@@ -94,9 +93,7 @@ public class OperationsAccessContractTest {
         this.mvc.perform(authGet("/api/v1.3/operations/capabilities",
                                  "spaceadmin", "token-space"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.capabilities.length()").value(1))
-                .andExpect(jsonPath("$.capabilities[0]").value(
-                           OperationsCapabilityService.HEALTH_READ));
+                .andExpect(jsonPath("$.capabilities.length()").value(0));
         this.mvc.perform(authGet("/api/v1.3/operations/capabilities",
                                  "ordinary", "token-user"))
                 .andExpect(status().isOk())
@@ -119,8 +116,8 @@ public class OperationsAccessContractTest {
                 .andExpect(jsonPath("$.status").value(403));
         this.mvc.perform(authGet("/api/v1.3/operations/overview",
                                  "spaceadmin", "token-space"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("UP"));
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
     }
 
     @Test
