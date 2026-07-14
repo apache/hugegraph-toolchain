@@ -24,6 +24,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import org.apache.hugegraph.common.Identifiable;
 
@@ -49,6 +50,7 @@ public class UserEntity implements Identifiable {
     private String email;
 
     @JsonProperty(value = "user_password", access = JsonProperty.Access.WRITE_ONLY)
+    @ToString.Exclude
     private String password;
 
     @JsonProperty("user_phone")

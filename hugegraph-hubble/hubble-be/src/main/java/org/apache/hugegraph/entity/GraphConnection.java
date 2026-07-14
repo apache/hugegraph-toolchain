@@ -28,6 +28,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 import org.apache.hugegraph.annotation.MergeProperty;
 import org.apache.hugegraph.common.Identifiable;
 import org.apache.hugegraph.common.Mergeable;
@@ -88,10 +89,12 @@ public class GraphConnection implements Identifiable, Mergeable {
 
     @MergeProperty
     @JsonProperty("password")
+    @ToString.Exclude
     private String password;
 
     @MergeProperty
     @JsonProperty("token")
+    @ToString.Exclude
     private String token;
 
     @MergeProperty(useNew = false)
@@ -119,6 +122,7 @@ public class GraphConnection implements Identifiable, Mergeable {
     @TableField(exist = false)
     @MergeProperty(useNew = false)
     @JsonProperty("truststore_password")
+    @ToString.Exclude
     private String trustStorePassword;
 
     public String getGraphId() {

@@ -23,6 +23,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Data
 @NoArgsConstructor
@@ -34,8 +35,10 @@ public class PasswordEntity {
     private String username;
 
     @JsonProperty("oldpwd")
+    @ToString.Exclude
     private String oldpwd;
 
     @JsonProperty("newpwd")
+    @ToString.Exclude
     private String newpwd;
 }

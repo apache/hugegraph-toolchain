@@ -48,7 +48,7 @@ public class BelongController extends AuthController {
             @PathVariable("graphspace") String graphSpace,
             @RequestParam(value = "role_id", required = false) String roleId,
             @RequestParam(value = "user_id", required = false) String userId) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.belongService.list(client, graphSpace, roleId, userId);
     }
 
@@ -61,7 +61,7 @@ public class BelongController extends AuthController {
                           defaultValue = "1") int pageNo,
             @RequestParam(name = "page_size", required = false,
                           defaultValue = "10") int pageSize) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.belongService.listPage(client, graphSpace, roleId, userId,
                                            pageNo, pageSize);
     }
@@ -69,7 +69,7 @@ public class BelongController extends AuthController {
     @GetMapping("{id}")
     public BelongEntity get(@PathVariable("graphspace") String graphSpace,
                             @PathVariable("id") String belongId) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.belongService.get(client, graphSpace, belongId);
     }
 

@@ -47,14 +47,14 @@ public class AccessController extends AuthController {
             @PathVariable("graphspace") String graphSpace,
             @RequestParam(value = "role_id", required = false) String roleId,
             @RequestParam(value = "target_id", required = false) String targetId) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.accessService.list(client, graphSpace, roleId, targetId);
     }
 
     @GetMapping("{id}")
     public AccessEntity get(@PathVariable("graphspace") String graphSpace,
                             @PathVariable("id") String accessId) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.accessService.get(client, graphSpace, accessId);
     }
 

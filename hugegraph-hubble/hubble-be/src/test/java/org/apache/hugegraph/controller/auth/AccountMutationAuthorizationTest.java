@@ -35,6 +35,7 @@ import org.apache.hugegraph.controller.BaseController;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.auth.UserEntity;
 import org.apache.hugegraph.entity.auth.UserView;
+import org.apache.hugegraph.entity.auth.PasswordEntity;
 import org.apache.hugegraph.exception.ForbiddenException;
 import org.apache.hugegraph.exception.ParameterizedException;
 import org.apache.hugegraph.handler.ExceptionAdvisor;
@@ -73,6 +74,46 @@ public class AccountMutationAuthorizationTest {
                                            .contains("manage accounts"));
         Mockito.verify(this.authorizationService, Mockito.never())
                .add(Mockito.any(), Mockito.any());
+    }
+
+    @Test
+    public void testOnlySuperadminCanReadGlobalAccountDirectory() {
+        TestUserController ordinary = accountController("alice", "USER");
+        assertGlobalAccountReadsForbidden(ordinary);
+
+        TestUserController spaceAdmin = accountController("manager",
+                                                          "SPACEADMIN");
+        assertGlobalAccountReadsForbidden(spaceAdmin);
+
+        TestUserController superadmin = accountController("admin", "ADMIN");
+        superadmin.list();
+        superadmin.queryPage("", 1, 10);
+        superadmin.get("bob-id");
+        superadmin.listadminspace("bob");
+    }
+
+    @Test
+    public void testPasswordUpdateIsBoundToCurrentSessionIdentity() {
+        TestUserController controller = accountController("alice", "USER");
+        PasswordEntity foreign = PasswordEntity.builder()
+                                               .username("bob")
+                                               .oldpwd("old")
+                                               .newpwd("new")
+                                               .build();
+
+        assertForbidden(() -> controller.updatepwd(foreign));
+        Mockito.verify(this.authorizationService, Mockito.never())
+               .updatepwd(Mockito.any(), Mockito.anyString(),
+                          Mockito.anyString(), Mockito.anyString());
+
+        PasswordEntity own = PasswordEntity.builder()
+                                           .username("alice")
+                                           .oldpwd("old")
+                                           .newpwd("new")
+                                           .build();
+        controller.updatepwd(own);
+        Mockito.verify(this.authorizationService)
+               .updatepwd(this.client, "alice", "old", "new");
     }
 
     @Test
@@ -524,6 +565,14 @@ public class AccountMutationAuthorizationTest {
         Mockito.when(this.authorizationService.isSuperAdmin(this.client))
                .thenReturn("ADMIN".equals(level));
         return controller;
+    }
+
+    private static void assertGlobalAccountReadsForbidden(
+            TestUserController controller) {
+        assertForbidden(controller::list);
+        assertForbidden(() -> controller.queryPage("", 1, 10));
+        assertForbidden(() -> controller.get("bob-id"));
+        assertForbidden(() -> controller.listadminspace("bob"));
     }
 
     private static ForbiddenException assertForbidden(Action action) {

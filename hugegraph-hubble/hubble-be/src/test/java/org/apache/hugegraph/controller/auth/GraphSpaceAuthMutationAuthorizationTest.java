@@ -33,6 +33,7 @@ import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.handler.ExceptionAdvisor;
 import org.apache.hugegraph.service.auth.AccessService;
 import org.apache.hugegraph.service.auth.BelongService;
+import org.apache.hugegraph.service.auth.GraphSpaceUserService;
 import org.apache.hugegraph.service.auth.RoleService;
 import org.apache.hugegraph.service.auth.TargetService;
 import org.apache.hugegraph.service.auth.UserService;
@@ -85,6 +86,12 @@ public class GraphSpaceAuthMutationAuthorizationTest {
     }
 
     @Test
+    public void testOrdinaryUserCannotReadScopedAuthorizationResources()
+            throws Exception {
+        this.assertScopedReadsForbidden();
+    }
+
+    @Test
     public void testOrdinaryUserCannotMutateRoles() throws Exception {
         RoleController controller = this.prepare(new TestRoleController(
                 this.client), "roleService", Mockito.mock(RoleService.class));
@@ -133,7 +140,7 @@ public class GraphSpaceAuthMutationAuthorizationTest {
     }
 
     @Test
-    public void testCurrentSpaceAdminCanMutateScopedResourcesButNotGlobalRoles()
+    public void testCurrentSpaceAdminCanManageScopedAuthorizationResources()
             throws Exception {
         Mockito.when(this.authorizationService.isAssignSpaceAdmin(
                 this.client, "SPACE"))
@@ -142,14 +149,8 @@ public class GraphSpaceAuthMutationAuthorizationTest {
                 Mockito.eq(this.client), Mockito.any()))
                .thenReturn("SPACEADMIN");
 
+        this.assertScopedReadsAllowed();
         this.assertScopedCreatesAllowed();
-        RoleController role = this.prepare(new TestRoleController(
-                this.client), "roleService", Mockito.mock(RoleService.class));
-        assertForbidden(mvc(role),
-                post("/api/v1.3/graphspaces/SPACE/auth/roles")
-                        .contentType(MediaType.APPLICATION_JSON).content("{}"));
-        assertForbidden(mvc(role),
-                get("/api/v1.3/graphspaces/SPACE/auth/roles"));
     }
 
     @Test
@@ -180,6 +181,45 @@ public class GraphSpaceAuthMutationAuthorizationTest {
         assertForbidden(mvc(controller),
                 post("/api/v1.3/graphspaces/SPACE/auth/roles")
                         .contentType(MediaType.APPLICATION_JSON).content("{}"));
+        this.assertScopedReadsForbidden();
+    }
+
+    private void assertScopedReadsAllowed() throws Exception {
+        for (ReadRoute route : this.scopedReadRoutes()) {
+            mvc(route.controller).perform(route.request)
+                                 .andExpect(status().isOk());
+        }
+    }
+
+    private void assertScopedReadsForbidden() throws Exception {
+        for (ReadRoute route : this.scopedReadRoutes()) {
+            assertForbidden(mvc(route.controller), route.request);
+        }
+    }
+
+    private ReadRoute[] scopedReadRoutes() {
+        return new ReadRoute[]{
+                new ReadRoute(this.prepare(new TestBelongController(
+                        this.client), "belongService",
+                        Mockito.mock(BelongService.class)),
+                              get("/api/v1.3/graphspaces/SPACE/auth/belongs")),
+                new ReadRoute(this.prepare(new TestRoleController(
+                        this.client), "roleService",
+                        Mockito.mock(RoleService.class)),
+                              get("/api/v1.3/graphspaces/SPACE/auth/roles")),
+                new ReadRoute(this.prepare(new TestAccessController(
+                        this.client), "accessService",
+                        Mockito.mock(AccessService.class)),
+                              get("/api/v1.3/graphspaces/SPACE/auth/accesses")),
+                new ReadRoute(this.prepare(new TestTargetController(
+                        this.client), "targetService",
+                        Mockito.mock(TargetService.class)),
+                              get("/api/v1.3/graphspaces/SPACE/auth/targets")),
+                new ReadRoute(this.prepare(new TestGraphSpaceUserController(
+                        this.client), "userService",
+                        Mockito.mock(GraphSpaceUserService.class)),
+                              get("/api/v1.3/graphspaces/SPACE/auth/users"))
+        };
     }
 
     private void assertScopedCreatesAllowed() throws Exception {
@@ -287,6 +327,32 @@ public class GraphSpaceAuthMutationAuthorizationTest {
         @Override
         protected HugeClient authClient(String graphSpace, String graph) {
             return this.client;
+        }
+    }
+
+    private static class TestGraphSpaceUserController
+            extends GraphSpaceUserController {
+
+        private final HugeClient client;
+
+        TestGraphSpaceUserController(HugeClient client) {
+            this.client = client;
+        }
+
+        @Override
+        protected HugeClient authClient(String graphSpace, String graph) {
+            return this.client;
+        }
+    }
+
+    private static class ReadRoute {
+
+        private final Object controller;
+        private final RequestBuilder request;
+
+        ReadRoute(Object controller, RequestBuilder request) {
+            this.controller = controller;
+            this.request = request;
         }
     }
 }

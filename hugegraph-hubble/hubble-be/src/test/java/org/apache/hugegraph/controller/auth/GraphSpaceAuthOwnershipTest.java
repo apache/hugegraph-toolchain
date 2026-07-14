@@ -18,7 +18,9 @@
 package org.apache.hugegraph.controller.auth;
 
 import java.lang.reflect.Field;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +37,9 @@ import org.apache.hugegraph.driver.AuthManager;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.auth.AccessEntity;
 import org.apache.hugegraph.entity.auth.BelongEntity;
+import org.apache.hugegraph.entity.auth.RoleEntity;
 import org.apache.hugegraph.entity.auth.UserEntity;
+import org.apache.hugegraph.entity.auth.UserView;
 import org.apache.hugegraph.exception.ForbiddenException;
 import org.apache.hugegraph.service.auth.AccessService;
 import org.apache.hugegraph.service.auth.BelongService;
@@ -68,16 +72,130 @@ public class GraphSpaceAuthOwnershipTest {
     }
 
     @Test
-    public void testGlobalGroupsAreNotPresentedAsSpaceOwnedRoles() {
-        Group group = new Group();
-        group.setId("group-id");
-        group.name("operators");
+    public void testScopedRolesPersistOwnershipAndHideInternalMarker() {
+        Mockito.when(this.auth.createGroup(Mockito.any(Group.class)))
+               .thenAnswer(invocation -> {
+                   Group group = invocation.getArgument(0);
+                   group.setId("role-id");
+                   return group;
+               });
+        Role request = new Role();
+        request.name("operators");
+        request.description("Operate this space");
+
+        Role created = new RoleService().insert(this.client, "SPACE_A",
+                                                request);
+
+        ArgumentCaptor<Group> persisted = ArgumentCaptor.forClass(Group.class);
+        Mockito.verify(this.auth).createGroup(persisted.capture());
+        Assert.assertNotEquals("operators", persisted.getValue().name());
+        Assert.assertTrue(persisted.getValue().name()
+                                   .startsWith("~hubble_role:v1:"));
+        Assert.assertEquals("SPACE_A", created.graphSpace());
+        Assert.assertEquals("operators", created.name());
+        Assert.assertEquals("Operate this space", created.description());
+    }
+
+    @Test
+    public void testScopedRoleListsFilterForeignAndLegacyGroups() {
+        List<Group> created = this.createScopedGroups("SPACE_A", "SPACE_B");
+        Group legacy = group("legacy-id", "legacy-role");
         Mockito.when(this.auth.listGroups())
-               .thenReturn(Collections.singletonList(group));
+               .thenReturn(Arrays.asList(created.get(0), created.get(1),
+                                         legacy));
+        RoleService service = new RoleService();
 
-        Role role = new RoleService().list(this.client, "SPACE").get(0);
+        List<Role> scoped = service.list(this.client, "SPACE_A", false);
+        List<Role> superadmin = service.list(this.client, "SPACE_A", true);
 
-        Assert.assertNull(role.graphSpace());
+        Assert.assertEquals(1, scoped.size());
+        Assert.assertEquals("SPACE_A", scoped.get(0).graphSpace());
+        Assert.assertEquals(2, superadmin.size());
+        Assert.assertNull(superadmin.get(1).graphSpace());
+    }
+
+    @Test
+    public void testScopedRoleGetRejectsForeignAndLegacyForSpaceAdmin() {
+        List<Group> created = this.createScopedGroups("SPACE_A", "SPACE_B");
+        Mockito.when(this.auth.getGroup("foreign-id"))
+               .thenReturn(created.get(1));
+        Mockito.when(this.auth.getGroup("legacy-id"))
+               .thenReturn(group("legacy-id", "legacy-role"));
+        RoleService service = new RoleService();
+
+        assertForbidden(() -> service.get(this.client, "SPACE_A",
+                                           "foreign-id", false));
+        assertForbidden(() -> service.get(this.client, "SPACE_A",
+                                           "legacy-id", false));
+        Assert.assertNull(service.get(this.client, "SPACE_A", "legacy-id",
+                                      true).graphSpace());
+    }
+
+    @Test
+    public void testScopedRoleUpdateKeepsImmutableGroupName() {
+        Group group = this.createScopedGroups("SPACE_A").get(0);
+        Mockito.when(this.auth.getGroup("role-id")).thenReturn(group);
+        Mockito.when(this.auth.updateGroup(Mockito.any(Group.class)))
+               .thenAnswer(invocation -> invocation.getArgument(0));
+        Role update = new Role();
+        update.setId("role-id");
+        update.name("renamed");
+        update.description("updated");
+        String persistedName = group.name();
+
+        Role result = new RoleService().update(this.client, "SPACE_A",
+                                               update, false);
+
+        Assert.assertEquals(persistedName, group.name());
+        Assert.assertEquals("renamed", result.name());
+        Assert.assertEquals("updated", result.description());
+    }
+
+    @Test
+    public void testScopedRoleDeletePreflightsEveryReference() {
+        Group group = this.createScopedGroups("SPACE_A").get(0);
+        Mockito.when(this.auth.getGroup("role-id")).thenReturn(group);
+        Access local = access("local-access", "SPACE_A");
+        Access foreign = access("foreign-access", "SPACE_B");
+        Mockito.when(this.auth.listAccessesByGroup(group, -1))
+               .thenReturn(Arrays.asList(local, foreign));
+        Mockito.when(this.auth.listBelongsByGroup(group, -1))
+               .thenReturn(Collections.emptyList());
+
+        assertForbidden(() -> new RoleService().delete(
+                this.client, "SPACE_A", "role-id", false));
+
+        Mockito.verify(this.auth, Mockito.never()).deleteAccess(
+                Mockito.anyString());
+        Mockito.verify(this.auth, Mockito.never()).deleteGroup(
+                Mockito.anyString());
+    }
+
+    @Test
+    public void testAccessAndBelongRejectForeignRoleBeforeMutation() {
+        Group foreign = this.createScopedGroups("SPACE_B").get(0);
+        Mockito.when(this.auth.getGroup("foreign-role"))
+               .thenReturn(foreign);
+        Target target = target("target-id", "SPACE_A");
+        TargetService targets = Mockito.mock(TargetService.class);
+        Mockito.when(targets.get(this.client, "SPACE_A", "target-id"))
+               .thenReturn(target);
+        AccessService accessService = new AccessService();
+        ReflectionTestUtils.setField(accessService, "targetService", targets);
+        AccessEntity access = new AccessEntity();
+        access.setRoleId("foreign-role");
+        access.setTargetId("target-id");
+        access.setPermissions(Collections.singleton(HugePermission.READ));
+
+        assertForbidden(() -> accessService.addOrUpdate(
+                this.client, "SPACE_A", access));
+        assertForbidden(() -> new BelongService().add(
+                this.client, "SPACE_A", "foreign-role", "user-id"));
+
+        Mockito.verify(this.auth, Mockito.never()).createAccess(
+                Mockito.any(Access.class));
+        Mockito.verify(this.auth, Mockito.never()).createBelong(
+                Mockito.any(Belong.class));
     }
 
     @Test
@@ -299,6 +417,27 @@ public class GraphSpaceAuthOwnershipTest {
     }
 
     @Test
+    public void testGraphSpaceUserRoleUpdatePreflightsAllRoles() {
+        List<Group> groups = this.createScopedGroups("SPACE_A", "SPACE_B");
+        Mockito.when(this.auth.getGroup("local-role"))
+               .thenReturn(groups.get(0));
+        Mockito.when(this.auth.getGroup("foreign-role"))
+               .thenReturn(groups.get(1));
+        BelongService belongs = Mockito.mock(BelongService.class);
+        GraphSpaceUserService service = new GraphSpaceUserService();
+        ReflectionTestUtils.setField(service, "belongService", belongs);
+        UserView user = new UserView(
+                "user-id", "user",
+                Arrays.asList(new RoleEntity("local-role", "local"),
+                              new RoleEntity("foreign-role", "foreign")));
+
+        assertForbidden(() -> service.createOrUpdate(
+                this.client, "SPACE_A", user));
+
+        Mockito.verifyZeroInteractions(belongs);
+    }
+
+    @Test
     public void testSpaceAdminAssignmentUsesPostOnly() throws Exception {
         UserService authorization = Mockito.mock(UserService.class);
         Mockito.when(authorization.isAssignSpaceAdmin(this.client, "SPACE"))
@@ -340,9 +479,10 @@ public class GraphSpaceAuthOwnershipTest {
     }
 
     private AccessService accessService(Target target) {
-        Group group = new Group();
+        Group group = target.graphSpace() == null ?
+                      group("group-id", "group") :
+                      this.createScopedGroups(target.graphSpace()).get(0);
         group.setId("group-id");
-        group.name("group");
         Mockito.when(this.auth.getGroup("group-id")).thenReturn(group);
         TargetService targets = Mockito.mock(TargetService.class);
         Mockito.when(targets.get(this.client, "target-id"))
@@ -350,6 +490,30 @@ public class GraphSpaceAuthOwnershipTest {
         AccessService service = new AccessService();
         ReflectionTestUtils.setField(service, "targetService", targets);
         return service;
+    }
+
+    private List<Group> createScopedGroups(String... graphSpaces) {
+        java.util.ArrayList<Group> groups = new java.util.ArrayList<>();
+        Mockito.when(this.auth.createGroup(Mockito.any(Group.class)))
+               .thenAnswer(invocation -> {
+                   Group group = invocation.getArgument(0);
+                   group.setId("role-id");
+                   groups.add(group);
+                   return group;
+               });
+        for (String graphSpace : graphSpaces) {
+            Role role = new Role();
+            role.name("role-" + graphSpace);
+            new RoleService().insert(this.client, graphSpace, role);
+        }
+        return groups;
+    }
+
+    private static Group group(String id, String name) {
+        Group group = new Group();
+        group.setId(id);
+        group.name(name);
+        return group;
     }
 
     private static void setBaseUserService(BaseController controller,

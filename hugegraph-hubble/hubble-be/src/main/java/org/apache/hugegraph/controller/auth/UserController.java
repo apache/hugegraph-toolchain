@@ -56,7 +56,7 @@ public class UserController extends BaseController {
     @GetMapping("list")
     public Object list() {
         List<UserEntity> users = this.userService.listUsers(
-                this.authClient(null, null));
+                this.requireAccountManager());
         return ImmutableMap.of("users", users);
     }
 
@@ -67,7 +67,7 @@ public class UserController extends BaseController {
                                     defaultValue = "1") int pageNo,
                             @RequestParam(name = "page_size", required = false,
                                     defaultValue = "10") int pageSize) {
-        return userService.queryPage(this.authClient(null, null),
+        return userService.queryPage(this.requireAccountManager(),
                 query, pageNo, pageSize);
     }
 
@@ -86,8 +86,7 @@ public class UserController extends BaseController {
 
     @GetMapping("{id}")
     public Object get(@PathVariable("id") String id) {
-        return userService.get(this.authClient(null, null),
-                                    id);
+        return userService.get(this.requireAccountManager(), id);
     }
 
     @PutMapping("{id}")
@@ -127,13 +126,17 @@ public class UserController extends BaseController {
 
     @PostMapping("updatepwd")
     public Response updatepwd(@RequestBody PasswordEntity pwd) {
+        if (!Objects.equals(this.getUser(), pwd.getUsername())) {
+            throw new ForbiddenException(
+                    "Permission denied: change another account password");
+        }
         HugeClient client = this.authClient(null, null);
         return userService.updatepwd(client, pwd.getUsername(), pwd.getOldpwd(), pwd.getNewpwd());
     }
 
     @GetMapping("listadminspace/{username}")
     public List<String> listadminspace(@PathVariable("username") String username) {
-        HugeClient client = this.authClient(null, null);
+        HugeClient client = this.requireAccountManager();
         return userService.listAdminSpace(client, username);
     }
 

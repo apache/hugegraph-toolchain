@@ -52,7 +52,7 @@ public class GraphSpaceUserController extends AuthController {
                           defaultValue = "1") int pageNo,
             @RequestParam(name = "page_size", required = false,
                           defaultValue = "10") int pageSize) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.userService.queryPage(client, graphSpace, query, pageNo,
                                           pageSize);
     }
@@ -66,7 +66,7 @@ public class GraphSpaceUserController extends AuthController {
                           defaultValue = "1") int pageNo,
             @RequestParam(name = "page_size", required = false,
                           defaultValue = "10") int pageSize) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.userService.querySpaceAdmins(client, graphSpace, query,
                                                  pageNo, pageSize);
     }
@@ -74,7 +74,7 @@ public class GraphSpaceUserController extends AuthController {
     @GetMapping("{id}")
     public UserView get(@PathVariable("graphspace") String graphSpace,
                         @PathVariable("id") String userId) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.userService.getUser(client, graphSpace, userId);
     }
 

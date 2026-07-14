@@ -45,7 +45,7 @@ public class TargetController extends AuthController {
 
     @GetMapping("list")
     public List<Target> list(@PathVariable("graphspace") String graphSpace) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.targetService.list(client, graphSpace);
     }
 
@@ -58,7 +58,7 @@ public class TargetController extends AuthController {
                           defaultValue = "1") int pageNo,
             @RequestParam(name = "page_size", required = false,
                           defaultValue = "10") int pageSize) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.targetService.queryPage(client, graphSpace, query, pageNo,
                                             pageSize);
     }
@@ -66,7 +66,7 @@ public class TargetController extends AuthController {
     @GetMapping("{id}")
     public Target get(@PathVariable("graphspace") String graphSpace,
                       @PathVariable("id") String targetId) {
-        HugeClient client = this.authClient(graphSpace, null);
+        HugeClient client = this.requireGraphSpaceManager(graphSpace);
         return this.targetService.get(client, graphSpace, targetId);
     }
 

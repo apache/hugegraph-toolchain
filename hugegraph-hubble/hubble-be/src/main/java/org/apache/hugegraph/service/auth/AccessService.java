@@ -139,6 +139,8 @@ public class AccessService extends AuthService {
         }
         accessEntity.setGraphSpace(graphSpace);
         if (graphSpace != null) {
+            RoleService.requireScopedGroup(client.auth(), graphSpace,
+                                           accessEntity.getRoleId());
             this.targetService.get(client, graphSpace,
                                    accessEntity.getTargetId());
         }
@@ -183,6 +185,7 @@ public class AccessService extends AuthService {
 
     public void delete(HugeClient client, String graphSpace, String roleId,
                        String targetId) {
+        RoleService.requireScopedGroup(client.auth(), graphSpace, roleId);
         this.targetService.get(client, graphSpace, targetId);
         this.list0(client, graphSpace, roleId, targetId, true)
             .forEach(access -> client.auth().deleteAccess(access.id()));
@@ -197,7 +200,7 @@ public class AccessService extends AuthService {
         AccessEntity entity = new AccessEntity(target.id().toString(),
                                                target.name(),
                                                group.id().toString(),
-                                               group.name(),
+                                               RoleService.displayName(group),
                                                firstNonNull(graphSpace,
                                                             access.graphSpace(),
                                                             target.graphSpace()),
@@ -220,7 +223,7 @@ public class AccessService extends AuthService {
         AccessEntity entity = new AccessEntity(target.id().toString(),
                                                target.name(),
                                                group.id().toString(),
-                                               group.name(),
+                                               RoleService.displayName(group),
                                                firstNonNull(graphSpace,
                                                             target.graphSpace()),
                                                target.graph(),

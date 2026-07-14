@@ -59,6 +59,8 @@ import org.apache.hugegraph.controller.BaseController;
 import org.apache.hugegraph.controller.auth.LoginController;
 import org.apache.hugegraph.driver.AuthManager;
 import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.entity.GraphConnection;
+import org.apache.hugegraph.entity.auth.PasswordEntity;
 import org.apache.hugegraph.entity.auth.UserEntity;
 import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.exception.InternalException;
@@ -95,6 +97,25 @@ public class AuthSecurityTest {
         String json = mapper.writeValueAsString(user);
         Assert.assertFalse(json.contains("user_password"));
         Assert.assertFalse(json.contains("secret"));
+    }
+
+    @Test
+    public void testCredentialDtosDoNotExposeSecretsInLogs() {
+        UserEntity user = new UserEntity();
+        user.setPassword("user-secret-canary");
+        PasswordEntity password = PasswordEntity.builder()
+                                                .username("alice")
+                                                .oldpwd("old-secret-canary")
+                                                .newpwd("new-secret-canary")
+                                                .build();
+        GraphConnection connection = new GraphConnection();
+        connection.setPassword("connection-secret-canary");
+        connection.setToken("token-secret-canary");
+        connection.setTrustStorePassword("trust-secret-canary");
+
+        String diagnostic = user + " " + password + " " + connection;
+
+        Assert.assertFalse(diagnostic.contains("secret-canary"));
     }
 
     @Test

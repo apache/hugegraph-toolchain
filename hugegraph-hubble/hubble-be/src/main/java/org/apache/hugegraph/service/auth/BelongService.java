@@ -55,6 +55,7 @@ public class BelongService extends AuthService {
 
     public void add(HugeClient client, String graphSpace, String roleId,
                     String userId) {
+        RoleService.requireScopedGroup(client.auth(), graphSpace, roleId);
         Belong belong = new Belong();
         belong.graphSpace(graphSpace);
         belong.user(userId);
@@ -213,7 +214,8 @@ public class BelongService extends AuthService {
                                                        belong.user().toString());
             return new BelongEntity(belong.id().toString(),
                                     user.getId(), user.getName(),
-                                    group.id().toString(), group.name(),
+                                    group.id().toString(),
+                                    RoleService.displayName(group),
                                     user.getDescription(), user.getCreate());
         } catch (Exception e) {
             log.warn("convert belong error", e);
@@ -235,6 +237,7 @@ public class BelongService extends AuthService {
 
     public void delete(HugeClient client, String graphSpace, String roleId,
                        String userId) {
+        RoleService.requireScopedGroup(client.auth(), graphSpace, roleId);
         this.list(client, graphSpace, roleId, userId).forEach(belong -> {
             client.auth().deleteBelong(belong.getId());
         });

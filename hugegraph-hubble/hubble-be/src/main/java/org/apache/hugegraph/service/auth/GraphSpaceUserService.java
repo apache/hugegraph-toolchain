@@ -104,6 +104,8 @@ public class GraphSpaceUserService extends AuthService {
                 userView.getRoles().stream()
                         .map(RoleEntity::getId)
                         .collect(Collectors.toSet());
+        newRoles.forEach(roleId -> RoleService.requireScopedGroup(
+                client.auth(), graphSpace, roleId));
         List<BelongEntity> current = this.belongService.list(
                 client, graphSpace, null, userView.getId());
         current.forEach(belong -> {
