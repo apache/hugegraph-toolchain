@@ -18,8 +18,6 @@
 
 package org.apache.hugegraph.handler;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -82,7 +80,7 @@ public class ExceptionAdvisor {
     @ExceptionHandler(InternalException.class)
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(InternalException e) {
-        log.warn("Internal request failure");
+        log.warn("hubble.internal_request_failed");
         String message = this.handleMessage(e.getMessage(), e.args());
         closeRequestClient();
         return Response.builder()
@@ -95,7 +93,7 @@ public class ExceptionAdvisor {
     @ExceptionHandler(ExternalException.class)
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(ExternalException e) {
-        log.debug("External request failure: {}", e.getMessage());
+        log.debug("hubble.external_request_failed");
         String message = this.handleMessage(e.getMessage(), e.args());
         closeRequestClient();
         return Response.builder()
@@ -108,11 +106,11 @@ public class ExceptionAdvisor {
     @ExceptionHandler(ForbiddenException.class)
     @ResponseStatus(HttpStatus.FORBIDDEN)
     public Response exceptionHandler(ForbiddenException e) {
-        log.debug("Forbidden request: {}", e.getMessage());
+        log.debug("hubble.forbidden_request");
         closeRequestClient();
         return Response.builder()
                        .status(HttpStatus.FORBIDDEN.value())
-                       .message(e.getMessage())
+                       .message(sanitize(e.getMessage()))
                        .cause(null)
                        .build();
     }
@@ -145,9 +143,7 @@ public class ExceptionAdvisor {
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(ServerException e) {
         boolean operations = this.isOperationsRequest();
-        log.error("HugeGraph Server request failed: {}",
-                  operations ? safeStackTraceWithoutMessage(e) :
-                  safeStackTrace(e));
+        log.error("hubble.server_request_failed");
 
         String message = operations ? safeServerMessage(e) :
                          this.handleMessage(sanitize(e.getMessage()), null);
@@ -192,9 +188,7 @@ public class ExceptionAdvisor {
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(Exception e) {
         boolean operations = this.isOperationsRequest();
-        log.error("Unexpected request failure: {}",
-                  operations ? safeStackTraceWithoutMessage(e) :
-                  safeStackTrace(e));
+        log.error("hubble.unexpected_request_failed");
         String message = operations ?
                          "unexpected_request_failure" :
                          this.handleMessage(sanitize(e.getMessage()), null);
@@ -224,7 +218,7 @@ public class ExceptionAdvisor {
     @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
     public Response exceptionHandler(
             ServerCapabilityUnavailableException e) {
-        log.warn("Required HugeGraph Server capability is unavailable", e);
+        log.warn("hubble.server_capability_unavailable");
         String message = this.handleMessage(e.getMessage(), e.args());
         closeRequestClient();
         return Response.builder()
@@ -237,7 +231,7 @@ public class ExceptionAdvisor {
     @ExceptionHandler(IllegalGremlinException.class)
     @ResponseStatus(HttpStatus.OK)
     public Response exceptionHandler(IllegalGremlinException e) {
-        log.debug("Illegal Gremlin request: {}", e.getMessage());
+        log.debug("hubble.illegal_gremlin_request");
         String message = this.handleMessage(e.getMessage(), e.args());
         closeRequestClient();
         return Response.builder()
@@ -250,8 +244,8 @@ public class ExceptionAdvisor {
     @ExceptionHandler(UnauthorizedException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     public Response exceptionHandler(UnauthorizedException e) {
-        log.debug("Unauthorized request: {}", e.getMessage());
-        String message = e.getMessage();
+        log.debug("hubble.unauthorized_request");
+        String message = sanitize(e.getMessage());
         closeRequestClient();
         return Response.builder()
                        .status(Constant.STATUS_UNAUTHORIZED)
@@ -275,7 +269,8 @@ public class ExceptionAdvisor {
             "(?i)https?://[^\\s]+", Pattern.CASE_INSENSITIVE);
     private static final String SENSITIVE_KEY =
             "(?:token|password|secret(?:[_-]?key)?|api[_-]?key|" +
-            "client[_-]?secret|credential|endpoint)";
+            "client[_-]?secret|service[_-]?secret|private[_-]?key|" +
+            "credential|endpoint)";
     private static final Pattern SECRET_PARAMETER = Pattern.compile(
             "(?i)([?&\\s]" + SENSITIVE_KEY + "=)[^&\\s]+",
             Pattern.CASE_INSENSITIVE);
@@ -292,26 +287,27 @@ public class ExceptionAdvisor {
             Pattern.CASE_INSENSITIVE);
     private static final Pattern NETWORK_ENDPOINT = Pattern.compile(
             "(?i)(?:/)?(?:\\d{1,3}\\.){3}\\d{1,3}:\\d+(?:/[^\\s]*)?");
+    private static final Pattern COOKIE_HEADER = Pattern.compile(
+            "(?im)((?:set-cookie|cookie)\\s*:\\s*).*?(?=\\r?$|\\\\[rn]|$)");
+    private static final Pattern PRIVATE_KEY = Pattern.compile(
+            "(?is)-----BEGIN [^-\\r\\n]*PRIVATE KEY-----.*?" +
+            "-----END [^-\\r\\n]*PRIVATE KEY-----");
+    private static final Pattern WINDOWS_PATH = Pattern.compile(
+            "(?i)\\b[a-z]:\\\\(?:[^\\s,;:\"'<>|]+\\\\)*" +
+            "[^\\s,;:\"'<>|]*");
+    private static final Pattern UNIX_PATH = Pattern.compile(
+            "(?i)/(?:Users|home|root|private|var|etc|opt|tmp|srv|mnt|" +
+            "Volumes|usr/local)(?:/[^\\s,;:\"'<>]*)*");
 
-    static String safeStackTrace(Throwable failure) {
-        StringWriter output = new StringWriter();
-        failure.printStackTrace(new PrintWriter(output));
-        return sanitize(output.toString());
-    }
-
-    private static String safeStackTraceWithoutMessage(Throwable failure) {
-        StringBuilder output = new StringBuilder(failure.getClass().getName());
-        for (StackTraceElement frame : failure.getStackTrace()) {
-            output.append(System.lineSeparator()).append("\tat ").append(frame);
-        }
-        return output.toString();
-    }
-
-    private static String sanitize(String value) {
+    static String sanitize(String value) {
         if (value == null) {
             return "request_failure";
         }
-        String sanitized = AUTHORIZATION_SECRET.matcher(value)
+        String sanitized = PRIVATE_KEY.matcher(value)
+                                      .replaceAll("[REDACTED]");
+        sanitized = COOKIE_HEADER.matcher(sanitized)
+                                 .replaceAll("$1[REDACTED]");
+        sanitized = AUTHORIZATION_SECRET.matcher(sanitized)
                                                .replaceAll("$1[REDACTED]");
         sanitized = JSON_SECRET.matcher(sanitized)
                                .replaceAll("$1[REDACTED]$2");
@@ -320,8 +316,11 @@ public class ExceptionAdvisor {
         sanitized = SECRET_PARAMETER.matcher(sanitized)
                                            .replaceAll("$1[REDACTED]");
         sanitized = URL.matcher(sanitized).replaceAll("[REDACTED]");
-        return NETWORK_ENDPOINT.matcher(sanitized)
-                               .replaceAll("[REDACTED]");
+        sanitized = NETWORK_ENDPOINT.matcher(sanitized)
+                                    .replaceAll("[REDACTED]");
+        sanitized = WINDOWS_PATH.matcher(sanitized)
+                                .replaceAll("[REDACTED]");
+        return UNIX_PATH.matcher(sanitized).replaceAll("[REDACTED]");
     }
 
     public void closeRequestClient() {
@@ -347,9 +346,9 @@ public class ExceptionAdvisor {
         try {
             message = this.messageSourceHandler.getMessage(message, strArgs);
         } catch (Throwable e) {
-            log.error(e.getMessage(), e);
+            log.error("hubble.message_resolution_failed");
         }
-        return message;
+        return sanitize(message);
     }
 
     private String handleErrorCode(String message) {
@@ -367,10 +366,8 @@ public class ExceptionAdvisor {
                                                                attach.toArray());
                 }
             } catch (Exception e) {
-                throw new RuntimeException(
-                        String.format("Fail to handle error code for message " +
-                                      "%s, error: %s", message,
-                                      e.getMessage()));
+                log.error("hubble.error_code_parse_failed");
+                throw new RuntimeException("failed_to_handle_error_code");
             }
         }
         return message;

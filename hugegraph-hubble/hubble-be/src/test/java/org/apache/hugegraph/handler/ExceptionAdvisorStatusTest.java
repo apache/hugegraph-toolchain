@@ -143,7 +143,7 @@ public class ExceptionAdvisorStatusTest {
                 "http://user:secret@host/private?token=abc&password=xyz&" +
                 "endpoint=10.0.0.1:8080");
 
-        String diagnostic = ExceptionAdvisor.safeStackTrace(failure);
+        String diagnostic = ExceptionAdvisor.sanitize(failure.toString());
 
         Assert.assertFalse(diagnostic.contains("secret"));
         Assert.assertFalse(diagnostic.contains("abc"));
@@ -166,7 +166,9 @@ public class ExceptionAdvisorStatusTest {
                 "password: password-canary, api_key=key-canary, " +
                 "endpoint: endpoint-canary"));
 
-        String diagnostic = ExceptionAdvisor.safeStackTrace(failure);
+        String diagnostic = ExceptionAdvisor.sanitize(
+                            failure + " " + failure.getCause() + " " +
+                            failure.getSuppressed()[0]);
 
         Assert.assertFalse(diagnostic.contains("YmFzaWMtY2FuYXJ5"));
         Assert.assertFalse(diagnostic.contains("json-canary"));
@@ -179,6 +181,43 @@ public class ExceptionAdvisorStatusTest {
         Assert.assertFalse(diagnostic.contains("key-canary"));
         Assert.assertFalse(diagnostic.contains("endpoint-canary"));
         Assert.assertTrue(diagnostic.contains("[REDACTED]"));
+    }
+
+    @Test
+    public void testDiagnosticRedactsHeadersPrivateKeysAndAbsolutePaths() {
+        RuntimeException failure = new RuntimeException(
+                "Cookie: session=cookie-canary\n" +
+                "Set-Cookie: auth=set-cookie-canary; HttpOnly\n" +
+                "-----BEGIN PRIVATE KEY-----\nprivate-key-canary\n" +
+                "-----END PRIVATE KEY-----\n" +
+                "failed at /Users/operator/private/config.yaml and " +
+                "C:\\Users\\operator\\private\\config.yaml");
+
+        String diagnostic = ExceptionAdvisor.sanitize(failure.getMessage());
+
+        Assert.assertFalse(diagnostic.contains("cookie-canary"));
+        Assert.assertFalse(diagnostic.contains("set-cookie-canary"));
+        Assert.assertFalse(diagnostic.contains("private-key-canary"));
+        Assert.assertFalse(diagnostic.contains("/Users/operator"));
+        Assert.assertFalse(diagnostic.contains("C:\\Users\\operator"));
+        Assert.assertTrue(diagnostic.contains("[REDACTED]"));
+    }
+
+    @Test
+    public void testNonOperationsResponseRedactsStructuredSecrets() {
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(
+                new MockHttpServletRequest("GET", "/api/v1.3/graphs")));
+        ServerException failure = new ServerException(
+                "request failed {\"token\":\"json-token-canary\"} " +
+                "Cookie: session=cookie-canary\n" +
+                "at /Users/operator/private/config.yaml");
+        failure.status(HttpStatus.INTERNAL_SERVER_ERROR.value());
+
+        Response response = advisor().exceptionHandler(failure);
+
+        Assert.assertFalse(response.getMessage().contains("json-token-canary"));
+        Assert.assertFalse(response.getMessage().contains("cookie-canary"));
+        Assert.assertFalse(response.getMessage().contains("/Users/operator"));
     }
 
     private static void operationsRequest() {

@@ -27,6 +27,11 @@ const SECRET_VALUE_PATTERN = new RegExp(
     `\\b(${SECRET_KEYS})\\b(\\s*[:=]\\s*)(?:"[^"]*"|'[^']*'|[^\\s,;&]+)`,
     'gi'
 );
+const QUOTED_SECRET_VALUE_PATTERN = new RegExp(
+    `(["'])(${SECRET_KEYS})\\1(\\s*:\\s*)`
+    + '("(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\')',
+    'gi'
+);
 
 const sanitizePublicError = (value, fallback = '') => {
     if (typeof value !== 'string' || !value.trim()) {
@@ -47,6 +52,12 @@ const sanitizePublicError = (value, fallback = '') => {
             `$1: ${REDACTED}`
         )
         .replace(/\b(bearer|basic)\s+[a-z0-9._~+/=-]+/gi, `$1 ${REDACTED}`)
+        .replace(QUOTED_SECRET_VALUE_PATTERN,
+            (match, keyQuote, key, separator, value) => {
+                const valueQuote = value.charAt(0);
+                return `${keyQuote}${key}${keyQuote}${separator}`
+                            + `${valueQuote}${REDACTED}${valueQuote}`;
+            })
         .replace(SECRET_VALUE_PATTERN, `$1$2${REDACTED}`)
         .replace(/\b[a-z]:\\(?:[^\s,;:"'<>|]+\\)*[^\s,;:"'<>|]*/gi, REDACTED_PATH)
         .replace(

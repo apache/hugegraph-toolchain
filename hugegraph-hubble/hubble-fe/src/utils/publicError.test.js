@@ -36,6 +36,26 @@ describe('public error sanitization', () => {
     });
 
     test.each([
+        ['"token": "token-canary"', '"token": "[REDACTED]"'],
+        ["'token': 'token-canary'", "'token': '[REDACTED]'"],
+        ['"password":"password-canary"', '"password":"[REDACTED]"'],
+        ["'password':'password-canary'", "'password':'[REDACTED]'"],
+        ['"service_secret": "service-canary"',
+            '"service_secret": "[REDACTED]"'],
+        ["'service_secret': 'service-canary'",
+            "'service_secret': '[REDACTED]'"],
+        ['"private_key": "key-canary"', '"private_key": "[REDACTED]"'],
+        ["'private_key': 'key-canary'", "'private_key': '[REDACTED]'"],
+        ['{"token":"first-canary","reason":"unavailable",'
+         + '"password":"second-canary"}',
+        '{"token":"[REDACTED]","reason":"unavailable",'
+         + '"password":"[REDACTED]"}'],
+    ])('redacts quoted secret field without damaging its key: %s',
+        (diagnostic, expected) => {
+            expect(sanitizePublicError(diagnostic)).toBe(expected);
+        });
+
+    test.each([
         '/Users/alice/.ssh/id_ed25519',
         '/opt/hugegraph/conf/rest-server.properties',
         'C:\\secrets\\private.key',
@@ -44,8 +64,21 @@ describe('public error sanitization', () => {
             .not.toContain(diagnostic);
     });
 
+    test('redacts every absolute path in a multi-part diagnostic', () => {
+        const diagnostic = 'first /Users/alice/.ssh/id_ed25519; '
+                           + 'second /opt/hugegraph/conf/rest-server.properties';
+        const sanitized = sanitizePublicError(diagnostic);
+
+        expect(sanitized).not.toContain('/Users/alice');
+        expect(sanitized).not.toContain('/opt/hugegraph');
+        expect(sanitized).toContain('first');
+        expect(sanitized).toContain('second');
+    });
+
     test('preserves useful non-secret diagnostics', () => {
         expect(sanitizePublicError('line 2: unexpected token near g.V()'))
             .toBe('line 2: unexpected token near g.V()');
+        expect(sanitizePublicError('{"status": 503, "reason": "unavailable"}'))
+            .toBe('{"status": 503, "reason": "unavailable"}');
     });
 });
