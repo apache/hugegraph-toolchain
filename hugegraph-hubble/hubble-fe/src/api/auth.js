@@ -181,8 +181,8 @@ const getDashboard = () => {
     return request.get('/dashboard');
 };
 
-const getVermeer = () => {
-    return request.get('/vermeer');
+const getVermeer = config => {
+    return config ? request.get('/vermeer', config) : request.get('/vermeer');
 };
 
 export {getDashboard, getVermeer};

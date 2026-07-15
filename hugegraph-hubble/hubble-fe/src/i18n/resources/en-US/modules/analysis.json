@@ -929,7 +929,14 @@
       "metadata_tooltip": "Open metadata configuration for the selected graph",
       "olap_result": "Query OLAP Result:",
       "get_vermeer_failed": "Failed to get Vermeer status",
-      "load_vermeer_failed": "Failed to load Vermeer task"
+      "load_vermeer_failed": "Failed to load Vermeer task",
+      "graph_spaces_failed": "Could not load GraphSpaces",
+      "graphs_failed": "Could not load graphs",
+      "olap_failed": "Could not load or update the OLAP mode",
+      "retry_graph_spaces": "Retry GraphSpaces",
+      "retry_graphs": "Retry graphs",
+      "retry_olap": "Retry OLAP mode",
+      "retry_vermeer": "Retry Vermeer status"
     }
   }
 }

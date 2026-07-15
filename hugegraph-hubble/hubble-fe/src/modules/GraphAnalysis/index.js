@@ -16,8 +16,8 @@
  * under the License.
  */
 
-import React, {useState, useCallback, useEffect} from 'react';
-import {PageHeader, message} from 'antd';
+import React, {useState, useCallback, useEffect, useRef} from 'react';
+import {Alert, Button, PageHeader, Spin} from 'antd';
 import AnalysisHome from '../analysis/Home';
 import AlgorithmHome from '../algorithm/Home';
 import AsyncTaskHome from '../asyncTasks/Home';
@@ -29,6 +29,7 @@ import * as api from '../../api';
 import {useTranslation} from 'react-i18next';
 
 const {GREMLIN, ALGORITHMS, ASYNCTASKS} = GRAPH_ANALYSIS_MODULE;
+const INLINE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
 const pageHeaderNameKeys = {
     [GREMLIN]: 'analysis.query.name',
@@ -42,6 +43,12 @@ const GraphAnalysisHome = props => {
 
     const [currentOlapMode, setCurrentOlapMode] = useState(false);
     const [isOlapModeLoading, setOlapModeLoading] = useState(false);
+    const [olapError, setOlapError] = useState(false);
+    const [vermeerReady, setVermeerReady] = useState(false);
+    const [vermeerLoading, setVermeerLoading] = useState(true);
+    const [vermeerError, setVermeerError] = useState(false);
+    const olapRequest = useRef(null);
+    const vermeerRequest = useRef(null);
     const [context, setContext] = useState(
         {
             graphSpace: null,
@@ -53,6 +60,9 @@ const GraphAnalysisHome = props => {
     );
 
     const renderModule = () => {
+        if (moduleName !== GREMLIN && !vermeerReady) {
+            return vermeerLoading ? <Spin /> : null;
+        }
         switch (moduleName) {
             case GREMLIN:
                 return <AnalysisHome />;
@@ -68,35 +78,88 @@ const GraphAnalysisHome = props => {
     const onOlapModeChange = useCallback(
         async open => {
             const {graphSpace, graph} = context;
+            const request = Symbol('switch-olap');
+            olapRequest.current = request;
             setOlapModeLoading(true);
-            const response = await api.analysis.switchOlapMode(graphSpace, graph, open ? 0 : 1);
-            if (response.status === 200) {
+            setOlapError(false);
+            try {
+                const response = await api.analysis.switchOlapMode(
+                    graphSpace, graph, open ? 0 : 1, INLINE_ERROR_CONFIG
+                );
+                if (olapRequest.current !== request) {
+                    return;
+                }
+                if (response?.status !== 200) {
+                    throw new Error('olap update unavailable');
+                }
                 setCurrentOlapMode(open);
             }
-            setOlapModeLoading(false);
+            catch {
+                if (olapRequest.current === request) {
+                    setOlapError(true);
+                }
+            }
+            finally {
+                if (olapRequest.current === request) {
+                    setOlapModeLoading(false);
+                }
+            }
         },
         [context]
     );
 
     const getCurrentOlapMode = useCallback(
         async (graphSpace, graph) => {
+            if (!graphSpace || !graph) {
+                olapRequest.current = null;
+                setCurrentOlapMode(false);
+                setOlapModeLoading(false);
+                return;
+            }
+            const request = Symbol('get-olap');
+            olapRequest.current = request;
             setOlapModeLoading(true);
-            const response = await api.analysis.getOlapMode(graphSpace, graph);
-            const {status, data} = response;
-            if (status === 200) {
+            setOlapError(false);
+            try {
+                const response = await api.analysis.getOlapMode(
+                    graphSpace, graph, INLINE_ERROR_CONFIG
+                );
+                if (olapRequest.current !== request) {
+                    return;
+                }
+                const {status, data} = response || {};
+                if (status !== 200 || !data) {
+                    throw new Error('olap status unavailable');
+                }
                 const {status: currentOlapStatus} = data;
                 setCurrentOlapMode(currentOlapStatus === '0');
             }
-            setOlapModeLoading(false);
+            catch {
+                if (olapRequest.current === request) {
+                    setOlapError(true);
+                    setCurrentOlapMode(false);
+                }
+            }
+            finally {
+                if (olapRequest.current === request) {
+                    setOlapModeLoading(false);
+                }
+            }
         },
         []
     );
 
     const onGraphInfoChange = useCallback(
         (graphSpace, graph) => {
-            const {name: currentGraph, last_load_time, status} = graph;
+            const {name: currentGraph, last_load_time, status} = graph || {};
             if (graphSpace && !_.isEmpty(graph)) {
                 getCurrentOlapMode(graphSpace, currentGraph);
+            }
+            else {
+                olapRequest.current = null;
+                setCurrentOlapMode(false);
+                setOlapModeLoading(false);
+                setOlapError(false);
             }
             setContext(context => ({
                 ...context,
@@ -109,27 +172,51 @@ const GraphAnalysisHome = props => {
         [getCurrentOlapMode]
     );
 
-    useEffect(
-        () => {
-            (async () => {
-                const response = await api.auth.getVermeer();
-                const {status, data, message: errMsg} = response || {};
-                const {enable} = data || {};
-                if (status === 200) {
-                    setContext(context => (
-                        {
-                            ...context,
-                            isVermeer: enable || false,
-                        }
-                    ));
-                }
-                else {
-                    !errMsg && message.error(t('analysis.topbar.get_vermeer_failed'));
-                }
-            })();
-        },
-        [t]
-    );
+    const getVermeer = useCallback(async () => {
+        const request = Symbol('get-vermeer');
+        vermeerRequest.current = request;
+        setVermeerLoading(true);
+        setVermeerError(false);
+        try {
+            const response = await api.auth.getVermeer(INLINE_ERROR_CONFIG);
+            if (vermeerRequest.current !== request) {
+                return;
+            }
+            const {status, data} = response || {};
+            if (status !== 200) {
+                throw new Error('vermeer capability unavailable');
+            }
+            const {enable} = data || {};
+            setContext(context => ({
+                ...context,
+                isVermeer: Boolean(enable),
+            }));
+            setVermeerReady(true);
+        }
+        catch {
+            if (vermeerRequest.current === request) {
+                setVermeerError(true);
+                setVermeerReady(false);
+            }
+        }
+        finally {
+            if (vermeerRequest.current === request) {
+                setVermeerLoading(false);
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        getVermeer();
+        return () => {
+            vermeerRequest.current = null;
+            olapRequest.current = null;
+        };
+    }, [getVermeer]);
+
+    const retryOlap = useCallback(() => {
+        getCurrentOlapMode(context.graphSpace, context.graph);
+    }, [context.graph, context.graphSpace, getCurrentOlapMode]);
 
     return (
         <GraphAnalysisContext.Provider value={context}>
@@ -148,6 +235,30 @@ const GraphAnalysisHome = props => {
                     onOlapModeChange={onOlapModeChange}
                 />}
             />
+            {vermeerError && (
+                <Alert
+                    type='error'
+                    showIcon
+                    message={t('analysis.topbar.get_vermeer_failed')}
+                    action={(
+                        <Button size='small' onClick={getVermeer}>
+                            {t('analysis.topbar.retry_vermeer')}
+                        </Button>
+                    )}
+                />
+            )}
+            {olapError && (
+                <Alert
+                    type='error'
+                    showIcon
+                    message={t('analysis.topbar.olap_failed')}
+                    action={(
+                        <Button size='small' onClick={retryOlap}>
+                            {t('analysis.topbar.retry_olap')}
+                        </Button>
+                    )}
+                />
+            )}
             {renderModule()}
         </GraphAnalysisContext.Provider>
     );

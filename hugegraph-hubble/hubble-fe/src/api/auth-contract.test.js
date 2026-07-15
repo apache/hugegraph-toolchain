@@ -52,6 +52,14 @@ describe('auth API contract', () => {
         });
     });
 
+    it('forwards page-owned Vermeer status error controls', () => {
+        const config = {suppressBusinessErrorToast: true};
+
+        auth.getVermeer(config);
+
+        expect(mockRequest.get).toHaveBeenCalledWith('/vermeer', config);
+    });
+
     it.each([
         ['getAllUserList', [{page_no: 1}], 'get', '/auth/users'],
         ['getUserInfo', ['user'], 'get', '/auth/users/user'],

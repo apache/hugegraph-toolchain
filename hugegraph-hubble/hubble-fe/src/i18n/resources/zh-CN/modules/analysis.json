@@ -929,7 +929,14 @@
       "metadata_tooltip": "点击可跳转到对应图的元数据配置的页面",
       "olap_result": "是否查询OLAP结果:",
       "get_vermeer_failed": "获取vermeer状态失败",
-      "load_vermeer_failed": "加载Vermeer任务失败"
+      "load_vermeer_failed": "加载Vermeer任务失败",
+      "graph_spaces_failed": "无法加载图空间",
+      "graphs_failed": "无法加载图",
+      "olap_failed": "无法读取或更新 OLAP 模式",
+      "retry_graph_spaces": "重试图空间",
+      "retry_graphs": "重试图",
+      "retry_olap": "重试 OLAP 模式",
+      "retry_vermeer": "重试 Vermeer 状态"
     }
   }
 }
