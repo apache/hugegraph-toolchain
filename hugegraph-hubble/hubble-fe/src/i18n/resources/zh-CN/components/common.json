@@ -33,6 +33,10 @@
   },
   "workbench": {
     "back_home": "返回首页",
+    "route_error": {
+      "title": "此页面暂时无法显示",
+      "reload": "重新加载页面"
+    },
     "skip_to_workspace": "跳到主工作区",
     "navigation": "主导航",
     "navigation_open": "打开主导航",

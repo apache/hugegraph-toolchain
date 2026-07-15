@@ -33,6 +33,10 @@
   },
   "workbench": {
     "back_home": "Back to home",
+    "route_error": {
+      "title": "This page could not be displayed",
+      "reload": "Reload page"
+    },
     "skip_to_workspace": "Skip to main workspace",
     "navigation": "Primary navigation",
     "navigation_open": "Open primary navigation",

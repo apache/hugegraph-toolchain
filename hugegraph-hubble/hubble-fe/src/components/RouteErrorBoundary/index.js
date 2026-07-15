@@ -18,6 +18,8 @@
 
 import React from 'react';
 import {Button, Result} from 'antd';
+import i18n from '../../i18n';
+import {sanitizePublicError} from '../../utils/publicError';
 
 class RouteErrorBoundary extends React.Component {
     constructor(props) {
@@ -30,8 +32,11 @@ class RouteErrorBoundary extends React.Component {
         return {failed: true};
     }
 
-    componentDidCatch(error, info) {
-        console.error('Route render failed', error, info);
+    componentDidCatch(error) {
+        console.error(
+            'hubble.route_render_failed',
+            sanitizePublicError(error?.message, 'route render failed')
+        );
     }
 
     reload() {
@@ -43,8 +48,12 @@ class RouteErrorBoundary extends React.Component {
             return (
                 <Result
                     status='error'
-                    title='Page failed to load'
-                    extra={<Button onClick={this.reload}>Reload</Button>}
+                    title={i18n.t('workbench.route_error.title')}
+                    extra={(
+                        <Button onClick={this.reload}>
+                            {i18n.t('workbench.route_error.reload')}
+                        </Button>
+                    )}
                 />
             );
         }
