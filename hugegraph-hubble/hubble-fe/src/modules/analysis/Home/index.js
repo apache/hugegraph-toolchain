@@ -30,6 +30,8 @@ import {GREMLIN_EXECUTES_MODE, ANALYSIS_TYPE, GRAPH_STATUS, PANEL_TYPE,
     FAVORITE_TYPE, EXECUTION_LOGS_TYPE, GRAPH_RENDER_MODE} from '../../../utils/constants';
 import * as api from '../../../api';
 import _ from 'lodash';
+import {scopedStorageKey} from '../../../utils/user';
+import {sanitizePublicError} from '../../../utils/publicError';
 
 const {STANDBY, LOADING, SUCCESS, FAILED} = GRAPH_STATUS;
 const {QUERY} = GREMLIN_EXECUTES_MODE;
@@ -43,7 +45,8 @@ const DEFAULT_QUERIES = {
 };
 
 const queryDraftKey = (graphSpace, graph, mode) =>
-    `hubble.query.${graphSpace || 'DEFAULT'}.${graph || 'unknown'}.${mode}`;
+    `${scopedStorageKey('hubble.query')}.${encodeURIComponent(graphSpace || 'DEFAULT')}`
+    + `.${encodeURIComponent(graph || 'unknown')}.${encodeURIComponent(mode)}`;
 
 const restoreQuery = (graphSpace, graph, mode) => {
     if (mode === TEXT2GQL) {
@@ -61,10 +64,10 @@ const restoreQuery = (graphSpace, graph, mode) => {
 export const extractQueryErrorMessage = (error, fallback) => {
     const backendMessage = error?.response?.data?.message;
     if (typeof backendMessage === 'string' && backendMessage.trim()) {
-        return backendMessage;
+        return sanitizePublicError(backendMessage, fallback);
     }
     if (typeof error?.message === 'string' && error.message.trim()) {
-        return error.message;
+        return sanitizePublicError(error.message, fallback);
     }
     return fallback;
 };

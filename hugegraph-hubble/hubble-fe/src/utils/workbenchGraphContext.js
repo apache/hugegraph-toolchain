@@ -17,6 +17,7 @@
  */
 
 import {DEFAULT_GRAPHSPACE} from './productMode';
+import {scopedStorageKey} from './user';
 
 const STORAGE_KEY = 'hubble_workbench_graph_context';
 
@@ -101,7 +102,7 @@ const resolveWorkbenchGraphContext = ({pdEnabled, routeContext = {}, storedConte
 
 const readWorkbenchGraphContext = (storage = localStorage) => {
     try {
-        const value = JSON.parse(storage.getItem(STORAGE_KEY) || '{}');
+        const value = JSON.parse(storage.getItem(scopedStorageKey(STORAGE_KEY)) || '{}');
         if (!value || typeof value.graphspace !== 'string' || !value.graphspace) {
             return {};
         }
@@ -122,7 +123,7 @@ const writeWorkbenchGraphContext = (storage = localStorage, context = {}) => {
         ? {graphspace: context.graphspace, graph: context.graph}
         : {graphspace: context.graphspace};
     try {
-        storage.setItem(STORAGE_KEY, JSON.stringify(value));
+        storage.setItem(scopedStorageKey(STORAGE_KEY), JSON.stringify(value));
         return true;
     }
     catch (error) {
@@ -130,9 +131,14 @@ const writeWorkbenchGraphContext = (storage = localStorage, context = {}) => {
     }
 };
 
+const clearWorkbenchGraphContext = (storage = localStorage) => {
+    storage.removeItem(scopedStorageKey(STORAGE_KEY));
+};
+
 export {
     extractWorkbenchGraphContext,
     resolveWorkbenchGraphContext,
     readWorkbenchGraphContext,
     writeWorkbenchGraphContext,
+    clearWorkbenchGraphContext,
 };

@@ -78,6 +78,10 @@ const okList = {status: 200, data: {records: [], total: 0}};
 
 beforeEach(() => {
     window.localStorage.clear();
+    window.sessionStorage.setItem('user_', JSON.stringify({
+        id: 'alice',
+        user_name: 'alice',
+    }));
     api.analysis.getExecutionLogs.mockResolvedValue(okList);
     api.analysis.fetchFavoriteQueries.mockResolvedValue(okList);
     api.analysis.getGraphData.mockResolvedValue({
@@ -105,7 +109,7 @@ it('starts with a limited default only when no saved query exists', async () => 
 
 it('restores the last input for the current graph instead of replacing it', async () => {
     window.localStorage.setItem(
-        'hubble.query.DEFAULT.hugegraph.Gremlin',
+        'hubble.query.alice.DEFAULT.hugegraph.Gremlin',
         'g.E().hasLabel("created")'
     );
     render(
@@ -118,12 +122,12 @@ it('restores the last input for the current graph instead of replacing it', asyn
     expect(screen.getByTestId('query-content'))
         .toHaveTextContent('g.E().hasLabel("created")');
     fireEvent.click(screen.getByRole('button', {name: 'Edit query'}));
-    expect(window.localStorage.getItem('hubble.query.DEFAULT.hugegraph.Gremlin'))
+    expect(window.localStorage.getItem('hubble.query.alice.DEFAULT.hugegraph.Gremlin'))
         .toBe('g.E().limit(3)');
 });
 
 it('falls back to the real default after a cleared draft is mounted again', async () => {
-    window.localStorage.setItem('hubble.query.DEFAULT.hugegraph.Gremlin', '');
+    window.localStorage.setItem('hubble.query.alice.DEFAULT.hugegraph.Gremlin', '');
     render(
         <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
             <AnalysisHome />
@@ -132,6 +136,23 @@ it('falls back to the real default after a cleared draft is mounted again', asyn
     await act(async () => Promise.resolve());
 
     expect(screen.getByTestId('query-content')).toHaveTextContent('g.V().limit(10)');
+});
+
+it('does not restore another user draft for the same graph', async () => {
+    window.localStorage.setItem(
+        'hubble.query.bob.DEFAULT.hugegraph.Gremlin',
+        'g.V().has("private", true)'
+    );
+
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
+            <AnalysisHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await act(async () => Promise.resolve());
+
+    expect(screen.getByTestId('query-content')).toHaveTextContent('g.V().limit(10)');
+    expect(screen.getByTestId('query-content')).not.toHaveTextContent('private');
 });
 
 it('prefers a multiline backend diagnostic for rejected HTTP queries', () => {

@@ -56,6 +56,15 @@ test('uses the shared keyboard-focusable help affordance for every field label',
     expect(nameHelp).toHaveAttribute('role', 'img');
 });
 
+test('exposes the authentication switch to assistive technology', () => {
+    render(
+        <EditLayer visible detail={{}} onCancel={jest.fn()} refresh={jest.fn()} />
+    );
+
+    expect(screen.getByRole('switch', {name: 'graphspace.form.auth'}))
+        .toBeInTheDocument();
+});
+
 test('creates a GraphSpace with only ID and display name', async () => {
     render(
         <EditLayer

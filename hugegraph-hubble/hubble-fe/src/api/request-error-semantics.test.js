@@ -114,6 +114,42 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         expect(messageError).toHaveBeenCalledWith('request.error');
     });
 
+    it('redacts secrets and absolute paths before errors reach the DOM', async () => {
+        const {resolve, reject, messageError} = loadResponseHandlers(modulePath);
+        const business = {
+            status: 200,
+            config: {},
+            data: {
+                status: 500,
+                message: 'Cookie: first=canary-one; JSESSIONID=canary-two\n'
+                         + 'Authorization: Bearer canary-token at /Users/alice/key.pem',
+            },
+        };
+
+        expect(resolve(business)).toBe(business);
+        expect(messageError).toHaveBeenLastCalledWith(expect.not.stringContaining(
+            'canary-token'
+        ));
+        expect(business.data.message).not.toContain('canary-two');
+        expect(business.data.message).not.toContain('/Users/alice');
+
+        const transport = {
+            config: {},
+            message: 'token=transport-canary',
+            response: {
+                status: 500,
+                data: {
+                    message: 'password=transport-canary',
+                    path: 'C:\\secrets\\private.key',
+                },
+            },
+        };
+        await expect(reject(transport)).rejects.toBe(transport);
+        expect(transport.message).not.toContain('transport-canary');
+        expect(transport.response.data.message).not.toContain('transport-canary');
+        expect(transport.response.data.path).not.toContain('C:\\secrets');
+    });
+
     it('requests authorization revalidation after an HTTP 403', async () => {
         const {reject} = loadResponseHandlers(modulePath);
         const revalidate = jest.fn();

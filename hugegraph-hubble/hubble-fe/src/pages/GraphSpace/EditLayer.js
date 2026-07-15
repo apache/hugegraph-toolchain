@@ -231,7 +231,10 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
                     name="auth"
                     valuePropName="checked"
                 >
-                    <Switch disabled={isDisabled} />
+                    <Switch
+                        aria-label={t('graphspace.form.auth')}
+                        disabled={isDisabled}
+                    />
                 </Form.Item>
 
                 <Form.Item

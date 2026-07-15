@@ -30,11 +30,13 @@ import {getCurrentLanguage} from '../../utils/language';
 import {
     clearPersistedAlgorithmFormsForUser,
 } from '../../modules/algorithm/algorithmsForm/algorithmFormPersistence';
+import {useAuthContext} from '../../auth/AuthContext';
 
 const Topbar = () => {
     const userInfo = user.getUser();
     const location = useLocation();
     const {t} = useTranslation();
+    const {context: authContext} = useAuthContext();
     const [languageType, setLanguageType] = useState(getCurrentLanguage);
 
     const redirectToLogin = useCallback(() => {
@@ -104,8 +106,7 @@ const Topbar = () => {
         }],
         onClick: logout,
     };
-    const userLabel = userInfo?.user_name === 'admin'
-        && (!userInfo.user_nickname || userInfo.user_nickname === '超级管理员')
+    const userLabel = authContext?.role === 'SUPERADMIN'
         ? t('Topbar.super_admin')
         : userInfo?.user_nickname ?? userInfo?.user_name ?? '';
 

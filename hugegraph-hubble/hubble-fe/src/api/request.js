@@ -25,6 +25,7 @@ import * as user from '../utils/user';
 import {withLanguageHeader} from './languageHeader';
 import {showThrottleWarning} from './throttleWarning';
 import {AUTH_REVALIDATE_EVENT} from '../utils/authEvents';
+import {sanitizePublicError} from '../utils/publicError';
 
 const isJsonResponse = headers => {
     const contentType = headers?.['content-type'] || headers?.['Content-Type'] || '';
@@ -53,6 +54,19 @@ const showRequestError = res => {
         message: res?.message ?? '',
         path: res?.path ?? '',
     }));
+};
+
+const sanitizeResponseError = response => {
+    const data = response?.data;
+    if (!data || typeof data !== 'object') {
+        return;
+    }
+    if (typeof data.message === 'string') {
+        data.message = sanitizePublicError(data.message);
+    }
+    if (typeof data.path === 'string') {
+        data.path = sanitizePublicError(data.path);
+    }
 };
 
 const isUnauthorizedError = error => {
@@ -96,6 +110,7 @@ instance.interceptors.request.use(
 
 instance.interceptors.response.use(
     response => {
+        sanitizeResponseError(response);
         if (response.status === 401 || response.data?.status === 401) {
             redirectToLogin();
             return Promise.reject(response);
@@ -115,6 +130,10 @@ instance.interceptors.response.use(
         return response;
     },
     error => {
+        sanitizeResponseError(error.response);
+        if (typeof error.message === 'string') {
+            error.message = sanitizePublicError(error.message);
+        }
         if (isUnauthorizedError(error)) {
             redirectToLogin();
             return Promise.reject(error);

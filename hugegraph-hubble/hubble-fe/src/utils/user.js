@@ -37,6 +37,15 @@ const getUser = () => {
     return {};
 };
 
+const scopedStorageKey = prefix => {
+    const user = getUser();
+    const identity = user?.user_name || user?.id;
+    if (typeof identity !== 'string' || !identity) {
+        return prefix;
+    }
+    return `${prefix}.${encodeURIComponent(identity)}`;
+};
+
 const clearUser = () => {
     sessionStorage.removeItem(key);
     notifyUserChange();
@@ -68,6 +77,7 @@ const getDefaultGraphspace = () => {
 export {
     setUser,
     getUser,
+    scopedStorageKey,
     clearUser,
     clearLogin,
     getDefaultGraphspace,

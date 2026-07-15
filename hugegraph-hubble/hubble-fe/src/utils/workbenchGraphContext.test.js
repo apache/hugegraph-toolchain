@@ -24,6 +24,15 @@ import {
 } from './workbenchGraphContext';
 
 describe('workbench graph context contract', () => {
+    beforeEach(() => {
+        sessionStorage.clear();
+        localStorage.clear();
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'alice',
+            user_name: 'alice',
+        }));
+    });
+
     test.each([
         ['/graphspace/space_a/graph/graph_a/detail', {graphspace: 'space_a', graph: 'graph_a'}],
         ['/graphspace/space_a/graph/graph_a/meta', {graphspace: 'space_a', graph: 'graph_a'}],
@@ -110,5 +119,18 @@ describe('workbench graph context contract', () => {
         };
 
         expect(writeWorkbenchGraphContext(storage, {graphspace: 'space_a'})).toBe(false);
+    });
+
+    test('does not restore another user graph context', () => {
+        writeWorkbenchGraphContext(localStorage, {
+            graphspace: 'alice_space',
+            graph: 'alice_graph',
+        });
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'bob',
+            user_name: 'bob',
+        }));
+
+        expect(readWorkbenchGraphContext(localStorage)).toEqual({});
     });
 });

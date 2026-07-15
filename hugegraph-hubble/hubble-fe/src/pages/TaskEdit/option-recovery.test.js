@@ -59,6 +59,7 @@ beforeAll(() => {
 beforeEach(() => {
     jest.clearAllMocks();
     window.localStorage.clear();
+    window.sessionStorage.clear();
     isPdEnabled.mockReturnValue(false);
     api.manage.getGraphList.mockResolvedValue({status: 200, data: {records: []}});
     api.manage.getTaskList.mockResolvedValue({status: 200, data: {total: 0}});
@@ -155,7 +156,8 @@ it('defaults a PD task to the current graph space and graph', async () => {
 });
 
 it('restores the last available data source or falls back to the first one', async () => {
-    window.localStorage.setItem('hubble_task_datasource', '9');
+    window.sessionStorage.setItem('user_', JSON.stringify({user_name: 'alice'}));
+    window.localStorage.setItem('hubble_task_datasource.alice', '9');
     api.manage.getDatasourceList.mockResolvedValue({
         status: 200,
         data: {records: [
@@ -171,6 +173,28 @@ it('restores the last available data source or falls back to the first one', asy
     );
 
     expect(await screen.findByText('saved.csv', {
+        selector: '.ant-select-selection-item',
+    })).toBeInTheDocument();
+});
+
+it('does not restore another user data source selection', async () => {
+    window.sessionStorage.setItem('user_', JSON.stringify({user_name: 'bob'}));
+    window.localStorage.setItem('hubble_task_datasource.alice', '9');
+    api.manage.getDatasourceList.mockResolvedValue({
+        status: 200,
+        data: {records: [
+            {datasource_id: '8', datasource_name: 'first.csv'},
+            {datasource_id: '9', datasource_name: 'alice.csv'},
+        ]},
+    });
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('first.csv', {
         selector: '.ant-select-selection-item',
     })).toBeInTheDocument();
 });

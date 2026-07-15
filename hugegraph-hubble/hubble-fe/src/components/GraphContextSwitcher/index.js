@@ -24,6 +24,7 @@ import * as api from '../../api';
 import {isPdEnabled} from '../../utils/config';
 import {DEFAULT_GRAPHSPACE} from '../../utils/productMode';
 import {
+    clearWorkbenchGraphContext,
     extractWorkbenchGraphContext,
     readWorkbenchGraphContext,
     resolveWorkbenchGraphContext,
@@ -167,7 +168,7 @@ const GraphContextSwitcher = () => {
             navigate(`/graphspace/${encodeURIComponent(graphspace)}`, {replace: true});
         }
         else {
-            localStorage.removeItem('hubble_workbench_graph_context');
+            clearWorkbenchGraphContext(localStorage);
             navigate('/graphspace', {replace: true});
         }
     }, [

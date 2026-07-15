@@ -30,6 +30,9 @@ import {
 import {readWorkbenchGraphContext} from '../../../utils/workbenchGraphContext';
 import FormHelpLabel from '../../../components/FormHelpLabel';
 import {getResourceDisplayName} from '../../../utils/displayName';
+import {scopedStorageKey} from '../../../utils/user';
+
+const DATASOURCE_STORAGE_KEY = 'hubble_task_datasource';
 
 const BaseForm = ({cancel, visible, loading}) => {
     const {t} = useTranslation();
@@ -72,7 +75,9 @@ const BaseForm = ({cancel, visible, loading}) => {
     const handleChange = useCallback(val => setSelectGraphspace(val), []);
     const handleDatasourceChange = useCallback(value => {
         try {
-            window.localStorage.setItem('hubble_task_datasource', value.toString());
+            window.localStorage.setItem(
+                scopedStorageKey(DATASOURCE_STORAGE_KEY), value.toString()
+            );
         }
         catch {
             // The selected value remains valid even when storage is unavailable.
@@ -145,7 +150,9 @@ const BaseForm = ({cancel, visible, loading}) => {
                 if (options.length > 0 && !baseForm.getFieldValue('datasource_id')) {
                     let saved;
                     try {
-                        saved = window.localStorage.getItem('hubble_task_datasource');
+                        saved = window.localStorage.getItem(
+                            scopedStorageKey(DATASOURCE_STORAGE_KEY)
+                        );
                     }
                     catch {
                         saved = null;

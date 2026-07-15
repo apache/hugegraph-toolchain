@@ -21,6 +21,12 @@ import {MemoryRouter} from 'react-router-dom';
 import Topbar from './index.ant';
 import * as api from '../../api/index';
 
+const mockUseAuthContext = jest.fn();
+
+jest.mock('../../auth/AuthContext', () => ({
+    useAuthContext: () => mockUseAuthContext(),
+}));
+
 jest.mock('../../api/index', () => ({
     auth: {
         status: jest.fn(),
@@ -121,6 +127,7 @@ describe('Topbar request errors', () => {
             replace: jest.fn(),
         };
         sessionStorage.setItem('user_', JSON.stringify({id: 'admin', user_nickname: 'admin'}));
+        mockUseAuthContext.mockReturnValue({context: {role: 'SUPERADMIN'}});
     });
 
     it('catches rejected auth status checks from the request layer', async () => {
@@ -215,6 +222,28 @@ describe('Topbar request errors', () => {
             .toHaveAttribute('aria-haspopup', 'menu');
         expect(screen.getByTestId('user-dropdown'))
             .toHaveAttribute('data-trigger', 'click');
+    });
+
+    it('does not infer a superadmin label from the cached username', async () => {
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'admin',
+            user_name: 'admin',
+            user_nickname: '超级管理员',
+        }));
+        mockUseAuthContext.mockReturnValue({context: {role: 'USER'}});
+        api.auth.status.mockResolvedValue({status: 200});
+
+        render(
+            <MemoryRouter
+                initialEntries={['/navigation']}
+                future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+            >
+                <Topbar />
+            </MemoryRouter>
+        );
+
+        expect(await screen.findByText('超级管理员')).toBeInTheDocument();
+        expect(screen.queryByText('Topbar.super_admin')).not.toBeInTheDocument();
     });
 
     it('logs out immediately without a confirmation dialog', async () => {
