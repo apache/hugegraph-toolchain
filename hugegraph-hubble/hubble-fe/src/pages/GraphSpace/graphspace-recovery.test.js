@@ -86,6 +86,8 @@ test('keeps a failed GraphSpace request distinct from a valid empty list', async
     await userEvent.click(screen.getByRole('button', {name: 'graphspace.load.retry'}));
 
     expect(await screen.findByText('Space A:manage')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', {name: 'graphspace.view_mode'}))
+        .toBeInTheDocument();
     expect(screen.queryByText('graphspace.load.unavailable')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'graphspace.create'})).toBeEnabled();
 });

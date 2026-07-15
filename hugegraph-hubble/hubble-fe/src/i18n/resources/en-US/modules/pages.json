@@ -86,6 +86,7 @@
   },
   "graphspace": {
     "title": "Graph Space Management",
+    "view_mode": "GraphSpace view",
     "default_name": "Default GraphSpace",
     "load": {
       "unavailable": "Unable to load the GraphSpace list.",
@@ -183,6 +184,7 @@
   },
   "graph": {
     "title": "Graph Management",
+    "view_mode": "Graph list view",
     "create": "New Graph",
     "search_placeholder": "Search by graph name",
     "unavailable": "Graphs are unavailable. Check the server connection and retry.",
@@ -314,6 +316,7 @@
       "partial": "Partial",
       "loading": "Loading",
       "retry_page": "Retry graph details",
+      "back_to_graphs": "Back to graphs",
       "retry_statistics": "Retry statistics",
       "vertex_total": "Total vertices",
       "edge_total": "Total edges",
@@ -348,6 +351,9 @@
   },
   "account": {
     "title": "Account Management",
+    "permission_changed": "Account access has changed",
+    "permission_changed_description": "Refresh permissions or return to your profile",
+    "refresh_permissions": "Refresh permissions",
     "load": {
       "unavailable": "Unable to load the account list.",
       "retry": "Retry accounts"
@@ -865,6 +871,7 @@
     }
   },
   "schema": {
+    "view_mode": "Schema view",
     "list_failed": "Schema data could not be loaded. Check the Server connection and retry.",
     "retry": "Retry schema data",
     "delete_failed": "Delete failed. Check the server connection and retry.",
@@ -872,7 +879,8 @@
     "identity": {
       "graph_unavailable": "Unable to load the current graph.",
       "graphspace_unavailable": "Unable to load the current GraphSpace.",
-      "retry": "Retry graph context"
+      "retry": "Retry graph context",
+      "back_to_graph": "Back to graph overview"
     },
     "name_placeholder": "Letters, numbers, underscores, and Chinese characters are allowed",
     "delete_irreversible": "This action cannot be undone. Please proceed with caution.",
@@ -1002,6 +1010,9 @@
         "parent": "Parent Edge Type: ",
         "parent_placeholder": "Select parent edge",
         "style": "Edge Style: ",
+        "arrow_style": "Edge arrow style",
+        "with_arrow": "Directed edge",
+        "without_arrow": "Undirected edge",
         "source": "Source Type",
         "target": "Target Type",
         "multi_link": "Allow Multiple Links",
@@ -1129,6 +1140,7 @@
     "dashboard_unavailable": "Dashboard unavailable",
     "section": "System & Operations",
     "overview": "Cluster Overview",
+    "overview_view_mode": "Overview view",
     "overview_description": "Understand cluster topology, service tiers and node status at a glance",
     "nodes": "Nodes",
     "nodes_description": "Browse, filter and inspect every discovered service node",
@@ -1203,6 +1215,7 @@
     "last_success": "Last success",
     "node_unavailable": "This node is unavailable or no longer belongs to the authorized snapshot.",
     "back": "Back",
+    "back_to_nodes": "Back to nodes",
     "metric_system": "System",
     "metric_drive": "Drive",
     "metric_raft": "Raft",

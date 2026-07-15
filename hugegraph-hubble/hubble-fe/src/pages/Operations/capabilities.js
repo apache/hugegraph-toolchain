@@ -19,11 +19,12 @@
 import {useAuthContext} from '../../auth/AuthContext';
 
 const useOperationsCapabilities = () => {
-    const {loading, context, error} = useAuthContext();
+    const {loading, context, error, refresh} = useAuthContext();
     return {
         loading,
         capabilities: context?.capabilities ?? [],
         error,
+        refresh,
     };
 };
 

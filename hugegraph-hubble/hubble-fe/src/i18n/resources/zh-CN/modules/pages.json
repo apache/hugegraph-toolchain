@@ -86,6 +86,7 @@
   },
   "graphspace": {
     "title": "图空间管理",
+    "view_mode": "图空间视图",
     "default_name": "默认图空间",
     "load": {
       "unavailable": "无法加载图空间列表。",
@@ -183,6 +184,7 @@
   },
   "graph": {
     "title": "图管理",
+    "view_mode": "图列表视图",
     "create": "新建图",
     "search_placeholder": "请输入图名称",
     "unavailable": "图列表暂不可用，请检查 Server 连接后重试。",
@@ -314,6 +316,7 @@
       "partial": "部分可用",
       "loading": "加载中",
       "retry_page": "重试图详情",
+      "back_to_graphs": "返回图列表",
       "retry_statistics": "重试统计数据",
       "vertex_total": "点总数",
       "edge_total": "边总数",
@@ -348,6 +351,9 @@
   },
   "account": {
     "title": "账号管理",
+    "permission_changed": "账号权限已变化",
+    "permission_changed_description": "请刷新权限，或返回个人中心",
+    "refresh_permissions": "刷新权限",
     "load": {
       "unavailable": "无法加载账号列表。",
       "retry": "重试账号列表"
@@ -865,6 +871,7 @@
     }
   },
   "schema": {
+    "view_mode": "Schema 视图",
     "list_failed": "Schema 数据暂时无法加载，请检查 Server 连接后重试。",
     "retry": "重试 Schema 数据",
     "delete_failed": "删除失败，请检查 Server 连接后重试。",
@@ -872,7 +879,8 @@
     "identity": {
       "graph_unavailable": "无法加载当前图信息。",
       "graphspace_unavailable": "无法加载当前 GraphSpace 信息。",
-      "retry": "重试图上下文"
+      "retry": "重试图上下文",
+      "back_to_graph": "返回图概览"
     },
     "name_placeholder": "允许出现中英文、数字、下划线",
     "delete_irreversible": "删除后无法恢复，请谨慎操作。",
@@ -1002,6 +1010,9 @@
         "parent": "父边类型：",
         "parent_placeholder": "请选择父边",
         "style": "顶点样式：",
+        "arrow_style": "边箭头样式",
+        "with_arrow": "有向边",
+        "without_arrow": "无向边",
         "source": "起点类型",
         "target": "终点类型",
         "multi_link": "允许多次连接",
@@ -1129,6 +1140,7 @@
     "dashboard_unavailable": "Dashboard 不可用",
     "section": "系统与运维",
     "overview": "集群概览",
+    "overview_view_mode": "概览视图",
     "overview_description": "快速了解集群拓扑、服务层级与节点状态",
     "nodes": "节点",
     "nodes_description": "浏览、筛选并检查所有已发现的服务节点",
@@ -1203,6 +1215,7 @@
     "last_success": "最近成功",
     "node_unavailable": "该节点不可用，或已不属于当前授权快照。",
     "back": "返回",
+    "back_to_nodes": "返回节点列表",
     "metric_system": "系统",
     "metric_drive": "磁盘",
     "metric_raft": "Raft 共识",

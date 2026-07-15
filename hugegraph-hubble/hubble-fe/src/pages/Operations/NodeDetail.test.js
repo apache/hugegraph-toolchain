@@ -125,6 +125,21 @@ test('keeps the snapshot visible and reports a refresh failure', async () => {
     expect(screen.queryByText('secret')).not.toBeInTheDocument();
 });
 
+test('recovers an initial node failure and keeps a canonical node-list action', async () => {
+    getNode.mockRejectedValueOnce(new Error('down')).mockResolvedValueOnce(response);
+
+    renderDetail();
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Back to nodes/i}))
+        .toHaveAttribute('href', '/operations/nodes');
+
+    fireEvent.click(screen.getByRole('button', {name: /Retry/i}));
+
+    expect(await screen.findByRole('heading', {name: 'Store A'})).toBeInTheDocument();
+    expect(getNode).toHaveBeenCalledTimes(2);
+});
+
 test('removes an earlier privileged node detail when refresh is forbidden', async () => {
     getNode
         .mockResolvedValueOnce(response)

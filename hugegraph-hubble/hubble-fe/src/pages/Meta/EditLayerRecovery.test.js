@@ -113,6 +113,8 @@ test('edge detail failure ends loading, disables submit and retries', async () =
     fireEvent.click(screen.getByRole('button', {name: 'schema.retry'}));
     await waitFor(() => expect(api.manage.getMetaEdge).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.getByRole('button', {name: 'OK'})).toBeEnabled());
+    expect(screen.getByRole('combobox', {name: 'schema.edge.form.arrow_style'}))
+        .toBeInTheDocument();
 });
 
 test('property form explains its read and write contract with examples', () => {

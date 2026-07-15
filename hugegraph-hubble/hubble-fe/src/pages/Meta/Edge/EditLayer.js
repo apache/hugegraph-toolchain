@@ -286,13 +286,19 @@ const EditEdgeLayer = ({visible, onCancle, graphspace, graph, refresh, name, pro
                                             style={{marginBottom: 0}}
                                         >
                                             <Select
+                                                aria-label={t('schema.edge.form.arrow_style')}
                                                 style={{width: 66}}
                                                 size="medium"
                                             >
                                                 {edgeShapeSchemas.map(item => {
                                                     return (
                                                         <Select.Option key={item.blackicon} value={item.flag}>
-                                                            <img src={item.blackicon} />
+                                                            <img
+                                                                src={item.blackicon}
+                                                                alt={t(item.flag
+                                                                    ? 'schema.edge.form.with_arrow'
+                                                                    : 'schema.edge.form.without_arrow')}
+                                                            />
                                                         </Select.Option>
                                                     );
                                                 })}

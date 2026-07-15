@@ -17,6 +17,7 @@
  */
 
 import {render, screen, waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import OperationsRoute from './OperationsRoute';
 import {useOperationsCapabilities} from './capabilities';
@@ -64,13 +65,16 @@ test('shows a 403 state without rendering protected content', async () => {
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(screen.queryByText('secret topology')).not.toBeInTheDocument();
     expect(screen.getAllByText(/permission/i)).not.toHaveLength(0);
+    expect(screen.queryByRole('button', {name: /retry/i})).not.toBeInTheDocument();
 });
 
 test('does not misreport a capability request failure as permission denied', async () => {
+    const refresh = jest.fn();
     useOperationsCapabilities.mockReturnValue({
         loading: false,
         capabilities: [],
         error: new Error('network failure'),
+        refresh,
     });
 
     render(
@@ -85,4 +89,7 @@ test('does not misreport a capability request failure as permission denied', asy
     expect(screen.queryByText('cluster content')).not.toBeInTheDocument();
     expect(screen.getByText(/unable to load/i)).toBeInTheDocument();
     expect(screen.queryByText(/permission required/i)).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: /retry/i}));
+    expect(refresh).toHaveBeenCalledTimes(1);
 });

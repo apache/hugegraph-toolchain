@@ -59,6 +59,7 @@ jest.mock('react-i18next', () => ({
         'graph.detail.partial': 'Partial',
         'graph.detail.loading': 'Loading',
         'graph.detail.retry_page': 'Retry graph details',
+        'graph.detail.back_to_graphs': 'Back to graphs',
         'graph.detail.retry_statistics': 'Retry statistics',
         'graph.detail.update_failed': 'Data update failed. Retry later.',
         'graph.detail.empty_title': 'This graph has no schema or data yet',
@@ -107,6 +108,8 @@ test('renders one actionable page error when all initialization requests fail', 
         'Graph details are unavailable. Check the server and retry.'
     )).toBeInTheDocument();
     expect(screen.getAllByRole('alert')).toHaveLength(1);
+    expect(screen.getByRole('link', {name: 'Back to graphs'}))
+        .toHaveAttribute('href', '/graphspace/DEFAULT');
     expect(message.error).not.toHaveBeenCalled();
 });
 

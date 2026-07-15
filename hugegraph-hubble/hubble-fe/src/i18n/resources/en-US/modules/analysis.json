@@ -290,6 +290,7 @@
         "strict_radial_tooltip": "Whether the layout must be a strict radial layout"
       },
       "statistics_panel": {
+        "view_mode": "Statistics view",
         "label_statistics": "Label Statistics",
         "graph_statistics": "Graph Statistics",
         "type_count": "Vertex and Edge Counts",

@@ -144,7 +144,28 @@ const Overview = () => {
         return <Skeleton active paragraph={{rows: 12}} />;
     }
     if (error && !data) {
-        return <Alert type='error' showIcon message={t('operations.load_failed')} />;
+        return (
+            <main className='operations-page operations-overview'>
+                <header className='operations-page-header'>
+                    <div>
+                        <h2>{t('operations.overview')}</h2>
+                        <p className='operations-page-description'>
+                            {t('operations.overview_description')}
+                        </p>
+                    </div>
+                </header>
+                <Alert
+                    type='error'
+                    showIcon
+                    message={t('operations.load_failed')}
+                    action={(
+                        <Button size='small' onClick={refresh}>
+                            {t('common.action.retry')}
+                        </Button>
+                    )}
+                />
+            </main>
+        );
     }
 
     const unavailable = t('operations.unavailable');
@@ -315,6 +336,8 @@ const Overview = () => {
                             />
                         )}
                         <Radio.Group
+                            role='radiogroup'
+                            aria-label={t('operations.overview_view_mode')}
                             className='operations-view-switch'
                             value={view}
                             onChange={changeView}

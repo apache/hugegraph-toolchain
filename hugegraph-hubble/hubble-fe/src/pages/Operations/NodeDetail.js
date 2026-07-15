@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Alert, Button, Descriptions, Progress, Skeleton} from 'antd';
+import {Alert, Button, Descriptions, Progress, Skeleton, Space} from 'antd';
 import {ArrowLeftOutlined} from '@ant-design/icons';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
@@ -293,7 +293,28 @@ const NodeDetail = () => {
         return <Skeleton active paragraph={{rows: 10}} />;
     }
     if (error && !data) {
-        return <Alert type='error' showIcon message={t('operations.node_unavailable')} />;
+        return (
+            <main className='operations-page operations-node-detail'>
+                <header className='operations-page-header'>
+                    <div><h2>{t('operations.node_detail')}</h2></div>
+                </header>
+                <Alert
+                    type='error'
+                    showIcon
+                    message={t('operations.node_unavailable')}
+                    action={(
+                        <Space>
+                            <Button href='/operations/nodes' size='small'>
+                                {t('operations.back_to_nodes')}
+                            </Button>
+                            <Button size='small' type='primary' onClick={refresh}>
+                                {t('common.action.retry')}
+                            </Button>
+                        </Space>
+                    )}
+                />
+            </main>
+        );
     }
     const node = data?.node ?? {};
     const observed = formatObservedAt(

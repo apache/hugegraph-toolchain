@@ -78,6 +78,8 @@ test('keeps unknown and partial source states explicit', async () => {
     renderOverview();
 
     expect(await screen.findByText('DEGRADED')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', {name: 'Overview view'}))
+        .toBeInTheDocument();
     expect(screen.getByText('Malformed')).toBeInTheDocument();
     expect(screen.getByText('Unsupported')).toBeInTheDocument();
     expect(screen.getByText(/stale/i)).toBeInTheDocument();
@@ -90,6 +92,22 @@ test('shows loading without fabricating an empty cluster', () => {
 
     expect(container.querySelector('.ant-skeleton')).toBeInTheDocument();
     expect(screen.queryByText(/empty cluster/i)).not.toBeInTheDocument();
+});
+
+test('recovers after an initial overview failure without reloading the route', async () => {
+    getOverview.mockRejectedValueOnce(new Error('down')).mockResolvedValueOnce({
+        status: 'UP', observed_at: 1000, sources: {}, facts: {},
+        nodes: [{id: 'server-recovered', name: 'server-recovered', type: 'SERVER'}],
+    });
+
+    renderOverview();
+
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: /Retry/i}));
+
+    await waitFor(() => expect(getOverview).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('UP')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Refresh'})).toBeInTheDocument();
 });
 
 test('keeps the current snapshot visible while a refresh is pending', async () => {

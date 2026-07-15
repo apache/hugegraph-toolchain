@@ -46,6 +46,7 @@ beforeEach(() => {
     jest.clearAllMocks();
     mockCurrentUser = {id: 'admin', is_superadmin: true};
     mockAuthContext = {
+        refresh: jest.fn(),
         context: {
             actions: {
                 accounts: ['create', 'read', 'update', 'delete'],
@@ -59,6 +60,20 @@ beforeEach(() => {
         addListener: jest.fn(),
         removeListener: jest.fn(),
     }));
+});
+
+test('shows an explicit recoverable state when no account read action remains', async () => {
+    mockAuthContext = {
+        refresh: jest.fn().mockResolvedValue(undefined),
+        context: {actions: {accounts: [], members: [], roles: [], authorizations: []}},
+    };
+
+    render(<Account />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent('account.permission_changed');
+    expect(api.auth.getAllUserList).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', {name: 'account.refresh_permissions'}));
+    expect(mockAuthContext.refresh).toHaveBeenCalledTimes(1);
 });
 
 test('does not present a failed account request as an empty user table', async () => {

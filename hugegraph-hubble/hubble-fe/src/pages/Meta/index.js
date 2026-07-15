@@ -104,6 +104,8 @@ const Meta = () => {
                     <Row justify='space-between'>
                         <Col>
                             <Radio.Group
+                                role='radiogroup'
+                                aria-label={t('schema.view_mode')}
                                 options={[
                                     {label: t('common.label.view_mode'), value: 'image'},
                                     {label: t('common.label.list_mode'), value: 'list'},
@@ -141,6 +143,12 @@ const Meta = () => {
                             )}
                             <Button onClick={loadIdentity}>
                                 {t('schema.identity.retry')}
+                            </Button>
+                            <Button
+                                href={`/graphspace/${encodeURIComponent(graphspace)}`
+                                    + `/graph/${encodeURIComponent(graph)}/detail`}
+                            >
+                                {t('schema.identity.back_to_graph')}
                             </Button>
                         </Space>
                     )}

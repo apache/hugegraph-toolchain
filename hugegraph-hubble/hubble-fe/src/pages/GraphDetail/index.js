@@ -256,9 +256,17 @@ const GraphDetail = () => {
                                 showIcon
                                 message={t('graph.detail.unavailable')}
                                 action={(
-                                    <Button size='small' onClick={loadPage}>
-                                        {t('graph.detail.retry_page')}
-                                    </Button>
+                                    <Space>
+                                        <Button
+                                            size='small'
+                                            href={`/graphspace/${encodeURIComponent(graphspace)}`}
+                                        >
+                                            {t('graph.detail.back_to_graphs')}
+                                        </Button>
+                                        <Button size='small' type='primary' onClick={loadPage}>
+                                            {t('graph.detail.retry_page')}
+                                        </Button>
+                                    </Space>
                                 )}
                             />
                         ) : (

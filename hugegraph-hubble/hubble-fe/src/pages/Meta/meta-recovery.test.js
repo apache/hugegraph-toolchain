@@ -65,6 +65,8 @@ test('shows persistent source-specific recovery instead of spinning forever', as
     expect(await screen.findByText('schema.identity.graph_unavailable')).toBeInTheDocument();
     expect(screen.getByText('schema.identity.graphspace_unavailable')).toBeInTheDocument();
     expect(screen.queryByText('schema list')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'schema.identity.back_to_graph'}))
+        .toHaveAttribute('href', '/graphspace/space-a/graph/graph-a/detail');
 
     fireEvent.click(screen.getByRole('button', {name: 'schema.identity.retry'}));
 
@@ -86,6 +88,8 @@ test('defaults to image mode and preserves manual list switching', async () => {
     render(<Meta />);
 
     expect(await screen.findByText('schema image')).toBeInTheDocument();
+    expect(screen.getByRole('radiogroup', {name: 'schema.view_mode'}))
+        .toBeInTheDocument();
     expect(screen.queryByText('schema list')).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByLabelText('common.label.list_mode'));

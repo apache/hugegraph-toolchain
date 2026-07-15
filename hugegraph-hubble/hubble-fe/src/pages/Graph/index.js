@@ -473,6 +473,8 @@ const Graph = () => {
                     <Col>
                         <Space>
                             <Radio.Group
+                                role='radiogroup'
+                                aria-label={t('graph.view_mode')}
                                 options={[
                                     {label: t('common.label.view_mode'), value: 'image'},
                                     {label: t('common.label.list_mode'), value: 'list'},
@@ -499,6 +501,11 @@ const Graph = () => {
                         showIcon
                         type='error'
                         message={t('graph.unavailable')}
+                        action={(
+                            <Button size='small' onClick={handleRefresh}>
+                                {t('common.action.retry')}
+                            </Button>
+                        )}
                     />
                 )}
                 {listType === 'image'

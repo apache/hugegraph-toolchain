@@ -279,7 +279,7 @@ const GlobalAccounts = () => {
 
 const Account = () => {
     const {t} = useTranslation();
-    const {context} = useAuthContext();
+    const {context, refresh: refreshPermissions} = useAuthContext();
     const actions = context?.actions ?? {};
     const canReadGlobalAccounts = (actions.accounts ?? []).includes('read');
     const canReadScopedAccess = [
@@ -287,6 +287,10 @@ const Account = () => {
         ...(actions.roles ?? []),
         ...(actions.authorizations ?? []),
     ].includes('read');
+    const refreshPermissionContext = useCallback(
+        () => Promise.resolve(refreshPermissions?.()).catch(() => undefined),
+        [refreshPermissions]
+    );
 
     let content = null;
     if (canReadGlobalAccounts && canReadScopedAccess) {
@@ -312,6 +316,24 @@ const Account = () => {
     }
     else if (canReadScopedAccess) {
         content = <SpaceAccess />;
+    }
+    else {
+        content = (
+            <Alert
+                type='warning'
+                showIcon
+                message={t('account.permission_changed')}
+                description={t('account.permission_changed_description')}
+                action={(
+                    <Button
+                        size='small'
+                        onClick={refreshPermissionContext}
+                    >
+                        {t('account.refresh_permissions')}
+                    </Button>
+                )}
+            />
+        );
     }
 
     return (

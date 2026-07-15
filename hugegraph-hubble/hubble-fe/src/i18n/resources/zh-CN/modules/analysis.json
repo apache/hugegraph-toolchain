@@ -290,6 +290,7 @@
         "strict_radial_tooltip": "是否必须是严格的 radial 布局"
       },
       "statistics_panel": {
+        "view_mode": "统计视图",
         "label_statistics": "标签统计",
         "graph_statistics": "图统计",
         "type_count": "点边数量统计",

@@ -113,6 +113,8 @@ test('disables every clear action for the default graph card', async () => {
     render(<Graph />);
 
     const menu = await screen.findByTestId('graph-card-menu');
+    expect(screen.getByRole('radiogroup', {name: 'graph.view_mode'}))
+        .toBeInTheDocument();
     const clearSchemaData = screen.getByText('graph.menu.clear_graph');
     const setDefault = screen.getByText('graph.menu.set_default');
 
@@ -188,6 +190,35 @@ test('places the new-graph card after existing graphs', async () => {
 
     expect(graphCard.compareDocumentPosition(create)
         & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+
+test('retries a failed graph list without losing the current graphspace', async () => {
+    api.manage.getGraphList
+        .mockRejectedValueOnce(new Error('down'))
+        .mockResolvedValueOnce({
+            status: 200,
+            data: {
+                records: [{
+                    name: 'recovered-graph',
+                    nickname: 'Recovered graph',
+                    graphspace: 'space',
+                    default: false,
+                }],
+                total: 1,
+            },
+        });
+
+    render(<Graph />);
+
+    expect(await screen.findByText('graph.unavailable')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'common.action.retry'}));
+
+    expect(await screen.findByTestId('graph-card-menu')).toBeInTheDocument();
+    expect(api.manage.getGraphList).toHaveBeenLastCalledWith(
+        'space',
+        expect.objectContaining({page_no: 1}),
+        {suppressBusinessErrorToast: true}
+    );
 });
 
 test('explains an empty GraphSpace and distinguishes filtered results', async () => {

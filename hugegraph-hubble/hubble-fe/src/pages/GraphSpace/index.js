@@ -319,6 +319,8 @@ const GraphSpace = () => {
                     <Col>
                         <Space>
                             <Radio.Group
+                                role='radiogroup'
+                                aria-label={t('graphspace.view_mode')}
                                 options={[
                                     {label: t('common.label.view_mode'), value: 'image'},
                                     {label: t('common.label.list_mode'), value: 'list'},

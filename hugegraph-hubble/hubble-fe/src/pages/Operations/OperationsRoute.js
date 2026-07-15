@@ -16,13 +16,18 @@
  * under the License.
  */
 
-import {Alert, Skeleton} from 'antd';
+import {Alert, Button, Skeleton} from 'antd';
+import {useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useOperationsCapabilities} from './capabilities';
 
 const OperationsRoute = ({required, children}) => {
     const {t} = useTranslation();
-    const {loading, capabilities, error} = useOperationsCapabilities();
+    const {loading, capabilities, error, refresh} = useOperationsCapabilities();
+    const retry = useCallback(
+        () => Promise.resolve(refresh?.()).catch(() => undefined),
+        [refresh]
+    );
 
     if (loading) {
         return <Skeleton active aria-label={t('operations.loading')} />;
@@ -33,6 +38,14 @@ const OperationsRoute = ({required, children}) => {
                 type='error'
                 showIcon
                 message={t('operations.load_failed')}
+                action={(
+                    <Button
+                        size='small'
+                        onClick={retry}
+                    >
+                        {t('common.action.retry')}
+                    </Button>
+                )}
             />
         );
     }

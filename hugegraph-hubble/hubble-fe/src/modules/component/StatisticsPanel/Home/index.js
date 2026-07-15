@@ -55,7 +55,14 @@ const StatisticPanel = props => {
 
     return (
         <div className={settingClassName}>
-            <Radio.Group defaultValue={LABEL} onChange={handleRadioChange} size="middle" buttonStyle="solid">
+            <Radio.Group
+                role='radiogroup'
+                aria-label={t('analysis.canvas.statistics_panel.view_mode')}
+                defaultValue={LABEL}
+                onChange={handleRadioChange}
+                size="middle"
+                buttonStyle="solid"
+            >
                 <Radio.Button value={LABEL}>{t('analysis.canvas.statistics_panel.label_statistics')}</Radio.Button>
                 <Radio.Button value={GRAPH}>{t('analysis.canvas.statistics_panel.graph_statistics')}</Radio.Button>
             </Radio.Group>
