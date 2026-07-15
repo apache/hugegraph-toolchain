@@ -18,27 +18,19 @@
 
 package org.apache.hugegraph.unit;
 
-import java.lang.reflect.Method;
-
-import org.apache.hugegraph.controller.op.K8sTokenController;
 import org.junit.Assert;
 import org.junit.Test;
-import org.springframework.core.annotation.AnnotatedElementUtils;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
 
 public class K8sTokenEndpointSecurityTest {
 
     @Test
-    public void testK8sTokenEndpointHasNoWebMappings() {
-        Assert.assertNull(K8sTokenController.class.getDeclaredAnnotation(
-                          RestController.class));
-        Assert.assertNull(K8sTokenController.class.getDeclaredAnnotation(
-                          RequestMapping.class));
-
-        for (Method method : K8sTokenController.class.getDeclaredMethods()) {
-            Assert.assertFalse(AnnotatedElementUtils.hasAnnotation(
-                               method, RequestMapping.class));
+    public void testK8sTokenReaderIsNotPackaged() {
+        try {
+            Class.forName("org.apache.hugegraph.controller.op." +
+                          "K8sTokenController");
+            Assert.fail("Kubernetes credentials must not be exposed by Hubble");
+        } catch (ClassNotFoundException ignored) {
+            // Expected: Hubble must not package a Kubernetes credential reader.
         }
     }
 }
