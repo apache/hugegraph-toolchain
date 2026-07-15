@@ -159,7 +159,9 @@ const SecondaryActions = props => {
             <Button className={c.btn} onClick={onClear} size='small'>
                 {t('common.action.clear')}
             </Button>
-            <span className={c.shortcutHint}>{shortcutHint}</span>
+            {shortcutHint && (
+                <span className={c.shortcutHint}>{shortcutHint}</span>
+            )}
         </div>
     );
 };

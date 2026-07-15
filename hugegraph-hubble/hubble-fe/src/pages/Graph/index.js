@@ -241,11 +241,19 @@ const Graph = () => {
                 <Button onClick={handleClearFilters}>
                     {t('graph.empty.clear_filters')}
                 </Button>
-            ) : graphCreateEnabled ? (
-                <Button type='primary' onClick={showEditLayer}>
-                    {t('graph.empty.create')}
-                </Button>
-            ) : null}
+            ) : (
+                <Space direction='vertical' size={8}>
+                    {graphCreateEnabled && (
+                        <Button type='primary' onClick={showEditLayer}>
+                            {t('graph.empty.create')}
+                        </Button>
+                    )}
+                    <span className={style.empty_demo_hint}>
+                        {t('graph.empty.demo_prerequisite')}
+                    </span>
+                    <Link to='/task'>{t('graph.empty.view_demo')}</Link>
+                </Space>
+            )}
         </Empty>
     );
 

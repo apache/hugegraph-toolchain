@@ -345,6 +345,8 @@
     "empty": {
       "description": "This GraphSpace is ready but has no graphs yet. Create the first graph to model, import, and query data",
       "create": "Create first graph",
+      "demo_prerequisite": "After creating a graph, select it and use Data Import to build a quick Demo dataset.",
+      "view_demo": "View Demo data entry",
       "filtered_description": "No graphs match the current date or name filters",
       "clear_filters": "Clear filters"
     }
@@ -1042,6 +1044,8 @@
       "step_vertex": "Create vertex types",
       "step_edge": "Connect them with edge types",
       "edge_prerequisite": "Create at least one vertex type before creating an edge type.",
+      "template_description": "Prefer a ready-made model? Open Schema templates and choose an example to get started quickly",
+      "use_template": "Create from a Schema template",
       "vertex": "Vertex Type",
       "edge": "Edge Type",
       "view_properties": "View Properties",
@@ -1135,7 +1139,8 @@
     }
   },
   "operations": {
-    "advanced_monitoring": "Advanced monitoring",
+    "advanced_monitoring": "External Advanced Dashboard",
+    "dashboard_external_context": "This is an optional external monitoring entry. Being unconfigured or unavailable does not affect Hubble's native Cluster Overview or Nodes features.",
     "dashboard_checking": "Checking Dashboard",
     "dashboard_unavailable": "Dashboard unavailable",
     "section": "System & Operations",
@@ -1224,7 +1229,10 @@
     "availability_available": "Available",
     "availability_unavailable": "Unavailable",
     "availability_unsupported": "Unsupported",
+    "availability_not_applicable": "Not applicable",
     "availability_malformed": "Malformed",
+    "metric_scope_store_only": "{{metric}} metrics are collected from Store nodes, not {{nodeType}} nodes.",
+    "metric_scope_backend": "Backend metrics are provided by Server and Store nodes, not {{nodeType}} nodes.",
     "reason_upstream_timeout": "Upstream timed out",
     "reason_upstream_unavailable": "Upstream unavailable",
     "reason_partial_refresh_failed": "Some metrics could not be refreshed",
@@ -1293,7 +1301,7 @@
     "operation_manage": "Operations",
     "cluster_overview": "Cluster Overview",
     "nodes": "Nodes",
-    "advanced_monitoring": "Advanced Dashboard",
+    "advanced_monitoring": "External Advanced Dashboard",
     "operations_unavailable": "Native operations capabilities are unavailable for this account.",
     "cluster_manage": "Cluster Management",
     "monitor_manage": "Monitoring",
@@ -1301,6 +1309,7 @@
     "alert_manage": "Alert Management",
     "coming_soon": "Coming Soon",
     "dashboard_checking": "Checking Dashboard availability...",
+    "dashboard_external_context": "This is an optional external monitoring entry. Being unconfigured or unavailable does not affect the native Cluster Overview or Nodes features.",
     "dashboard_unconfigured": "Dashboard is not configured. Set dashboard.address to enable these operations.",
     "not_configured": "Not configured",
     "unavailable": "Unavailable",

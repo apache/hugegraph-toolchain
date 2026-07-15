@@ -183,12 +183,16 @@ const Overview = () => {
         && Number.isFinite(facts.capacity_total) && facts.capacity_total > 0
         ? Math.round(facts.capacity_used / facts.capacity_total * 100)
         : null;
-    const dashboardReason = dashboard.status === 'checking'
+    const dashboardStatusReason = dashboard.status === 'checking'
         ? t('navigation_page.dashboard_checking')
         : dashboard.status === 'unconfigured'
             ? t('navigation_page.dashboard_unconfigured')
             : dashboard.status === 'unavailable'
                 ? t('navigation_page.dashboard_unavailable') : undefined;
+    const dashboardReason = [
+        t('operations.dashboard_external_context'),
+        dashboardStatusReason,
+    ].filter(Boolean).join(' ');
     const nodeColumns = [
         {
             title: t('operations.node'),

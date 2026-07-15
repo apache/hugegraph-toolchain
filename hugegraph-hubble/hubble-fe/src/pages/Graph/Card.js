@@ -98,12 +98,12 @@ const GraphCard = ({item, menus}) => {
         navigate(schemaPath);
     }, [navigate, schemaPath]);
 
-    const handleAnalysisKeyDown = useCallback(event => {
+    const handleSchemaKeyDown = useCallback(event => {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
-            handleGotoAnalysis();
+            handleGotoSchema();
         }
-    }, [handleGotoAnalysis]);
+    }, [handleGotoSchema]);
 
     return (
         <Card
@@ -111,8 +111,8 @@ const GraphCard = ({item, menus}) => {
             title={(
                 <TitleField
                     item={item}
-                    onClick={handleGotoAnalysis}
-                    onKeyDown={handleAnalysisKeyDown}
+                    onClick={handleGotoSchema}
+                    onKeyDown={handleSchemaKeyDown}
                     schemaTypeCounts={{
                         vertices: schemaView.vertices?.length || 0,
                         edges: schemaView.edges?.length || 0,
@@ -146,7 +146,9 @@ const GraphCard = ({item, menus}) => {
                     </Tooltip>
                 ),
                 <Link key='overview' to={overviewPath}>{t('graph.card.overview')}</Link>,
-                <Link key='schema' to={schemaPath}>{t('graph.card.schema_info')}</Link>,
+                <Link key='query' to={`/gremlin/${graphspace}/${item.name}`}>
+                    {t('graph.card.query_graph')}
+                </Link>,
             ].filter(Boolean)}
         >
             {schemaIsEmpty ? (
@@ -165,8 +167,8 @@ const GraphCard = ({item, menus}) => {
             ) : (
                 <div
                     className={style.card_content}
-                    onClick={handleGotoAnalysis}
-                    onKeyDown={handleAnalysisKeyDown}
+                    onClick={handleGotoSchema}
+                    onKeyDown={handleSchemaKeyDown}
                     role='button'
                     tabIndex={0}
                 >

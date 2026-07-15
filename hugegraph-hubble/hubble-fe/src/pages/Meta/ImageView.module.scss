@@ -54,6 +54,20 @@
   font-size: 12px;
 }
 
+.templateGuide {
+  max-width: 520px;
+  margin: 20px auto 0;
+  padding-top: 16px;
+  border-top: 1px solid #e8e8e8;
+  color: #667085;
+  line-height: 20px;
+
+  p {
+    margin-bottom: 4px;
+    overflow-wrap: anywhere;
+  }
+}
+
 .toolbar {
   min-height: 40px;
   margin-bottom: 8px;

@@ -41,6 +41,7 @@
     "navigation": "主导航",
     "navigation_open": "打开主导航",
     "navigation_close": "关闭主导航",
+    "navigation_pin_open": "固定展开主导航",
     "shortcuts": {
       "title": "快捷键总览",
       "description": "在非输入区域按 ? 可随时打开或关闭此总览",

@@ -81,30 +81,12 @@ const QueryBar = props => {
         [activeTab, isEmptyQuery, isExecuting, onExecute]
     );
 
-    const onQueryKeyDown = useCallback(
-        event => {
-            const nativeEvent = event.nativeEvent || event;
-            const isEditor = event.target.closest?.('.cm-editor');
-            if (event.key !== 'Enter' || !event.ctrlKey || event.metaKey
-                || nativeEvent.isComposing || !isEditor
-                || isEmptyQuery || isExecuting) {
-                return;
-            }
-            event.preventDefault();
-            onExecution();
-        },
-        [isEmptyQuery, isExecuting, onExecution]
-    );
-
     const toggleEditor = useCallback(() => {
         setEditorExpanded(expanded => !expanded);
     }, []);
 
     const renderEditor = language => (
-        <div
-            className={c.editorRegion}
-            onKeyDown={onQueryKeyDown}
-        >
+        <div className={c.editorRegion}>
             <Button
                 className={c.editorToggle}
                 type='text'
@@ -123,16 +105,17 @@ const QueryBar = props => {
                     <CodeEditor
                         value={codeEditorContent}
                         onChange={handleCodeEditorChange}
+                        onExecutionShortcut={onExecution}
                         lang={language}
                         minHeight={64}
-                        metaEnterNewline
                         placeholder={language === 'gremlin'
                             ? t('analysis.query.gremlin_placeholder')
                             : t('analysis.query.cypher_placeholder')}
                     />
-                    <span className={c.editorShortcutHint}>
-                        {t('analysis.query.shortcut_hint_command')}
-                    </span>
+                    <div className={c.editorShortcutHints} aria-hidden='true'>
+                        <span>{t('analysis.query.shortcut_hint_ctrl')}</span>
+                        <span>{t('analysis.query.shortcut_hint_command')}</span>
+                    </div>
                 </div>
             )}
         </div>
@@ -143,7 +126,6 @@ const QueryBar = props => {
         isEmptyQuery,
         favoriteCardVisible,
         setFavoriteCardVisible,
-        shortcutHint: t('analysis.query.shortcut_hint_ctrl'),
     };
 
     const tabItems = [
@@ -161,7 +143,7 @@ const QueryBar = props => {
             label: (
                 <span>
                     {t('analysis.query.text2gql_tab')}
-                    <Tag color='blue'>
+                    <Tag className={c.text2gqlBadge}>
                         {t('analysis.query.text2gql_badge')}
                     </Tag>
                 </span>

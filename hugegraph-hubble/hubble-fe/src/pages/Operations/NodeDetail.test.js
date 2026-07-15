@@ -260,6 +260,44 @@ test('renders each metric group from its own metric status', async () => {
     }
 });
 
+test('explains metric groups that do not apply to a PD node', async () => {
+    getNode.mockResolvedValue({
+        ...response,
+        node: {
+            ...response.node,
+            id: 'pd-safe',
+            name: 'PD A',
+            type: 'PD',
+            role: 'LEADER',
+            metrics: {system: {uptime_seconds: 10}},
+            metric_statuses: {
+                system: {availability: 'AVAILABLE', observed_at: 1000},
+            },
+        },
+        sources: {pd: {availability: 'AVAILABLE', observed_at: 1000}},
+    });
+
+    renderDetail();
+    await screen.findByRole('heading', {name: 'PD A'});
+
+    const drive = screen.getByRole('heading', {name: 'Drive'}).closest('section');
+    expect(within(drive).getByText('Not applicable')).toBeInTheDocument();
+    expect(within(drive).getByText(
+        'Drive metrics are collected from Store nodes, not PD nodes.'
+    )).toBeInTheDocument();
+
+    const raft = screen.getByRole('heading', {name: 'Raft'}).closest('section');
+    expect(within(raft).getByText(
+        'Raft metrics are collected from Store nodes, not PD nodes.'
+    )).toBeInTheDocument();
+
+    const backend = screen.getByRole('heading', {name: 'Backend'}).closest('section');
+    expect(within(backend).getByText(
+        'Backend metrics are provided by Server and Store nodes, not PD nodes.'
+    )).toBeInTheDocument();
+    expect(screen.queryByText('Unsupported by this service version')).not.toBeInTheDocument();
+});
+
 test('presents native metric labels, units and capacity instead of raw keys', async () => {
     getNode.mockResolvedValue({
         ...response,

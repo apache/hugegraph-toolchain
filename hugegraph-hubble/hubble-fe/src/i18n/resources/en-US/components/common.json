@@ -41,6 +41,7 @@
     "navigation": "Primary navigation",
     "navigation_open": "Open primary navigation",
     "navigation_close": "Close primary navigation",
+    "navigation_pin_open": "Keep primary navigation open",
     "shortcuts": {
       "title": "Keyboard shortcuts",
       "description": "Press ? outside an editor to open or close this overview",

@@ -34,6 +34,7 @@ const CodeEditor = ({
     ariaLabel,
     minHeight,
     metaEnterNewline = false,
+    onExecutionShortcut,
 }) => {
     const {t} = useTranslation();
     const editor = useRef();
@@ -67,6 +68,21 @@ const CodeEditor = ({
         cm.current = new EditorView({
             doc: initialValue.current,
             extensions: [
+                onExecutionShortcut && !readOnly
+                    ? EditorView.domEventHandlers({
+                        keydown: event => {
+                            if (event.key !== 'Enter'
+                                || (!event.metaKey && !event.ctrlKey)
+                                || event.altKey || event.shiftKey
+                                || event.isComposing) {
+                                return false;
+                            }
+                            event.preventDefault();
+                            onExecutionShortcut();
+                            return true;
+                        },
+                    })
+                    : [],
                 basicSetup,
                 readOnly ? [] : closeBrackets(),
                 readOnly ? [] : autocompletion({override: [myCompletions]}),
@@ -119,8 +135,8 @@ const CodeEditor = ({
         return () => {
             cm.current.destroy();
         };
-    }, [ariaLabel, lang, metaEnterNewline, minHeight, onChange, placeholder,
-        readOnly, t]);
+    }, [ariaLabel, lang, metaEnterNewline, minHeight, onChange,
+        onExecutionShortcut, placeholder, readOnly, t]);
 
     useEffect(() => {
         if (value !== null && cm.current.state.doc && value !== cm.current.state.doc.toString()) {

@@ -230,6 +230,9 @@ test('explains an empty GraphSpace and distinguishes filtered results', async ()
 
     expect(await screen.findByText('graph.empty.description')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'graph.empty.create'})).toBeInTheDocument();
+    expect(screen.getByText('graph.empty.demo_prerequisite')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'graph.empty.view_demo'}))
+        .toHaveAttribute('href', '/task');
 
     const search = screen.getByPlaceholderText('graph.search_placeholder');
     fireEvent.change(search, {target: {value: 'missing'}});

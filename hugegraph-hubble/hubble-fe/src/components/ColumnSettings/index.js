@@ -25,6 +25,8 @@ import {
 } from '@ant-design/icons';
 import c from './index.module.scss';
 
+const EMPTY_PREFERENCES = {};
+
 const columnKey = column => String(column.key || column.dataIndex);
 
 export const normalizeColumnPreferences = (columns, preferences, requiredKeys = []) => {
@@ -63,10 +65,18 @@ const readPreferences = storageKey => {
     }
 };
 
-export const useColumnSettings = (columns, storageKey, requiredKeys = []) => {
+export const useColumnSettings = (
+    columns,
+    storageKey,
+    requiredKeys = [],
+    defaultPreferences = EMPTY_PREFERENCES
+) => {
     const [preferences, setPreferences] = useState(() => normalizeColumnPreferences(
         columns,
-        readPreferences(storageKey),
+        {
+            ...defaultPreferences,
+            ...readPreferences(storageKey),
+        },
         requiredKeys
     ));
 
@@ -101,8 +111,12 @@ export const useColumnSettings = (columns, storageKey, requiredKeys = []) => {
             catch {
                 // Ignore unavailable storage and still reset the visible state.
             }
-            setPreferences(normalizeColumnPreferences(columns, {}, requiredKeys));
-        }, [columns, requiredKeys, storageKey]),
+            setPreferences(normalizeColumnPreferences(
+                columns,
+                defaultPreferences,
+                requiredKeys
+            ));
+        }, [columns, defaultPreferences, requiredKeys, storageKey]),
     };
 };
 

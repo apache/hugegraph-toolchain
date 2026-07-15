@@ -237,7 +237,7 @@ test('opens configured advanced monitoring with a safe external target', async (
 
     renderOverview();
     await userEvent.click(await screen.findByRole('button', {
-        name: 'Advanced monitoring',
+        name: 'External Advanced Dashboard',
     }));
 
     expect(open).toHaveBeenCalledWith(
@@ -261,9 +261,9 @@ test.each([
 
     renderOverview();
 
-    expect(await screen.findByRole('button', {name: 'Advanced monitoring'}))
+    expect(await screen.findByRole('button', {name: 'External Advanced Dashboard'}))
         .toBeDisabled();
-    expect(screen.getByLabelText(new RegExp(`Advanced monitoring: ${reason}`)))
+    expect(screen.getByLabelText(new RegExp(`External Advanced Dashboard: .*${reason}`)))
         .toHaveAttribute('tabindex', '0');
     expect(screen.queryByText(new RegExp(reason))).not.toBeInTheDocument();
     expect(screen.queryByText('Dashboard unavailable')).not.toBeInTheDocument();
@@ -279,7 +279,7 @@ test('hides advanced monitoring when the current user is forbidden', async () =>
     expect(await screen.findByRole('heading', {name: 'Cluster Overview'}))
         .toBeInTheDocument();
     await waitFor(() => {
-        expect(screen.queryByRole('button', {name: 'Advanced monitoring'}))
+        expect(screen.queryByRole('button', {name: 'External Advanced Dashboard'}))
             .not.toBeInTheDocument();
     });
 });
@@ -300,7 +300,7 @@ test('reports a blocked advanced monitoring popup without leaving the page', asy
 
     renderOverview();
     await userEvent.click(await screen.findByRole('button', {
-        name: 'Advanced monitoring',
+        name: 'External Advanced Dashboard',
     }));
 
     expect(error).toHaveBeenCalledWith(
@@ -340,8 +340,9 @@ test('uses explicit Chinese topology labels and a compact monitoring tool status
     expect(screen.getByRole('link', {name: 'Server 层'})).toBeInTheDocument();
     const tools = document.querySelector('.operations-header-tools');
     expect(tools).not.toHaveTextContent('Dashboard 不可用');
-    expect(screen.getByLabelText(/高级监控: Dashboard 尚未配置/))
-        .toHaveAttribute('tabindex', '0');
+    expect(screen.getByLabelText(
+        /外部高级 Dashboard: 这是可选的外部监控入口.*Dashboard 尚未配置/
+    )).toHaveAttribute('tabindex', '0');
     expect(tools).not.toHaveTextContent('dashboard.address 配置和服务健康状态');
 });
 

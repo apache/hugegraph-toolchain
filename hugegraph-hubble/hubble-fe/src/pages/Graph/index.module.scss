@@ -120,6 +120,15 @@ span.disable {
     font-family: PingFangSC-Regular;
 }
 
+.empty_demo_hint {
+    display: block;
+    max-width: 520px;
+    color: #667085;
+    font-size: 12px;
+    line-height: 20px;
+    overflow-wrap: anywhere;
+}
+
 div.form_item {
     margin: 0;
 }

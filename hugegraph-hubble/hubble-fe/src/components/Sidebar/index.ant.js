@@ -17,7 +17,7 @@
  */
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {Button, Layout, Menu} from 'antd';
+import {Button, Layout, Menu, Tooltip} from 'antd';
 import {
     HomeOutlined,
     DatabaseOutlined,
@@ -143,12 +143,14 @@ const items = (t, pathname, capabilities = []) => {
 
 const Sidebar = () => {
     const navigationRef = useRef(null);
+    const temporaryCollapseTimerRef = useRef(null);
     const mediaQuery = '(max-width: 900px)';
     const getNarrow = () => typeof window !== 'undefined'
         && typeof window.matchMedia === 'function'
         && window.matchMedia(mediaQuery).matches;
     const [narrow, setNarrow] = useState(getNarrow);
     const [collapsed, setCollapsed] = useState(getNarrow);
+    const [temporaryExpanded, setTemporaryExpanded] = useState(false);
     const [openKeys, setOpenKeys] = useState(() => (
         getNarrow() ? [] : OPEN_SECTIONS
     ));
@@ -174,9 +176,16 @@ const Sidebar = () => {
     useEffect(() => {
         if (narrow) {
             setCollapsed(true);
+            setTemporaryExpanded(false);
             setOpenKeys([]);
         }
     }, [href.pathname, narrow]);
+
+    useEffect(() => () => {
+        if (temporaryCollapseTimerRef.current) {
+            window.clearTimeout(temporaryCollapseTimerRef.current);
+        }
+    }, []);
 
     useEffect(() => {
         const selected = navigationRef.current?.querySelector('.ant-menu-item-selected');
@@ -190,23 +199,55 @@ const Sidebar = () => {
         }
     }, [capabilities, href.pathname, openKeys]);
 
+    const clearTemporaryCollapseTimer = useCallback(() => {
+        if (temporaryCollapseTimerRef.current) {
+            window.clearTimeout(temporaryCollapseTimerRef.current);
+            temporaryCollapseTimerRef.current = null;
+        }
+    }, []);
     const setNavigationCollapsed = useCallback(value => {
+        clearTemporaryCollapseTimer();
+        setTemporaryExpanded(false);
         setCollapsed(value);
         setOpenKeys(value ? [] : OPEN_SECTIONS);
-    }, []);
+    }, [clearTemporaryCollapseTimer]);
     const toggleNavigation = useCallback(
         () => setNavigationCollapsed(!collapsed),
         [collapsed, setNavigationCollapsed]
     );
-    const toggleLabel = collapsed
-        ? t('workbench.navigation_open')
-        : t('workbench.navigation_close');
+    const handleNavigationMouseEnter = useCallback(() => {
+        if (narrow || !collapsed) {
+            return;
+        }
+        clearTemporaryCollapseTimer();
+        setTemporaryExpanded(true);
+        setOpenKeys(OPEN_SECTIONS);
+    }, [clearTemporaryCollapseTimer, collapsed, narrow]);
+    const handleNavigationMouseLeave = useCallback(() => {
+        if (narrow || !collapsed || !temporaryExpanded) {
+            return;
+        }
+        clearTemporaryCollapseTimer();
+        temporaryCollapseTimerRef.current = window.setTimeout(() => {
+            setTemporaryExpanded(false);
+            setOpenKeys([]);
+            temporaryCollapseTimerRef.current = null;
+        }, 1000);
+    }, [clearTemporaryCollapseTimer, collapsed, narrow, temporaryExpanded]);
+    const renderedCollapsed = collapsed && !temporaryExpanded;
+    const toggleLabel = temporaryExpanded && collapsed
+        ? t('workbench.navigation_pin_open')
+        : collapsed
+            ? t('workbench.navigation_open')
+            : t('workbench.navigation_close');
 
     return (
         <nav
             ref={navigationRef}
             className={`workbench-navigation ${narrow ? 'is-narrow' : ''}`}
             aria-label={t('workbench.navigation')}
+            onMouseEnter={handleNavigationMouseEnter}
+            onMouseLeave={handleNavigationMouseLeave}
         >
             {narrow && (
                 <Button
@@ -220,7 +261,7 @@ const Sidebar = () => {
             )}
             <Layout.Sider
                 collapsible
-                collapsed={collapsed}
+                collapsed={renderedCollapsed}
                 collapsedWidth={narrow ? 0 : 80}
                 width={248}
                 onCollapse={setNavigationCollapsed}
@@ -228,9 +269,26 @@ const Sidebar = () => {
                 className={narrow && !collapsed ? 'is-mobile-open' : ''}
                 trigger={
                     narrow ? null
-                        : collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+                        : renderedCollapsed
+                            ? <MenuUnfoldOutlined />
+                            : <MenuFoldOutlined />
                 }
             >
+                {!narrow && (
+                    <Tooltip title={toggleLabel} placement="right">
+                        <Button
+                            className="workbench-navigation-inline-toggle"
+                            type="text"
+                            size="small"
+                            icon={collapsed
+                                ? <MenuUnfoldOutlined />
+                                : <MenuFoldOutlined />}
+                            aria-label={toggleLabel}
+                            aria-expanded={!renderedCollapsed}
+                            onClick={toggleNavigation}
+                        />
+                    </Tooltip>
+                )}
                 <Menu
                     defaultSelectedKeys={['graphspace']}
                     openKeys={openKeys}

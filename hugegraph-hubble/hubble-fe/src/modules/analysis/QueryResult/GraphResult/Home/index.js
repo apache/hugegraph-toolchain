@@ -51,6 +51,7 @@ import {
     shouldKeepGraphCanvas,
 } from '../../../../component/Graph/data';
 import {nextResultRevision} from './data';
+import {getQueryResultStandbyMessage} from '../../Home/utils';
 import {fetchExpandInfo, handleAddGraphNode, handleAddGraphEdge, handleExpandGraph} from '../utils';
 import {filterData} from '../../../../../utils/filter';
 import c from './index.module.scss';
@@ -531,7 +532,10 @@ const GraphResult = props => {
         switch (queryStatus) {
             case STANDBY:
                 return (
-                    <GraphStatusView status={STANDBY} message={t('analysis.query_result.no_data')} />
+                    <GraphStatusView
+                        status={STANDBY}
+                        message={getQueryResultStandbyMessage(t, isQueryMode)}
+                    />
                 );
             case LOADING:
                 if (shouldKeepGraphCanvas(isQueryMode, queryStatus, graphData)) {

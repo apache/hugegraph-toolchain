@@ -16,8 +16,8 @@
  * limitations under the License.
  */
 
-import {render, screen} from '@testing-library/react';
-import {MemoryRouter} from 'react-router-dom';
+import {fireEvent, render, screen} from '@testing-library/react';
+import {MemoryRouter, useLocation} from 'react-router-dom';
 import GraphCard from './Card';
 import {formatToGraphInData} from '../../utils/formatGraphInData';
 
@@ -44,6 +44,8 @@ jest.mock('../../utils/config', () => ({
 beforeEach(() => {
     formatToGraphInData.mockReturnValue({nodes: [], edges: []});
 });
+
+const LocationProbe = () => <div data-testid='location'>{useLocation().pathname}</div>;
 
 test('falls back to the graph name when a PD graph has no alias', () => {
     render(
@@ -130,7 +132,8 @@ test('ships the requested graph creation and schema labels', () => {
     expect(en.graph.form.name_help).toContain(' / ');
 });
 
-test('compacts creation metadata and exposes overview and schema actions', () => {
+test('opens Schema from the graph preview and keeps Gremlin as the footer action', () => {
+    formatToGraphInData.mockReturnValue({nodes: [{id: 'person'}], edges: []});
     render(
         <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
             <GraphCard
@@ -146,6 +149,7 @@ test('compacts creation metadata and exposes overview and schema actions', () =>
                 }}
                 menus={[]}
             />
+            <LocationProbe />
         </MemoryRouter>
     );
 
@@ -155,8 +159,13 @@ test('compacts creation metadata and exposes overview and schema actions', () =>
     expect(screen.getByText(/graph\.card\.element_counts/)).toHaveTextContent('8');
     expect(screen.getByRole('link', {name: 'graph.card.overview'}))
         .toHaveAttribute('href', '/graphspace/DEFAULT/graph/hugegraph/detail');
-    expect(screen.getByRole('link', {name: 'graph.card.schema_info'}))
-        .toHaveAttribute('href', '/graphspace/DEFAULT/graph/hugegraph/meta');
+    expect(screen.getByRole('link', {name: 'graph.card.query_graph'}))
+        .toHaveAttribute('href', '/gremlin/DEFAULT/hugegraph');
+
+    fireEvent.click(screen.getByText('graph preview').closest('[role="button"]'));
+    expect(screen.getByTestId('location')).toHaveTextContent(
+        '/graphspace/DEFAULT/graph/hugegraph/meta'
+    );
 });
 
 test('does not invent point and edge counts when the list API omits them', () => {

@@ -28,7 +28,11 @@ import TaskNavigateView from '../../../component/TaskNavigateView';
 import {GRAPH_STATUS} from '../../../../utils/constants';
 import _ from 'lodash';
 import c from './index.module.scss';
-import {isJsonBigNumber, projectJsonValue} from '../Home/utils';
+import {
+    getQueryResultStandbyMessage,
+    isJsonBigNumber,
+    projectJsonValue,
+} from '../Home/utils';
 
 const {
     STANDBY,
@@ -89,7 +93,7 @@ const TableView = props => {
 
     const statusMessage = useMemo(
         () => ({
-            [STANDBY]: t('analysis.query_result.no_data'),
+            [STANDBY]: getQueryResultStandbyMessage(t, isQueryMode),
             [LOADING]: isQueryMode
                 ? t('analysis.query_result.loading')
                 : t('analysis.query_result.submitting_task'),

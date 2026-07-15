@@ -77,13 +77,19 @@ const ConsoleItem = ({embedded = false}) => {
     }, [t]);
 
     const configured = Boolean(dashboard.url);
-    const reason = dashboard.status === 'loading'
+    const statusReason = dashboard.status === 'loading'
         ? t('navigation_page.dashboard_checking')
         : dashboard.status === 'unconfigured'
             ? t('navigation_page.dashboard_unconfigured')
             : dashboard.status === 'unavailable'
                 ? t('navigation_page.dashboard_unavailable')
                 : '';
+    const reason = dashboard.status === 'loading'
+        ? statusReason
+        : [
+            t('navigation_page.dashboard_external_context'),
+            statusReason,
+        ].filter(Boolean).join(' ');
     const dashboardItem = (titleKey, path = '') => ({
         title: t(titleKey),
         url: configured ? dashboard.url + path : '',

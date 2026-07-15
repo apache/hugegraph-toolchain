@@ -16,9 +16,13 @@
  */
 
 import React from 'react';
-import {render, screen} from '@testing-library/react';
+import {fireEvent, render, screen} from '@testing-library/react';
 import QueryResult from './index';
-import {getGraphViewLimitStatus, getJsonViewContent} from './utils';
+import {
+    getGraphViewLimitStatus,
+    getJsonViewContent,
+    getQueryResultStandbyMessage,
+} from './utils';
 import JSONbig from 'json-bigint';
 
 jest.mock('react-i18next', () => ({
@@ -30,6 +34,12 @@ jest.mock('react-i18next', () => ({
                 'analysis.query_result.graph_limit_title': 'Graph limit',
                 'analysis.query_result.graph_limit_description':
                     `${options?.nodes}/${options?.nodeLimit}`,
+                'analysis.query_result.non_graph_title': 'Query result preview',
+                'analysis.query_result.non_graph_description':
+                    'This result cannot be drawn as a graph.',
+                'analysis.query_result.view_full_json': 'View full JSON',
+                'analysis.query_result.empty_success':
+                    'The query succeeded without displayable data.',
             };
             return text[key] || key;
         },
@@ -101,6 +111,53 @@ it('labels the structured result tab as JSON', () => {
 
     expect(screen.getByRole('tab', {name: 'JSON'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Json'})).not.toBeInTheDocument();
+});
+
+it('uses a distinct prompt before the first query across result views', () => {
+    const t = jest.fn(key => key);
+
+    expect(getQueryResultStandbyMessage(t, true))
+        .toBe('analysis.query_result.not_started');
+    expect(getQueryResultStandbyMessage(t, false))
+        .toBe('analysis.query_result.task_not_started');
+    expect(t).not.toHaveBeenCalledWith('analysis.query_result.no_data');
+});
+
+it('previews a small scalar result instead of calling it an empty graph', () => {
+    render(<QueryResult
+        queryStatus='success'
+        isQueryMode
+        queryResult={{
+            graph_view: {vertices: [], edges: []},
+            table_view: {header: ['count'], rows: [{count: 42}]},
+            json_view: {data: 42},
+        }}
+    />);
+
+    expect(screen.getByText('Query result preview')).toBeInTheDocument();
+    expect(screen.getByText(/42/)).toBeInTheDocument();
+    expect(screen.queryByText('analysis.query_result.no_graph_result'))
+        .not.toBeInTheDocument();
+});
+
+it('offers a direct JSON path when a non-graph preview is truncated', () => {
+    render(<QueryResult
+        queryStatus='success'
+        isQueryMode
+        queryResult={{
+            graph_view: {vertices: [], edges: []},
+            table_view: {
+                header: ['name'],
+                rows: Array.from({length: 8}, (_, index) => ({name: `node-${index}`})),
+            },
+            json_view: {data: Array.from({length: 8}, (_, index) => ({name: `node-${index}`}))},
+        }}
+    />);
+
+    expect(screen.getByText(/node-0/)).toBeInTheDocument();
+    expect(screen.queryByText(/node-7/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'View full JSON'}));
+    expect(screen.getByText('json result')).toBeInTheDocument();
 });
 
 it('marks circular display values without throwing', () => {

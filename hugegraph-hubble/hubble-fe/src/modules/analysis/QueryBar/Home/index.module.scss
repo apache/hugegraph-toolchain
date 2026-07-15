@@ -57,6 +57,7 @@
 
     :global(.cm-content) {
         padding-right: 112px;
+        padding-bottom: 28px;
     }
 }
 
@@ -73,14 +74,28 @@
     }
 }
 
-.editorShortcutHint {
+.editorShortcutHints {
     position: absolute;
     right: 112px;
     bottom: 8px;
+    left: 12px;
     z-index: 2;
-    color: #98A2B3;
+    display: flex;
+    justify-content: space-between;
+    color: #98a2b3;
     font-size: 11px;
+    line-height: 16px;
     pointer-events: none;
+}
+
+.text2gqlBadge {
+    margin-left: 6px;
+    padding: 0 5px;
+    color: #7b879c;
+    font-size: 10px;
+    line-height: 16px;
+    background: rgb(123 135 156 / 8%);
+    border-color: rgb(123 135 156 / 18%);
 }
 
 .text2gqlPlaceholder {
@@ -103,7 +118,7 @@
         display: none !important;
     }
 
-    .editorShortcutHint {
-        display: none;
+    .editorShortcutHints {
+        right: 96px;
     }
 }

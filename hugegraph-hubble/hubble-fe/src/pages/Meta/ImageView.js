@@ -17,7 +17,7 @@
  */
 
 import {useEffect, useCallback, useRef, useState} from 'react';
-import {useParams} from 'react-router-dom';
+import {Link, useParams} from 'react-router-dom';
 import * as api from '../../api';
 import GraphView from '../../components/GraphinView';
 import {EditPropertyLayer} from './Property/EditLayer';
@@ -30,7 +30,7 @@ import {useTranslation} from 'react-i18next';
 import styles from './ImageView.module.scss';
 
 const SCHEMA_LABEL_DOCS_URL
-    = 'https://hugegraph.apache.org/docs/clients/restful-api/schema/';
+    = 'https://hugegraph.apache.org/docs/clients/hugegraph-client/';
 
 const enlargeSmallSchema = data => {
     if (!data.nodes?.length || data.nodes.length >= 10) {
@@ -301,6 +301,12 @@ const ImageView = () => {
                         <p className={styles.edgeHint}>
                             {t('schema.image_view.edge_prerequisite')}
                         </p>
+                        <div className={styles.templateGuide}>
+                            <p>{t('schema.image_view.template_description')}</p>
+                            <Link to={`/graphspace/${graphspace}/schema`}>
+                                {t('schema.image_view.use_template')}
+                            </Link>
+                        </div>
                     </section>
                 ) : (
                     <GraphView

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import Sidebar from './index.ant';
 import i18n from '../../i18n';
@@ -190,6 +190,89 @@ test('starts collapsed on a narrow viewport and exposes an accessible toggle', a
 
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(toggle).toHaveAccessibleName('关闭主导航');
+});
+
+test('offers a second accessible collapse control beside Home', async () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/navigation']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    const navigation = await screen.findByRole('navigation', {name: '主导航'});
+    const toggle = screen.getByRole('button', {name: '关闭主导航'});
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(toggle).toBeVisible();
+    fireEvent.click(toggle);
+    expect(navigation.querySelector('.ant-layout-sider'))
+        .toHaveClass('ant-layout-sider-collapsed');
+    expect(toggle).toHaveAccessibleName('打开主导航');
+});
+
+test('temporarily expands a user-collapsed sidebar and restores it after leaving', async () => {
+    jest.useFakeTimers();
+    try {
+        render(
+            <MemoryRouter
+                initialEntries={['/navigation']}
+                future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+            >
+                <Sidebar />
+            </MemoryRouter>
+        );
+
+        const navigation = await screen.findByRole('navigation', {name: '主导航'});
+        fireEvent.click(screen.getByRole('button', {name: '关闭主导航'}));
+        const sider = navigation.querySelector('.ant-layout-sider');
+        expect(sider).toHaveClass('ant-layout-sider-collapsed');
+
+        fireEvent.mouseEnter(navigation);
+        expect(sider).not.toHaveClass('ant-layout-sider-collapsed');
+        expect(screen.getByRole('button', {name: '固定展开主导航'}))
+            .toHaveAttribute('aria-expanded', 'true');
+
+        fireEvent.mouseLeave(navigation);
+        act(() => jest.advanceTimersByTime(999));
+        expect(sider).not.toHaveClass('ant-layout-sider-collapsed');
+        act(() => jest.advanceTimersByTime(1));
+        expect(sider).toHaveClass('ant-layout-sider-collapsed');
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
+
+test('keeps a temporarily expanded sidebar open when the user pins it', async () => {
+    jest.useFakeTimers();
+    try {
+        render(
+            <MemoryRouter
+                initialEntries={['/navigation']}
+                future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+            >
+                <Sidebar />
+            </MemoryRouter>
+        );
+
+        const navigation = await screen.findByRole('navigation', {name: '主导航'});
+        fireEvent.click(screen.getByRole('button', {name: '关闭主导航'}));
+        fireEvent.mouseEnter(navigation);
+        fireEvent.click(screen.getByRole('button', {name: '固定展开主导航'}));
+        fireEvent.mouseLeave(navigation);
+        act(() => jest.advanceTimersByTime(1500));
+
+        expect(navigation.querySelector('.ant-layout-sider'))
+            .not.toHaveClass('ant-layout-sider-collapsed');
+        expect(screen.getByRole('button', {name: '关闭主导航'}))
+            .toHaveAttribute('aria-expanded', 'true');
+    }
+    finally {
+        jest.useRealTimers();
+    }
 });
 
 test.each([

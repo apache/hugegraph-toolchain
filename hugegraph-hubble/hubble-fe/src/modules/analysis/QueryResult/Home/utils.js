@@ -55,6 +55,13 @@ const getJsonViewContent = jsonView => {
     return {value: projected};
 };
 
+const getQueryResultStandbyMessage = (t, isQueryMode) => {
+    if (isQueryMode === false) {
+        return t('analysis.query_result.task_not_started');
+    }
+    return t('analysis.query_result.not_started');
+};
+
 const GRAPH_NODE_LIMIT = 300;
 const GRAPH_EDGE_LIMIT = 300;
 
@@ -73,6 +80,7 @@ export {
     GRAPH_NODE_LIMIT,
     getGraphViewLimitStatus,
     getJsonViewContent,
+    getQueryResultStandbyMessage,
     isJsonBigNumber,
     projectJsonValue,
 };

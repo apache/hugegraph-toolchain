@@ -74,7 +74,7 @@ describe('Gremlin execution history failure reason', () => {
     });
 });
 
-test('places Actions before the final Type column and labels Gremlin plainly', () => {
+test('hides the redundant Type column by default for a mode-filtered history', () => {
     const {container} = render(
         <ExecuteLog
             executeLogsDataRecords={[{
@@ -95,8 +95,8 @@ test('places Actions before the final Type column and labels Gremlin plainly', (
     );
 
     expect([...container.querySelectorAll('thead th')].map(cell => cell.textContent))
-        .toEqual(['Time', 'Statement', 'Status', 'Duration', 'Actions', 'Type']);
+        .toEqual(['Time', 'Statement', 'Status', 'Duration', 'Actions']);
     expect(container.querySelector('.ant-table-title')).toBeNull();
     expect(container.querySelector('thead button[aria-label="Columns"]')).not.toBeNull();
-    expect(screen.getByText('Gremlin')).toBeInTheDocument();
+    expect(screen.queryByText('Gremlin')).not.toBeInTheDocument();
 });

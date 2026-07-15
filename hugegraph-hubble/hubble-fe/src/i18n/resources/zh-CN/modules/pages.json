@@ -345,6 +345,8 @@
     "empty": {
       "description": "这个 GraphSpace 已可用，但还没有图。创建第一张图后即可配置 Schema、导入和查询数据",
       "create": "创建第一张图",
+      "demo_prerequisite": "创建图后，选择该图并前往数据导入，即可快速构建 Demo 数据集。",
+      "view_demo": "查看 Demo 数据入口",
       "filtered_description": "没有图符合当前日期或名称条件",
       "clear_filters": "清除筛选"
     }
@@ -1042,6 +1044,8 @@
       "step_vertex": "创建顶点类型",
       "step_edge": "用边类型连接顶点",
       "edge_prerequisite": "创建至少一个顶点类型后，才可创建边类型。",
+      "template_description": "希望快速开始？可以前往 Schema 模板，选择一套示例模型",
+      "use_template": "使用 Schema 模板创建",
       "vertex": "顶点类型",
       "edge": "边类型",
       "view_properties": "查看属性",
@@ -1135,7 +1139,8 @@
     }
   },
   "operations": {
-    "advanced_monitoring": "高级监控",
+    "advanced_monitoring": "外部高级 Dashboard",
+    "dashboard_external_context": "这是可选的外部监控入口；未配置或暂不可用不影响 Hubble 原生集群概览和节点功能。",
     "dashboard_checking": "正在检查 Dashboard",
     "dashboard_unavailable": "Dashboard 不可用",
     "section": "系统与运维",
@@ -1224,7 +1229,10 @@
     "availability_available": "可用",
     "availability_unavailable": "不可用",
     "availability_unsupported": "不支持",
+    "availability_not_applicable": "不适用",
     "availability_malformed": "响应异常",
+    "metric_scope_store_only": "{{metric}}指标从 Store 节点采集，不会在 {{nodeType}} 节点采集。",
+    "metric_scope_backend": "后端指标由 Server 和 Store 节点提供，不会在 {{nodeType}} 节点采集。",
     "reason_upstream_timeout": "上游超时",
     "reason_upstream_unavailable": "上游不可用",
     "reason_partial_refresh_failed": "部分指标刷新失败",
@@ -1293,7 +1301,7 @@
     "operation_manage": "运维管理",
     "cluster_overview": "集群概览",
     "nodes": "节点",
-    "advanced_monitoring": "高级 Dashboard",
+    "advanced_monitoring": "外部高级 Dashboard",
     "operations_unavailable": "当前账号无可用的原生运维权限。",
     "cluster_manage": "集群管理",
     "monitor_manage": "监控管理",
@@ -1301,6 +1309,7 @@
     "alert_manage": "报警管理",
     "coming_soon": "Coming Soon",
     "dashboard_checking": "正在检查 Dashboard 可用性……",
+    "dashboard_external_context": "这是可选的外部监控入口；未配置或暂不可用不影响原生集群概览和节点功能。",
     "dashboard_unconfigured": "Dashboard 尚未配置；设置 dashboard.address 后可使用这些运维能力。",
     "not_configured": "未配置",
     "unavailable": "暂不可用",

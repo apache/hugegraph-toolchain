@@ -146,7 +146,7 @@ const formatCapacityValue = (value, unit) => {
         ? formatBytes(value) : formatUnitValue(value, unit);
 };
 
-const MetricGroup = ({name, values, status = {}}) => {
+const MetricGroup = ({name, values, status = {}, emptyMessage}) => {
     const {t, i18n} = useTranslation();
     const entries = values && typeof values === 'object' && !Array.isArray(values)
         ? Object.entries(values) : [];
@@ -194,7 +194,7 @@ const MetricGroup = ({name, values, status = {}}) => {
             <section className='operations-surface operations-metric-group'>
                 {metricHeader}
                 <div className='operations-metric-empty' role='note'>
-                    {t(`operations.${emptyState}`)}
+                    {emptyMessage ?? t(`operations.${emptyState}`)}
                 </div>
             </section>
         );
@@ -321,13 +321,14 @@ const NodeDetail = () => {
         data?.observed_at, i18n.language, t('operations.unavailable')
     );
     const source = data?.sources?.[SOURCE_BY_TYPE[node.type]] ?? {};
+    const applicableMetricGroups = GROUPS_BY_TYPE[node.type] ?? [];
     const metricStatus = group => {
         const current = node.metric_statuses?.[group];
         if (current) {
             return current;
         }
-        if (!(GROUPS_BY_TYPE[node.type] ?? []).includes(group)) {
-            return {availability: 'UNSUPPORTED'};
+        if (GROUPS_BY_TYPE[node.type] && !applicableMetricGroups.includes(group)) {
+            return {availability: 'NOT_APPLICABLE'};
         }
         if (source.availability && source.availability !== 'AVAILABLE') {
             return {
@@ -340,6 +341,23 @@ const NodeDetail = () => {
             };
         }
         return {availability: node.metrics?.[group] ? 'AVAILABLE' : 'UNSUPPORTED'};
+    };
+    const metricScopeMessage = (group, status) => {
+        if (status.availability !== 'NOT_APPLICABLE') {
+            return null;
+        }
+        if (['drive', 'raft'].includes(group)) {
+            return t('operations.metric_scope_store_only', {
+                metric: t(`operations.metric_${group}`),
+                nodeType: displayNodeType(node.type),
+            });
+        }
+        if (group === 'backend' && node.type === 'PD') {
+            return t('operations.metric_scope_backend', {
+                nodeType: displayNodeType(node.type),
+            });
+        }
+        return null;
     };
     return (
         <main className='operations-page operations-node-detail'>
@@ -403,14 +421,18 @@ const NodeDetail = () => {
                 className='operations-metric-grid'
                 aria-label={t('operations.node_metrics')}
             >
-                {['system', 'drive', 'raft', 'backend'].map(group => (
-                    <MetricGroup
-                        key={group}
-                        name={t(`operations.metric_${group}`)}
-                        values={node.metrics?.[group]}
-                        status={metricStatus(group)}
-                    />
-                ))}
+                {['system', 'drive', 'raft', 'backend'].map(group => {
+                    const status = metricStatus(group);
+                    return (
+                        <MetricGroup
+                            key={group}
+                            name={t(`operations.metric_${group}`)}
+                            values={node.metrics?.[group]}
+                            status={status}
+                            emptyMessage={metricScopeMessage(group, status)}
+                        />
+                    );
+                })}
             </section>
         </main>
     );

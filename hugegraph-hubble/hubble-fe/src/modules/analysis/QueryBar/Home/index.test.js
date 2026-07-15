@@ -25,6 +25,12 @@ jest.mock('../../../../components/CodeEditor', () => props => (
         data-testid={`editor-${props.lang}`}
         data-placeholder={props.placeholder}
         data-meta-enter-newline={props.metaEnterNewline ? 'true' : 'false'}
+        data-execution-shortcut={props.onExecutionShortcut ? 'true' : 'false'}
+        onKeyDown={event => {
+            if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+                props.onExecutionShortcut?.();
+            }
+        }}
     >
         editor
     </div>
@@ -54,7 +60,7 @@ jest.mock('react-i18next', () => ({
         'analysis.query.cypher_tab': 'Cypher',
         'analysis.query.cypher_placeholder': 'For example: MATCH (n) RETURN n LIMIT 10',
         'analysis.query.shortcut_hint_ctrl': 'Ctrl + Enter to run',
-        'analysis.query.shortcut_hint_command': 'Command + Enter for a new line',
+        'analysis.query.shortcut_hint_command': 'Command + Enter to run',
         'analysis.query.text2gql_tab': 'Natural language',
         'analysis.query.text2gql_title': 'Natural-language graph query',
         'analysis.query.text2gql_description': 'This preview is not connected.',
@@ -145,9 +151,12 @@ it('matches the editor placeholder to the active query language without promotio
     );
     expect(screen.queryByText(/safe example/i)).not.toBeInTheDocument();
     expect(screen.getByText('Ctrl + Enter to run')).toBeInTheDocument();
-    expect(screen.getByText('Command + Enter for a new line')).toBeInTheDocument();
+    expect(screen.getByText('Command + Enter to run')).toBeInTheDocument();
     expect(screen.getByTestId('editor-gremlin')).toHaveAttribute(
-        'data-meta-enter-newline', 'true'
+        'data-meta-enter-newline', 'false'
+    );
+    expect(screen.getByTestId('editor-gremlin')).toHaveAttribute(
+        'data-execution-shortcut', 'true'
     );
 
     fireEvent.click(screen.getByRole('tab', {name: 'Cypher'}));
@@ -197,7 +206,7 @@ it('keeps collapse as a keyboard-accessible editor control', () => {
     );
 });
 
-it('preserves Ctrl+Enter execution inside the editor', () => {
+it('executes with Ctrl+Enter and Command+Enter inside the editor', () => {
     const onExecute = jest.fn();
     render(
         <QueryBar
@@ -211,7 +220,7 @@ it('preserves Ctrl+Enter execution inside the editor', () => {
 
     const editor = screen.getByTestId('editor-gremlin');
     fireEvent.keyDown(editor, {key: 'Enter', metaKey: true});
-    expect(onExecute).not.toHaveBeenCalled();
-    fireEvent.keyDown(editor, {key: 'Enter', ctrlKey: true});
     expect(onExecute).toHaveBeenCalledWith('Gremlin');
+    fireEvent.keyDown(editor, {key: 'Enter', ctrlKey: true});
+    expect(onExecute).toHaveBeenCalledTimes(2);
 });

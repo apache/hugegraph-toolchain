@@ -60,6 +60,7 @@ const FAILURE_REASON_KEYS = new Set([
     'GREMLIN_EXECUTION_FAILED',
 ]);
 const REQUIRED_EXECUTE_COLUMNS = ['action'];
+const DEFAULT_EXECUTE_COLUMN_PREFERENCES = {hidden: ['type']};
 
 export function failureReasonDescription(rowData, t) {
     if (rowData.status !== 'FAILED'
@@ -287,8 +288,9 @@ const ExecuteLog = props => {
 
     const columnSettings = useColumnSettings(
         executeLogColumns,
-        'hubble.analysis.execution-log.columns',
-        REQUIRED_EXECUTE_COLUMNS
+        'hubble.analysis.execution-log.columns.v2',
+        REQUIRED_EXECUTE_COLUMNS,
+        DEFAULT_EXECUTE_COLUMN_PREFERENCES
     );
     const columnSettingsLabels = useMemo(
         () => ({

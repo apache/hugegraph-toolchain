@@ -127,10 +127,20 @@ test('labels an unconfigured Dashboard instead of Coming Soon', async () => {
         name: 'navigation_page.advanced_monitoring',
     });
     await waitFor(() => expect(monitor).toHaveAttribute(
-        'title', 'navigation_page.dashboard_unconfigured'
+        'title', expect.stringContaining('navigation_page.dashboard_external_context')
     ));
     expect(screen.getAllByText('navigation_page.not_configured')).toHaveLength(1);
     expect(screen.getByText('navigation_page.coming_soon')).toBeInTheDocument();
+});
+
+test('describes Dashboard as an optional external monitoring entry', () => {
+    const zh = require('../../../i18n/resources/zh-CN/modules/pages.json');
+    const en = require('../../../i18n/resources/en-US/modules/pages.json');
+
+    expect(zh.navigation_page.advanced_monitoring).toBe('外部高级 Dashboard');
+    expect(en.navigation_page.advanced_monitoring).toBe('External Advanced Dashboard');
+    expect(zh.navigation_page.dashboard_external_context).toContain('不影响');
+    expect(en.navigation_page.dashboard_external_context).toContain('does not affect');
 });
 
 test('disables a configured but unavailable Dashboard capability', async () => {
@@ -149,11 +159,17 @@ test('disables a configured but unavailable Dashboard capability', async () => {
         name: 'navigation_page.advanced_monitoring',
     });
     await waitFor(() => expect(monitor).toHaveAttribute(
-        'title', 'navigation_page.dashboard_unavailable'
+        'title', expect.stringContaining('navigation_page.dashboard_external_context')
     ));
+    expect(monitor).toHaveAttribute(
+        'title', expect.stringContaining('navigation_page.dashboard_unavailable')
+    );
     expect(monitor).toBeDisabled();
     expect(screen.getAllByText('navigation_page.unavailable')).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveClass(itemStyle.reason);
+    expect(screen.getByRole('status')).toHaveTextContent(
+        'navigation_page.dashboard_external_context'
+    );
     expect(screen.getByRole('status')).toHaveTextContent(
         'navigation_page.dashboard_unavailable'
     );
@@ -172,6 +188,15 @@ test('shows a diagnostic state when Dashboard configuration cannot be read', asy
         name: 'navigation_page.advanced_monitoring',
     });
     await waitFor(() => expect(monitor).toHaveAttribute(
-        'title', 'navigation_page.dashboard_unavailable'
+        'title', expect.stringContaining('navigation_page.dashboard_external_context')
     ));
+    expect(monitor).toHaveAttribute(
+        'title', expect.stringContaining('navigation_page.dashboard_unavailable')
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+        'navigation_page.dashboard_external_context'
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+        'navigation_page.dashboard_unavailable'
+    );
 });

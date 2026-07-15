@@ -108,6 +108,33 @@
         align-items: center;
     }
 
+    .nonGraphPreview {
+        min-height: var(--analysis-result-height);
+        padding: 24px;
+        background: #fff;
+    }
+
+    .previewContent {
+        max-height: 220px;
+        margin: 12px 0 4px;
+        padding: 12px;
+        overflow: auto;
+        border: 1px solid #e8e8e8;
+        border-radius: 4px;
+        background: #fafafa;
+        color: #262626;
+        font-size: 13px;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    .previewHint {
+        margin: 8px 0 0;
+        color: #8c8c8c;
+        font-size: 12px;
+    }
+
     .loadingContent {
         position: relative;
         width: 144px;

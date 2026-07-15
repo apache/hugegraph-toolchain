@@ -25,6 +25,7 @@ jest.mock('react-i18next', () => ({
 }));
 
 jest.mock('react-router-dom', () => ({
+    Link: ({children, to}) => <a href={to}>{children}</a>,
     useParams: () => ({graphspace: 'space-a', graph: 'graph-a'}),
 }));
 
@@ -132,6 +133,10 @@ test('guides an empty graph through property, vertex, then edge creation', async
         .toHaveClass('ant-btn-primary');
     expect(screen.getByRole('button', {name: 'schema.edge.form.title_create'}))
         .toBeDisabled();
+    expect(screen.getByText('schema.image_view.template_description'))
+        .toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'schema.image_view.use_template'}))
+        .toHaveAttribute('href', '/graphspace/space-a/schema');
     expect(screen.queryByTestId('graph-view')).not.toBeInTheDocument();
 });
 
@@ -254,7 +259,7 @@ test('links safely to the official HugeGraph SchemaLabel documentation', async (
     });
     expect(docs).toHaveAttribute(
         'href',
-        'https://hugegraph.apache.org/docs/clients/restful-api/schema/'
+        'https://hugegraph.apache.org/docs/clients/hugegraph-client/'
     );
     expect(docs).toHaveAttribute('target', '_blank');
     expect(docs).toHaveAttribute('rel', 'noopener noreferrer');
