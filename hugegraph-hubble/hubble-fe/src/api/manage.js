@@ -348,8 +348,8 @@ const getMetricsTask = () => {
 export {addTask, getTaskList, getTaskDetail, deleteTask, disableTask, enableTask, updateTask, getMetricsTask};
 
 // job
-const getJobsList = params => {
-    return request.get(`${testhost}/jobs/list`, {params});
+const getJobsList = (params, config = {}) => {
+    return request.get(`${testhost}/jobs/list`, {...config, params});
 };
 
 const getJobsDetail = id => {

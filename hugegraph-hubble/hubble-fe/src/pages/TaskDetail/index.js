@@ -100,7 +100,9 @@ const TaskDetail = () => {
         const token = Symbol('task-detail-jobs');
         request.current = token;
         setLoading(true);
-        api.manage.getJobsList({taskid}).then(res => {
+        api.manage.getJobsList({taskid}, {
+            suppressBusinessErrorToast: true,
+        }).then(res => {
             if (request.current !== token) {
                 return;
             }

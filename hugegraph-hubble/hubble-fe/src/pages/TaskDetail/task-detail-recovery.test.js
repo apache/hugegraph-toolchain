@@ -73,6 +73,10 @@ it('uses the import-task title and recovers a failed run list', async () => {
 
     render(<TaskDetail />);
 
+    expect(api.manage.getJobsList).toHaveBeenCalledWith(
+        {taskid: '42'},
+        {suppressBusinessErrorToast: true}
+    );
     expect(screen.getByText('Import task details')).toBeInTheDocument();
     expect(screen.getByRole('navigation', {name: 'Data preparation journey'}))
         .toBeInTheDocument();

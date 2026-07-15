@@ -59,6 +59,21 @@ test('loads the non-destructive sample through the target graph route', () => {
     );
 });
 
+test('keeps task-run error ownership controls out of query parameters', () => {
+    manage.getJobsList(
+        {taskid: '42'},
+        {suppressBusinessErrorToast: true}
+    );
+
+    expect(request.get).toHaveBeenCalledWith(
+        '/ingest/jobs/list',
+        {
+            params: {taskid: '42'},
+            suppressBusinessErrorToast: true,
+        }
+    );
+});
+
 test('reads the default graph from the canonical route', () => {
     manage.getDefaultGraph('DEFAULT');
     expect(request.get).toHaveBeenCalledWith(
