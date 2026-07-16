@@ -40,6 +40,11 @@ const CodeEditor = ({
     const editor = useRef();
     const cm = useRef();
     const initialValue = useRef(value || '');
+    const onChangeRef = useRef(onChange);
+    const executionShortcutRef = useRef(onExecutionShortcut);
+    onChangeRef.current = onChange;
+    executionShortcutRef.current = onExecutionShortcut;
+    const resolvedPlaceholder = placeholder ?? t('analysis.query.placeholder');
 
     useEffect(() => {
         const syntax = syntaxConfig[lang] ?? syntaxConfig.default;
@@ -68,17 +73,18 @@ const CodeEditor = ({
         cm.current = new EditorView({
             doc: initialValue.current,
             extensions: [
-                onExecutionShortcut && !readOnly
+                !readOnly
                     ? EditorView.domEventHandlers({
                         keydown: event => {
                             if (event.key !== 'Enter'
                                 || (!event.metaKey && !event.ctrlKey)
                                 || event.altKey || event.shiftKey
-                                || event.isComposing) {
+                                || event.isComposing
+                                || !executionShortcutRef.current) {
                                 return false;
                             }
                             event.preventDefault();
-                            onExecutionShortcut();
+                            executionShortcutRef.current();
                             return true;
                         },
                     })
@@ -106,7 +112,9 @@ const CodeEditor = ({
                     'aria-label': ariaLabel,
                 }) : [],
                 EditorView.updateListener.of(e => {
-                    onChange && onChange(e.state.doc.toString());
+                    if (onChangeRef.current) {
+                        onChangeRef.current(e.state.doc.toString());
+                    }
                 }),
                 EditorView.theme(
                     {
@@ -125,7 +133,7 @@ const CodeEditor = ({
                         },
                     }
                 ),
-                cmplaceholder(placeholder ?? t('analysis.query.placeholder')),
+                cmplaceholder(resolvedPlaceholder),
             ],
             parent: editor.current,
         });
@@ -135,8 +143,8 @@ const CodeEditor = ({
         return () => {
             cm.current.destroy();
         };
-    }, [ariaLabel, lang, metaEnterNewline, minHeight, onChange,
-        onExecutionShortcut, placeholder, readOnly, t]);
+    }, [ariaLabel, lang, metaEnterNewline, minHeight, readOnly,
+        resolvedPlaceholder]);
 
     useEffect(() => {
         if (value !== null && cm.current.state.doc && value !== cm.current.state.doc.toString()) {

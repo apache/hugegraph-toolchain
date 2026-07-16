@@ -216,6 +216,22 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         expect(instance.delete).not.toHaveBeenCalled();
     });
 
+    it('keeps the session for an upstream query authentication failure', () => {
+        const {resolve, clearLogin} = loadResponseHandlers(modulePath);
+        const response = {
+            status: 200,
+            config: {suppressBusinessErrorToast: true},
+            data: {
+                status: 502,
+                message: 'The graph server rejected query authentication.',
+            },
+        };
+
+        expect(resolve(response)).toBe(response);
+        expect(clearLogin).not.toHaveBeenCalled();
+        expect(window.location.href).toBe('');
+    });
+
     it('shows a modal warning for throttled login attempts', () => {
         const {resolve, modalWarning, messageError} = loadResponseHandlers(modulePath);
         const response = {

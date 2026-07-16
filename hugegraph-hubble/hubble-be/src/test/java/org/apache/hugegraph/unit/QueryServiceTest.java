@@ -27,6 +27,7 @@ import org.mockito.Mockito;
 
 import org.apache.hugegraph.api.gremlin.GremlinRequest;
 import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.driver.CypherManager;
 import org.apache.hugegraph.driver.GraphManager;
 import org.apache.hugegraph.driver.GremlinManager;
 import org.apache.hugegraph.driver.HugeClient;
@@ -179,6 +180,60 @@ public class QueryServiceTest {
         Assert.assertEquals(503, error.status());
         Assert.assertEquals("gremlin.server.unavailable", error.getMessage());
         Assert.assertEquals(0, error.args().length);
+    }
+
+    @Test
+    public void testGremlinSeparatesUpstreamUnauthorizedFromHubbleSession()
+           throws Exception {
+        ServerException server = new ServerException("Unauthorized");
+        server.status(401);
+        GremlinManager gremlin = this.mockGremlinFailure(server);
+        QueryService service = this.serviceWithConfig();
+
+        ExternalException error = (ExternalException)
+                                  Assert.assertThrows(ExternalException.class,
+                                                      () -> {
+            service.executeGremlinQuery(this.mockClient(gremlin),
+                                        new GremlinQuery("g.V()"));
+        });
+
+        Assert.assertEquals(502, error.status());
+        Assert.assertEquals("gremlin.server.authentication-failed",
+                            error.getMessage());
+        Assert.assertEquals(0, error.args().length);
+    }
+
+    @Test
+    public void testAsyncQueriesSeparateUnauthorizedFromHubbleSession()
+           throws Exception {
+        ServerException server = new ServerException("Unauthorized");
+        server.status(401);
+        GremlinManager gremlin = Mockito.mock(GremlinManager.class);
+        Mockito.when(gremlin.executeAsTask(Mockito.any())).thenThrow(server);
+        CypherManager cypher = Mockito.mock(CypherManager.class);
+        Mockito.when(cypher.executeAsTask(Mockito.anyString()))
+               .thenThrow(server);
+        HugeClient client = this.mockClient(gremlin);
+        Mockito.when(client.cypher()).thenReturn(cypher);
+        QueryService service = this.serviceWithConfig();
+
+        ExternalException gremlinError = (ExternalException)
+                                         Assert.assertThrows(
+                                         ExternalException.class, () -> {
+            service.executeGremlinAsyncTask(client, new GremlinQuery("g.V()"));
+        });
+        ExternalException cypherError = (ExternalException)
+                                        Assert.assertThrows(
+                                        ExternalException.class, () -> {
+            service.executeCypherAsyncTask(client, "MATCH (n) RETURN n");
+        });
+
+        Assert.assertEquals(502, gremlinError.status());
+        Assert.assertEquals("gremlin.server.authentication-failed",
+                            gremlinError.getMessage());
+        Assert.assertEquals(502, cypherError.status());
+        Assert.assertEquals("gremlin.server.authentication-failed",
+                            cypherError.getMessage());
     }
 
     private QueryService serviceWithConfig() throws Exception {

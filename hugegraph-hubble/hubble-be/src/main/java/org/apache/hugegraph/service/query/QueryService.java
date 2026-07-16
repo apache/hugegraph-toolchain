@@ -54,6 +54,7 @@ import org.apache.hugegraph.structure.gremlin.ResultSet;
 import org.apache.hugegraph.util.Ex;
 import org.apache.hugegraph.util.GremlinUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
@@ -200,14 +201,22 @@ public class QueryService {
         log.debug("Execute asynchronous Gremlin query");
         // Execute optimized gremlin query
         GremlinRequest request = new GremlinRequest(query.getContent());
-        return client.gremlin().executeAsTask(request);
+        try {
+            return client.gremlin().executeAsTask(request);
+        } catch (ServerException e) {
+            throw this.serverQueryException(e);
+        }
     }
 
     public Long executeCypherAsyncTask(HugeClient client, String query) {
 
         log.debug("Execute asynchronous Cypher query");
         // Execute optimized gremlin query
-        return client.cypher().executeAsTask(query);
+        try {
+            return client.cypher().executeAsTask(query);
+        } catch (ServerException e) {
+            throw this.serverQueryException(e);
+        }
     }
 
     public GremlinResult expandVertex(HugeClient client, AdjacentQuery query) {
@@ -291,6 +300,11 @@ public class QueryService {
 
     private ExternalException serverQueryException(ServerException exception) {
         int status = exception.status() > 0 ? exception.status() : 400;
+        if (status == HttpStatus.UNAUTHORIZED.value()) {
+            return new ExternalException(HttpStatus.BAD_GATEWAY.value(),
+                                         "gremlin.server.authentication-failed",
+                                         exception);
+        }
         if (status == 503) {
             return new ExternalException(status, "gremlin.server.unavailable",
                                          exception);
