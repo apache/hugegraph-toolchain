@@ -204,6 +204,29 @@ public class QueryServiceTest {
     }
 
     @Test
+    public void testCypherSeparatesUpstreamUnauthorizedFromHubbleSession()
+           throws Exception {
+        ServerException server = new ServerException("Unauthorized");
+        server.status(401);
+        CypherManager cypher = Mockito.mock(CypherManager.class);
+        Mockito.when(cypher.cypher(Mockito.anyString())).thenThrow(server);
+        HugeClient client = this.mockClient(this.mockGremlin());
+        Mockito.when(client.cypher()).thenReturn(cypher);
+        QueryService service = this.serviceWithConfig();
+
+        ExternalException error = (ExternalException)
+                                  Assert.assertThrows(ExternalException.class,
+                                                      () -> {
+            service.executeCypherQuery(client, "MATCH (n) RETURN n");
+        });
+
+        Assert.assertEquals(502, error.status());
+        Assert.assertEquals("gremlin.server.authentication-failed",
+                            error.getMessage());
+        Assert.assertEquals(0, error.args().length);
+    }
+
+    @Test
     public void testAsyncQueriesSeparateUnauthorizedFromHubbleSession()
            throws Exception {
         ServerException server = new ServerException("Unauthorized");

@@ -97,11 +97,19 @@ const getCypherExecutionQuery = (graphspace, graph, params) => {
 };
 
 const getExecutionTask = (graphspace, graph, params) => {
-    return request.post(`/graphspaces/${graphspace}/graphs/${graph}/gremlin-query/async-task`, params);
+    return request.post(
+        `/graphspaces/${graphspace}/graphs/${graph}/gremlin-query/async-task`,
+        params,
+        {suppressBusinessErrorToast: true}
+    );
 };
 
 const getCypherTask = (graphspace, graph, params) => {
-    return request.post(`/graphspaces/${graphspace}/graphs/${graph}/cypher/async-task`, params);
+    return request.post(
+        `/graphspaces/${graphspace}/graphs/${graph}/cypher/async-task`,
+        params,
+        {suppressBusinessErrorToast: true}
+    );
 };
 
 const fetchManageTaskList = (graphspace, graph, params) => {

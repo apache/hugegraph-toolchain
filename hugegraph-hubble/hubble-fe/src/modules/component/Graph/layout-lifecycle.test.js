@@ -233,6 +233,7 @@ test('restores the changeData guard after a user layout change', async () => {
         relayoutAtChangeData: false,
     }));
     expect(instance.updateLayout).toHaveBeenCalledWith(expect.objectContaining({
+        type: 'circular',
         relayoutAtChangeData: false,
     }));
     expect(instance.translate).toHaveBeenCalledTimes(1);

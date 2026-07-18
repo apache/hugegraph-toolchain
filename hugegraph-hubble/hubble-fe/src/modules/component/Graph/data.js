@@ -91,7 +91,11 @@ export const applyGraphDataUpdate = ({
     ensureChangeDataRelayoutDisabled(graph);
     graph.changeData(renderedData, false);
     if (layout && restartLayout) {
-        graph.updateLayout(disableChangeDataRelayout(layout));
+        const currentLayout = graph.get?.('layout');
+        const nextLayout = currentLayout?.type && currentLayout.type !== layout.type
+            ? currentLayout
+            : layout;
+        graph.updateLayout(disableChangeDataRelayout(nextLayout));
     }
     return restartLayout;
 };

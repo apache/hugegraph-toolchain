@@ -51,10 +51,16 @@ jest.mock('../QueryResult/Home', () => ({
     queryMessage,
     graphRenderMode,
     onGraphRenderModeChange,
+    metaData,
+    propertyKeysRecords,
+    graphNums,
 }) => (
     <div>
         query result {queryStatus} {queryMessage}
         <span>render mode {graphRenderMode}</span>
+        <span>metadata ready {String(Boolean(metaData))}</span>
+        <span>properties ready {String(Boolean(propertyKeysRecords))}</span>
+        <span>graph counts {graphNums.vertexCount} {graphNums.edgeCount}</span>
         <button onClick={() => onGraphRenderModeChange('3D模式')}>Use 3D</button>
     </div>
 ));
@@ -62,6 +68,8 @@ jest.mock('../LogsDetail/Home', () => props => (
     <div>
         query history
         <span>favorite page {props.pageFavorite}</span>
+        <span>execution total {props.executionLogsData.total ?? 'pending'}</span>
+        <span>favorite total {props.favoriteQueriesData.total ?? 'pending'}</span>
         <button onClick={() => props.onFavoritePageChange(2, 10)}>Go favorite page 2</button>
         <span>{props.executionLogsData.records?.[0]?.content}</span>
         {props.executionLogsError && (
@@ -75,6 +83,11 @@ jest.mock('../LogsDetail/Home', () => props => (
 jest.mock('react-i18next', () => ({useTranslation: () => ({t: key => key})}));
 
 const okList = {status: 200, data: {records: [], total: 0}};
+let consoleError;
+
+beforeAll(() => {
+    consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+});
 
 beforeEach(() => {
     window.localStorage.clear();
@@ -93,16 +106,27 @@ beforeEach(() => {
     api.manage.getMetaPropertyList.mockResolvedValue(okList);
 });
 
+const waitForInitialData = async () => {
+    expect(await screen.findByText('execution total 0')).toBeInTheDocument();
+    expect(await screen.findByText('favorite total 0')).toBeInTheDocument();
+    expect(await screen.findByText('metadata ready true')).toBeInTheDocument();
+    expect(await screen.findByText('properties ready true')).toBeInTheDocument();
+    expect(await screen.findByText('graph counts 0 0')).toBeInTheDocument();
+};
+
 it('starts with a limited default only when no saved query exists', async () => {
     render(
         <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     expect(await screen.findByTestId('query-content')).toHaveTextContent('g.V().limit(10)');
-    fireEvent.click(screen.getByRole('button', {name: 'Cypher'}));
+    await act(async () => {
+        fireEvent.click(screen.getByRole('button', {name: 'Cypher'}));
+        await Promise.resolve();
+    });
     expect(screen.getByTestId('query-content'))
         .toHaveTextContent('MATCH (n) RETURN n LIMIT 10');
 });
@@ -117,7 +141,7 @@ it('restores the last input for the current graph instead of replacing it', asyn
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     expect(screen.getByTestId('query-content'))
         .toHaveTextContent('g.E().hasLabel("created")');
@@ -133,7 +157,7 @@ it('falls back to the real default after a cleared draft is mounted again', asyn
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     expect(screen.getByTestId('query-content')).toHaveTextContent('g.V().limit(10)');
 });
@@ -149,7 +173,7 @@ it('does not restore another user draft for the same graph', async () => {
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     expect(screen.getByTestId('query-content')).toHaveTextContent('g.V().limit(10)');
     expect(screen.getByTestId('query-content')).not.toHaveTextContent('private');
@@ -164,7 +188,13 @@ it('prefers a multiline backend diagnostic for rejected HTTP queries', () => {
         .toBe('Network Error');
 });
 
-afterEach(() => jest.clearAllMocks());
+afterEach(() => {
+    expect(consoleError).not.toHaveBeenCalled();
+    consoleError.mockClear();
+    jest.clearAllMocks();
+});
+
+afterAll(() => consoleError.mockRestore());
 
 it('makes no backend request when switching to the Text2GQL placeholder', async () => {
     render(
@@ -172,7 +202,7 @@ it('makes no backend request when switching to the Text2GQL placeholder', async 
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
     Object.values(api.analysis).forEach(mock => mock.mockClear());
     Object.values(api.manage).forEach(mock => mock.mockClear());
 
@@ -194,7 +224,7 @@ it('turns a rejected synchronous query into a recoverable failed result', async 
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     fireEvent.click(screen.getByRole('button', {name: 'Run current'}));
 
@@ -213,7 +243,7 @@ it('shows a backend query diagnostic when the service returns one', async () => 
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     fireEvent.click(screen.getByRole('button', {name: 'Run current'}));
 
@@ -231,7 +261,7 @@ it('does not start a duplicate query while the first request is pending', async 
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     const run = screen.getByRole('button', {name: 'Run current'});
     fireEvent.click(run);
@@ -261,7 +291,7 @@ it('preserves the 3D canvas mode while repeating a graph query', async () => {
             <AnalysisHome />
         </GraphAnalysisContext.Provider>
     );
-    await act(async () => Promise.resolve());
+    await waitForInitialData();
 
     const run = screen.getByRole('button', {name: 'Run current'});
     fireEvent.click(run);

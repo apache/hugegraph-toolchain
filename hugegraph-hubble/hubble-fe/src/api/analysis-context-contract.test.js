@@ -56,3 +56,23 @@ test('keeps OLAP and Vermeer configs outside mutation bodies', () => {
         '/vermeer/task', {graphspace: 'DEFAULT', graph: 'g'}, config
     );
 });
+
+test('lets the async query page own business error feedback', () => {
+    const params = {content: 'g.V()'};
+
+    analysis.getExecutionTask('DEFAULT', 'g', params);
+    analysis.getCypherTask('DEFAULT', 'g', params);
+
+    expect(request.post).toHaveBeenNthCalledWith(
+        1,
+        '/graphspaces/DEFAULT/graphs/g/gremlin-query/async-task',
+        params,
+        {suppressBusinessErrorToast: true}
+    );
+    expect(request.post).toHaveBeenNthCalledWith(
+        2,
+        '/graphspaces/DEFAULT/graphs/g/cypher/async-task',
+        params,
+        {suppressBusinessErrorToast: true}
+    );
+});
