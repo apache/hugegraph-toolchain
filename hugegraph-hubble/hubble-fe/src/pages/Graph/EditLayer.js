@@ -261,6 +261,7 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
                 <Form.Item
                     label={t('graph.form.nickname')}
                     extra={t('graph.form.nickname_help')}
+                    // Keep this validation aligned with Server GraphManager.checkNickname().
                     rules={[rules.isPropertyName(), {type: 'string', max: 48}]}
                     name='nickname'
                 >

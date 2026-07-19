@@ -35,11 +35,11 @@ import {getResourceAlias} from '../../utils/displayName';
 
 const {Option} = Select;
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
+// Keep this validation aligned with Server GraphManager.checkNickname().
 const GRAPHSPACE_NICKNAME_PATTERN = new RegExp(
     '^[a-zA-Z\\u4E00-\\u9FA5]'
     + '[a-zA-Z0-9\\u4E00-\\u9FA5~!@#$%^&*()_+|<>,.?/:;\'`"\\[\\]{}\\\\]{0,47}$'
 );
-
 const MyFormItem = ({label, help, unit, children}) => {
     return (
         <Form.Item label={<FormHelpLabel label={label} help={help} />} colon={false}>
@@ -57,7 +57,16 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
     const [loading, setLoading] = useState(false);
     const {t} = useTranslation();
 
-    const defaultValues = {auth: false, description: ''};
+    const defaultValues = {
+        auth: false,
+        description: '',
+        max_graph_number: 100,
+        cpu_limit: 64,
+        memory_limit: 128,
+        compute_cpu_limit: 64,
+        compute_memory_limit: 128,
+        storage_limit: 1000000,
+    };
 
     const isDisabled = useMemo(() => {
         if (Object.keys(detail).length !== 0) {
@@ -177,13 +186,16 @@ const EditLayer = ({visible, detail, onCancel, refresh}) => {
                 : 'common.action.save')}
             loading={loading}
             onOk={onFinish}
-            width={600}
+            width={680}
             destroyOnClose
             maskClosable={false}
             // forceRender
         >
             <Form
-                labelCol={{span: 6}}
+                className="graphspace-edit-form"
+                labelCol={{flex: '200px'}}
+                wrapperCol={{flex: '1 1 0'}}
+                labelWrap
                 form={form}
                 name="control-hooks"
                 // onFinish={onFinish}

@@ -56,6 +56,19 @@ test('uses the shared keyboard-focusable help affordance for every field label',
     expect(nameHelp).toHaveAttribute('role', 'img');
 });
 
+test('reserves enough label width for long localized labels', () => {
+    render(
+        <EditLayer visible detail={{}} onCancel={jest.fn()} refresh={jest.fn()} />
+    );
+
+    const form = document.querySelector('.graphspace-edit-form');
+    const labelColumn = form.querySelector('.ant-form-item-label');
+    const controlColumn = form.querySelector('.ant-form-item-control');
+
+    expect(labelColumn).toHaveStyle({flex: '0 0 200px'});
+    expect(controlColumn).toHaveStyle({flex: '1 1 0'});
+});
+
 test('exposes the authentication switch to assistive technology', () => {
     render(
         <EditLayer visible detail={{}} onCancel={jest.fn()} refresh={jest.fn()} />
@@ -65,7 +78,7 @@ test('exposes the authentication switch to assistive technology', () => {
         .toBeInTheDocument();
 });
 
-test('creates a GraphSpace with only ID and display name', async () => {
+test('creates a GraphSpace with visible resource defaults', async () => {
     render(
         <EditLayer
             visible
@@ -92,9 +105,14 @@ test('creates a GraphSpace with only ID and display name', async () => {
         auth: false,
         description: '',
     });
-    expect(values.cpu_limit).toBeUndefined();
-    expect(values.memory_limit).toBeUndefined();
-    expect(values.storage_limit).toBeUndefined();
+    expect(values).toMatchObject({
+        max_graph_number: 100,
+        cpu_limit: 64,
+        memory_limit: 128,
+        compute_cpu_limit: 64,
+        compute_memory_limit: 128,
+        storage_limit: 1000000,
+    });
 });
 
 test('creates without an alias and never copies the GraphSpace name into nickname', async () => {
