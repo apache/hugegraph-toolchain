@@ -47,6 +47,7 @@ import {
     selectAttentionNodes,
 } from './topology';
 import './operations.scss';
+import {TopbarPageContextSlot} from '../../components/Topbar/PageContextSlot';
 
 const Overview = () => {
     const {t, i18n} = useTranslation();
@@ -339,19 +340,21 @@ const Overview = () => {
                                 message={t('operations.refresh_failed')}
                             />
                         )}
-                        <Radio.Group
-                            role='radiogroup'
-                            aria-label={t('operations.overview_view_mode')}
-                            className='operations-view-switch'
-                            value={view}
-                            onChange={changeView}
-                            optionType='button'
-                            buttonStyle='solid'
-                            options={[
-                                {label: t('operations.topology_view'), value: 'topology'},
-                                {label: t('operations.node_list_view'), value: 'nodes'},
-                            ]}
-                        />
+                        <TopbarPageContextSlot>
+                            <Radio.Group
+                                role='radiogroup'
+                                aria-label={t('operations.overview_view_mode')}
+                                className='operations-view-switch'
+                                value={view}
+                                onChange={changeView}
+                                optionType='button'
+                                buttonStyle='solid'
+                                options={[
+                                    {label: t('operations.topology_view'), value: 'topology'},
+                                    {label: t('operations.node_list_view'), value: 'nodes'},
+                                ]}
+                            />
+                        </TopbarPageContextSlot>
                         <div className='operations-overview-grid'>
                             <section className='operations-topology-surface'>
                                 <div className='operations-section-heading'>

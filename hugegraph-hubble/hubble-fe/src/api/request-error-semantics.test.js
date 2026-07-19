@@ -90,21 +90,24 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         sessionStorage.clear();
     });
 
-    it('keeps non-401 HTTP errors rejected after showing the error message', async () => {
-        const {reject, messageError} = loadResponseHandlers(modulePath);
-        const error = {
-            response: {
-                status: 500,
-                data: {
-                    message: 'boom',
-                    path: '/api/v1.3/graphs',
+    it('adapts non-auth HTTP errors to legacy response data after showing the error',
+        async () => {
+            const {reject, messageError} = loadResponseHandlers(modulePath);
+            const error = {
+                config: {},
+                response: {
+                    status: 500,
+                    data: {
+                        status: 500,
+                        message: 'boom',
+                        path: '/api/v1.3/graphs',
+                    },
                 },
-            },
-        };
+            };
 
-        await expect(reject(error)).rejects.toBe(error);
-        expect(messageError).toHaveBeenCalledWith('request.error');
-    });
+            expect(reject(error)).toBe(error.response);
+            expect(messageError).toHaveBeenCalledWith('request.error');
+        });
 
     it('keeps network errors rejected after showing the fallback message', async () => {
         const {reject, messageError} = loadResponseHandlers(modulePath);
@@ -144,7 +147,7 @@ describe.each(['./request'])('%s error semantics', modulePath => {
                 },
             },
         };
-        await expect(reject(transport)).rejects.toBe(transport);
+        expect(reject(transport)).toBe(transport.response);
         expect(transport.message).not.toContain('transport-canary');
         expect(transport.response.data.message).not.toContain('transport-canary');
         expect(transport.response.data.path).not.toContain('C:\\secrets');
@@ -216,6 +219,80 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         expect(instance.delete).not.toHaveBeenCalled();
     });
 
+    it.each([401, 403])(
+        'shows business %s from login without redirecting',
+        async status => {
+            window.location.pathname = '/login';
+            const {resolve, messageError, clearLogin}
+                = loadResponseHandlers(modulePath);
+            const response = {
+                status: 200,
+                config: {url: '/auth/login'},
+                data: {
+                    status,
+                    message: '用户名或密码不正确',
+                },
+            };
+
+            await expect(resolve(response)).rejects.toBe(response);
+
+            expect(messageError).toHaveBeenCalledTimes(1);
+            expect(messageError).toHaveBeenCalledWith('用户名或密码不正确');
+            expect(clearLogin).not.toHaveBeenCalled();
+            expect(sessionStorage.getItem('redirect')).toBeNull();
+            expect(window.location.href).toBe('');
+        }
+    );
+
+    it.each([401, 403])(
+        'shows HTTP %s from login without redirecting',
+        async status => {
+            window.location.pathname = '/login';
+            const {reject, messageError, clearLogin}
+                = loadResponseHandlers(modulePath);
+            const error = {
+                config: {url: '/auth/login'},
+                response: {
+                    status,
+                    data: {
+                        status,
+                        message: '用户名或密码不正确',
+                    },
+                },
+            };
+
+            await expect(reject(error)).rejects.toBe(error);
+
+            expect(messageError).toHaveBeenCalledTimes(1);
+            expect(messageError).toHaveBeenCalledWith('用户名或密码不正确');
+            expect(clearLogin).not.toHaveBeenCalled();
+            expect(sessionStorage.getItem('redirect')).toBeNull();
+            expect(window.location.href).toBe('');
+        }
+    );
+
+    it.each([
+        [401, 'an empty body', undefined],
+        [401, 'a non-JSON body', 'Unauthorized'],
+        [403, 'an empty body', undefined],
+        [403, 'a non-JSON body', 'Forbidden'],
+    ])('shows one localized fallback for login HTTP %s with %s',
+        async (status, description, data) => {
+            window.location.pathname = '/login';
+            const {reject, messageError, clearLogin}
+               = loadResponseHandlers(modulePath);
+            const error = {
+                config: {url: '/auth/login'},
+                response: {status, data},
+            };
+
+            await expect(reject(error)).rejects.toBe(error);
+
+            expect(messageError).toHaveBeenCalledTimes(1);
+            expect(messageError).toHaveBeenCalledWith('request.failed');
+            expect(clearLogin).not.toHaveBeenCalled();
+        });
+
     it('keeps the session for an upstream query authentication failure', () => {
         const {resolve, clearLogin} = loadResponseHandlers(modulePath);
         const response = {
@@ -261,8 +338,8 @@ describe.each(['./request'])('%s error semantics', modulePath => {
             },
         };
 
-        await expect(reject(error)).rejects.toBe(error);
-        await expect(reject(error)).rejects.toBe(error);
+        expect(reject(error)).toBe(error.response);
+        expect(reject(error)).toBe(error.response);
         expect(modalWarning).toHaveBeenCalledTimes(1);
         expect(messageError).not.toHaveBeenCalled();
     });
@@ -292,7 +369,7 @@ describe.each(['./request'])('%s error semantics', modulePath => {
             },
         };
 
-        await expect(reject(error)).rejects.toBe(error);
+        expect(reject(error)).toBe(error.response);
         expect(messageError).not.toHaveBeenCalled();
     });
 

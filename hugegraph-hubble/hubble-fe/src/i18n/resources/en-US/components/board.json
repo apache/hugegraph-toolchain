@@ -1,7 +1,7 @@
 {
   "Topbar": {
     "super_admin": "Super Admin",
-    "user_menu": "Open account menu",
+    "user_menu": "Open account menu for {{name}}",
     "exit":{
       "name": "Log Out",
       "confirm":"Confirm log out?",

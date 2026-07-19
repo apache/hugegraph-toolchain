@@ -90,8 +90,8 @@ const addGraph = (graphspace, data) => {
     });
 };
 
-const updateGraph = (graphspace, graph, params) => {
-    return request.put(`/graphspaces/${graphspace}/graphs/${graph}`, params);
+const updateGraph = (graphspace, graph, params, config) => {
+    return request.put(`/graphspaces/${graphspace}/graphs/${graph}`, params, config);
 };
 
 const getGraph = (graphspace, graph, config) => {
@@ -148,8 +148,9 @@ const getMetaPropertyList = (graphspace, graph, params) => {
     return request.get(`/graphspaces/${graphspace}/graphs/${graph}/schema/propertykeys`, {params});
 };
 
-const addMetaProperty = (graphspace, graph, data) => {
-    return request.post(`/graphspaces/${graphspace}/graphs/${graph}/schema/propertykeys`, data);
+const addMetaProperty = (graphspace, graph, data, config) => {
+    return request.post(
+        `/graphspaces/${graphspace}/graphs/${graph}/schema/propertykeys`, data, config);
 };
 
 const checkMetaProperty = (graphspace, graph, data, config) => {

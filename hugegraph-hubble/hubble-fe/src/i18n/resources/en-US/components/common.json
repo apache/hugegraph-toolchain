@@ -33,6 +33,7 @@
   },
   "workbench": {
     "back_home": "Back to home",
+    "language_switch": "Switch to {{language}}",
     "route_error": {
       "title": "This page could not be displayed",
       "reload": "Reload page"
@@ -57,7 +58,7 @@
       "graph": "Current graph",
       "select_graphspace": "Select GraphSpace",
       "select_graph": "Select graph",
-      "default_graphspace": "DEFAULT (default)",
+      "default_graphspace": "DEFAULT",
       "non_pd_fixed": "DEFAULT fixed",
       "graphspaces_load_failed": "GraphSpaces are temporarily unavailable. Your current page is preserved.",
       "graphs_load_failed": "Graphs are temporarily unavailable. Your current page is preserved.",

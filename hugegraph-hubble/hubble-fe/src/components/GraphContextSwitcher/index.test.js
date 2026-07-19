@@ -42,6 +42,7 @@ jest.mock('antd', () => {
         onChange,
         title,
         value,
+        style,
     }) => (
         <select
             aria-description={ariaDescription}
@@ -49,6 +50,7 @@ jest.mock('antd', () => {
             disabled={disabled}
             title={title}
             value={value || ''}
+            style={style}
             onChange={event => onChange?.(event.target.value)}
         >
             <option value="" />
@@ -107,10 +109,13 @@ describe('GraphContextSwitcher', () => {
         });
         expect(graphspace).toBeDisabled();
         expect(graphspace).toHaveAttribute(
-            'aria-description', 'workbench.context.default_graphspace'
+            'aria-description', 'DEFAULT'
         );
-        expect(graphspace).toHaveAttribute('title', 'workbench.context.default_graphspace');
-        expect(screen.getByText('workbench.context.graphspace_label')).toBeInTheDocument();
+        expect(graphspace).toHaveAttribute('title', 'DEFAULT');
+        expect(screen.getByRole('option', {name: 'DEFAULT'})).toBeInTheDocument();
+        expect(screen.queryByText('workbench.context.graphspace_label'))
+            .not.toBeInTheDocument();
+        expect(screen.getByText('/')).toBeInTheDocument();
         await waitFor(() => {
             expect(api.manage.getGraphList).toHaveBeenCalledWith(
                 'DEFAULT',
@@ -118,7 +123,7 @@ describe('GraphContextSwitcher', () => {
                 expect.any(Object)
             );
         });
-        expect(screen.getByText('workbench.context.non_pd_fixed')).toBeInTheDocument();
+        expect(screen.queryByText('workbench.context.non_pd_fixed')).not.toBeInTheDocument();
         expect(screen.getByRole('group', {name: 'workbench.context.name'})).toBeInTheDocument();
     });
 
@@ -141,6 +146,29 @@ describe('GraphContextSwitcher', () => {
             {all: true},
             expect.any(Object)
         );
+    });
+
+    test('sizes current names within bounds and exposes full values', async () => {
+        sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+        const longName = 'graph_with_a_name_that_is_far_too_long_for_the_topbar';
+        api.manage.getGraphList.mockResolvedValueOnce({
+            status: 200,
+            data: {records: [{name: longName}]},
+        });
+        renderSwitcher(`/gremlin/space_a/${longName}`);
+
+        const graphspace = screen.getByRole('combobox', {
+            name: 'workbench.context.graphspace',
+        });
+        const graph = await screen.findByRole('combobox', {
+            name: 'workbench.context.graph',
+        });
+        await waitFor(() => expect(graph).toHaveValue(longName));
+
+        expect(graphspace).toHaveStyle({width: '112px'});
+        expect(graph).toHaveStyle({width: '240px'});
+        expect(graph).toHaveAttribute('title', longName);
+        expect(graph).toHaveAttribute('aria-description', longName);
     });
 
     test('temporarily keeps the selected GraphSpace in options while loading', () => {
@@ -218,6 +246,30 @@ describe('GraphContextSwitcher', () => {
         fireEvent.change(graphSelect, {target: {value: 'graph_a'}});
         expect(screen.getByText('/graphspace/space_a/graph/graph_a/detail')).toBeInTheDocument();
     });
+
+    test.each(['gremlin', 'algorithms', 'asyncTasks'])(
+        'selecting a graph preserves the %s workbench',
+        async moduleName => {
+            sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
+            renderSwitcher(`/${moduleName}`);
+
+            const graphspace = screen.getByRole('combobox', {
+                name: 'workbench.context.graphspace',
+            });
+            await screen.findByRole('option', {name: 'Space A'});
+            fireEvent.change(graphspace, {target: {value: 'space_a'}});
+            expect(screen.getByText(`/${moduleName}`)).toBeInTheDocument();
+
+            const graph = await screen.findByRole('combobox', {
+                name: 'workbench.context.graph',
+            });
+            await screen.findByRole('option', {name: 'Graph A'});
+            fireEvent.change(graph, {target: {value: 'graph_a'}});
+
+            expect(screen.getByText(`/${moduleName}/space_a/graph_a`))
+                .toBeInTheDocument();
+        }
+    );
 
     test('shows an inline retry when graph loading fails', async () => {
         sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));

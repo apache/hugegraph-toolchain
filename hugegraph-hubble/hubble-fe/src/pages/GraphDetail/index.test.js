@@ -196,6 +196,8 @@ test('exposes overview, schema and query as one graph journey', async () => {
     expect(screen.getByRole('link', {name: 'Overview'}))
         .toHaveAttribute('aria-current', 'page');
     expect(screen.getByText('Available')).toBeInTheDocument();
+    expect(screen.getByText('Detail')).toBeInTheDocument();
+    expect(screen.queryByText('Space - Graph - Detail')).not.toBeInTheDocument();
 });
 
 test('turns zero statistics into an actionable empty graph journey', async () => {
@@ -329,7 +331,7 @@ test('does not claim statistics are available before the current request succeed
     expect(await screen.findByText('Available')).toBeInTheDocument();
 });
 
-test('clears graph identity when a new route fails to load', async () => {
+test('keeps a failed route body free of stale graph identity', async () => {
     const graphspaceB = createDeferred();
     const graphB = createDeferred();
     api.manage.getGraphSpace
@@ -349,7 +351,7 @@ test('clears graph identity when a new route fails to load', async () => {
         </MemoryRouter>
     );
 
-    expect(await screen.findByText('Space A - Graph A - Detail')).toBeInTheDocument();
+    expect(await screen.findByText('Detail')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'switch graph'}));
     expect(screen.queryByText(/Space A|Graph A/)).not.toBeInTheDocument();
 
@@ -359,7 +361,9 @@ test('clears graph identity when a new route fails to load', async () => {
         await Promise.all([graphspaceB.promise, graphB.promise]);
     });
 
-    expect(await screen.findByText('B - b - Detail')).toBeInTheDocument();
+    expect(await screen.findByText(
+        'Graph details are unavailable. Check the server and retry.'
+    )).toBeInTheDocument();
     expect(screen.queryByText(/Space A|Graph A/)).not.toBeInTheDocument();
 });
 
@@ -389,7 +393,7 @@ test('ignores an update completion after navigating to another graph', async () 
         </MemoryRouter>
     );
 
-    expect(await screen.findByText('Space A - Graph a - Detail')).toBeInTheDocument();
+    expect(await screen.findByText('Detail')).toBeInTheDocument();
     await act(async () => {
         statisticsA.resolve({status: 200, data: {vertex_count: 1, edge_count: 2}});
         await statisticsA.promise;
@@ -397,7 +401,8 @@ test('ignores an update completion after navigating to another graph', async () 
     expect(await screen.findByText('1')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: /Update Data/}));
     await userEvent.click(screen.getByRole('button', {name: 'switch graph'}));
-    expect(await screen.findByText('Space B - Graph b - Detail')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('link', {name: 'Schema'}))
+        .toHaveAttribute('href', '/graphspace/B/graph/b/meta'));
     await act(async () => {
         statisticsB.resolve({status: 200, data: {vertex_count: 22, edge_count: 2}});
         await statisticsB.promise;

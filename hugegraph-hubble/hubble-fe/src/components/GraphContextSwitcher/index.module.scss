@@ -24,30 +24,26 @@
 }
 
 .graphspace {
-  width: clamp(156px, 12vw, 196px);
-}
-
-.contextLabel {
-  flex: none;
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 13px;
-  font-weight: 500;
-  white-space: nowrap;
+  min-width: 112px;
+  max-width: 240px;
 }
 
 .graph {
-  width: 156px;
+  min-width: 112px;
+  max-width: 240px;
 }
 
 .separator {
   color: rgba(255, 255, 255, 0.56);
 }
 
-.mode {
-  margin-right: 0;
-  border-color: rgba(255, 255, 255, 0.32);
-  color: rgba(255, 255, 255, 0.82);
-  background: rgba(255, 255, 255, 0.08);
+.graphspace,
+.graph {
+  :global(.ant-select-selection-item) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 
 .errorStack {
@@ -69,13 +65,6 @@
     margin-left: 16px;
   }
 
-  .graphspace {
-    width: 156px;
-  }
-
-  .graph {
-    width: 140px;
-  }
 }
 
 @media (max-width: 900px) {
@@ -92,13 +81,12 @@
 
   .graphspace,
   .graph {
-    width: min(152px, 30vw);
+    max-width: 30vw;
+    min-width: 88px;
   }
 
-  .mode,
-  .separator,
-  .contextLabel {
-    display: none;
+  .separator {
+    flex: none;
   }
 
   .errorStack {

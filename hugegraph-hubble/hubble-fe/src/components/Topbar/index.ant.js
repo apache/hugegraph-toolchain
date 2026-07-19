@@ -16,17 +16,18 @@
  * under the License.
  */
 
-import {Layout, Avatar, Button, Dropdown, message, Radio} from 'antd';
+import {Layout, Avatar, Button, Dropdown, message} from 'antd';
 import {QuestionCircleOutlined, UserOutlined} from '@ant-design/icons';
 import style from './index.module.scss';
 import BrandLockup from '../BrandLockup';
 import {Link, useLocation} from 'react-router-dom';
 import * as api from '../../api/index';
 import * as user from '../../utils/user';
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect} from 'react';
 import {useTranslation} from 'react-i18next';
 import GraphContextSwitcher from '../GraphContextSwitcher';
-import {getCurrentLanguage} from '../../utils/language';
+import LanguageToggle from '../LanguageToggle';
+import {TopbarPageContextHost} from './PageContextSlot';
 import {
     clearPersistedAlgorithmFormsForUser,
 } from '../../modules/algorithm/algorithmsForm/algorithmFormPersistence';
@@ -37,7 +38,6 @@ const Topbar = () => {
     const location = useLocation();
     const {t} = useTranslation();
     const {context: authContext} = useAuthContext();
-    const [languageType, setLanguageType] = useState(getCurrentLanguage);
 
     const redirectToLogin = useCallback(() => {
         const redirect = `${location.pathname}${location.search}${location.hash}`;
@@ -73,15 +73,6 @@ const Topbar = () => {
         redirectToLogin();
     }
 
-    const i18Change = useCallback(e => {
-        localStorage.setItem('languageType', e);
-        setLanguageType(e);
-        window.location.reload();
-    }, []);
-    const handleLanguageChange = useCallback(
-        event => i18Change(event.target.value),
-        [i18Change]
-    );
     const showShortcutHelp = useCallback(() => {
         window.dispatchEvent(new CustomEvent('hubble:shortcut-help'));
     }, []);
@@ -100,15 +91,29 @@ const Topbar = () => {
     }, [t]);
 
     const userMenu = {
-        items: [{
-            key: 'logout',
-            label: t('Topbar.exit.name'),
-        }],
-        onClick: logout,
+        items: [
+            {
+                key: 'profile',
+                label: <Link to='/profile'>{t('workbench.page.profile')}</Link>,
+            },
+            {
+                key: 'logout',
+                label: t('Topbar.exit.name'),
+            },
+        ],
+        onClick: ({key}) => {
+            if (key === 'logout') {
+                logout();
+            }
+        },
     };
-    const userLabel = authContext?.role === 'SUPERADMIN'
-        ? t('Topbar.super_admin')
-        : userInfo?.user_nickname ?? userInfo?.user_name ?? '';
+    const userLabel = userInfo?.user_nickname ?? userInfo?.user_name ?? (
+        authContext?.role === 'SUPERADMIN' ? t('Topbar.super_admin') : ''
+    );
+    const userCharacters = Array.from(userLabel);
+    const avatarLabel = userCharacters.length > 1
+        ? `${userCharacters[0]}${userCharacters[userCharacters.length - 1]}`
+        : userLabel;
 
     return (
         <Layout.Header className={`${style.header} workbench-topbar`}>
@@ -120,21 +125,9 @@ const Topbar = () => {
                 <BrandLockup compact />
             </Link>
             <GraphContextSwitcher />
+            <TopbarPageContextHost className={style.pageContext} />
             <div className={style.rightContainer}>
-                <Radio.Group
-                    className={style.languageSwitch}
-                    aria-label={t('login.language')}
-                    data-testid="language-switcher"
-                    value={languageType}
-                    size="small"
-                    optionType='button'
-                    buttonStyle='solid'
-                    onChange={handleLanguageChange}
-                    options={[
-                        {label: '中', value: 'zh-CN'},
-                        {label: 'EN', value: 'en-US'},
-                    ]}
-                />
+                <LanguageToggle tone='dark' />
                 <Button
                     type='text'
                     className={style.shortcutHelp}
@@ -147,11 +140,18 @@ const Topbar = () => {
                     <Button
                         type='text'
                         className={`${style.right} ${style.userMenuTrigger}`}
-                        aria-label={t('Topbar.user_menu')}
+                        aria-label={t('Topbar.user_menu', {name: userLabel})}
                         aria-haspopup='menu'
+                        title={userLabel}
                     >
-                        <Avatar size={'small'} icon={<UserOutlined />} />
-                        <span>{userLabel}</span>
+                        <Avatar
+                            size={'small'}
+                            icon={avatarLabel ? undefined : <UserOutlined />}
+                            aria-label={userLabel}
+                            title={userLabel}
+                        >
+                            {avatarLabel}
+                        </Avatar>
                     </Button>
                 </Dropdown>
             </div>

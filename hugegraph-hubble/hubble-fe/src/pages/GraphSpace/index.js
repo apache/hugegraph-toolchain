@@ -44,6 +44,7 @@ import style from './index.module.scss';
 import * as api from '../../api/index';
 import {useAuthContext} from '../../auth/AuthContext';
 import {getResourceDisplayName} from '../../utils/displayName';
+import {TopbarPageContextSlot} from '../../components/Topbar/PageContextSlot';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
@@ -318,18 +319,20 @@ const GraphSpace = () => {
                     </Col>
                     <Col>
                         <Space>
-                            <Radio.Group
-                                role='radiogroup'
-                                aria-label={t('graphspace.view_mode')}
-                                options={[
-                                    {label: t('common.label.view_mode'), value: 'image'},
-                                    {label: t('common.label.list_mode'), value: 'list'},
-                                ]}
-                                optionType='button'
-                                buttonStyle='solid'
-                                defaultValue={'image'}
-                                onChange={handleListType}
-                            />
+                            <TopbarPageContextSlot>
+                                <Radio.Group
+                                    role='radiogroup'
+                                    aria-label={t('graphspace.view_mode')}
+                                    options={[
+                                        {label: t('common.label.view_mode'), value: 'image'},
+                                        {label: t('common.label.list_mode'), value: 'list'},
+                                    ]}
+                                    optionType='button'
+                                    buttonStyle='solid'
+                                    value={listType}
+                                    onChange={handleListType}
+                                />
+                            </TopbarPageContextSlot>
                             <Input.Search
                                 placeholder={t('graphspace.search_placeholder')}
                                 onSearch={handleSearch}

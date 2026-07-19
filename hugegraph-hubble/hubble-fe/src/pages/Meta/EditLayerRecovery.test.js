@@ -130,8 +130,14 @@ test('property form explains its read and write contract with examples', () => {
 
     expect(screen.getByPlaceholderText('schema.property.form.name_placeholder'))
         .toBeInTheDocument();
-    expect(screen.getByLabelText('schema.property.form.name_help')).toBeInTheDocument();
-    expect(screen.getByLabelText('schema.property.form.type_help')).toBeInTheDocument();
-    expect(screen.getByLabelText('schema.property.form.cardinality_help'))
+    expect(screen.getByLabelText(
+        'schema.property.form.name: schema.property.form.name_help'
+    )).toBeInTheDocument();
+    expect(screen.getByLabelText(
+        'schema.property.form.type: schema.property.form.type_help'
+    )).toBeInTheDocument();
+    expect(screen.getByLabelText(
+        'schema.property.form.cardinality: schema.property.form.cardinality_help'
+    ))
         .toBeInTheDocument();
 });

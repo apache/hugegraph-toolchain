@@ -17,7 +17,7 @@
  */
 
 import {useEffect, useCallback, useRef, useState} from 'react';
-import {Link, useParams} from 'react-router-dom';
+import {useParams} from 'react-router-dom';
 import * as api from '../../api';
 import GraphView from '../../components/GraphinView';
 import {EditPropertyLayer} from './Property/EditLayer';
@@ -301,11 +301,11 @@ const ImageView = () => {
                         <p className={styles.edgeHint}>
                             {t('schema.image_view.edge_prerequisite')}
                         </p>
-                        <div className={styles.templateGuide}>
-                            <p>{t('schema.image_view.template_description')}</p>
-                            <Link to={`/graphspace/${graphspace}/schema`}>
-                                {t('schema.image_view.use_template')}
-                            </Link>
+                        <div className={styles.startGuide}>
+                            <p>{t('schema.image_view.start_description')}</p>
+                            <Button type='link' onClick={createProperty}>
+                                {t('schema.image_view.start_with_property')}
+                            </Button>
                         </div>
                     </section>
                 ) : (

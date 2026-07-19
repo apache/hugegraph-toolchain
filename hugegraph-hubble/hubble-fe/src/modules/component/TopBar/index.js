@@ -17,11 +17,11 @@
  */
 
 /**
- * @file 图分析模块Header，用于初始化、选择图空间和图，以及OLAP开关
+ * @file 图分析模块Header，用于初始化当前图上下文和展示分析操作
  */
 
 import React, {useCallback, useEffect, useRef, useState, useContext} from 'react';
-import {Alert, Select, Switch, Button, Tag, message, Typography, Tooltip} from 'antd';
+import {Alert, Switch, Button, Tag, message, Tooltip} from 'antd';
 import {SyncOutlined, QuestionCircleOutlined} from '@ant-design/icons';
 import GraphAnalysisContext from '../../Context';
 import * as api from '../../../api';
@@ -31,8 +31,6 @@ import {useNavigate, useParams} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import _ from 'lodash';
 import c from './index.module.scss';
-
-const {Text} = Typography;
 
 const {
     LOADED,
@@ -64,11 +62,10 @@ const TopBar = props => {
     const {isVermeer} = useContext(GraphAnalysisContext);
     const [graphSpaceList, setGraphSpaceList] = useState([]);
     const [currentGraphSpace, setCurrentGraphSpace] = useState();
-    const [isGraphSpaceLoading, setGraphSpaceLoading] = useState(false);
+    const [, setGraphSpaceLoading] = useState(false);
     const [graphSpaceError, setGraphSpaceError] = useState(false);
-    const [graphList, setGraphList] = useState([]);
     const [currentGraph, setCurrentGraph] = useState({});
-    const [isGraphLoading, setGraphLoading] = useState(false);
+    const [, setGraphLoading] = useState(false);
     const [graphError, setGraphError] = useState(false);
     const [isLoadRequestLoading, setLoadRequestLoading] = useState(false);
     const graphSpaceRequest = useRef(null);
@@ -102,30 +99,6 @@ const TopBar = props => {
             default:
                 return null;
         }
-    };
-
-    const getGraphSpaceOptions = () => {
-        return graphSpaceList?.map(item => ({
-            value: item,
-            label: item === 'DEFAULT'
-                ? t('analysis.topbar.default_graph_space')
-                : item,
-        }));
-    };
-
-    const getGraphOptions = () => {
-        return graphList?.map(item => {
-            const {name, status} = item || {};
-            const statusTag = renderStatusTag(status);
-            return {
-                value: name,
-                label: (
-                    <div className={c.graphOptions}>
-                        <Text className={c.graphName} ellipsis={{tooltip: name}}>{name}</Text>
-                        <span className={c.graphStatus}>{statusTag}</span>
-                    </div>),
-            };
-        });
     };
 
     const getGraphSpaces = useCallback(
@@ -182,7 +155,6 @@ const TopBar = props => {
                     throw new Error('graphs unavailable');
                 }
                 const {graphs = []} = data;
-                setGraphList(graphs);
                 const graph = _.find(graphs, {name: graphFromParam}) || graphs[0] || {};
                 setCurrentGraph(current => (
                     _.isEmpty(graph) && _.isEmpty(current) ? current : graph
@@ -234,9 +206,29 @@ const TopBar = props => {
         [currentGraph, currentGraphSpace, onGraphInfoChange]
     );
 
+    useEffect(() => {
+        if (!graphFromParam
+            || !currentGraph?.name
+            || graphSpaceFromParam !== currentGraphSpace
+            || graphFromParam === currentGraph.name) {
+            return;
+        }
+        graphRequest.current = null;
+        setCurrentGraph({});
+        setGraphError(false);
+    }, [
+        currentGraph?.name,
+        currentGraphSpace,
+        graphFromParam,
+        graphSpaceFromParam,
+    ]);
+
     useEffect(
         () => {
             if (taskId || !moduleName || !currentGraphSpace || !currentGraph?.name) {
+                return;
+            }
+            if (graphSpaceFromParam && graphFromParam) {
                 return;
             }
             if (graphSpaceFromParam === currentGraphSpace && graphFromParam === currentGraph.name) {
@@ -259,7 +251,6 @@ const TopBar = props => {
         value => {
             graphRequest.current = null;
             setCurrentGraphSpace(value);
-            setGraphList([]);
             setCurrentGraph({});
             setGraphError(false);
         },
@@ -278,14 +269,6 @@ const TopBar = props => {
         graphSpaceList,
         handleGraphSpaceChange,
     ]);
-
-    const handleGraphChange = useCallback(
-        value => {
-            const currentGraphInfo = _.find(graphList, {name: value});
-            setCurrentGraph(currentGraphInfo);
-        },
-        [graphList]
-    );
 
     const handleSwitchOlapMode = useCallback(
         checked => {
@@ -350,29 +333,6 @@ const TopBar = props => {
 
     return (
         <div className={c.pageHeader}>
-            <span>{t('analysis.topbar.current_graph_space')}</span>
-            <Select
-                value={currentGraphSpace}
-                onChange={handleGraphSpaceChange}
-                options={getGraphSpaceOptions()}
-                style={{width: 120}}
-                bordered={false}
-                loading={isGraphSpaceLoading}
-                disabled={isGraphSpaceLoading}
-            />
-            <span>{t('analysis.topbar.current_graph')}</span>
-            <Select
-                popupClassName={c.currentGraphSelect}
-                value={currentGraph.name}
-                onChange={handleGraphChange}
-                options={getGraphOptions()}
-                style={{width: 120}}
-                bordered={false}
-                loading={isGraphLoading}
-                disabled={!currentGraphSpace || isGraphLoading || graphError}
-                placeholder={t('analysis.topbar.select')}
-                optionLabelProp="value"
-            />
             {
                 showVermeerGraphInfo && (
                     <span className={c.vermeerInfo}>

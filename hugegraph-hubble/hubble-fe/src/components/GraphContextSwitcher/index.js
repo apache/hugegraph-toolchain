@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Alert, Button, Select, Space, Tag} from 'antd';
+import {Alert, Button, Select, Space} from 'antd';
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {useLocation, useNavigate} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
@@ -37,6 +37,20 @@ const {Option} = Select;
 const GRAPHSPACE_LIST_PARAMS = {all: true};
 const GRAPH_LIST_PARAMS = {page_no: 1, page_size: -1};
 const INLINE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
+const SELECT_MIN_WIDTH = 112;
+const SELECT_MAX_WIDTH = 240;
+
+const getSelectWidth = label => {
+    const textWidth = Array.from(label ?? '').reduce(
+        (width, character) => width + (/[^\x00-\xff]/.test(character) ? 14 : 8),
+        48
+    );
+    return Math.min(SELECT_MAX_WIDTH, Math.max(SELECT_MIN_WIDTH, textWidth));
+};
+
+const getAnalysisModule = pathname => pathname.match(
+    /^\/(gremlin|algorithms|asyncTasks)(?:\/|$)/
+)?.[1];
 
 const getRecords = response => {
     if (response?.status !== 200) {
@@ -216,11 +230,16 @@ const GraphContextSwitcher = () => {
         item.name === context.graphspace
     ));
     const selectedGraphspaceLabel = selectedGraphspace?.name === DEFAULT_GRAPHSPACE
-        ? t('workbench.context.default_graphspace')
+        ? DEFAULT_GRAPHSPACE
         : getResourceDisplayName(
             selectedGraphspace?.name ?? context.graphspace,
             selectedGraphspace?.nickname
         );
+    const selectedGraph = graphs.find(item => item.name === context.graph);
+    const selectedGraphLabel = getResourceDisplayName(
+        selectedGraph?.name ?? context.graph,
+        selectedGraph?.nickname
+    );
 
     const selectGraphspace = useCallback(graphspace => {
         const nextContext = {graphspace};
@@ -229,8 +248,10 @@ const GraphContextSwitcher = () => {
         setLoading(value => ({...value, graphs: true}));
         setContext(nextContext);
         writeWorkbenchGraphContext(localStorage, nextContext);
-        navigate(`/graphspace/${encodeURIComponent(graphspace)}`);
-    }, [navigate]);
+        if (!getAnalysisModule(location.pathname)) {
+            navigate(`/graphspace/${encodeURIComponent(graphspace)}`);
+        }
+    }, [location.pathname, navigate]);
 
     const selectGraph = useCallback(graph => {
         if (!context.graphspace) {
@@ -239,11 +260,13 @@ const GraphContextSwitcher = () => {
         const nextContext = {graphspace: context.graphspace, graph};
         setContext(nextContext);
         writeWorkbenchGraphContext(localStorage, nextContext);
-        navigate(
-            `/graphspace/${encodeURIComponent(context.graphspace)}`
-            + `/graph/${encodeURIComponent(graph)}/detail`
-        );
-    }, [context.graphspace, navigate]);
+        const analysisModule = getAnalysisModule(location.pathname);
+        const graphspacePath = encodeURIComponent(context.graphspace);
+        const graphPath = encodeURIComponent(graph);
+        navigate(analysisModule
+            ? `/${analysisModule}/${graphspacePath}/${graphPath}`
+            : `/graphspace/${graphspacePath}/graph/${graphPath}/detail`);
+    }, [context.graphspace, location.pathname, navigate]);
 
     const retryGraphspaces = useCallback(() => {
         setLoading(value => ({...value, graphspaces: true}));
@@ -264,9 +287,6 @@ const GraphContextSwitcher = () => {
             aria-label={t('workbench.context.name')}
         >
             <Space size={8}>
-                <span className={style.contextLabel}>
-                    {t('workbench.context.graphspace_label')}
-                </span>
                 <Select
                     aria-description={selectedGraphspaceLabel}
                     aria-label={t('workbench.context.graphspace')}
@@ -277,10 +297,11 @@ const GraphContextSwitcher = () => {
                     placeholder={t('workbench.context.select_graphspace')}
                     title={selectedGraphspaceLabel}
                     value={context.graphspace}
+                    style={{width: getSelectWidth(selectedGraphspaceLabel)}}
                 >
                     {graphspaceOptions.map(item => {
                         const displayName = item.name === DEFAULT_GRAPHSPACE
-                            ? t('workbench.context.default_graphspace')
+                            ? DEFAULT_GRAPHSPACE
                             : getResourceDisplayName(item.name, item.nickname);
                         return (
                             <Option key={item.name} value={item.name} title={displayName}>
@@ -291,13 +312,16 @@ const GraphContextSwitcher = () => {
                 </Select>
                 <span className={style.separator}>/</span>
                 <Select
+                    aria-description={selectedGraphLabel}
                     aria-label={t('workbench.context.graph')}
                     className={style.graph}
                     disabled={!context.graphspace || loading.graphs || errors.graphs}
                     loading={loading.graphs}
                     onChange={selectGraph}
                     placeholder={t('workbench.context.select_graph')}
+                    title={selectedGraphLabel}
                     value={context.graph}
+                    style={{width: getSelectWidth(selectedGraphLabel)}}
                 >
                     {graphs.map(item => (
                         <Option key={item.name} value={item.name}>
@@ -305,9 +329,6 @@ const GraphContextSwitcher = () => {
                         </Option>
                     ))}
                 </Select>
-                {!pdEnabled && (
-                    <Tag className={style.mode}>{t('workbench.context.non_pd_fixed')}</Tag>
-                )}
             </Space>
             {(errors.graphspaces || errors.graphs) && (
                 <div className={style.errorStack}>

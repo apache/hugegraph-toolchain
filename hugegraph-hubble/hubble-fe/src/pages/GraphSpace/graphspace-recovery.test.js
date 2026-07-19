@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import GraphSpace from './index';
 import * as api from '../../api';
@@ -90,6 +90,28 @@ test('keeps a failed GraphSpace request distinct from a valid empty list', async
         .toBeInTheDocument();
     expect(screen.queryByText('graphspace.load.unavailable')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'graphspace.create'})).toBeEnabled();
+});
+
+test('moves only the view switch to the topbar and keeps filters in the page', async () => {
+    api.manage.getGraphSpaceList.mockResolvedValue({
+        status: 200,
+        data: {records: [{name: 'space-a', nickname: 'Space A'}], total: 1},
+    });
+    const topbarHost = document.createElement('div');
+    topbarHost.id = 'hubble-topbar-page-context';
+    document.body.appendChild(topbarHost);
+
+    render(<GraphSpace />);
+
+    expect(await within(topbarHost).findByRole('radiogroup', {
+        name: 'graphspace.view_mode',
+    })).toBeInTheDocument();
+    expect(within(topbarHost).queryByPlaceholderText('graphspace.search_placeholder'))
+        .not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('graphspace.search_placeholder'))
+        .toBeInTheDocument();
+
+    topbarHost.remove();
 });
 
 test('keeps public spaces readable without exposing GraphSpace mutations', async () => {

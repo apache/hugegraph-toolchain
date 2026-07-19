@@ -152,9 +152,11 @@
     background: var(--workbench-color-surface);
 }
 
-.operations-view-switch {
+.operations-workbench > .operations-view-switch {
     margin-bottom: 20px;
+}
 
+.operations-view-switch {
     .ant-radio-button-wrapper:focus-within {
         z-index: 2;
         outline: 2px solid var(--workbench-color-brand);
@@ -694,7 +696,7 @@ section.operations-metric-group .ant-descriptions-item-content > div + div {
             padding: 12px 14px;
         }
 
-        .operations-view-switch {
+        .operations-workbench > .operations-view-switch {
             margin-bottom: 10px;
         }
 

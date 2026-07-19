@@ -927,9 +927,9 @@
         "operation": "Actions"
       },
       "form": {
-        "name": "Property Name: ",
-        "type": "Data Type: ",
-        "cardinality": "Cardinality: ",
+        "name": "Property Name",
+        "type": "Data Type",
+        "cardinality": "Cardinality",
         "name_placeholder": "e.g. created_at",
         "name_help": "The property key used when reading or writing vertices and edges. Examples: created_at and age. It cannot be changed after creation",
         "type_help": "How values are stored. Use TEXT for text, INT/LONG for integers, and DATE for date-time values. It must match imported data",
@@ -1044,8 +1044,8 @@
       "step_vertex": "Create vertex types",
       "step_edge": "Connect them with edge types",
       "edge_prerequisite": "Create at least one vertex type before creating an edge type.",
-      "template_description": "Prefer a ready-made model? Open Schema templates and choose an example to get started quickly",
-      "use_template": "Create from a Schema template",
+      "start_description": "This graph has no schema yet. Start by defining a reusable property",
+      "start_with_property": "Create the first property",
       "vertex": "Vertex Type",
       "edge": "Edge Type",
       "view_properties": "View Properties",

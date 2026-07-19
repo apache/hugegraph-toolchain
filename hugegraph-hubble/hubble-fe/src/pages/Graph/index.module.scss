@@ -129,6 +129,22 @@ span.disable {
     overflow-wrap: anywhere;
 }
 
+.nickname_cell {
+    display: flex;
+    min-width: 180px;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.graph_path_name {
+    font-size: 12px;
+}
+
+.nickname_error {
+    max-width: 260px;
+    overflow-wrap: anywhere;
+}
+
 div.form_item {
     margin: 0;
 }

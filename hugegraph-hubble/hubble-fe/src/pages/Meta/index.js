@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Alert, Button, PageHeader, Row, Col, Radio, Spin, Space} from 'antd';
+import {Alert, Button, PageHeader, Radio, Spin, Space} from 'antd';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import ImageView from './ImageView';
 import ListView from './ListView';
@@ -24,12 +24,10 @@ import {useParams, useNavigate} from 'react-router-dom';
 import * as api from '../../api';
 import {useTranslation} from 'react-i18next';
 import GraphJourneyNav from '../../components/GraphJourneyNav';
-import {getResourceDisplayName} from '../../utils/displayName';
+import {TopbarPageContextSlot} from '../../components/Topbar/PageContextSlot';
 
 const Meta = () => {
     const [viewType, setViewType] = useState('image');
-    const [graphIno, setGraphInfo] = useState({});
-    const [graphspaceInfo, setGraphspaceInfo] = useState({});
     const [loading, setLoading] = useState(true);
     const [errors, setErrors] = useState({graph: false, graphspace: false});
     const identityRequest = useRef(null);
@@ -51,8 +49,6 @@ const Meta = () => {
         identityRequest.current = token;
         setLoading(true);
         setErrors({graph: false, graphspace: false});
-        setGraphInfo({});
-        setGraphspaceInfo({});
         const config = {suppressBusinessErrorToast: true};
         const [graphResult, graphspaceResult] = await Promise.allSettled([
             api.manage.getGraph(graphspace, graph, config),
@@ -69,12 +65,6 @@ const Meta = () => {
             graph: graphResponse?.status !== 200,
             graphspace: graphspaceResponse?.status !== 200,
         };
-        if (!nextErrors.graph) {
-            setGraphInfo(graphResponse.data);
-        }
-        if (!nextErrors.graphspace) {
-            setGraphspaceInfo(graphspaceResponse.data);
-        }
         setErrors(nextErrors);
         setLoading(false);
     }, [graphspace, graph]);
@@ -90,19 +80,15 @@ const Meta = () => {
     }, [graphspace, graph, loadIdentity]);
 
     const hasIdentityError = errors.graph || errors.graphspace;
-    const pageTitle = `${getResourceDisplayName(graphspace, graphspaceInfo.nickname)} - `
-        + `${getResourceDisplayName(graph, graphIno.nickname)} - ${t('schema.title')}`;
-
     return (
         <>
             <Spin spinning={loading}>
                 <PageHeader
                     ghost={false}
                     onBack={handlePageBack}
-                    title={pageTitle}
-                >
-                    <Row justify='space-between'>
-                        <Col>
+                    title={t('schema.title')}
+                    extra={[
+                        <TopbarPageContextSlot key='view-mode'>
                             <Radio.Group
                                 role='radiogroup'
                                 aria-label={t('schema.view_mode')}
@@ -115,9 +101,9 @@ const Meta = () => {
                                 value={viewType}
                                 onChange={handleChangeViewType}
                             />
-                        </Col>
-                    </Row>
-                </PageHeader>
+                        </TopbarPageContextSlot>,
+                    ]}
+                />
 
                 <div className='container'>
                     <GraphJourneyNav

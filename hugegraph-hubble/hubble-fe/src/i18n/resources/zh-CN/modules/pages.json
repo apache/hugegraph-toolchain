@@ -927,9 +927,9 @@
         "operation": "操作"
       },
       "form": {
-        "name": "属性名称：",
-        "type": "数据类型：",
-        "cardinality": "基数：",
+        "name": "属性名称",
+        "type": "数据类型",
+        "cardinality": "基数",
         "name_placeholder": "例如：created_at",
         "name_help": "点或边在读写时使用的属性键。例如 created_at、age。创建后不可修改",
         "type_help": "属性值的存储类型。TEXT 适合文本；INT/LONG 适合整数；DATE 适合日期时间。类型必须与导入数据一致",
@@ -1044,8 +1044,8 @@
       "step_vertex": "创建顶点类型",
       "step_edge": "用边类型连接顶点",
       "edge_prerequisite": "创建至少一个顶点类型后，才可创建边类型。",
-      "template_description": "希望快速开始？可以前往 Schema 模板，选择一套示例模型",
-      "use_template": "使用 Schema 模板创建",
+      "start_description": "当前图的 Schema 尚为空，请先定义一个可复用属性",
+      "start_with_property": "创建第一个属性",
       "vertex": "顶点类型",
       "edge": "边类型",
       "view_properties": "查看属性",

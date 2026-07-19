@@ -1,7 +1,7 @@
 {
   "Topbar": {
     "super_admin": "超级管理员",
-    "user_menu": "打开账号菜单",
+    "user_menu": "打开 {{name}} 的账号菜单",
     "exit":{
       "name": "退出登录",
       "confirm":"确定退出吗？",

@@ -1,5 +1,4 @@
 /*
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -16,37 +15,23 @@
  * under the License.
  */
 
-.journeyNav {
-    margin: -12px 0 12px;
-    border-bottom: 1px solid #e5eaf0;
-}
+import {useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
 
-.tabs {
-    display: flex;
-    gap: 24px;
+export const TOPBAR_PAGE_CONTEXT_ID = 'hubble-topbar-page-context';
 
-    a {
-        position: relative;
-        padding: 8px 2px;
-        color: #5b6573;
-        font-weight: 500;
+export const TopbarPageContextHost = ({className}) => (
+    <div id={TOPBAR_PAGE_CONTEXT_ID} className={className} />
+);
 
-        &:hover {
-            color: #096dd9;
-        }
-    }
-}
+export const TopbarPageContextSlot = ({children}) => {
+    const [host, setHost] = useState(() => (
+        document.getElementById(TOPBAR_PAGE_CONTEXT_ID)
+    ));
 
-.activeTab {
-    color: #096dd9 !important;
+    useEffect(() => {
+        setHost(document.getElementById(TOPBAR_PAGE_CONTEXT_ID));
+    }, []);
 
-    &::after {
-        position: absolute;
-        right: 0;
-        bottom: -1px;
-        left: 0;
-        height: 2px;
-        background: #096dd9;
-        content: '';
-    }
-}
+    return host ? createPortal(children, host) : children;
+};

@@ -33,6 +33,7 @@ import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.handler.ExceptionAdvisor;
 import org.apache.hugegraph.handler.LoginInterceptor;
 import org.apache.hugegraph.handler.MessageSourceHandler;
+import org.apache.hugegraph.handler.ResponseAdvisor;
 import org.apache.hugegraph.service.auth.UserService;
 import org.apache.hugegraph.service.op.OperationsDataService;
 import org.apache.hugegraph.service.op.OperationsNodeNotFoundException;
@@ -67,7 +68,7 @@ public class OperationsAccessContractTest {
 
         this.mvc = MockMvcBuilders.standaloneSetup(controller)
                 .addInterceptors(new LoginInterceptor())
-                .setControllerAdvice(advisor())
+                .setControllerAdvice(advisor(), new ResponseAdvisor())
                 .build();
     }
 
@@ -89,15 +90,15 @@ public class OperationsAccessContractTest {
         this.mvc.perform(authGet("/api/v1.3/operations/capabilities",
                                  "superadmin", "token-a"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.capabilities.length()").value(3));
+                .andExpect(jsonPath("$.data.capabilities.length()").value(3));
         this.mvc.perform(authGet("/api/v1.3/operations/capabilities",
                                  "spaceadmin", "token-space"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.capabilities.length()").value(0));
+                .andExpect(jsonPath("$.data.capabilities.length()").value(0));
         this.mvc.perform(authGet("/api/v1.3/operations/capabilities",
                                  "ordinary", "token-user"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.capabilities.length()").value(0));
+                .andExpect(jsonPath("$.data.capabilities.length()").value(0));
     }
 
     @Test
@@ -125,7 +126,7 @@ public class OperationsAccessContractTest {
         this.mvc.perform(authGet("/api/v1.3/operations/nodes/" + NODE_ID,
                                  "superadmin", "token-a"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.node.id").value(NODE_ID));
+                .andExpect(jsonPath("$.data.node.id").value(NODE_ID));
         this.mvc.perform(authGet("/api/v1.3/operations/nodes/" + NODE_ID,
                                  "superadmin", "token-b"))
                 .andExpect(status().isNotFound())
@@ -140,7 +141,7 @@ public class OperationsAccessContractTest {
         String invalid = this.mvc.perform(authGet(
                 "/api/v1.3/operations/nodes/http:%2F%2Fsecret-canary@host",
                 "superadmin", "token-a"))
-                .andExpect(status().isOk())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value(400))
                 .andReturn().getResponse().getContentAsString();
         org.apache.hugegraph.testutil.Assert.assertFalse(

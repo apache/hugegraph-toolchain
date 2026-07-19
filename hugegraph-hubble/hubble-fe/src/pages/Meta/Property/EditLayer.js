@@ -16,47 +16,59 @@
  * under the License.
  */
 
-import {Modal, Form, Input, Select, message, Space, Tooltip} from 'antd';
-import {QuestionCircleOutlined} from '@ant-design/icons';
+import {Modal, Form, Input, Select, message} from 'antd';
 import {useCallback, useState} from 'react';
 import * as api from '../../../api';
 import * as rules from '../../../utils/rules';
+import FormHelpLabel from '../../../components/FormHelpLabel';
+import {sanitizePublicError} from '../../../utils/publicError';
 import {
     dataTypeOptions,
     cardinalityOptions,
 } from '../common/config';
 import {useTranslation} from 'react-i18next';
 
-const FieldLabel = ({label, help}) => (
-    <Space size={4}>
-        <span>{label}</span>
-        <Tooltip title={help}>
-            <QuestionCircleOutlined aria-label={help} />
-        </Tooltip>
-    </Space>
-);
-
 const EditPropertyLayer = ({visible, onCancle, graphspace, graph, refresh}) => {
     const {t} = useTranslation();
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
 
-    const onFinish = useCallback(() => {
-        form.validateFields().then(values => {
-            setLoading(true);
+    const onFinish = useCallback(async () => {
+        let values;
+        try {
+            values = await form.validateFields();
+        }
+        catch (error) {
+            // Ant Design rejects for field validation; the form already owns
+            // the inline feedback, so this is not a request failure.
+            return;
+        }
 
-            api.manage.addMetaProperty(graphspace, graph, values).then(res => {
-                setLoading(false);
-                if (res.status === 200) {
-                    refresh();
-                    onCancle();
-                    message.success(t('schema.common.add_success'));
-                    return;
-                }
+        setLoading(true);
+        try {
+            const res = await api.manage.addMetaProperty(
+                graphspace,
+                graph,
+                values,
+                {suppressBusinessErrorToast: true}
+            );
+            if (res.status === 200) {
+                refresh();
+                onCancle();
+                message.success(t('schema.common.add_success'));
+                return;
+            }
 
-                message.error(res.message);
-            });
-        });
+            message.error(res.message || t('common.msg.operation_failed'));
+        }
+        catch (error) {
+            const fallbackError = t('common.msg.operation_failed');
+            const errorMessage = error?.response?.data?.message || error?.message;
+            message.error(sanitizePublicError(errorMessage, fallbackError));
+        }
+        finally {
+            setLoading(false);
+        }
     }, [form, graph, graphspace, onCancle, refresh, t]);
 
     return (
@@ -66,47 +78,57 @@ const EditPropertyLayer = ({visible, onCancle, graphspace, graph, refresh}) => {
             onCancel={onCancle}
             onOk={onFinish}
             confirmLoading={loading}
+            okText={t('schema.property.create')}
+            cancelText={t('common.action.cancel')}
+            cancelButtonProps={{disabled: loading}}
+            closable={!loading}
+            maskClosable={false}
             destroyOnClose
-            width={600}
+            width={560}
         >
             <Form
                 form={form}
-                labelCol={{span: 6}}
+                className='property-create-form'
+                layout='vertical'
                 preserve={false}
                 initialValues={{data_type: 'TEXT', cardinality: 'SINGLE'}}
             >
                 <Form.Item
-                    label={<FieldLabel
+                    className='property-create-form__name'
+                    label={<FormHelpLabel
                         label={t('schema.property.form.name')}
                         help={t('schema.property.form.name_help')}
                     />}
                     name='name'
                     rules={[rules.required(), rules.isPropertyName, {type: 'string', max: 128}]}
                 >
-                    <Input placeholder={t('schema.property.form.name_placeholder')} max={128} />
+                    <Input
+                        placeholder={t('schema.property.form.name_placeholder')}
+                        maxLength={128}
+                    />
                 </Form.Item>
-                <Form.Item
-                    label={<FieldLabel
-                        label={t('schema.property.form.type')}
-                        help={t('schema.property.form.type_help')}
-                    />}
-                    name='data_type'
-                    rules={[rules.required()]}
-                    wrapperCol={{span: 6}}
-                >
-                    <Select options={dataTypeOptions} />
-                </Form.Item>
-                <Form.Item
-                    label={<FieldLabel
-                        label={t('schema.property.form.cardinality')}
-                        help={t('schema.property.form.cardinality_help')}
-                    />}
-                    name='cardinality'
-                    rules={[rules.required()]}
-                    wrapperCol={{span: 6}}
-                >
-                    <Select options={cardinalityOptions} />
-                </Form.Item>
+                <div className='property-create-form__select-row'>
+                    <Form.Item
+                        label={<FormHelpLabel
+                            label={t('schema.property.form.type')}
+                            help={t('schema.property.form.type_help')}
+                        />}
+                        name='data_type'
+                        rules={[rules.required()]}
+                    >
+                        <Select options={dataTypeOptions} />
+                    </Form.Item>
+                    <Form.Item
+                        label={<FormHelpLabel
+                            label={t('schema.property.form.cardinality')}
+                            help={t('schema.property.form.cardinality_help')}
+                        />}
+                        name='cardinality'
+                        rules={[rules.required()]}
+                    >
+                        <Select options={cardinalityOptions} />
+                    </Form.Item>
+                </div>
             </Form>
         </Modal>
     );

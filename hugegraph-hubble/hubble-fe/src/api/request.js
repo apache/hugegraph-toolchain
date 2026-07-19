@@ -75,6 +75,13 @@ const isUnauthorizedError = error => {
            || error.message?.includes('status code 401');
 };
 
+const isLoginRequest = config => config?.url?.endsWith('/auth/login');
+
+const showLoginAuthError = response => {
+    const errorMessage = response?.data?.message;
+    message.error(!_.isEmpty(errorMessage) ? errorMessage : i18n.t('request.failed'));
+};
+
 const notifyForbidden = config => {
     if (!config?.url?.includes('/auth/context')) {
         window.dispatchEvent(new CustomEvent(AUTH_REVALIDATE_EVENT));
@@ -112,13 +119,22 @@ instance.interceptors.response.use(
     response => {
         sanitizeResponseError(response);
         if (response.status === 401 || response.data?.status === 401) {
-            redirectToLogin();
+            if (isLoginRequest(response.config)) {
+                showLoginAuthError(response);
+            }
+            else {
+                redirectToLogin();
+            }
             return Promise.reject(response);
         }
         else if (response.data?.status === 429) {
             showThrottleWarning(response.data.message);
         }
         else if (response.status === 403 || response.data?.status === 403) {
+            if (isLoginRequest(response.config)) {
+                showLoginAuthError(response);
+                return Promise.reject(response);
+            }
             notifyForbidden(response.config);
         }
         else if (response.data?.status !== 200
@@ -135,21 +151,35 @@ instance.interceptors.response.use(
             error.message = sanitizePublicError(error.message);
         }
         if (isUnauthorizedError(error)) {
-            redirectToLogin();
+            if (isLoginRequest(error.config)) {
+                showLoginAuthError(error.response);
+            }
+            else {
+                redirectToLogin();
+            }
             return Promise.reject(error);
         }
         if (error.response?.status === 429
             || error.response?.data?.status === 429) {
             showThrottleWarning(error.response?.data?.message);
-            return Promise.reject(error);
+            return error.response;
         }
         if (error.response?.status === 403
             || error.response?.data?.status === 403) {
+            if (isLoginRequest(error.config)) {
+                showLoginAuthError(error.response);
+                return Promise.reject(error);
+            }
             notifyForbidden(error.config);
+            return Promise.reject(error);
         }
         if (!error.config?.suppressBusinessErrorToast) {
             const res = error.response?.data;
             showRequestError(res);
+        }
+        if (error.response) {
+            // Keep legacy form callers settled while the server returns real HTTP errors.
+            return error.response;
         }
         return Promise.reject(error);
     }

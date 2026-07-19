@@ -33,6 +33,7 @@
   },
   "workbench": {
     "back_home": "返回首页",
+    "language_switch": "切换到{{language}}",
     "route_error": {
       "title": "此页面暂时无法显示",
       "reload": "重新加载页面"
@@ -57,7 +58,7 @@
       "graph": "当前图",
       "select_graphspace": "选择 GraphSpace",
       "select_graph": "选择图",
-      "default_graphspace": "DEFAULT (默认)",
+      "default_graphspace": "DEFAULT",
       "non_pd_fixed": "固定 DEFAULT",
       "graphspaces_load_failed": "GraphSpace 列表暂时无法加载，当前页面内容不会丢失。",
       "graphs_load_failed": "图列表暂时无法加载，当前页面内容不会丢失。",

@@ -29,11 +29,8 @@ import * as api from '../../api';
 import GraphJourneyNav from '../../components/GraphJourneyNav';
 import style from './index.module.scss';
 import {useTranslation} from 'react-i18next';
-import {getResourceDisplayName} from '../../utils/displayName';
 
 const GraphDetail = () => {
-    const [graphspaceInfo, setGraphspaceInfo] = useState({});
-    const [graphIno, setGraphInfo] = useState({});
     const [pageLoading, setPageLoading] = useState(true);
     const [statisticsLoading, setStatisticsLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
@@ -81,8 +78,6 @@ const GraphDetail = () => {
         pageRequest.current = token;
         setPageLoading(true);
         setPageError(false);
-        setGraphspaceInfo({});
-        setGraphInfo({});
         const inlineErrorConfig = {suppressBusinessErrorToast: true};
         try {
             const [graphspaceResponse, graphResponse] = await Promise.all([
@@ -99,8 +94,6 @@ const GraphDetail = () => {
                 setPageError(true);
                 return;
             }
-            setGraphspaceInfo(graphspaceResponse.data);
-            setGraphInfo(graphResponse.data);
             setPageDataRoute(routeKey);
         }
         catch (error) {
@@ -108,7 +101,6 @@ const GraphDetail = () => {
                 return;
             }
             setPageError(true);
-            setGraphInfo({});
             setPageDataRoute(routeKey);
         }
         finally {
@@ -205,12 +197,6 @@ const GraphDetail = () => {
         };
     }, [graphspace, graph, loadPage, loadStatistics]);
 
-    const graphspaceLabel = graphspace === 'DEFAULT'
-        ? t('workbench.context.default_graphspace')
-        : getResourceDisplayName(graphspace, graphspaceInfo.nickname);
-    const pageTitle = `${graphspaceLabel} - `
-                      + `${getResourceDisplayName(graph, graphIno.nickname)} - `
-                      + t('graph.detail.title');
     const isPageDataCurrent = pageDataRoute === routeKey;
     const isStatisticsDataCurrent = statisticsDataRoute === routeKey;
     const visibleStatisticsStatus = isStatisticsDataCurrent
@@ -230,7 +216,7 @@ const GraphDetail = () => {
                     <PageHeader
                         ghost={false}
                         onBack={handleBack}
-                        title={pageTitle}
+                        title={t('graph.detail.title')}
                         extra={[
                             <Button
                                 key='query'

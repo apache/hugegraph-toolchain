@@ -17,16 +17,16 @@
  */
 
 import {LockOutlined, UserOutlined} from '@ant-design/icons';
-import {Button, Form, Input, Radio} from 'antd';
+import {Button, Form, Input} from 'antd';
 import BrandLockup from '../../components/BrandLockup';
+import LanguageToggle from '../../components/LanguageToggle';
 import style from './index.module.scss';
 import * as api from '../../api';
 import {useLocation} from 'react-router-dom';
 import * as user from '../../utils/user';
 import * as configUtil from '../../utils/config';
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect} from 'react';
 import {useTranslation} from 'react-i18next';
-import {getCurrentLanguage} from '../../utils/language';
 
 const LOGIN_PATH = '/login';
 const DEFAULT_AFTER_LOGIN = '/navigation';
@@ -52,8 +52,7 @@ const getSafeRedirect = redirect => {
 const Login = () => {
     const [form] = Form.useForm();
     const location = useLocation();
-    const {t, i18n} = useTranslation();
-    const [languageType, setLanguageType] = useState(getCurrentLanguage);
+    const {t} = useTranslation();
 
     useEffect(() => {
         const queryRedirect = new URLSearchParams(location.search).get('redirect');
@@ -98,13 +97,6 @@ const Login = () => {
         }
     }, [navigateAfterLogin]);
 
-    const handleLanguageChange = useCallback(event => {
-        const nextLanguage = event.target.value;
-        localStorage.setItem('languageType', nextLanguage);
-        setLanguageType(nextLanguage);
-        i18n.changeLanguage(nextLanguage);
-    }, [i18n]);
-
     return (
         <div className={`${style.loginContainer} workbench-login`}>
             <main className={style.loginShell}>
@@ -125,17 +117,7 @@ const Login = () => {
                     form={form}
                 >
                     <div className={style.formTools}>
-                        <Radio.Group
-                            className={style.languageSwitch}
-                            role='radiogroup'
-                            aria-label={t('login.language')}
-                            value={languageType}
-                            onChange={handleLanguageChange}
-                            size='small'
-                        >
-                            <Radio.Button value='zh-CN'>中</Radio.Button>
-                            <Radio.Button value='en-US'>EN</Radio.Button>
-                        </Radio.Group>
+                        <LanguageToggle />
                     </div>
                     <header className={style.formHeader}>
                         <span className={style.formEyebrow}>Apache HugeGraph</span>

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import Meta from './index';
 import * as api from '../../api';
 
@@ -70,7 +70,7 @@ test('shows persistent source-specific recovery instead of spinning forever', as
 
     fireEvent.click(screen.getByRole('button', {name: 'schema.identity.retry'}));
 
-    await waitFor(() => expect(screen.getByText('Space A - Graph A - schema.title'))
+    await waitFor(() => expect(screen.getByText('schema.title'))
         .toBeInTheDocument());
     expect(screen.getByText('schema image')).toBeInTheDocument();
 });
@@ -98,6 +98,32 @@ test('defaults to image mode and preserves manual list switching', async () => {
     expect(screen.queryByText('schema image')).not.toBeInTheDocument();
 });
 
+test('moves the view switch to the topbar and keeps graph identity out of the body title',
+    async () => {
+        api.manage.getGraph.mockResolvedValue({
+            status: 200,
+            data: {nickname: 'Graph A'},
+        });
+        api.manage.getGraphSpace.mockResolvedValue({
+            status: 200,
+            data: {nickname: 'Space A'},
+        });
+        const topbarHost = document.createElement('div');
+        topbarHost.id = 'hubble-topbar-page-context';
+        document.body.appendChild(topbarHost);
+
+        render(<Meta />);
+
+        expect(await within(topbarHost).findByRole('radiogroup', {
+            name: 'schema.view_mode',
+        })).toBeInTheDocument();
+        expect(screen.getByText('schema.title')).toBeInTheDocument();
+        expect(screen.queryByText('Space A - Graph A - schema.title'))
+            .not.toBeInTheDocument();
+
+        topbarHost.remove();
+    });
+
 test('falls back to path names when aliases are empty or echoed', async () => {
     api.manage.getGraph.mockResolvedValue({
         status: 200,
@@ -111,6 +137,6 @@ test('falls back to path names when aliases are empty or echoed', async () => {
     render(<Meta />);
 
     await screen.findByText('schema image');
-    await waitFor(() => expect(screen.getByText('space-a - graph-a - schema.title'))
+    await waitFor(() => expect(screen.getByText('schema.title'))
         .toBeInTheDocument());
 });

@@ -53,11 +53,39 @@ import GraphCard from './Card';
 import ClearGraphConfirmModal from './ClearGraphConfirmModal';
 import KeyboardAction from '../../components/KeyboardAction';
 import {getResourceDisplayName} from '../../utils/displayName';
+import {useAuthContext} from '../../auth/AuthContext';
+import {sanitizePublicError} from '../../utils/publicError';
+import EditableNicknameCell from './EditableNicknameCell';
+import {TopbarPageContextSlot} from '../../components/Topbar/PageContextSlot';
 
 const GraphRowAction = ({onAction, graph, children}) => {
     const handleClick = useCallback(() => onAction(graph), [graph, onAction]);
 
     return <Button type='link' onClick={handleClick}>{children}</Button>;
+};
+
+const GraphNicknameColumn = ({canEdit, onSave, row, t}) => {
+    const handleSave = useCallback(nickname => onSave(row, nickname), [onSave, row]);
+    const renderValue = useCallback(displayName => (
+        <Link to={`/gremlin/${row.graphspace || 'DEFAULT'}/${row.name}`}>
+            {displayName}
+            {row.default && (
+                <span className={style.default}>
+                    {t('common.label.default')}
+                </span>
+            )}
+        </Link>
+    ), [row, t]);
+
+    return (
+        <EditableNicknameCell
+            canEdit={canEdit}
+            name={row.name}
+            nickname={row.nickname}
+            onSave={handleSave}
+            renderValue={renderValue}
+        />
+    );
 };
 
 const Graph = () => {
@@ -66,7 +94,6 @@ const Graph = () => {
     const [dateData, setDateData] = useState('');
     const [graphname, setGraphname] = useState('');
     const [searchText, setSearchText] = useState('');
-    const [graphspaceInfo, setGraphspaceInfo] = useState({});
     const [editLayer, setEditLayer] = useState(false);
     const [viewLayer, setViewLayer] = useState(false);
     const [selectGraph, setSelectGraph] = useState('');
@@ -78,9 +105,14 @@ const Graph = () => {
     const [clearSelection, setClearSelection] = useState(null);
     const {graphspace} = useParams();
     const navigate = useNavigate();
+    const {context: authContext} = useAuthContext();
     const pdMode = isPdEnabled();
     const graphCreateEnabled = isGraphCreateEnabled(pdMode);
     const graphDefaultMutationEnabled = isGraphDefaultMutationEnabled(pdMode);
+    const adminGraphspaces = authContext?.scopes?.admin_graphspaces ?? [];
+    const canUpdateGraphspace = value => authContext?.role === 'SUPERADMIN'
+        || authContext?.scopes?.all_graphspaces === true
+        || adminGraphspaces.includes(value);
 
     const handlePagination = useCallback(current => {
         setPagination({...pagination, current});
@@ -231,6 +263,41 @@ const Graph = () => {
     const handleDatePickerChange = useCallback((_, val) => setDateData(val), []);
     const hasFilters = Boolean(dateData || graphname);
 
+    const saveNickname = useCallback(async (row, nickname) => {
+        const rowGraphspace = row.graphspace || graphspace;
+        const fallbackError = t('common.msg.operation_failed');
+        try {
+            const update = await api.manage.updateGraph(
+                rowGraphspace,
+                row.name,
+                {nickname},
+                {suppressBusinessErrorToast: true}
+            );
+            if (update.status !== 200) {
+                throw new Error(sanitizePublicError(update.message, fallbackError));
+            }
+
+            const detail = await api.manage.getGraph(rowGraphspace, row.name, {
+                suppressBusinessErrorToast: true,
+            });
+            if (detail.status !== 200) {
+                throw new Error(sanitizePublicError(detail.message, fallbackError));
+            }
+
+            const serverNickname = detail.data?.nickname ?? '';
+            setData(current => current.map(item => (
+                item.name === row.name && (item.graphspace || graphspace) === rowGraphspace
+                    ? {...item, ...detail.data, nickname: serverNickname}
+                    : item
+            )));
+            return serverNickname;
+        }
+        catch (error) {
+            const errorMessage = error?.response?.data?.message || error?.message;
+            throw new Error(sanitizePublicError(errorMessage, fallbackError));
+        }
+    }, [graphspace, t]);
+
     const emptyState = (
         <Empty
             description={hasFilters
@@ -261,14 +328,12 @@ const Graph = () => {
         {
             title: t('graph.col.name'),
             render: row => (
-                <Link to={`/gremlin/${row.graphspace || 'DEFAULT'}/${row.name}`}>
-                    {getResourceDisplayName(row.name, row.nickname)}
-                    {row.default && (
-                        <span className={style.default}>
-                            {t('common.label.default')}
-                        </span>
-                    )}
-                </Link>
+                <GraphNicknameColumn
+                    canEdit={canUpdateGraphspace(row.graphspace || graphspace)}
+                    onSave={saveNickname}
+                    row={row}
+                    t={t}
+                />
             ),
         },
         {
@@ -328,13 +393,6 @@ const Graph = () => {
                         <GraphRowAction onAction={showSchema} graph={row.name}>
                             {t('graph.menu.view_schema')}
                         </GraphRowAction>
-                        {(row.graphspace === 'neizhianli')
-                            ? <span className={style.disable}>{t('common.action.edit')}</span>
-                            : (
-                                <GraphRowAction onAction={editGraph} graph={row.name}>
-                                    {t('common.action.edit')}
-                                </GraphRowAction>
-                            )}
                         {graphDefaultMutationEnabled && (
                             row.default
                                 ? <span className={style.disable}>{t('graph.menu.set_default')}</span>
@@ -416,22 +474,6 @@ const Graph = () => {
     ].filter(Boolean);
 
     useEffect(() => {
-        if (!pdMode && graphspace === DEFAULT_GRAPHSPACE) {
-            setGraphspaceInfo({name: DEFAULT_GRAPHSPACE, nickname: DEFAULT_GRAPHSPACE});
-            return;
-        }
-
-        api.manage.getGraphSpace(graphspace).then(res => {
-            if (res.status === 200) {
-                setGraphspaceInfo(res.data);
-                return;
-            }
-
-            message.error(res.message);
-        });
-    }, [graphspace, pdMode]);
-
-    useEffect(() => {
         setLoading(true);
         setListUnavailable(false);
 
@@ -459,17 +501,24 @@ const Graph = () => {
 
     return (
         <Spin spinning={loading}>
+            <TopbarPageContextSlot>
+                <Radio.Group
+                    role='radiogroup'
+                    aria-label={t('graph.view_mode')}
+                    options={[
+                        {label: t('common.label.view_mode'), value: 'image'},
+                        {label: t('common.label.list_mode'), value: 'list'},
+                    ]}
+                    optionType='button'
+                    buttonStyle='solid'
+                    value={listType}
+                    onChange={handleListType}
+                />
+            </TopbarPageContextSlot>
             <PageHeader
                 ghost={false}
                 onBack={handleBack}
-                title={pdMode
-                    ? (graphspaceInfo.name === DEFAULT_GRAPHSPACE
-                        ? t('graphspace.default_name')
-                        : getResourceDisplayName(
-                            graphspace,
-                            graphspaceInfo.nickname
-                        )) + ` - ${t('graph.title')}`
-                    : t('graph.title')}
+                title={t('graph.title')}
             >
                 <Row justify='space-between'>
                     <Col>
@@ -480,18 +529,6 @@ const Graph = () => {
                     </Col>
                     <Col>
                         <Space>
-                            <Radio.Group
-                                role='radiogroup'
-                                aria-label={t('graph.view_mode')}
-                                options={[
-                                    {label: t('common.label.view_mode'), value: 'image'},
-                                    {label: t('common.label.list_mode'), value: 'list'},
-                                ]}
-                                optionType='button'
-                                buttonStyle='solid'
-                                defaultValue={'image'}
-                                onChange={handleListType}
-                            />
                             <Input.Search
                                 onSearch={handleSearch}
                                 onChange={handleSearchTextChange}

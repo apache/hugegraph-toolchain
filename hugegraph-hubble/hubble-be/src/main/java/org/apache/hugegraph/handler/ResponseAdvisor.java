@@ -36,7 +36,8 @@ import org.apache.hugegraph.driver.HugeClient;
 import lombok.extern.log4j.Log4j2;
 
 @Log4j2
-@RestControllerAdvice(basePackages = "org.apache.hugegraph.controller")
+@RestControllerAdvice(basePackages = {"org.apache.hugegraph.controller",
+                                      "org.apache.hugegraph.handler"})
 public class ResponseAdvisor implements ResponseBodyAdvice<Object> {
 
     @Override
@@ -55,8 +56,13 @@ public class ResponseAdvisor implements ResponseBodyAdvice<Object> {
                                     ServerHttpResponse response) {
         closeRequestClient(request);
         if (body instanceof Response) {
-            // The exception response
-            return (Response) body;
+            Response result = (Response) body;
+            if (result.getStatus() >= HttpStatus.BAD_REQUEST.value()) {
+                HttpStatus status = HttpStatus.resolve(result.getStatus());
+                response.setStatusCode(status != null ? status :
+                                       HttpStatus.BAD_REQUEST);
+            }
+            return result;
         }
         return Response.builder()
                        .status(HttpStatus.OK.value())

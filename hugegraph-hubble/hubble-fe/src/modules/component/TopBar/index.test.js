@@ -40,11 +40,14 @@ jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => key}),
 }));
 
-const renderTopBar = (context = {isVermeer: false}) => render(
+const renderTopBar = (
+    context = {isVermeer: false},
+    {moduleName = 'gremlin', onGraphInfoChange = jest.fn()} = {}
+) => render(
     <GraphAnalysisContext.Provider value={context}>
         <TopBar
-            moduleName='gremlin'
-            onGraphInfoChange={jest.fn()}
+            moduleName={moduleName}
+            onGraphInfoChange={onGraphInfoChange}
             showOlapSwitch={false}
             showNavigationButton={false}
             isOlapModeEnable={false}
@@ -75,6 +78,15 @@ const deferred = () => {
     });
     return {promise, resolve};
 };
+
+it('does not repeat the global GraphSpace and graph selectors', async () => {
+    renderTopBar();
+
+    expect(screen.queryByText('analysis.topbar.current_graph_space'))
+        .not.toBeInTheDocument();
+    expect(screen.queryByText('analysis.topbar.current_graph')).not.toBeInTheDocument();
+    await waitFor(() => expect(api.analysis.getGraphSpaceList).toHaveBeenCalledTimes(1));
+});
 
 it('recovers a rejected GraphSpace request without leaving the selector loading', async () => {
     api.analysis.getGraphSpaceList
@@ -176,12 +188,66 @@ it('ignores a late graph response after the route switches GraphSpace', async ()
     await waitFor(() => expect(api.analysis.getGraphList).toHaveBeenCalledWith(
         'B', expect.any(Object)
     ));
-    expect(await screen.findByTitle('graph-b')).toBeInTheDocument();
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith(
+        '/gremlin/B/graph-b', {replace: true}
+    ));
 
     await act(async () => oldGraphs.resolve({
         status: 200,
         data: {graphs: [{name: 'graph-a', status: 'created'}]},
     }));
-    expect(screen.getByTitle('graph-b')).toBeInTheDocument();
-    expect(screen.queryByTitle('graph-a')).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalledWith(
+        '/gremlin/A/graph-a', expect.any(Object)
+    );
 });
+
+it.each(['gremlin', 'algorithms', 'asyncTasks'])(
+    'keeps a route-selected graph when switching inside the %s module',
+    async moduleName => {
+        Object.assign(mockParams, {graphSpace: 'A', graph: 'graph-a'});
+        api.analysis.getGraphSpaceList.mockResolvedValue({
+            status: 200,
+            data: {graphspaces: ['A']},
+        });
+        api.analysis.getGraphList.mockResolvedValue({
+            status: 200,
+            data: {graphs: [
+                {name: 'graph-a', status: 'created'},
+                {name: 'graph-b', status: 'created'},
+            ]},
+        });
+
+        const onGraphInfoChange = jest.fn();
+        const view = renderTopBar(
+            {isVermeer: false},
+            {moduleName, onGraphInfoChange}
+        );
+        await waitFor(() => expect(onGraphInfoChange).toHaveBeenCalledWith(
+            'A', expect.objectContaining({name: 'graph-a'})
+        ));
+
+        mockNavigate.mockClear();
+        onGraphInfoChange.mockClear();
+        Object.assign(mockParams, {graph: 'graph-b'});
+        view.rerender(
+            <GraphAnalysisContext.Provider value={{isVermeer: false}}>
+                <TopBar
+                    moduleName={moduleName}
+                    onGraphInfoChange={onGraphInfoChange}
+                    showOlapSwitch={false}
+                    showNavigationButton={false}
+                    isOlapModeEnable={false}
+                    isOlapModeLoading={false}
+                    onOlapModeChange={jest.fn()}
+                />
+            </GraphAnalysisContext.Provider>
+        );
+
+        await waitFor(() => expect(onGraphInfoChange).toHaveBeenCalledWith(
+            'A', expect.objectContaining({name: 'graph-b'})
+        ));
+        expect(mockNavigate).not.toHaveBeenCalledWith(
+            `/${moduleName}/A/graph-a`, {replace: true}
+        );
+    }
+);

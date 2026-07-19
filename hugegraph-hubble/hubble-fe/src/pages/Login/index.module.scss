@@ -95,49 +95,6 @@ form.loginForm {
     right: 32px;
 }
 
-.languageSwitch {
-    display: inline-flex;
-    align-items: center;
-    gap: 2px;
-
-    :global(.ant-radio-button-wrapper) {
-        height: 28px;
-        padding: 0 7px;
-        border: 0 !important;
-        background: transparent;
-        color: #68758a;
-        font-size: 14px;
-        line-height: 28px;
-        box-shadow: none;
-        transition: color 0.2s ease, background-color 0.2s ease;
-    }
-
-    :global(.ant-radio-button-wrapper)::before {
-        display: none !important;
-    }
-
-    :global(.ant-radio-button-wrapper + .ant-radio-button-wrapper) {
-        margin-left: 2px;
-    }
-
-    :global(.ant-radio-button-wrapper:hover) {
-        color: #1769e0;
-    }
-
-    :global(.ant-radio-button-wrapper-checked:not(.ant-radio-button-wrapper-disabled)) {
-        border: 0;
-        background: #edf4ff;
-        color: #1769e0;
-        font-weight: 600;
-        box-shadow: none;
-    }
-
-    :global(.ant-radio-button-wrapper:focus-within) {
-        outline: 2px solid #1769e0;
-        outline-offset: 2px;
-    }
-}
-
 .formHeader {
     margin-bottom: 32px;
 }

@@ -97,10 +97,18 @@ public class ExceptionAdvisor {
         String message = this.handleMessage(e.getMessage(), e.args());
         closeRequestClient();
         return Response.builder()
-                       .status(e.status())
+                       .status(errorStatus(e.status()))
                        .message(message)
                        .cause(null)
                        .build();
+    }
+
+    static int errorStatus(int status) {
+        if (status >= HttpStatus.BAD_REQUEST.value() &&
+            status <= HttpStatus.NETWORK_AUTHENTICATION_REQUIRED.value()) {
+            return status;
+        }
+        return Constant.STATUS_BAD_REQUEST;
     }
 
     @ExceptionHandler(ForbiddenException.class)

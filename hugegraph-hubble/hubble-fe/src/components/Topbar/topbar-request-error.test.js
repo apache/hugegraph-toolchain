@@ -40,7 +40,8 @@ jest.mock('../../api/index', () => ({
 
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({
-        t: key => key,
+        t: (key, values) => (values?.name ? `${key}: ${values.name}` : key),
+        i18n: {changeLanguage: jest.fn()},
     }),
 }));
 
@@ -81,13 +82,17 @@ jest.mock('antd', () => {
             Header: ({children}) => <header>{children}</header>,
         },
         Space: ({children}) => <div>{children}</div>,
-        Avatar: () => <span>avatar</span>,
+        Avatar: ({children, ...props}) => <span {...props}>{children}</span>,
         Button: ({children, icon, ...props}) => <button {...props}>{icon}{children}</button>,
         Dropdown: ({children, menu, trigger}) => (
             <div data-testid='user-dropdown' data-trigger={trigger?.join(',')}>
                 {children}
                 {menu?.items?.map(item => (
-                    <button key={item.key} type='button' onClick={menu.onClick}>
+                    <button
+                        key={item.key}
+                        type='button'
+                        onClick={() => menu.onClick({key: item.key})}
+                    >
                         {item.label}
                     </button>
                 ))}
@@ -205,21 +210,25 @@ describe('Topbar request errors', () => {
 
         await waitFor(() => {
             expect(screen.getByRole('option', {
-                name: 'workbench.context.default_graphspace',
+                name: 'DEFAULT',
             })).toBeInTheDocument();
         });
 
-        expect(screen.getByText('Topbar.super_admin')).toBeInTheDocument();
+        expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
+        expect(screen.getByLabelText('超级管理员')).toHaveTextContent('超员');
         expect(screen.getByRole('link', {name: 'workbench.back_home'}))
             .toHaveAttribute('href', '/navigation');
         expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
-        expect(screen.getByRole('radio', {name: '中'})).toBeInTheDocument();
-        expect(screen.getByRole('radio', {name: 'EN'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: /language_switch/}))
+            .toHaveTextContent('中');
+        expect(screen.queryByText('EN')).not.toBeInTheDocument();
         expect(screen.getByRole('button', {
             name: 'workbench.shortcuts.open_button',
         })).toBeInTheDocument();
-        expect(screen.getByRole('button', {name: 'Topbar.user_menu'}))
+        expect(screen.getByRole('button', {name: /Topbar.user_menu/}))
             .toHaveAttribute('aria-haspopup', 'menu');
+        expect(screen.getByRole('button', {name: /超级管理员/}))
+            .toHaveAttribute('title', '超级管理员');
         expect(screen.getByTestId('user-dropdown'))
             .toHaveAttribute('data-trigger', 'click');
     });
@@ -242,8 +251,25 @@ describe('Topbar request errors', () => {
             </MemoryRouter>
         );
 
-        expect(await screen.findByText('超级管理员')).toBeInTheDocument();
+        expect(await screen.findByLabelText('超级管理员')).toHaveTextContent('超员');
+        expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
         expect(screen.queryByText('Topbar.super_admin')).not.toBeInTheDocument();
+    });
+
+    it('links the account menu to the real personal profile route', () => {
+        api.auth.status.mockResolvedValue({status: 200});
+
+        render(
+            <MemoryRouter
+                initialEntries={['/navigation']}
+                future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+            >
+                <Topbar />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByRole('link', {name: 'workbench.page.profile'}))
+            .toHaveAttribute('href', '/profile');
     });
 
     it('logs out immediately without a confirmation dialog', async () => {

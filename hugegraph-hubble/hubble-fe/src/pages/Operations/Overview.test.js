@@ -85,6 +85,23 @@ test('keeps unknown and partial source states explicit', async () => {
     expect(screen.getByText(/stale/i)).toBeInTheDocument();
 });
 
+test('moves the topology switch to the topbar when its host is available', async () => {
+    getOverview.mockResolvedValue({
+        status: 'UP', observed_at: 1000, sources: {}, facts: {}, nodes: [],
+    });
+    const topbarHost = document.createElement('div');
+    topbarHost.id = 'hubble-topbar-page-context';
+    document.body.appendChild(topbarHost);
+
+    renderOverview();
+
+    expect(await within(topbarHost).findByRole('radiogroup', {
+        name: 'Overview view',
+    })).toBeInTheDocument();
+
+    topbarHost.remove();
+});
+
 test('shows loading without fabricating an empty cluster', () => {
     getOverview.mockReturnValue(new Promise(() => {}));
 

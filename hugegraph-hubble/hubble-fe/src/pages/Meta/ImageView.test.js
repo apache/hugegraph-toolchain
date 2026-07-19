@@ -92,7 +92,9 @@ jest.mock('../../utils/formatGraphInData', () => ({
         })),
     }),
 }));
-jest.mock('./Property/EditLayer', () => ({EditPropertyLayer: () => null}));
+jest.mock('./Property/EditLayer', () => ({EditPropertyLayer: ({visible}) => (
+    <output data-testid='property-edit-layer'>{visible ? 'open' : 'closed'}</output>
+)}));
 jest.mock('./Vertex/EditLayer', () => ({EditVertexLayer: ({visible, name}) => (
     <output data-testid='vertex-edit-layer'>{visible ? name : 'closed'}</output>
 )}));
@@ -122,7 +124,7 @@ beforeEach(() => {
 });
 
 test('guides an empty graph through property, vertex, then edge creation', async () => {
-    render(<ImageView />);
+    const {container} = render(<ImageView />);
 
     expect(await screen.findByText('schema.image_view.empty_title')).toBeInTheDocument();
     expect(screen.getByText('schema.image_view.step_property')).toBeInTheDocument();
@@ -133,10 +135,16 @@ test('guides an empty graph through property, vertex, then edge creation', async
         .toHaveClass('ant-btn-primary');
     expect(screen.getByRole('button', {name: 'schema.edge.form.title_create'}))
         .toBeDisabled();
-    expect(screen.getByText('schema.image_view.template_description'))
+    expect(screen.getByText('schema.image_view.start_description'))
         .toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'schema.image_view.use_template'}))
-        .toHaveAttribute('href', '/graphspace/space-a/schema');
+    expect(container.querySelector('a[href="/graphspace/space-a/schema"]'))
+        .toBeNull();
+
+    fireEvent.click(screen.getByRole('button', {
+        name: 'schema.image_view.start_with_property',
+    }));
+
+    expect(screen.getByTestId('property-edit-layer')).toHaveTextContent('open');
     expect(screen.queryByTestId('graph-view')).not.toBeInTheDocument();
 });
 

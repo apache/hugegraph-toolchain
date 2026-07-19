@@ -111,8 +111,8 @@ describe('Login request errors', () => {
         expect(screen.getByRole('img', {name: 'Apache HugeGraph'}))
             .toBeInTheDocument();
         expect(screen.getByText('HugeGraph')).toBeInTheDocument();
-        expect(screen.getByRole('radiogroup', {name: 'login.language'}))
-            .toBeInTheDocument();
+        expect(screen.getByRole('button', {name: /language_switch/}))
+            .toHaveTextContent('中');
     });
 
     it('uses Hubble-specific sign-in copy in both languages', () => {
@@ -134,7 +134,9 @@ describe('Login request errors', () => {
         );
 
         expect(screen.queryByText('login.language')).not.toBeInTheDocument();
-        await userEvent.click(screen.getByRole('radio', {name: '中'}));
+        const languageToggle = screen.getByRole('button', {name: /language_switch/});
+        expect(languageToggle).toHaveTextContent('中');
+        await userEvent.click(languageToggle);
 
         expect(localStorage.getItem('languageType')).toBe('zh-CN');
     });
@@ -146,7 +148,8 @@ describe('Login request errors', () => {
             </MemoryRouter>
         );
 
-        expect(screen.getByRole('radio', {name: 'EN'})).toBeChecked();
+        expect(screen.getByRole('button', {name: /language_switch/}))
+            .toHaveTextContent('中');
         expect(localStorage.getItem('languageType')).toBeNull();
     });
 
