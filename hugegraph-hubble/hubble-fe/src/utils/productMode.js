@@ -44,7 +44,7 @@ const isPdOnlyPath = pathname => {
         || pathname.startsWith('/account')
         || pathname.startsWith('/resource')
         || pathname.startsWith('/role')
-        || /^\/graphspace\/[^/]+\/schema(?:\/|$)/.test(pathname);
+        || pathname.startsWith('/super');
 };
 
 const shouldUseNonPdDefaultGraphspace = (pdEnabled, graphspace) => {

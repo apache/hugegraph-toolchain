@@ -40,9 +40,9 @@ describe('product mode helpers', () => {
         expect(getGraphspacePath(false)).toBe('/graphspace/DEFAULT');
     });
 
-    test('treats graphspace lifecycle and schema template as PD-only paths', () => {
+    test('keeps Schema templates shared while guarding PD-only lifecycle paths', () => {
         expect(isPdOnlyPath('/graphspace')).toBe(true);
-        expect(isPdOnlyPath('/graphspace/DEFAULT/schema')).toBe(true);
+        expect(isPdOnlyPath('/graphspace/DEFAULT/schema')).toBe(false);
         expect(isPdOnlyPath('/account')).toBe(true);
         expect(isPdOnlyPath('/role/graphspace/DEFAULT/admin')).toBe(true);
         expect(isPdOnlyPath('/source')).toBe(false);

@@ -220,8 +220,8 @@ describe('Topbar request errors', () => {
             .toHaveAttribute('href', '/navigation');
         expect(screen.queryByText('超级管理员')).not.toBeInTheDocument();
         expect(screen.getByRole('button', {name: /language_switch/}))
-            .toHaveTextContent('中');
-        expect(screen.queryByText('EN')).not.toBeInTheDocument();
+            .toHaveTextContent('EN');
+        expect(screen.queryByText('中')).not.toBeInTheDocument();
         expect(screen.getByRole('button', {
             name: 'workbench.shortcuts.open_button',
         })).toBeInTheDocument();

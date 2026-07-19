@@ -36,8 +36,9 @@ import {getPreparationSchemaPath} from '../../utils/dataPreparationNavigation';
 import {getSidebarMenuKey} from '../../utils/sidebarNavigation';
 import {useTranslation} from 'react-i18next';
 import {useOperationsCapabilities} from '../../pages/Operations/capabilities';
+import styles from './index.module.scss';
 
-const OPEN_SECTIONS = ['understand', 'prepare', 'query', 'support'];
+const OPEN_SECTIONS = ['prepare', 'query', 'support'];
 
 const items = (t, pathname, capabilities = []) => {
     const pdMode = isPdEnabled();
@@ -51,17 +52,17 @@ const items = (t, pathname, capabilities = []) => {
         // systemList = [MY, RESOURCE, ROLE];
         systemList = [MY, ACCOUNT];
     }
-    const operationsList = capabilities.includes('operations_health_read') ? [
-        {
+    const operationsList = [
+        ...(pdMode && capabilities.includes('operations_health_read') ? [{
             label: <Link to='/operations/overview'>{t('operations.overview')}</Link>,
             key: 'overview',
             icon: <ClusterOutlined />,
-        },
+        }] : []),
         ...(capabilities.includes('operations_topology_read') ? [{
             label: <Link to='/operations/nodes'>{t('operations.nodes')}</Link>,
             key: 'nodes',
         }] : []),
-    ] : [];
+    ];
 
     const menu = [
         {
@@ -70,17 +71,13 @@ const items = (t, pathname, capabilities = []) => {
             icon: <HomeOutlined />,
         },
         {
-            label: t('workbench.nav.graphs'),
-            key: 'understand',
+            label: (
+                <Link to={getGraphspacePath(pdMode)}>
+                    {t('workbench.nav.graph_overview')}
+                </Link>
+            ),
+            key: 'graphspace',
             icon: <ApartmentOutlined />,
-            children: [{
-                label: (
-                    <Link to={getGraphspacePath(pdMode)}>
-                        {pdMode ? t('manage.graphspace') : t('workbench.nav.graph_list')}
-                    </Link>
-                ),
-                key: 'graphspace',
-            }],
         },
         {
             label: t('workbench.nav.query'),
@@ -109,9 +106,7 @@ const items = (t, pathname, capabilities = []) => {
                 {
                     label: (
                         <Link to={getPreparationSchemaPath(pdMode, pathname)}>
-                            {t(pdMode
-                                ? 'data_preparation.schema'
-                                : 'data_preparation.graph_schema')}
+                            {t('data_preparation.schema')}
                         </Link>
                     ),
                     key: 'schema',
@@ -275,19 +270,23 @@ const Sidebar = () => {
                 }
             >
                 {!narrow && (
-                    <Tooltip title={toggleLabel} placement="right">
-                        <Button
-                            className="workbench-navigation-inline-toggle"
-                            type="text"
-                            size="small"
-                            icon={collapsed
-                                ? <MenuUnfoldOutlined />
-                                : <MenuFoldOutlined />}
-                            aria-label={toggleLabel}
-                            aria-expanded={!renderedCollapsed}
-                            onClick={toggleNavigation}
-                        />
-                    </Tooltip>
+                    <div className={`workbench-navigation-toggle-slot ${styles.toggleSlot}`}>
+                        <Tooltip title={toggleLabel} placement="right">
+                            <Button
+                                className="workbench-navigation-inline-toggle"
+                                style={renderedCollapsed
+                                    ? {width: 80, minWidth: 80} : undefined}
+                                type="text"
+                                size="small"
+                                icon={collapsed
+                                    ? <MenuUnfoldOutlined />
+                                    : <MenuFoldOutlined />}
+                                aria-label={toggleLabel}
+                                aria-expanded={!renderedCollapsed}
+                                onClick={toggleNavigation}
+                            />
+                        </Tooltip>
+                    </div>
                 )}
                 <Menu
                     defaultSelectedKeys={['graphspace']}

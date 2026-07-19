@@ -137,6 +137,9 @@ const SecondaryActions = props => {
 
     return (
         <div className={c.secondaryActions}>
+            <Button className={c.btn} onClick={onClear} size='small'>
+                {t('common.action.clear')}
+            </Button>
             <Popover
                 placement='bottom'
                 trigger='click'
@@ -156,9 +159,6 @@ const SecondaryActions = props => {
                     </Button>
                 </Tooltip>
             </Popover>
-            <Button className={c.btn} onClick={onClear} size='small'>
-                {t('common.action.clear')}
-            </Button>
             {shortcutHint && (
                 <span className={c.shortcutHint}>{shortcutHint}</span>
             )}

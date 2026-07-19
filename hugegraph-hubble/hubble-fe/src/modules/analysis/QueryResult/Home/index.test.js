@@ -36,8 +36,8 @@ jest.mock('react-i18next', () => ({
                     `${options?.nodes}/${options?.nodeLimit}`,
                 'analysis.query_result.non_graph_title': 'Query result preview',
                 'analysis.query_result.non_graph_description':
-                    'This result cannot be drawn as a graph.',
-                'analysis.query_result.view_full_json': 'View full JSON',
+                    'This result cannot be rendered as a graph; a JSON preview is shown.',
+                'analysis.query_result.view_full_json': 'View raw JSON',
                 'analysis.query_result.empty_success':
                     'The query succeeded without displayable data.',
             };
@@ -156,7 +156,7 @@ it('offers a direct JSON path when a non-graph preview is truncated', () => {
 
     expect(screen.getByText(/node-0/)).toBeInTheDocument();
     expect(screen.queryByText(/node-7/)).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: 'View full JSON'}));
+    fireEvent.click(screen.getByRole('button', {name: 'View raw JSON'}));
     expect(screen.getByText('json result')).toBeInTheDocument();
 });
 

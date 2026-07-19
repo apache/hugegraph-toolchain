@@ -232,7 +232,6 @@ describe('route guard', () => {
     it.each([
         ['/graphspace', 'graph page'],
         ['/account', 'my page'],
-        ['/graphspace/SPACE/schema', 'graph page'],
     ])('uses the non-PD fallback for %s', (route, page) => {
         sessionStorage.setItem('user_', JSON.stringify({
             id: 'admin',
@@ -243,6 +242,32 @@ describe('route guard', () => {
 
         expect(screen.getByText(page)).toBeTruthy();
         expect(screen.queryByText('not found page')).toBeNull();
+    });
+
+    it('keeps the DEFAULT Schema template page available outside PD mode', () => {
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'admin',
+            user_nickname: 'admin',
+        }));
+
+        renderRoutes('/graphspace/DEFAULT/schema');
+
+        expect(screen.getByText('schema page')).toBeTruthy();
+        expect(screen.getByTestId('current-route').textContent)
+            .toBe('/graphspace/DEFAULT/schema');
+    });
+
+    it('normalizes non-PD Schema template routes to DEFAULT', () => {
+        sessionStorage.setItem('user_', JSON.stringify({
+            id: 'admin',
+            user_nickname: 'admin',
+        }));
+
+        renderRoutes('/graphspace/SPACE/schema');
+
+        expect(screen.getByText('schema page')).toBeTruthy();
+        expect(screen.getByTestId('current-route').textContent)
+            .toBe('/graphspace/DEFAULT/schema');
     });
 
     it('ignores cached role fields when the context denies account access', () => {

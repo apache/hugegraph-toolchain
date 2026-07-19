@@ -117,14 +117,16 @@ const Topbar = () => {
 
     return (
         <Layout.Header className={`${style.header} workbench-topbar`}>
-            <Link
-                className={style.logo}
-                to='/navigation'
-                aria-label={t('workbench.back_home')}
-            >
-                <BrandLockup compact />
-            </Link>
-            <GraphContextSwitcher />
+            <div className={style.leftContainer}>
+                <Link
+                    className={style.logo}
+                    to='/navigation'
+                    aria-label={t('workbench.back_home')}
+                >
+                    <BrandLockup compact />
+                </Link>
+                <GraphContextSwitcher />
+            </div>
             <TopbarPageContextHost className={style.pageContext} />
             <div className={style.rightContainer}>
                 <LanguageToggle tone='dark' />

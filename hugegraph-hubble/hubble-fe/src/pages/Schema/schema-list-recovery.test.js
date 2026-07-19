@@ -21,6 +21,8 @@ import Schema from './index';
 import * as api from '../../api';
 
 let mockGraphspace = 'SPACE';
+let mockPdEnabled = true;
+let mockWorkbenchContext = {};
 const mockTranslate = (key, values) => ({
     'schema_template.title': `${values?.name || 'unknown'} - Schema templates`,
     'schema_template.create': 'Create template',
@@ -58,6 +60,11 @@ const mockTranslate = (key, values) => ({
     'schema_template.no_matches': 'No matching templates',
     'schema_template.clear_search': 'Clear search',
     'schema_template.empty': 'No templates yet',
+    'schema_template.read_only.page_title': `${values?.name} - Schema template library`,
+    'schema_template.read_only.title': 'Read-only template library',
+    'schema_template.read_only.description': 'Browse templates here without changing them.',
+    'schema_template.read_only.apply_to_graph': `Apply templates to ${values?.graph}`,
+    'schema_template.read_only.choose_graph': 'Choose a graph to apply a template',
     'graphspace.default_name': 'Default GraphSpace',
 }[key] || key);
 
@@ -83,6 +90,12 @@ jest.mock('../../components/CodeEditor', () => props => (
     </div>
 ));
 jest.mock('../../components/DataPreparationNav', () => () => null);
+jest.mock('../../utils/config', () => ({
+    isPdEnabled: () => mockPdEnabled,
+}));
+jest.mock('../../utils/workbenchGraphContext', () => ({
+    readWorkbenchGraphContext: () => mockWorkbenchContext,
+}));
 jest.mock('react-router-dom', () => ({
     useNavigate: () => jest.fn(),
     useParams: () => ({graphspace: mockGraphspace}),
@@ -106,8 +119,67 @@ beforeAll(() => {
 afterEach(() => {
     window.history.replaceState({}, '', '/');
     mockGraphspace = 'SPACE';
+    mockPdEnabled = true;
+    mockWorkbenchContext = {};
     jest.clearAllMocks();
     window.localStorage.clear();
+});
+
+it('keeps non-PD Schema templates accessible as a read-only library', async () => {
+    mockGraphspace = 'DEFAULT';
+    mockPdEnabled = false;
+    mockWorkbenchContext = {graphspace: 'DEFAULT', graph: 'huge graph'};
+    window.history.replaceState({}, '', '/graphspace/DEFAULT/schema?create=true');
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Default'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'saved_schema',
+            schema: 'schema.propertyKey("name").asText().create()',
+        }], total: 1},
+    });
+
+    render(<Schema />);
+
+    expect(await screen.findByText('Read-only template library')).toBeInTheDocument();
+    expect(screen.getByText('Browse templates here without changing them.'))
+        .toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Apply templates to huge graph'}))
+        .toHaveAttribute('href', '/graphspace/DEFAULT/graph/huge%20graph/meta');
+    expect(await screen.findByText('saved_schema')).toBeInTheDocument();
+    expect(screen.getByText('People network')).toBeInTheDocument();
+    const builtInCode = screen.getByRole('region', {name: 'Expand People network'});
+    expect(builtInCode).toHaveAttribute('data-readonly', 'true');
+    expect(builtInCode).toHaveTextContent('schema.propertyKey');
+    expect(screen.queryByRole('button', {name: 'Create template'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Edit saved_schema'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Delete saved_schema'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Use example People network'}))
+        .not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Remove example People network'}))
+        .not.toBeInTheDocument();
+    expect(screen.queryByTestId('schema-edit-layer')).not.toBeInTheDocument();
+    expect(api.manage.addSchema).not.toHaveBeenCalled();
+    expect(api.manage.updateSchema).not.toHaveBeenCalled();
+    expect(api.manage.delSchema).not.toHaveBeenCalled();
+    await waitForLoadingToFinish();
+});
+
+it('links a non-PD read-only library without graph context to the graph overview', async () => {
+    mockGraphspace = 'DEFAULT';
+    mockPdEnabled = false;
+    mockWorkbenchContext = {graphspace: 'STALE_SPACE', graph: 'stale_graph'};
+    api.manage.getGraphSpace.mockResolvedValue({status: 200, data: {nickname: 'Default'}});
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0},
+    });
+
+    render(<Schema />);
+
+    expect(await screen.findByRole('link', {name: 'Choose a graph to apply a template'}))
+        .toHaveAttribute('href', '/graphspace/DEFAULT');
+    await waitForLoadingToFinish();
 });
 
 it('puts user templates before compact example-template cards', async () => {
@@ -192,6 +264,8 @@ it('expands a saved template row into a wide read-only Groovy code block', async
     const rowName = await screen.findByText('custom_schema');
     await waitForLoadingToFinish();
     expect(screen.queryByRole('button', {name: 'View'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Edit custom_schema'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete custom_schema'})).toBeInTheDocument();
 
     fireEvent.click(rowName);
     const code = screen.getByRole('region', {name: 'Expand custom_schema'});

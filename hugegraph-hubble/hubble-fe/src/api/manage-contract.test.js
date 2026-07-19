@@ -51,6 +51,19 @@ test('creates a property with request error ownership controls', () => {
     );
 });
 
+test('applies Groovy Schema to an existing graph with page-owned errors', () => {
+    const config = {suppressBusinessErrorToast: true};
+    const data = {'schema-groovy': 'graph.schema().propertyKey("name").create()'};
+
+    manage.addGraphSchema('DEFAULT', 'g', data, config);
+
+    expect(request.post).toHaveBeenCalledWith(
+        '/graphspaces/DEFAULT/graphs/g/schema/groovy',
+        data,
+        config
+    );
+});
+
 test('clears graph data with POST on the canonical route', () => {
     manage.clearGraph('DEFAULT', 'g');
 

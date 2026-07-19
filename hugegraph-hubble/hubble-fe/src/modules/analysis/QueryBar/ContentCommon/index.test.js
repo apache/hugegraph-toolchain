@@ -100,6 +100,17 @@ it('keeps the keyboard shortcut visible beside the secondary actions', () => {
     expect(screen.getByText('Ctrl + Enter to run')).toBeInTheDocument();
 });
 
+it('places clear before favorite in the secondary action group', () => {
+    renderContent();
+
+    const clearButton = screen.getByRole('button', {name: 'common.action.clear'});
+    const favoriteButton = screen.getByRole('button', {
+        name: 'analysis.query.favorite',
+    });
+    expect(clearButton.compareDocumentPosition(favoriteButton))
+        .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+});
+
 it('keeps favorite submission disabled until the name is backend-compatible', () => {
     renderContent({favoriteCardVisible: true});
     const input = screen.getByPlaceholderText('analysis.query.favorite_name_placeholder');

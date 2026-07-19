@@ -22,7 +22,7 @@
 
 import {useState, useCallback, useMemo} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Button, Table, Space, Tag, Popconfirm, message} from 'antd';
+import {Button, Table, Space, Tag, Popconfirm, Tooltip, message} from 'antd';
 import ExecutionContent from '../../../../components/ExecutionContent';
 import FavoriteNameInput from '../../../../components/FavoriteNameInput';
 import ColumnSettings, {
@@ -74,6 +74,16 @@ function getRowKey(item) {
     return item.id;
 }
 
+export async function copyStatement(content, t) {
+    try {
+        await navigator.clipboard.writeText(content);
+        message.success(t('analysis.logs.copy_success'));
+    }
+    catch (error) {
+        message.error(t('analysis.logs.copy_failed'));
+    }
+}
+
 const ExecuteLogActions = props => {
     const {
         text, rowData, index, favoriteContent, onAddFavorite, onFavoriteCard,
@@ -88,15 +98,7 @@ const ExecuteLogActions = props => {
         [index, loadStatements, rowData, text]
     );
     const handleCopyStatement = useCallback(
-        async () => {
-            try {
-                await navigator.clipboard.writeText(rowData.content);
-                message.success(t('analysis.logs.copy_success'));
-            }
-            catch (error) {
-                message.error(t('analysis.logs.copy_failed'));
-            }
-        },
+        () => copyStatement(rowData.content, t),
         [rowData.content, t]
     );
 
@@ -216,15 +218,29 @@ const ExecuteLog = props => {
             dataIndex: 'content',
             width: '30%',
             render: (text, rowData, index) => {
-                return text.split('\n')[1] ? (
-                    <ExecutionContent
-                        content={text}
-                        highlightText=""
-                    />
-                ) : (
-                    <div className={c.breakWord}>
-                        {text}
-                    </div>
+                return (
+                    <Tooltip
+                        placement='top'
+                        title={t('analysis.logs.click_to_copy')}
+                    >
+                        <button
+                            type='button'
+                            className={c.statementCell}
+                            aria-label={`${t('analysis.logs.click_to_copy')}: ${text}`}
+                            onClick={() => copyStatement(text, t)}
+                        >
+                            {text.split('\n')[1] ? (
+                                <ExecutionContent
+                                    content={text}
+                                    highlightText=""
+                                />
+                            ) : (
+                                <span className={c.breakWord}>
+                                    {text}
+                                </span>
+                            )}
+                        </button>
+                    </Tooltip>
                 );
             },
         },

@@ -22,7 +22,7 @@ test.each([
     [true, '/graphspace/SPACE/schema', 'schema'],
     [true, '/graphspace/SPACE/schema/', 'schema'],
     [true, '/graphspace/SPACE', 'graphspace'],
-    [false, '/graphspace/DEFAULT/graph/hugegraph/meta', 'schema'],
+    [false, '/graphspace/DEFAULT/graph/hugegraph/meta', 'graphspace'],
     [false, '/graphspace/DEFAULT/graph/hugegraph/detail', 'graphspace'],
     [false, '/navigation', 'navigation'],
     [false, '/', 'navigation'],
@@ -30,6 +30,6 @@ test.each([
     expect(getSidebarMenuKey(pathname, pdEnabled)).toBe(expected);
 });
 
-test('does not advertise the PD-only Schema entry in non-PD mode', () => {
-    expect(getSidebarMenuKey('/graphspace/DEFAULT/schema', false)).toBe('graphspace');
+test('keeps the Schema template entry available in non-PD mode', () => {
+    expect(getSidebarMenuKey('/graphspace/DEFAULT/schema', false)).toBe('schema');
 });

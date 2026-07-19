@@ -69,10 +69,12 @@ const AlgorithmHome = () => {
     const [graphRenderMode, setGraphRenderMode] = useState(CANVAS2D);
     const executionLogsRequest = useRef(null);
     const favoriteQueriesRequest = useRef(null);
+    const graphNumsRequest = useRef(null);
 
     useEffect(() => () => {
         executionLogsRequest.current = null;
         favoriteQueriesRequest.current = null;
+        graphNumsRequest.current = null;
     }, []);
 
     const initQueryResult = useCallback(
@@ -114,7 +116,13 @@ const AlgorithmHome = () => {
 
     const getGraphNumsInfo = useCallback(
         async () => {
+            const request = Symbol('algorithm-graph-counts');
+            graphNumsRequest.current = request;
+            setGraphNums({vertexCount: -1, edgeCount: -1});
             const response = await api.analysis.getGraphData(graphSpace, graph);
+            if (graphNumsRequest.current !== request) {
+                return;
+            }
             const {status, data} = response || {};
             if (status === 200) {
                 const {vertexcount, edgecount} = data || {};

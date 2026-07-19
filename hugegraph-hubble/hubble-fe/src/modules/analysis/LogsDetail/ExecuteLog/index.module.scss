@@ -17,9 +17,41 @@
  */
 
 .breakWord {
-    cursor: pointer;
     word-wrap: break-word;
     word-break: break-word;
+}
+
+.statementCell {
+    width: 100%;
+    padding: 4px 6px;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+    cursor: copy;
+    transition: color 160ms ease, background-color 160ms ease,
+        transform 160ms ease, box-shadow 160ms ease;
+
+    &:hover,
+    &:focus-visible {
+        color: #1677ff;
+        background: rgb(22 119 255 / 7%);
+        box-shadow: 0 3px 10px rgb(22 119 255 / 10%);
+        transform: translateY(-1px);
+    }
+
+    &:focus-visible {
+        outline: 2px solid rgb(22 119 255 / 35%);
+        outline-offset: 1px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .statementCell {
+        transition: none;
+    }
 }
 
 .columnHeaderTools {

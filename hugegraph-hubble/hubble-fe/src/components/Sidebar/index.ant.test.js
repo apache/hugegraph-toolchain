@@ -52,7 +52,7 @@ afterEach(() => {
     delete window.HTMLElement.prototype.scrollIntoView;
 });
 
-test('hides the Nodes entry when only health capability is available', async () => {
+test('hides PD-only operations links in standalone mode without topology access', async () => {
     useOperationsCapabilities.mockReturnValue({
         loading: false,
         capabilities: ['operations_health_read'],
@@ -68,11 +68,13 @@ test('hides the Nodes entry when only health capability is available', async () 
         </MemoryRouter>
     );
 
-    expect(await screen.findByRole('link', {name: '集群概览'})).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: '节点'})).not.toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: '个人中心'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: '集群概览'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: '节点详情'})).not.toBeInTheDocument();
 });
 
 test('keeps monitoring and account links in one operations section', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
     render(
         <MemoryRouter
             initialEntries={['/operations/overview']}
@@ -84,7 +86,23 @@ test('keeps monitoring and account links in one operations section', async () =>
 
     expect(await screen.findAllByText('系统与运维')).toHaveLength(1);
     expect(screen.getByRole('link', {name: '集群概览'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: '节点详情'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '个人中心'})).toBeInTheDocument();
+});
+
+test('shows only Node details from operations navigation in standalone mode', async () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/operations/nodes']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('link', {name: '节点详情'}))
+        .toHaveAttribute('href', '/operations/nodes');
+    expect(screen.queryByRole('link', {name: '集群概览'})).not.toBeInTheDocument();
 });
 
 test('keeps the selected operations entry within the scrollable navigation', async () => {
@@ -97,7 +115,7 @@ test('keeps the selected operations entry within the scrollable navigation', asy
         </MemoryRouter>
     );
 
-    expect((await screen.findByRole('link', {name: '节点'})).closest('li'))
+    expect((await screen.findByRole('link', {name: '节点详情'})).closest('li'))
         .toHaveClass('ant-menu-item-selected');
     await waitFor(() => expect(window.HTMLElement.prototype.scrollIntoView)
         .toHaveBeenCalledWith({block: 'nearest'}));
@@ -114,8 +132,9 @@ test('exposes the application menu as named primary navigation', async () => {
     );
 
     const navigation = await screen.findByRole('navigation', {name: '主导航'});
-    expect(screen.getByText('图')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: '图列表'})).toBeInTheDocument();
+    const graphOverview = screen.getByRole('link', {name: '图概览'});
+    expect(graphOverview).toHaveAttribute('href', '/graphspace/DEFAULT');
+    expect(graphOverview.closest('li')).not.toHaveClass('ant-menu-submenu');
     expect(screen.getByText('图导入')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', {name: 'database 图查询'})).toBeInTheDocument();
     expect(screen.getAllByText('系统与运维').length).toBeGreaterThan(0);
@@ -124,8 +143,8 @@ test('exposes the application menu as named primary navigation', async () => {
     const menuSections = screen.getAllByRole('menuitem')
         .map(item => item.textContent);
     expect(menuSections.indexOf('图查询')).toBeLessThan(menuSections.indexOf('图导入'));
-    expect(screen.getByRole('link', {name: '图 Schema'})).toHaveAttribute(
-        'href', '/graphspace/DEFAULT/graph/hugegraph/meta'
+    expect(screen.getByRole('link', {name: 'Schema 模板'})).toHaveAttribute(
+        'href', '/graphspace/DEFAULT/schema'
     );
     expect(screen.queryByRole('link', {name: '账号管理'})).not.toBeInTheDocument();
     await waitFor(() => expect(navigation).toBeVisible());
@@ -145,11 +164,11 @@ test('highlights the dedicated Schema entry on its PD route', async () => {
 
     expect((await screen.findByRole('link', {name: 'Schema 模板'})).closest('li'))
         .toHaveClass('ant-menu-item-selected');
-    expect(screen.getByRole('link', {name: '图管理'}).closest('li'))
+    expect(screen.getByRole('link', {name: '图概览'}).closest('li'))
         .not.toHaveClass('ant-menu-item-selected');
 });
 
-test('highlights Graph Schema for graph metadata in non-PD mode', async () => {
+test('keeps graph metadata distinct from Schema templates in non-PD mode', async () => {
     render(
         <MemoryRouter
             initialEntries={['/graphspace/DEFAULT/graph/hugegraph/meta']}
@@ -159,9 +178,9 @@ test('highlights Graph Schema for graph metadata in non-PD mode', async () => {
         </MemoryRouter>
     );
 
-    expect((await screen.findByRole('link', {name: '图 Schema'})).closest('li'))
+    expect((await screen.findByRole('link', {name: '图概览'})).closest('li'))
         .toHaveClass('ant-menu-item-selected');
-    expect(screen.getByRole('link', {name: '图列表'}).closest('li'))
+    expect(screen.getByRole('link', {name: 'Schema 模板'}).closest('li'))
         .not.toHaveClass('ant-menu-item-selected');
 });
 
@@ -211,6 +230,12 @@ test('offers a second accessible collapse control beside Home', async () => {
     expect(navigation.querySelector('.ant-layout-sider'))
         .toHaveClass('ant-layout-sider-collapsed');
     expect(toggle).toHaveAccessibleName('打开主导航');
+    expect(toggle).toHaveStyle({width: '80px', minWidth: '80px'});
+    const toggleSlot = toggle.closest('.workbench-navigation-toggle-slot');
+    expect(toggleSlot).toBeInTheDocument();
+    expect(toggleSlot.nextElementSibling).toHaveClass('ant-menu');
+    expect(screen.getByRole('link', {name: '图概览'}).closest('li'))
+        .toHaveClass('ant-menu-item');
 });
 
 test('temporarily expands a user-collapsed sidebar and restores it after leaving', async () => {
@@ -263,7 +288,7 @@ test('keeps a temporarily expanded sidebar open when the user pins it', async ()
         fireEvent.mouseEnter(navigation);
         fireEvent.click(screen.getByRole('button', {name: '固定展开主导航'}));
         fireEvent.mouseLeave(navigation);
-        act(() => jest.advanceTimersByTime(1500));
+        act(() => jest.advanceTimersByTime(1000));
 
         expect(navigation.querySelector('.ant-layout-sider'))
             .not.toHaveClass('ant-layout-sider-collapsed');
@@ -278,8 +303,8 @@ test('keeps a temporarily expanded sidebar open when the user pins it', async ()
 test.each([
     [true, '/gremlin/SPACE_NEW/GRAPH_NEW', 'Schema 模板',
         '/graphspace/SPACE_NEW/schema'],
-    [false, '/gremlin/DEFAULT/GRAPH_NEW', '图 Schema',
-        '/graphspace/DEFAULT/graph/GRAPH_NEW/meta'],
+    [false, '/gremlin/DEFAULT/GRAPH_NEW', 'Schema 模板',
+        '/graphspace/DEFAULT/schema'],
 ])('prefers route context for the preparation Schema entry', async (
     pdEnabled, route, name, expected
 ) => {
@@ -303,7 +328,7 @@ test.each([
 
 test.each([
     [true, 'Schema 模板', '/graphspace'],
-    [false, '图 Schema', '/graphspace/DEFAULT'],
+    [false, 'Schema 模板', '/graphspace/DEFAULT/schema'],
 ])('uses a safe Schema fallback without graph context', async (
     pdEnabled, name, expected
 ) => {

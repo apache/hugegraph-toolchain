@@ -21,9 +21,9 @@ import {useTranslation} from 'react-i18next';
 import {getCurrentLanguage} from '../../utils/language';
 import style from './index.module.scss';
 
-const TARGET_LANGUAGE = {
-    'en-US': {label: '中', value: 'zh-CN'},
-    'zh-CN': {label: 'EN', value: 'en-US'},
+const LANGUAGE_OPTION = {
+    'en-US': {label: 'EN', targetLabel: '中', value: 'zh-CN'},
+    'zh-CN': {label: '中', targetLabel: 'EN', value: 'en-US'},
 };
 
 const resolveLanguage = i18n => {
@@ -34,7 +34,7 @@ const resolveLanguage = i18n => {
 const LanguageToggle = ({className = '', tone = 'light'}) => {
     const {t, i18n} = useTranslation();
     const [language, setLanguage] = useState(() => resolveLanguage(i18n));
-    const target = TARGET_LANGUAGE[language] ?? TARGET_LANGUAGE['en-US'];
+    const option = LANGUAGE_OPTION[language] ?? LANGUAGE_OPTION['en-US'];
 
     useEffect(() => {
         const syncLanguage = nextLanguage => {
@@ -46,20 +46,24 @@ const LanguageToggle = ({className = '', tone = 'light'}) => {
     }, [i18n]);
 
     const toggleLanguage = useCallback(() => {
-        localStorage.setItem('languageType', target.value);
-        setLanguage(target.value);
-        i18n.changeLanguage(target.value);
-    }, [i18n, target.value]);
+        localStorage.setItem('languageType', option.value);
+        setLanguage(option.value);
+        i18n.changeLanguage(option.value);
+    }, [i18n, option.value]);
 
     return (
         <Button
             type='text'
             className={`${style.toggle} ${style[tone]} ${className}`}
-            aria-label={t('workbench.language_switch', {language: target.label})}
-            title={t('workbench.language_switch', {language: target.label})}
+            aria-label={t('workbench.language_switch', {
+                language: option.targetLabel,
+            })}
+            title={t('workbench.language_switch', {
+                language: option.targetLabel,
+            })}
             onClick={toggleLanguage}
         >
-            <span key={target.value} className={style.label}>{target.label}</span>
+            <span key={language} className={style.label}>{option.label}</span>
         </Button>
     );
 };

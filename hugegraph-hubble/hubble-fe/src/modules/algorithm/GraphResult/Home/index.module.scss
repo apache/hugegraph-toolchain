@@ -27,4 +27,18 @@
         justify-content: flex-start;
         flex: 1 1 0;
     }
+
+    .emptyGraph {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        height: var(--analysis-result-height, calc(100vh - 40px));
+        margin-left: -1px;
+        border: 1px solid #E7E8E9;
+
+        p {
+            margin: 6px 0 0;
+        }
+    }
 }

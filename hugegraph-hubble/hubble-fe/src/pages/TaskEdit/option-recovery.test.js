@@ -15,7 +15,7 @@
  * under the License.
  */
 
-import {Form} from 'antd';
+import {Form, message} from 'antd';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import {MemoryRouter} from 'react-router-dom';
 import BaseForm from './BaseForm';
@@ -30,6 +30,7 @@ jest.mock('../../api', () => ({
         getGraphSpaceList: jest.fn(),
         getTaskList: jest.fn(),
         getDatasourceSchema: jest.fn(),
+        loadSampleGraph: jest.fn(),
     },
 }));
 
@@ -45,6 +46,20 @@ jest.mock('react-i18next', () => ({
         'task.edit.retry_datasources': 'Retry data sources',
         'task.edit.load_fields_failed': 'Could not load source fields.',
         'task.edit.retry_fields': 'Retry source fields',
+        'task.edit.demo_title': 'Target graph, schema, and demo data',
+        'task.edit.demo_target': 'Selected target: DEFAULT / empty_graph',
+        'task.edit.demo_choose_graph': 'Choose a target graph first.',
+        'task.edit.demo_failed': 'Could not prepare the demo.',
+        'task.edit.retry_demo': 'Retry demo',
+        'task.edit.prepare_schema_first': 'Prepare schema first',
+        'graph.menu.load_hlm_sample': 'Build Red Chamber Demo',
+        'graph.menu.load_loader_sample': 'Build People & Software Demo',
+        'graph.sample.hlm_title': 'Build Red Chamber demo?',
+        'graph.sample.hlm_description': 'Add its schema and data.',
+        'graph.sample.confirm': 'Import example',
+        'graph.sample.success': 'Demo ready',
+        'graph.sample.failed': 'Demo import failed.',
+        'common.action.cancel': 'Cancel',
     })[key] || key}),
 }));
 
@@ -63,7 +78,16 @@ beforeEach(() => {
     isPdEnabled.mockReturnValue(false);
     api.manage.getGraphList.mockResolvedValue({status: 200, data: {records: []}});
     api.manage.getTaskList.mockResolvedValue({status: 200, data: {total: 0}});
+    jest.spyOn(message, 'success').mockImplementation(() => undefined);
 });
+
+const deferred = () => {
+    let resolve;
+    const promise = new Promise(done => {
+        resolve = done;
+    });
+    return {promise, resolve};
+};
 
 it('defaults a new task to the current graph when it is still eligible', async () => {
     window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
@@ -89,6 +113,181 @@ it('defaults a new task to the current graph when it is still eligible', async (
     expect(await screen.findByText('Current graph', {
         selector: '.ant-select-selection-item',
     })).toBeInTheDocument();
+});
+
+it('prepares an empty target graph with the named people-and-software demo', async () => {
+    window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'DEFAULT',
+        graph: 'empty_graph',
+    }));
+    api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'empty_graph',
+            nickname: 'Empty graph',
+            schemaview: {vertices: [], edges: []},
+        }]},
+    });
+    api.manage.loadSampleGraph.mockResolvedValue({
+        status: 200,
+        data: {vertices: 8, edges: 6},
+    });
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('Empty graph', {
+        selector: '.ant-select-selection-item',
+    })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {
+        name: 'Build People & Software Demo',
+    }));
+    const confirm = await screen.findByRole('button', {name: 'Import example'});
+    await act(async () => fireEvent.click(confirm));
+
+    await waitFor(() => expect(api.manage.loadSampleGraph).toHaveBeenCalledWith(
+        'DEFAULT',
+        'empty_graph',
+        'loader',
+        {suppressBusinessErrorToast: true}
+    ));
+});
+
+it('keeps demo preparation failure visible and lets the user retry', async () => {
+    window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'DEFAULT',
+        graph: 'empty_graph',
+    }));
+    api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'empty_graph',
+            schemaview: {vertices: [], edges: []},
+        }]},
+    });
+    api.manage.loadSampleGraph
+        .mockRejectedValueOnce(new Error('schema conflict'))
+        .mockResolvedValueOnce({status: 200, data: {vertices: 14, edges: 15}});
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    await screen.findByText('empty_graph', {selector: '.ant-select-selection-item'});
+    fireEvent.click(screen.getByRole('button', {name: 'Build Red Chamber Demo'}));
+    const confirm = await screen.findByRole('button', {name: 'Import example'});
+    await act(async () => fireEvent.click(confirm));
+
+    expect(await screen.findByText('schema conflict')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'Retry demo'}));
+    await waitFor(() => expect(api.manage.loadSampleGraph).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('schema conflict'))
+        .not.toBeInTheDocument());
+});
+
+it('does not let an old graph-space demo response prepare a same-named graph', async () => {
+    isPdEnabled.mockReturnValue(true);
+    window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'SPACE_A',
+        graph: 'shared_name',
+    }));
+    const demo = deferred();
+    api.manage.getDatasourceList.mockResolvedValue({
+        status: 200,
+        data: {records: [{datasource_id: '9', datasource_name: 'fixture.csv'}]},
+    });
+    api.manage.getGraphSpaceList.mockResolvedValue({
+        status: 200,
+        data: {records: [{name: 'SPACE_A'}, {name: 'SPACE_B'}]},
+    });
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'shared_name',
+            schemaview: {vertices: [], edges: []},
+        }]},
+    });
+    api.manage.loadSampleGraph.mockReturnValue(demo.promise);
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    await screen.findByText('shared_name', {selector: '.ant-select-selection-item'});
+    fireEvent.click(screen.getByRole('button', {name: 'Build Red Chamber Demo'}));
+    const confirm = await screen.findByRole('button', {name: 'Import example'});
+    fireEvent.click(confirm);
+    await waitFor(() => expect(api.manage.loadSampleGraph).toHaveBeenCalled());
+
+    const graphspaceSelect = document.querySelector(
+        '#base_form_ingestion_option_graphspace'
+    );
+    fireEvent.mouseDown(graphspaceSelect);
+    fireEvent.click(await screen.findByText('SPACE_B', {
+        selector: '.ant-select-item-option-content',
+    }));
+    await waitFor(() => expect(api.manage.getGraphList)
+        .toHaveBeenCalledWith('SPACE_B', {page_size: -1}));
+    const graphSelect = document.querySelector('#base_form_ingestion_option_graph');
+    fireEvent.mouseDown(graphSelect);
+    fireEvent.click(await screen.findByText('shared_name', {
+        selector: '.ant-select-item-option-content',
+    }));
+
+    await act(async () => demo.resolve({
+        status: 200,
+        data: {vertices: 14, edges: 15},
+    }));
+    await act(async () => {
+        fireEvent.click(screen.getByRole('button', {name: 'common.action.next'}));
+    });
+
+    expect(await screen.findByText('Prepare schema first')).toBeInTheDocument();
+});
+
+it('does not publish stale demo state after the form unmounts', async () => {
+    window.localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'DEFAULT',
+        graph: 'empty_graph',
+    }));
+    const demo = deferred();
+    api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'empty_graph',
+            schemaview: {vertices: [], edges: []},
+        }]},
+    });
+    api.manage.loadSampleGraph.mockReturnValue(demo.promise);
+
+    const {unmount} = render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <BaseForm visible cancel={jest.fn()} loading={false} />
+        </MemoryRouter>
+    );
+
+    await screen.findByText('empty_graph', {selector: '.ant-select-selection-item'});
+    fireEvent.click(screen.getByRole('button', {name: 'Build Red Chamber Demo'}));
+    const confirm = await screen.findByRole('button', {name: 'Import example'});
+    fireEvent.click(confirm);
+    await waitFor(() => expect(api.manage.loadSampleGraph).toHaveBeenCalled());
+    unmount();
+    await act(async () => demo.resolve({
+        status: 200,
+        data: {vertices: 14, edges: 15},
+    }));
+
+    expect(message.success).not.toHaveBeenCalled();
 });
 
 it('uses the graph name when the backend returns an empty alias', async () => {
@@ -198,14 +397,6 @@ it('does not restore another user data source selection', async () => {
         selector: '.ant-select-selection-item',
     })).toBeInTheDocument();
 });
-
-const deferred = () => {
-    let resolve;
-    const promise = new Promise(done => {
-        resolve = done;
-    });
-    return {promise, resolve};
-};
 
 it('keeps a data-source option failure visible and retries in place', async () => {
     api.manage.getDatasourceList

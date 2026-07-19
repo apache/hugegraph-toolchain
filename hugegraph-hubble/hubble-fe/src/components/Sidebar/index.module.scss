@@ -16,6 +16,19 @@
  * under the License.
  */
 
-.trigger {
-    text-align: right;
+.toggleSlot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    min-height: 44px;
+    flex: 0 0 44px;
+
+    :global(.workbench-navigation-inline-toggle) {
+        position: static;
+        float: none;
+        height: 36px;
+        margin: 4px 0;
+        border-radius: 0;
+    }
 }

@@ -16,9 +16,20 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {message} from 'antd';
 import ImageView from './ImageView';
 import * as api from '../../api';
+
+let mockRouteParams = {graphspace: 'space-a', graph: 'graph-a'};
+
+jest.mock('antd', () => {
+    const actual = jest.requireActual('antd');
+    return {
+        ...actual,
+        message: {...actual.message, success: jest.fn(), error: jest.fn()},
+    };
+});
 
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({t: key => key}),
@@ -26,7 +37,7 @@ jest.mock('react-i18next', () => ({
 
 jest.mock('react-router-dom', () => ({
     Link: ({children, to}) => <a href={to}>{children}</a>,
-    useParams: () => ({graphspace: 'space-a', graph: 'graph-a'}),
+    useParams: () => mockRouteParams,
 }));
 
 jest.mock('../../api', () => ({
@@ -34,6 +45,9 @@ jest.mock('../../api', () => ({
         getGraphView: jest.fn(),
         getMetaVertexList: jest.fn(),
         getMetaPropertyList: jest.fn(),
+        getSchemaList: jest.fn(),
+        getSchema: jest.fn(),
+        addGraphSchema: jest.fn(),
     },
 }));
 
@@ -103,6 +117,7 @@ jest.mock('./Property', () => () => null);
 
 beforeEach(() => {
     jest.clearAllMocks();
+    mockRouteParams = {graphspace: 'space-a', graph: 'graph-a'};
     window.matchMedia = jest.fn().mockImplementation(query => ({
         matches: false,
         media: query,
@@ -121,18 +136,32 @@ beforeEach(() => {
         status: 200,
         data: {records: []},
     });
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [{name: 'saved_network'}]},
+    });
+    api.manage.getSchema.mockResolvedValue({
+        status: 200,
+        data: {
+            name: 'saved_network',
+            schema: 'schema.propertyKey("saved").asText().ifNotExist().create()',
+        },
+    });
+    api.manage.addGraphSchema.mockResolvedValue({status: 200});
 });
 
 test('guides an empty graph through property, vertex, then edge creation', async () => {
     const {container} = render(<ImageView />);
 
-    expect(await screen.findByText('schema.image_view.empty_title')).toBeInTheDocument();
+    expect(await screen.findByRole('heading', {
+        name: 'schema.image_view.create_from_template',
+    })).toBeInTheDocument();
     expect(screen.getByText('schema.image_view.step_property')).toBeInTheDocument();
     expect(screen.getByText('schema.image_view.step_vertex')).toBeInTheDocument();
     expect(screen.getByText('schema.image_view.step_edge')).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'schema.property.create'}))
-        .toHaveClass('ant-btn-primary');
+        .toHaveClass('ant-btn-default');
     expect(screen.getByRole('button', {name: 'schema.edge.form.title_create'}))
         .toBeDisabled();
     expect(screen.getByText('schema.image_view.start_description'))
@@ -146,6 +175,246 @@ test('guides an empty graph through property, vertex, then edge creation', async
 
     expect(screen.getByTestId('property-edit-layer')).toHaveTextContent('open');
     expect(screen.queryByTestId('graph-view')).not.toBeInTheDocument();
+});
+
+test('loads built-in and saved templates in place and applies a built-in template', async () => {
+    let resolveApply;
+    api.manage.addGraphSchema.mockReturnValue(new Promise(resolve => {
+        resolveApply = resolve;
+    }));
+    render(<ImageView />);
+
+    fireEvent.click(await screen.findByRole('button', {
+        name: 'schema.image_view.create_from_template',
+    }));
+
+    await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalledWith(
+        'space-a',
+        {page_size: -1},
+        {suppressBusinessErrorToast: true}
+    ));
+    fireEvent.mouseDown(screen.getByRole('combobox', {
+        name: 'schema.image_view.template_select',
+    }));
+    expect(await screen.findByText('schema_template.builtin.people_network'))
+        .toBeInTheDocument();
+    expect(screen.getByText('saved_network')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('schema_template.builtin.people_network'));
+    fireEvent.click(screen.getByRole('button', {
+        name: 'schema.image_view.apply_template',
+    }));
+
+    await waitFor(() => expect(api.manage.addGraphSchema).toHaveBeenCalledWith(
+        'space-a',
+        'graph-a',
+        expect.objectContaining({
+            'schema-groovy': expect.stringContaining(
+                'graph.schema().propertyKey("name")'
+            ),
+        }),
+        {suppressBusinessErrorToast: true}
+    ));
+    await act(async () => resolveApply({status: 200}));
+    const schemaPayload = api.manage.addGraphSchema.mock.calls[0][2]['schema-groovy'];
+    expect(schemaPayload.split('\n').every(line => line.startsWith('graph.schema().')))
+        .toBe(true);
+    await waitFor(() => expect(api.manage.getGraphView).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(document.querySelector('.ant-spin-spinning')).toBeNull());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('fetches the selected saved template detail before applying it', async () => {
+    let resolveApply;
+    api.manage.addGraphSchema.mockReturnValue(new Promise(resolve => {
+        resolveApply = resolve;
+    }));
+    api.manage.getSchema.mockResolvedValue({
+        status: 200,
+        data: {
+            name: 'saved_network',
+            schema: '"// generated template\\n'
+                + 'graph.schema().propertyKey(\'saved\').asText()'
+                + '.ifNotExist().create();\\n"',
+        },
+    });
+    render(<ImageView />);
+
+    fireEvent.click(await screen.findByRole('button', {
+        name: 'schema.image_view.create_from_template',
+    }));
+    await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalled());
+    fireEvent.mouseDown(screen.getByRole('combobox', {
+        name: 'schema.image_view.template_select',
+    }));
+    fireEvent.click(await screen.findByText('saved_network'));
+    fireEvent.click(screen.getByRole('button', {
+        name: 'schema.image_view.apply_template',
+    }));
+
+    await waitFor(() => expect(api.manage.getSchema).toHaveBeenCalledWith(
+        'space-a',
+        'saved_network',
+        {suppressBusinessErrorToast: true}
+    ));
+    await waitFor(() => expect(api.manage.addGraphSchema).toHaveBeenCalled());
+    await act(async () => resolveApply({status: 200}));
+    await waitFor(() => expect(api.manage.addGraphSchema).toHaveBeenCalledWith(
+        'space-a',
+        'graph-a',
+        {
+            'schema-groovy': "graph.schema().propertyKey('saved')"
+                + '.asText().ifNotExist().create();',
+        },
+        {suppressBusinessErrorToast: true}
+    ));
+    await waitFor(() => expect(document.querySelector('.ant-spin-spinning')).toBeNull());
+});
+
+test('applies saved content when a saved template has a built-in name', async () => {
+    api.manage.getSchemaList.mockResolvedValue({
+        status: 200,
+        data: {records: [{name: 'people_network'}]},
+    });
+    api.manage.getSchema.mockResolvedValue({
+        status: 200,
+        data: {
+            name: 'people_network',
+            schema: 'schema.propertyKey("saved_only").asText()'
+                + '.ifNotExist().create()',
+        },
+    });
+    render(<ImageView />);
+
+    fireEvent.click(await screen.findByRole('button', {
+        name: 'schema.image_view.create_from_template',
+    }));
+    await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalled());
+    fireEvent.mouseDown(screen.getByRole('combobox', {
+        name: 'schema.image_view.template_select',
+    }));
+    fireEvent.click(await screen.findByText(
+        'people_network (schema.image_view.saved_templates)'
+    ));
+    fireEvent.click(screen.getByRole('button', {
+        name: 'schema.image_view.apply_template',
+    }));
+
+    await waitFor(() => expect(api.manage.getSchema).toHaveBeenCalledWith(
+        'space-a',
+        'people_network',
+        {suppressBusinessErrorToast: true}
+    ));
+    await waitFor(() => expect(api.manage.addGraphSchema).toHaveBeenCalledWith(
+        'space-a',
+        'graph-a',
+        {
+            'schema-groovy': 'graph.schema().propertyKey("saved_only").asText()'
+                + '.ifNotExist().create()',
+        },
+        {suppressBusinessErrorToast: true}
+    ));
+});
+
+test('keeps template selection open and offers retry when templates cannot load', async () => {
+    api.manage.getSchemaList.mockRejectedValueOnce(new Error('templates unavailable'));
+    render(<ImageView />);
+
+    fireEvent.click(await screen.findByRole('button', {
+        name: 'schema.image_view.create_from_template',
+    }));
+
+    expect(await screen.findByText('schema.image_view.template_load_failed'))
+        .toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {
+        name: 'schema.image_view.retry_templates',
+    }));
+    await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole('combobox', {
+        name: 'schema.image_view.template_select',
+    })).toBeInTheDocument();
+});
+
+test('closes and refreshes after apply failure to reveal any partial Schema', async () => {
+    let rejectApply;
+    api.manage.addGraphSchema.mockReturnValue(new Promise((_, reject) => {
+        rejectApply = reject;
+    }));
+    render(<ImageView />);
+
+    fireEvent.click(await screen.findByRole('button', {
+        name: 'schema.image_view.create_from_template',
+    }));
+    await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalled());
+    fireEvent.mouseDown(screen.getByRole('combobox', {
+        name: 'schema.image_view.template_select',
+    }));
+    fireEvent.click(await screen.findByText('schema_template.builtin.people_network'));
+    fireEvent.click(screen.getByRole('button', {
+        name: 'schema.image_view.apply_template',
+    }));
+
+    await waitFor(() => expect(api.manage.addGraphSchema).toHaveBeenCalled());
+    await act(async () => rejectApply(new Error('schema rejected')));
+    await waitFor(() => expect(message.error).toHaveBeenCalledWith(
+        'schema.image_view.template_apply_failed'
+    ));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    await waitFor(() => expect(api.manage.getGraphView).toHaveBeenCalledTimes(2));
+});
+
+test('does not treat a graph with property keys as an empty Schema', async () => {
+    let resolveProperties;
+    api.manage.getMetaPropertyList.mockReturnValue(new Promise(resolve => {
+        resolveProperties = resolve;
+    }));
+
+    render(<ImageView />);
+
+    await act(async () => resolveProperties({
+        status: 200,
+        data: {records: [{name: 'name', data_type: 'TEXT'}]},
+    }));
+    await waitFor(() => expect(document.querySelector('.ant-spin-spinning')).toBeNull());
+
+    expect(screen.getByRole('button', {name: 'schema.property.create'}))
+        .toBeInTheDocument();
+    expect(screen.queryByRole('button', {
+        name: 'schema.image_view.create_from_template',
+    })).not.toBeInTheDocument();
+});
+
+test('ignores a completed template apply after the graph context changes', async () => {
+    let resolveApply;
+    api.manage.addGraphSchema.mockReturnValue(new Promise(resolve => {
+        resolveApply = resolve;
+    }));
+    const {rerender} = render(<ImageView />);
+
+    fireEvent.click(await screen.findByRole('button', {
+        name: 'schema.image_view.create_from_template',
+    }));
+    await waitFor(() => expect(api.manage.getSchemaList).toHaveBeenCalled());
+    fireEvent.mouseDown(screen.getByRole('combobox', {
+        name: 'schema.image_view.template_select',
+    }));
+    fireEvent.click(await screen.findByText('schema_template.builtin.people_network'));
+    fireEvent.click(screen.getByRole('button', {
+        name: 'schema.image_view.apply_template',
+    }));
+    await waitFor(() => expect(api.manage.addGraphSchema).toHaveBeenCalled());
+
+    mockRouteParams = {graphspace: 'space-b', graph: 'graph-b'};
+    rerender(<ImageView />);
+    await act(async () => resolveApply({status: 200}));
+
+    await waitFor(() => expect(api.manage.getGraphView).toHaveBeenCalledWith(
+        'space-b',
+        'graph-b'
+    ));
+    expect(api.manage.getGraphView).toHaveBeenCalledTimes(2);
+    expect(message.success).not.toHaveBeenCalled();
 });
 
 const schemaVertex = (id, label = id) => ({

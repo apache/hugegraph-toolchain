@@ -58,7 +58,7 @@ test('orders import before query on the home page', () => {
 test.each([
     [true, {graphspace: 'space a', graph: 'g'}, '/graphspace/space%20a/schema'],
     [false, {graphspace: 'DEFAULT', graph: 'graph a'},
-        '/graphspace/DEFAULT/graph/graph%20a/meta'],
+        '/graphspace/DEFAULT/schema'],
 ])('starts data preparation from mode-aware Schema', (pdEnabled, context, expected) => {
     localStorage.setItem('hubble_workbench_graph_context', JSON.stringify(context));
 

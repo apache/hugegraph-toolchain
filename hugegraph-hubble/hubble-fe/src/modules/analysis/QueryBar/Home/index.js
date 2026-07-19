@@ -172,13 +172,15 @@ const QueryBar = props => {
     ];
 
     const queryActions = activeTab === TEXT2GQL ? undefined : {
-        left: (
-            <SecondaryActions
-                {...commonActionProps}
-                favoriteCardVisible={favoriteCardVisible}
-            />
+        right: (
+            <div className={c.queryActions}>
+                <SecondaryActions
+                    {...commonActionProps}
+                    favoriteCardVisible={favoriteCardVisible}
+                />
+                <PrimaryActions {...commonActionProps} />
+            </div>
         ),
-        right: <PrimaryActions {...commonActionProps} />,
     };
 
     return (

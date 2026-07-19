@@ -112,7 +112,7 @@ describe('Login request errors', () => {
             .toBeInTheDocument();
         expect(screen.getByText('HugeGraph')).toBeInTheDocument();
         expect(screen.getByRole('button', {name: /language_switch/}))
-            .toHaveTextContent('中');
+            .toHaveTextContent('EN');
     });
 
     it('uses Hubble-specific sign-in copy in both languages', () => {
@@ -135,7 +135,7 @@ describe('Login request errors', () => {
 
         expect(screen.queryByText('login.language')).not.toBeInTheDocument();
         const languageToggle = screen.getByRole('button', {name: /language_switch/});
-        expect(languageToggle).toHaveTextContent('中');
+        expect(languageToggle).toHaveTextContent('EN');
         await userEvent.click(languageToggle);
 
         expect(localStorage.getItem('languageType')).toBe('zh-CN');
@@ -149,7 +149,7 @@ describe('Login request errors', () => {
         );
 
         expect(screen.getByRole('button', {name: /language_switch/}))
-            .toHaveTextContent('中');
+            .toHaveTextContent('EN');
         expect(localStorage.getItem('languageType')).toBeNull();
     });
 

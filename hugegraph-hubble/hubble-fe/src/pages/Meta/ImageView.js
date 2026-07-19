@@ -24,13 +24,111 @@ import {EditPropertyLayer} from './Property/EditLayer';
 import {EditVertexLayer} from './Vertex/EditLayer';
 import {EditEdgeLayer} from './Edge/EditLayer';
 import PropertyTable from './Property';
-import {Alert, Button, Row, Space, Col, Drawer, Spin} from 'antd';
+import {
+    Alert, Button, Row, Space, Col, Drawer, Spin, Modal, Select, Typography, message,
+} from 'antd';
 import {formatToGraphInData} from '../../utils/formatGraphInData';
 import {useTranslation} from 'react-i18next';
 import styles from './ImageView.module.scss';
+import {BUILTIN_SCHEMA_TEMPLATES} from '../Schema/builtinSchemaTemplates';
 
 const SCHEMA_LABEL_DOCS_URL
     = 'https://hugegraph.apache.org/docs/clients/hugegraph-client/';
+const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
+const BUILTIN_TEMPLATE_SOURCE = 'builtin:';
+const SAVED_TEMPLATE_SOURCE = 'saved:';
+
+const sanitizeSchemaSource = schema => {
+    let result = '';
+    let quote = '';
+    let escaped = false;
+    let lineComment = false;
+    let blockComment = false;
+    for (let index = 0; index < schema.length; index += 1) {
+        const value = schema[index];
+        const next = schema[index + 1];
+        if (lineComment) {
+            if (value === '\n' || value === '\r') {
+                lineComment = false;
+                result += value;
+            }
+            continue;
+        }
+        if (blockComment) {
+            if (value === '*' && next === '/') {
+                blockComment = false;
+                index += 1;
+            }
+            else if (value === '\n' || value === '\r') {
+                result += value;
+            }
+            continue;
+        }
+        if (quote) {
+            result += value;
+            if (escaped) {
+                escaped = false;
+            }
+            else if (value === '\\') {
+                escaped = true;
+            }
+            else if (value === quote) {
+                quote = '';
+            }
+            continue;
+        }
+        if (value === '/' && next === '/') {
+            lineComment = true;
+            index += 1;
+            continue;
+        }
+        if (value === '/' && next === '*') {
+            blockComment = true;
+            index += 1;
+            continue;
+        }
+        if (value === '\'' || value === '"') {
+            quote = value;
+        }
+        result += value;
+        if (value === ';') {
+            result += '\n';
+        }
+    }
+    return result;
+};
+
+const toGraphSchemaGroovy = schema => {
+    const statements = [];
+    const rawSchema = String(schema || '').trim();
+    let decodedSchema = rawSchema;
+    if (rawSchema.startsWith('"') && rawSchema.endsWith('"')) {
+        try {
+            const parsed = JSON.parse(rawSchema);
+            if (typeof parsed === 'string') {
+                decodedSchema = parsed;
+            }
+        }
+        catch (error) {
+            // The Server will return a precise validation error for malformed content.
+        }
+    }
+    sanitizeSchemaSource(decodedSchema).split(/\r?\n/).forEach(line => {
+        const trimmed = line.trim();
+        if (!trimmed) {
+            return;
+        }
+        if (/^(schema\.|graph\.schema\(\)\.)/.test(trimmed) || !statements.length) {
+            statements.push(trimmed);
+            return;
+        }
+        statements[statements.length - 1] += trimmed;
+    });
+    return statements.map(statement => statement.replace(
+        /^schema\./,
+        'graph.schema().'
+    )).join('\n');
+};
 
 const enlargeSmallSchema = data => {
     if (!data.nodes?.length || data.nodes.length >= 10) {
@@ -120,7 +218,15 @@ const ImageView = () => {
     const [loading, setLoading] = useState(false);
     const [loadError, setLoadError] = useState(false);
     const requestToken = useRef(null);
+    const templateRequestToken = useRef(null);
+    const templateApplyToken = useRef(null);
     const [refresh, setRefresh] = useState(false);
+    const [templateVisible, setTemplateVisible] = useState(false);
+    const [templateLoading, setTemplateLoading] = useState(false);
+    const [templateLoadError, setTemplateLoadError] = useState(false);
+    const [templateApplying, setTemplateApplying] = useState(false);
+    const [savedTemplates, setSavedTemplates] = useState([]);
+    const [selectedTemplate, setSelectedTemplate] = useState();
 
     const handleRefresh = useCallback(() => {
         setRefresh(!refresh);
@@ -159,6 +265,117 @@ const ImageView = () => {
     const showPropertyList = useCallback(() => {
         setPropertyListVisible(true);
     }, []);
+
+    const loadSchemaTemplates = useCallback(() => {
+        const token = Symbol('schema-templates');
+        templateRequestToken.current = token;
+        setTemplateLoading(true);
+        setTemplateLoadError(false);
+        api.manage.getSchemaList(
+            graphspace,
+            {page_size: -1},
+            PAGE_ERROR_CONFIG
+        ).then(res => {
+            if (templateRequestToken.current !== token) {
+                return;
+            }
+            if (res.status !== 200) {
+                setSavedTemplates([]);
+                setTemplateLoadError(true);
+                return;
+            }
+            setSavedTemplates(res.data?.records || []);
+        }).catch(() => {
+            if (templateRequestToken.current === token) {
+                setSavedTemplates([]);
+                setTemplateLoadError(true);
+            }
+        }).finally(() => {
+            if (templateRequestToken.current === token) {
+                setTemplateLoading(false);
+            }
+        });
+    }, [graphspace]);
+
+    const openTemplatePicker = useCallback(() => {
+        setSelectedTemplate(undefined);
+        setTemplateVisible(true);
+        loadSchemaTemplates();
+    }, [loadSchemaTemplates]);
+
+    const closeTemplatePicker = useCallback(() => {
+        if (!templateApplying) {
+            templateRequestToken.current = null;
+            setTemplateLoading(false);
+            setTemplateVisible(false);
+        }
+    }, [templateApplying]);
+
+    const applySchemaTemplate = useCallback(async () => {
+        if (!selectedTemplate) {
+            return;
+        }
+        const token = Symbol('apply-schema-template');
+        templateApplyToken.current = token;
+        setTemplateApplying(true);
+        try {
+            const isBuiltin = selectedTemplate.startsWith(BUILTIN_TEMPLATE_SOURCE);
+            const isSaved = selectedTemplate.startsWith(SAVED_TEMPLATE_SOURCE);
+            const templateName = selectedTemplate.slice(
+                (isBuiltin ? BUILTIN_TEMPLATE_SOURCE : SAVED_TEMPLATE_SOURCE).length
+            );
+            let schema;
+            if (isBuiltin) {
+                schema = BUILTIN_SCHEMA_TEMPLATES[templateName];
+            }
+            else if (isSaved) {
+                const detail = await api.manage.getSchema(
+                    graphspace,
+                    templateName,
+                    PAGE_ERROR_CONFIG
+                );
+                if (templateApplyToken.current !== token) {
+                    return;
+                }
+                if (detail.status !== 200 || !detail.data?.schema) {
+                    throw new Error(detail.message || 'template detail unavailable');
+                }
+                schema = detail.data.schema;
+            }
+            if (!schema) {
+                throw new Error('template source unavailable');
+            }
+            const result = await api.manage.addGraphSchema(
+                graphspace,
+                graph,
+                {'schema-groovy': toGraphSchemaGroovy(schema)},
+                PAGE_ERROR_CONFIG
+            );
+            if (templateApplyToken.current !== token) {
+                return;
+            }
+            if (result.status !== 200) {
+                throw new Error(result.message || 'schema apply failed');
+            }
+            message.success(t('schema.image_view.template_apply_success'));
+            setTemplateVisible(false);
+            handleRefresh();
+        }
+        catch (error) {
+            if (templateApplyToken.current !== token) {
+                return;
+            }
+            message.error(t('schema.image_view.template_apply_failed'));
+            setTemplateVisible(false);
+            handleRefresh();
+        }
+        finally {
+            if (templateApplyToken.current === token) {
+                templateApplyToken.current = null;
+                setTemplateApplying(false);
+            }
+        }
+    }, [graph, graphspace, handleRefresh, selectedTemplate, t]);
 
     const handleDoubleClick = useCallback((id, type, data) => {
         if (type === 'node') {
@@ -228,14 +445,51 @@ const ImageView = () => {
         };
     }, [refresh, loadSchemaView]);
 
+    useEffect(() => () => {
+        templateRequestToken.current = null;
+        templateApplyToken.current = null;
+    }, []);
+
+    useEffect(() => {
+        templateRequestToken.current = null;
+        templateApplyToken.current = null;
+        setSavedTemplates([]);
+        setSelectedTemplate(undefined);
+        setTemplateLoading(false);
+        setTemplateLoadError(false);
+        setTemplateVisible(false);
+        setTemplateApplying(false);
+    }, [graphspace, graph]);
+
     const schemaIsEmpty = !loading && !loadError
-        && !data.nodes?.length && !data.edges?.length;
+        && !data.nodes?.length && !data.edges?.length
+        && !vertexList.length && !propertyList.length;
     const smallSchema = Boolean(data.nodes?.length && data.nodes.length < 10);
+    const builtinNames = Object.keys(BUILTIN_SCHEMA_TEMPLATES);
+    const savedOptions = savedTemplates
+        .map(item => ({
+            label: builtinNames.includes(item.name)
+                ? `${item.name} (${t('schema.image_view.saved_templates')})`
+                : item.name,
+            value: `${SAVED_TEMPLATE_SOURCE}${item.name}`,
+        }));
+    const templateOptions = [
+        {
+            label: t('schema.image_view.builtin_templates'),
+            options: builtinNames.map(name => ({
+                label: t(`schema_template.builtin.${name}`),
+                value: `${BUILTIN_TEMPLATE_SOURCE}${name}`,
+            })),
+        },
+        {
+            label: t('schema.image_view.saved_templates'),
+            options: savedOptions,
+        },
+    ];
 
     const schemaActions = (
         <Space wrap>
             <Button
-                type={schemaIsEmpty ? 'primary' : 'default'}
                 disabled={loading || loadError}
                 onClick={createProperty}
             >
@@ -289,9 +543,15 @@ const ImageView = () => {
                 {schemaIsEmpty ? (
                     <section className={styles.empty} aria-labelledby='schema-empty-title'>
                         <h2 id='schema-empty-title'>
-                            {t('schema.image_view.empty_title')}
+                            {t('schema.image_view.create_from_template')}
                         </h2>
-                        <p>{t('schema.image_view.empty_description')}</p>
+                        <p>{t('schema.image_view.template_description')}</p>
+                        <Button type='primary' onClick={openTemplatePicker}>
+                            {t('schema.image_view.create_from_template')}
+                        </Button>
+                        <Typography.Title level={5} className={styles.manualTitle}>
+                            {t('schema.image_view.manual_title')}
+                        </Typography.Title>
                         <ol className={styles.steps}>
                             <li>{t('schema.image_view.step_property')}</li>
                             <li>{t('schema.image_view.step_vertex')}</li>
@@ -328,6 +588,54 @@ const ImageView = () => {
                     />
                 )}
             </Spin>
+
+            <Modal
+                open={templateVisible}
+                title={t('schema.image_view.create_from_template')}
+                okText={t('schema.image_view.apply_template')}
+                cancelText={t('common.action.cancel')}
+                confirmLoading={templateApplying}
+                okButtonProps={{
+                    disabled: templateLoading || templateLoadError || !selectedTemplate,
+                }}
+                onOk={applySchemaTemplate}
+                onCancel={closeTemplatePicker}
+                destroyOnClose
+            >
+                <Spin spinning={templateLoading}>
+                    {templateLoadError ? (
+                        <Alert
+                            type='error'
+                            showIcon
+                            message={t('schema.image_view.template_load_failed')}
+                            action={(
+                                <Button size='small' onClick={loadSchemaTemplates}>
+                                    {t('schema.image_view.retry_templates')}
+                                </Button>
+                            )}
+                        />
+                    ) : (
+                        <Space direction='vertical' size='middle' style={{width: '100%'}}>
+                            <Typography.Text>
+                                {t('schema.image_view.template_picker_help')}
+                            </Typography.Text>
+                            <Select
+                                aria-label={t('schema.image_view.template_select')}
+                                placeholder={t('schema.image_view.template_placeholder')}
+                                value={selectedTemplate}
+                                options={templateOptions}
+                                onChange={setSelectedTemplate}
+                                style={{width: '100%'}}
+                            />
+                            {!savedOptions.length && (
+                                <Typography.Text type='secondary'>
+                                    {t('schema.image_view.no_saved_templates')}
+                                </Typography.Text>
+                            )}
+                        </Space>
+                    )}
+                </Spin>
+            </Modal>
 
             <EditVertexLayer
                 visible={vertexVisible}

@@ -61,6 +61,11 @@
     }
 }
 
+.queryActions {
+    display: flex;
+    align-items: center;
+}
+
 .editorRegion {
     position: relative;
     min-height: 32px;

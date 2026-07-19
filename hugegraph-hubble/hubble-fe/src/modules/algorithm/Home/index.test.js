@@ -33,7 +33,9 @@ jest.mock('../../../api', () => ({
         getMetaPropertyList: jest.fn(),
     },
 }));
-jest.mock('../algorithmsForm/Home', () => () => <div>algorithm forms</div>);
+jest.mock('../algorithmsForm/Home', () => props => (
+    <div>algorithm forms edges {props.graphNums.edgeCount}</div>
+));
 jest.mock('../GraphResult/Home', () => () => <div>algorithm result</div>);
 jest.mock('../LogsDetail/Home', () => props => (
     <div>
@@ -52,6 +54,13 @@ jest.mock('react-i18next', () => ({
 }));
 
 const okList = {status: 200, data: {records: [], total: 0}};
+const deferred = () => {
+    let resolve;
+    const promise = new Promise(done => {
+        resolve = done;
+    });
+    return {promise, resolve};
+};
 
 beforeEach(() => {
     api.analysis.fetchFavoriteQueries.mockResolvedValue(okList);
@@ -113,4 +122,35 @@ it('does not treat a pending favorite page as an empty page and roll back', asyn
     });
     await waitFor(() => expect(screen.getByText('favorite page 2')).toBeInTheDocument());
     expect(api.analysis.fetchFavoriteQueries).toHaveBeenCalledTimes(2);
+});
+
+it('invalidates old graph counts immediately when the graph changes', async () => {
+    const oldGraph = deferred();
+    const newGraph = deferred();
+    api.analysis.getGraphData.mockImplementation((graphSpace, graph) => (
+        graph === 'old' ? oldGraph.promise : newGraph.promise
+    ));
+    const view = render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'old'}}>
+            <AlgorithmHome />
+        </GraphAnalysisContext.Provider>
+    );
+    view.rerender(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'empty'}}>
+            <AlgorithmHome />
+        </GraphAnalysisContext.Provider>
+    );
+
+    expect(screen.getByText('algorithm forms edges -1')).toBeInTheDocument();
+    await act(async () => oldGraph.resolve({
+        status: 200,
+        data: {vertexcount: 5, edgecount: 7},
+    }));
+    expect(screen.getByText('algorithm forms edges -1')).toBeInTheDocument();
+
+    await act(async () => newGraph.resolve({
+        status: 200,
+        data: {vertexcount: 0, edgecount: 0},
+    }));
+    expect(screen.getByText('algorithm forms edges 0')).toBeInTheDocument();
 });

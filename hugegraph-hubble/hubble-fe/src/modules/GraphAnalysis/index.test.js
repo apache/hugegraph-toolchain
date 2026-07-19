@@ -101,6 +101,17 @@ it('does not choose an algorithm execution path until Vermeer is known', async (
     expect(await screen.findByText('algorithm module')).toBeInTheDocument();
 });
 
+it('shows the algorithm usage guide beside only the algorithm page title', async () => {
+    const algorithm = render(<GraphAnalysisHome moduleName='algorithms' />);
+    expect(await screen.findByText('analysis.algorithm.guide')).toBeInTheDocument();
+    await screen.findByText('algorithm module');
+    algorithm.unmount();
+
+    render(<GraphAnalysisHome moduleName='gremlin' />);
+    expect(screen.queryByText('analysis.algorithm.guide')).not.toBeInTheDocument();
+    await act(async () => Promise.resolve());
+});
+
 it('settles a rejected OLAP status request and retries in place', async () => {
     api.analysis.getOlapMode
         .mockRejectedValueOnce(new Error('offline'))

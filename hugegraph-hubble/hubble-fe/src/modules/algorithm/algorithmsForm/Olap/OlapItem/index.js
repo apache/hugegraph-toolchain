@@ -78,6 +78,7 @@ const OlapItem = props => {
 
     const {
         algorithmName,
+        canRunLouvain,
         ...args
     } = props;
 
@@ -136,7 +137,7 @@ const OlapItem = props => {
                         : (<LabelPropagationAlgorithm {...args} />)
                 );
             case LOUVAIN:
-                return <Louvain {...args} />;
+                return <Louvain {...args} canRun={canRunLouvain} />;
             case FILTER_SUBGRAPH_MATCHING:
                 return <FilterSubGraphMatching {...args} />;
             case K_CORE:

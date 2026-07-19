@@ -35,7 +35,9 @@ import Test from '../pages/Test';
 import OperationsOverview from '../pages/Operations/Overview';
 import OperationsNodes from '../pages/Operations/Nodes';
 import OperationsNodeDetail from '../pages/Operations/NodeDetail';
-import OperationsRoute from '../pages/Operations/OperationsRoute';
+import OperationsRoute, {
+    OperationsOverviewRoute,
+} from '../pages/Operations/OperationsRoute';
 
 // 图分析的路由
 import GraphAnalysis from '../pages/GraphAnalysis';
@@ -71,10 +73,6 @@ const ProtectedRoute = ({children}) => {
     sessionStorage.setItem('redirect', redirect);
 
     return <Navigate to={`${LOGIN_PATH}?redirect=${encodeURIComponent(redirect)}`} replace />;
-};
-
-const PdOnlyRoute = ({children, fallback = '/navigation'}) => {
-    return isPdEnabled() ? children : <Navigate to={fallback} replace />;
 };
 
 const AccountRoute = () => {
@@ -152,9 +150,11 @@ const RouteList = ({element}) => {
                 <Route
                     path="/graphspace/:graphspace/schema"
                     element={(
-                        <PdOnlyRoute fallback={`/graphspace/${DEFAULT_GRAPHSPACE}`}>
+                        <GraphspaceParamRoute
+                            fallback={`/graphspace/${DEFAULT_GRAPHSPACE}/schema`}
+                        >
                             <Schema />
-                        </PdOnlyRoute>
+                        </GraphspaceParamRoute>
                     )}
                 />
                 <Route path="/graphspace/:graphspace" element={<GraphRoute />} />
@@ -195,9 +195,9 @@ const RouteList = ({element}) => {
                 <Route
                     path='/operations/overview'
                     element={(
-                        <OperationsRoute required='operations_health_read'>
+                        <OperationsOverviewRoute>
                             <OperationsOverview />
-                        </OperationsRoute>
+                        </OperationsOverviewRoute>
                     )}
                 />
                 <Route

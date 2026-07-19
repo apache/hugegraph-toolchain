@@ -16,12 +16,13 @@
  * under the License.
  */
 
-import {Alert, Button, Descriptions, Progress, Skeleton, Space} from 'antd';
+import {Alert, Button, Descriptions, Progress, Skeleton, Space, Statistic} from 'antd';
 import {ArrowLeftOutlined} from '@ant-design/icons';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useNavigate, useParams} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getNode} from '../../api/operations';
+import {isPdEnabled} from '../../utils/config';
 import {
     displayNodeType,
     HealthStatus,
@@ -146,7 +147,159 @@ const formatCapacityValue = (value, unit) => {
         ? formatBytes(value) : formatUnitValue(value, unit);
 };
 
-const MetricGroup = ({name, values, status = {}, emptyMessage}) => {
+const MemoryUsage = ({label, values, unavailable, t}) => {
+    const used = Number(values?.used);
+    const maximum = Number(values?.max);
+    const hasUsed = Number.isFinite(used);
+    const hasMaximum = Number.isFinite(maximum) && maximum > 0;
+    const percent = hasUsed && hasMaximum
+        ? Math.min(100, Math.max(0, Math.round(used / maximum * 100))) : 0;
+    const usedLabel = hasUsed ? formatUnitValue(used, 'MB') : unavailable;
+    const maximumLabel = hasMaximum ? formatUnitValue(maximum, 'MB') : unavailable;
+
+    return (
+        <div className='operations-memory-usage'>
+            <div>
+                <strong>{label}</strong>
+                <span>{usedLabel} / {maximumLabel}</span>
+            </div>
+            <Progress
+                aria-label={label}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={hasMaximum ? percent : undefined}
+                aria-valuetext={`${usedLabel} / ${maximumLabel}`}
+                percent={percent}
+                showInfo={hasMaximum}
+                strokeColor='var(--workbench-color-brand-strong)'
+            />
+            {Number.isFinite(Number(values?.committed)) && (
+                <div className='operations-memory-committed'>
+                    {metricLabel('committed', t)}: {' '}
+                    {formatUnitValue(values.committed, 'MB')}
+                </div>
+            )}
+        </div>
+    );
+};
+
+const SystemMetricContent = ({values = {}}) => {
+    const {t} = useTranslation();
+    const unavailable = t('operations.unavailable');
+    const basic = values.basic && typeof values.basic === 'object' ? values.basic : {};
+    const thread = values.thread && typeof values.thread === 'object' ? values.thread : {};
+    const runtimeStats = [
+        ['process_cpu_usage', values.process_cpu_usage],
+        ['system_cpu_usage', values.system_cpu_usage],
+        ['systemload_average', values.systemload_average ?? basic.systemload_average],
+        ['cpu_count', values.cpu_count ?? basic.processors],
+        ['uptime', basic.uptime],
+        ['uptime_seconds', values.uptime_seconds],
+    ].filter(([, value]) => value !== undefined && value !== null);
+    const threadStats = ['count', 'daemon', 'peak']
+        .filter(key => thread[key] !== undefined && thread[key] !== null);
+    const memoryValues = [
+        ['heap_usage', values.heap],
+        ['nonheap_usage', values.nonheap],
+    ].filter(([, value]) => value && typeof value === 'object');
+    const basicDetails = ['mem_total', 'mem_used']
+        .filter(key => basic[key] !== undefined && basic[key] !== null);
+    const handledKeys = new Set([
+        'basic', 'heap', 'nonheap', 'thread', 'process_cpu_usage',
+        'system_cpu_usage', 'systemload_average', 'cpu_count', 'uptime_seconds',
+    ]);
+    const supplementalEntries = Object.entries(values)
+        .filter(([key]) => !handledKeys.has(key));
+
+    return (
+        <div className='operations-system-metrics'>
+            {memoryValues.length > 0 && (
+                <div
+                    className='operations-system-memory'
+                    role='group'
+                    aria-label={t('operations.memory_usage')}
+                >
+                    {memoryValues.map(([labelKey, memory]) => (
+                        <MemoryUsage
+                            key={labelKey}
+                            label={t(`operations.${labelKey}`)}
+                            values={memory}
+                            unavailable={unavailable}
+                            t={t}
+                        />
+                    ))}
+                </div>
+            )}
+            {runtimeStats.length > 0 && (
+                <div
+                    className='operations-system-statistics'
+                    role='group'
+                    aria-label={t('operations.cpu_runtime')}
+                >
+                    {runtimeStats.map(([key, value]) => (
+                        <Statistic
+                            key={key}
+                            title={metricLabel(key, t)}
+                            value={formatDisplayValue(key, value, null, values, unavailable)}
+                        />
+                    ))}
+                </div>
+            )}
+            {threadStats.length > 0 && (
+                <div
+                    className='operations-system-statistics'
+                    role='group'
+                    aria-label={metricLabel('thread', t)}
+                >
+                    {threadStats.map(key => (
+                        <Statistic
+                            key={key}
+                            title={metricLabel(key, t)}
+                            value={thread[key]}
+                        />
+                    ))}
+                </div>
+            )}
+            {basicDetails.length > 0 && (
+                <div className='operations-system-details'>
+                    {basicDetails.map(key => (
+                        <div key={key}>
+                            {metricLabel(key, t)}: {' '}
+                            {formatDisplayValue(key, basic[key], 'basic', basic, unavailable)}
+                        </div>
+                    ))}
+                </div>
+            )}
+            {supplementalEntries.length > 0 && (
+                <Descriptions
+                    className='operations-system-supplemental'
+                    layout='vertical'
+                    colon={false}
+                    column={{xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1}}
+                >
+                    {supplementalEntries.map(([key, value]) => (
+                        <Descriptions.Item key={key} label={metricLabel(key, t)}>
+                            {value !== null && typeof value === 'object' && !Array.isArray(value)
+                                ? Object.entries(value).map(([nestedKey, nestedValue]) => (
+                                    <div key={nestedKey}>
+                                        {metricLabel(nestedKey, t)}: {' '}
+                                        {formatDisplayValue(
+                                            nestedKey, nestedValue, key, value, unavailable
+                                        )}
+                                    </div>
+                                ))
+                                : formatDisplayValue(
+                                    key, value, null, values, unavailable
+                                )}
+                        </Descriptions.Item>
+                    ))}
+                </Descriptions>
+            )}
+        </div>
+    );
+};
+
+const MetricGroup = ({group, name, values, status = {}, emptyMessage}) => {
     const {t, i18n} = useTranslation();
     const entries = values && typeof values === 'object' && !Array.isArray(values)
         ? Object.entries(values) : [];
@@ -222,35 +375,38 @@ const MetricGroup = ({name, values, status = {}, emptyMessage}) => {
                     />
                 </div>
             )}
-            <Descriptions
-                layout='vertical'
-                colon={false}
-                column={{xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1}}
-            >
-                {entries.map(([key, value]) => (
-                    <Descriptions.Item key={key} label={metricLabel(key, t)}>
-                        {value !== null && typeof value === 'object' && !Array.isArray(value)
-                            ? Object.entries(value).map(([nestedKey, nestedValue]) => (
-                                <div key={nestedKey}>
-                                    {metricLabel(nestedKey, t)}: {' '}
-                                    {formatDisplayValue(
-                                        nestedKey, nestedValue, key, value,
-                                        t('operations.unavailable')
-                                    )}
-                                </div>
-                            ))
-                            : formatDisplayValue(
-                                key, value, null, values, t('operations.unavailable')
-                            )}
-                    </Descriptions.Item>
-                ))}
-            </Descriptions>
+            {group === 'system' ? <SystemMetricContent values={values} /> : (
+                <Descriptions
+                    layout='vertical'
+                    colon={false}
+                    column={{xxl: 3, xl: 2, lg: 2, md: 1, sm: 1, xs: 1}}
+                >
+                    {entries.map(([key, value]) => (
+                        <Descriptions.Item key={key} label={metricLabel(key, t)}>
+                            {value !== null && typeof value === 'object' && !Array.isArray(value)
+                                ? Object.entries(value).map(([nestedKey, nestedValue]) => (
+                                    <div key={nestedKey}>
+                                        {metricLabel(nestedKey, t)}: {' '}
+                                        {formatDisplayValue(
+                                            nestedKey, nestedValue, key, value,
+                                            t('operations.unavailable')
+                                        )}
+                                    </div>
+                                ))
+                                : formatDisplayValue(
+                                    key, value, null, values, t('operations.unavailable')
+                                )}
+                        </Descriptions.Item>
+                    ))}
+                </Descriptions>
+            )}
         </section>
     );
 };
 
 const NodeDetail = () => {
     const {t, i18n} = useTranslation();
+    const pdMode = isPdEnabled();
     const {nodeId} = useParams();
     const navigate = useNavigate();
     const [data, setData] = useState(null);
@@ -394,7 +550,11 @@ const NodeDetail = () => {
             {error && (
                 <Alert type='warning' showIcon message={t('operations.refresh_failed')} />
             )}
-            <SourceStrip sources={data?.sources} detailed />
+            <SourceStrip
+                sources={data?.sources}
+                sourceNames={pdMode ? undefined : ['server']}
+                detailed
+            />
             <section
                 className='operations-surface operations-node-summary'
                 aria-labelledby='operations-node-summary-heading'
@@ -421,11 +581,13 @@ const NodeDetail = () => {
                 className='operations-metric-grid'
                 aria-label={t('operations.node_metrics')}
             >
-                {['system', 'drive', 'raft', 'backend'].map(group => {
+                {(pdMode ? ['system', 'drive', 'raft', 'backend']
+                    : applicableMetricGroups).map(group => {
                     const status = metricStatus(group);
                     return (
                         <MetricGroup
                             key={group}
+                            group={group}
                             name={t(`operations.metric_${group}`)}
                             values={node.metrics?.[group]}
                             status={status}

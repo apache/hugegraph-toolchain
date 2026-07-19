@@ -203,6 +203,8 @@ const Task = () => {
     const [demoLoading, setDemoLoading] = useState('');
     const listRequest = useRef(null);
     const metricsRequest = useRef(null);
+    const demoRequest = useRef(null);
+    const mounted = useRef(true);
     const listPending = useRef(false);
     const metricsPending = useRef(false);
     const listFailed = useRef(false);
@@ -211,6 +213,13 @@ const Task = () => {
     const sourceTypes = sourceType(t);
     const syncTypes = syncType(t);
     const demoTarget = readWorkbenchGraphContext();
+
+    useEffect(() => {
+        return () => {
+            mounted.current = false;
+            demoRequest.current = null;
+        };
+    }, []);
 
     const search = useCallback(val => {
         setSearchName(val);
@@ -294,6 +303,8 @@ const Task = () => {
             okText: t('graph.sample.confirm'),
             cancelText: t('common.action.cancel'),
             onOk: async () => {
+                const token = Symbol('task-demo');
+                demoRequest.current = token;
                 setDemoLoading(dataset);
                 try {
                     const res = await api.manage.loadSampleGraph(
@@ -302,6 +313,12 @@ const Task = () => {
                         dataset,
                         {suppressBusinessErrorToast: true}
                     );
+                    const currentTarget = readWorkbenchGraphContext();
+                    if (!mounted.current || demoRequest.current !== token
+                        || currentTarget.graphspace !== graphspace
+                        || currentTarget.graph !== graph) {
+                        return;
+                    }
                     if (res.status !== 200) {
                         throw new Error(res.message || t('graph.sample.failed'));
                     }
@@ -311,10 +328,15 @@ const Task = () => {
                     }));
                 }
                 catch (error) {
-                    message.error(error.message || t('graph.sample.failed'));
+                    if (mounted.current && demoRequest.current === token) {
+                        message.error(error.message || t('graph.sample.failed'));
+                    }
                 }
                 finally {
-                    setDemoLoading('');
+                    if (mounted.current && demoRequest.current === token) {
+                        demoRequest.current = null;
+                        setDemoLoading('');
+                    }
                 }
             },
         });

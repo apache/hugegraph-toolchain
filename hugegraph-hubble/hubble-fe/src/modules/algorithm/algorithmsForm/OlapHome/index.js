@@ -43,6 +43,7 @@ const OlapFormHome = props => {
         search,
         currentAlgorithm,
         updateCurrentAlgorithm,
+        canRunLouvain,
     } =  props;
     const {ALGORITHM_NAME, ALGORITHM_MODE} = useTranslatedConstants();
     const {t} = useTranslation();
@@ -153,6 +154,7 @@ const OlapFormHome = props => {
                                 searchValue={search}
                                 currentAlgorithm={currentAlgorithm}
                                 updateCurrentAlgorithm={updateCurrentAlgorithm}
+                                canRunLouvain={canRunLouvain}
                             />
                         ))}
                     </Collapse>

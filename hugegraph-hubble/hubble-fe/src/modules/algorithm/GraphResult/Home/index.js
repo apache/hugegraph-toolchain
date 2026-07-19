@@ -21,6 +21,8 @@
  */
 import React, {useCallback, useEffect, useState, useContext, useMemo, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
+import {Empty, Space} from 'antd';
+import {Link} from 'react-router-dom';
 import GraphAnalysisContext from '../../../Context';
 import Graph from '../../../component/Graph';
 import Legend from '../../../component/Legend';
@@ -93,6 +95,13 @@ const GraphResult = props => {
 
     const graphSpaceInfo = useContext(GraphAnalysisContext);
     const {edgeMeta, vertexMeta} = metaData || {};
+    const hasGraphData = Number(graphNums?.vertexCount) > 0
+        || Number(graphNums?.edgeCount) > 0;
+    const hasKnownEmptyCounts = Number(graphNums?.vertexCount) === 0
+        && Number(graphNums?.edgeCount) === 0;
+    const hasKnownEmptySchema = Array.isArray(vertexMeta) && Array.isArray(edgeMeta)
+        && vertexMeta.length === 0 && edgeMeta.length === 0;
+    const isEmptyGraph = !hasGraphData && (hasKnownEmptyCounts || hasKnownEmptySchema);
     const [graphData, setGraphData] = useState({nodes: [], edges: []});
     const [styleConfigData, setStyleConfigData] = useState({nodes: {}, edges: {}});
     const [showAddNodeDrawer, setShowAddNodeDrawer] = useState(false);
@@ -487,6 +496,31 @@ const GraphResult = props => {
     }), [LOADING, FAILED, STANDBY, UPLOAD_FAILED, queryMessage, t]);
 
     const renderMainContent = () => {
+        if (queryStatus === STANDBY && isEmptyGraph) {
+            return (
+                <Empty
+                    className={c.emptyGraph}
+                    description={(
+                        <div>
+                            <strong>{t('analysis.algorithm.empty_graph_title')}</strong>
+                            <p>{t('analysis.algorithm.empty_graph_description')}</p>
+                        </div>
+                    )}
+                >
+                    <Space>
+                        <Link
+                            to={`/graphspace/${graphSpaceInfo.graphSpace}/graph/`
+                                + `${graphSpaceInfo.graph}/meta`}
+                        >
+                            {t('analysis.algorithm.create_schema')}
+                        </Link>
+                        <Link to='/source'>
+                            {t('analysis.algorithm.prepare_data')}
+                        </Link>
+                    </Space>
+                </Empty>
+            );
+        }
         if (queryStatus === SUCCESS) {
             if (!isQueryMode) {
                 return (

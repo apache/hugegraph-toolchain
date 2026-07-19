@@ -26,6 +26,8 @@ import '../../i18n';
 jest.mock('../../api/operations');
 
 beforeEach(() => {
+    sessionStorage.clear();
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
     window.matchMedia = () => ({
         matches: false,
         addListener: () => {},
@@ -33,6 +35,41 @@ beforeEach(() => {
         addEventListener: () => {},
         removeEventListener: () => {},
     });
+});
+
+test('limits standalone node details to Server nodes and filters', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
+    getNodes.mockResolvedValue({
+        items: [
+            {id: 'server-1', name: 'Server A', type: 'SERVER', status: 'UP'},
+            {id: 'pd-1', name: 'PD A', type: 'PD', status: 'UP'},
+            {id: 'store-1', name: 'Store A', type: 'STORE', status: 'UP'},
+        ],
+        total: 3,
+        observed_at: 1000,
+        stale: false,
+    });
+
+    render(
+        <MemoryRouter
+            initialEntries={['/operations/nodes?type=STORE']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Nodes />
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByRole('heading', {name: 'Node details'})).toBeInTheDocument();
+    await waitFor(() => expect(getNodes).toHaveBeenCalledWith(
+        expect.objectContaining({type: 'SERVER'})
+    ));
+    fireEvent.mouseDown(screen.getByRole('combobox', {name: /node type/i}));
+    expect(screen.getByRole('option', {name: 'Server'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'PD'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Store'})).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: /Server A/})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /PD A/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Store A/})).not.toBeInTheDocument();
 });
 
 afterEach(() => {

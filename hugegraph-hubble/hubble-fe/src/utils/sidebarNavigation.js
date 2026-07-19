@@ -20,10 +20,10 @@ export const getSidebarMenuKey = (pathname, pdEnabled) => {
     const normalizedPath = typeof pathname === 'string' ? pathname : '';
 
     if (/^\/graphspace\/[^/]+\/graph\/[^/]+\/meta\/?$/.test(normalizedPath)) {
-        return 'schema';
+        return 'graphspace';
     }
 
-    if (pdEnabled && /^\/graphspace\/[^/]+\/schema\/?$/.test(normalizedPath)) {
+    if (/^\/graphspace\/[^/]+\/schema\/?$/.test(normalizedPath)) {
         return 'schema';
     }
 

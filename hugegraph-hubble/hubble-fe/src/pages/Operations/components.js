@@ -78,14 +78,15 @@ const HealthStatus = ({status = 'UNKNOWN', reason, stale = false, size = 'normal
     );
 };
 
-const SourceStrip = ({sources = {}, detailed = false}) => {
+const SourceStrip = ({sources = {}, detailed = false,
+    sourceNames = ['server', 'pd', 'stores']}) => {
     const {t, i18n} = useTranslation();
     return (
         <section
             className={`operations-source-strip${detailed ? ' is-detailed' : ''}`}
             aria-label={t('operations.sources')}
         >
-            {['server', 'pd', 'stores'].map(name => {
+            {sourceNames.map(name => {
                 const source = sources[name] ?? {};
                 const age = source.observed_at ? formatObservedAge(
                     source.observed_at,

@@ -658,6 +658,68 @@
     font-weight: 600;
 }
 
+.operations-system-metrics {
+    display: grid;
+    gap: 16px;
+    padding-top: 16px;
+}
+
+.operations-system-memory {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.operations-memory-usage {
+    min-width: 0;
+    padding: 12px 14px;
+    border-radius: var(--workbench-radius);
+    background: var(--workbench-color-canvas);
+
+    > div:first-child {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+    span {
+        color: var(--workbench-color-text-secondary);
+        white-space: nowrap;
+    }
+}
+
+.operations-memory-committed {
+    margin-top: 4px;
+    color: var(--workbench-color-text-secondary);
+    font-size: 12px;
+}
+
+.operations-system-statistics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+    gap: 10px;
+
+    .ant-statistic {
+        min-width: 0;
+        padding: 10px 12px;
+        border: 1px solid var(--workbench-color-border);
+        border-radius: var(--workbench-radius);
+    }
+
+    .ant-statistic-content {
+        color: var(--workbench-color-text);
+        font-size: 20px;
+    }
+}
+
+.operations-system-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    color: var(--workbench-color-text-secondary);
+}
+
 section.operations-metric-group .ant-descriptions-view .ant-descriptions-item-content {
     display: block;
     min-width: 0;

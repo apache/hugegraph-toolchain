@@ -18,15 +18,68 @@
 
 import {render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import {MemoryRouter} from 'react-router-dom';
-import OperationsRoute from './OperationsRoute';
+import {MemoryRouter, Route, Routes, useLocation} from 'react-router-dom';
+import OperationsRoute, {OperationsOverviewRoute} from './OperationsRoute';
 import {useOperationsCapabilities} from './capabilities';
+import {isPdEnabled} from '../../utils/config';
 import '../../i18n';
 
 jest.mock('./capabilities');
+jest.mock('../../utils/config');
 
 afterEach(() => {
     jest.resetAllMocks();
+});
+
+const CurrentRoute = () => {
+    const location = useLocation();
+    return <div>{location.pathname}</div>;
+};
+
+test('redirects the cluster overview to node details outside PD mode', () => {
+    isPdEnabled.mockReturnValue(false);
+
+    render(
+        <MemoryRouter
+            initialEntries={['/operations/overview']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Routes>
+                <Route
+                    path='/operations/overview'
+                    element={(
+                        <OperationsOverviewRoute>
+                            <div>cluster content</div>
+                        </OperationsOverviewRoute>
+                    )}
+                />
+                <Route path='/operations/nodes' element={<CurrentRoute />} />
+            </Routes>
+        </MemoryRouter>
+    );
+
+    expect(screen.getByText('/operations/nodes')).toBeInTheDocument();
+    expect(screen.queryByText('cluster content')).not.toBeInTheDocument();
+    expect(useOperationsCapabilities).not.toHaveBeenCalled();
+});
+
+test('keeps the cluster overview and capability guard in PD mode', async () => {
+    isPdEnabled.mockReturnValue(true);
+    useOperationsCapabilities.mockReturnValue({
+        loading: false,
+        capabilities: ['operations_health_read'],
+        error: null,
+    });
+
+    render(
+        <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
+            <OperationsOverviewRoute>
+                <div>cluster content</div>
+            </OperationsOverviewRoute>
+        </MemoryRouter>
+    );
+
+    expect(await screen.findByText('cluster content')).toBeInTheDocument();
 });
 
 test('allows a direct route only when backend returns the capability', async () => {

@@ -16,8 +16,18 @@
  * under the License.
  */
 
-import {Alert, Form, Input, Typography, Select, Space, Button} from 'antd';
-import {useCallback, useEffect, useState} from 'react';
+import {
+    Alert,
+    Form,
+    Input,
+    Typography,
+    Select,
+    Space,
+    Button,
+    Modal,
+    message,
+} from 'antd';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {Link} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../api';
@@ -47,7 +57,30 @@ const BaseForm = ({cancel, visible, loading}) => {
     const [datasourceRetry, setDatasourceRetry] = useState(0);
     const [graphspaceRetry, setGraphspaceRetry] = useState(0);
     const [graphRetry, setGraphRetry] = useState(0);
+    const [demoLoading, setDemoLoading] = useState('');
+    const [demoError, setDemoError] = useState('');
+    const [lastDemo, setLastDemo] = useState('');
     const [baseForm] = Form.useForm();
+    const demoRequest = useRef(null);
+    const mounted = useRef(true);
+    const selectedGraphspace = Form.useWatch(
+        ['ingestion_option', 'graphspace'], baseForm
+    );
+    const selectedGraph = Form.useWatch(['ingestion_option', 'graph'], baseForm);
+
+    useEffect(() => {
+        return () => {
+            mounted.current = false;
+            demoRequest.current = null;
+        };
+    }, []);
+
+    useEffect(() => {
+        demoRequest.current = null;
+        setDemoLoading('');
+        setDemoError('');
+        setLastDemo('');
+    }, [selectedGraph, selectedGraphspace]);
 
     const checkExistName = () => ({
         validator: async (_, value) => {
@@ -103,15 +136,16 @@ const BaseForm = ({cancel, visible, loading}) => {
                 const options = res.data.records.map(item => ({
                     label: getResourceDisplayName(item.name, item.nickname),
                     value: item.name,
-                    disabled: (item.schemaview && item.schemaview.vertices.length === 0
-                        && item.schemaview.edges.length === 0),
+                    schemaReady: !item.schemaview
+                        || item.schemaview.vertices.length > 0
+                        || item.schemaview.edges.length > 0,
                 }));
                 setGraphOptions(options);
 
                 const current = readWorkbenchGraphContext();
                 const currentOption = options.find(option => option.value === current.graph);
                 if (current.graphspace === selectGraphspace
-                    && currentOption && !currentOption.disabled
+                    && currentOption
                     && !baseForm.getFieldValue(['ingestion_option', 'graph'])) {
                     baseForm.setFieldsValue({
                         ingestion_option: {graph: current.graph},
@@ -220,6 +254,72 @@ const BaseForm = ({cancel, visible, loading}) => {
             },
         });
     }, [baseForm, pdMode]);
+
+    const prepareDemo = useCallback(async dataset => {
+        if (!selectedGraphspace || !selectedGraph) {
+            return;
+        }
+        const token = Symbol('task-demo');
+        const target = {graphspace: selectedGraphspace, graph: selectedGraph};
+        demoRequest.current = token;
+        setDemoLoading(dataset);
+        setDemoError('');
+        setLastDemo(dataset);
+        try {
+            const res = await api.manage.loadSampleGraph(
+                target.graphspace,
+                target.graph,
+                dataset,
+                {suppressBusinessErrorToast: true}
+            );
+            const currentTarget = baseForm.getFieldValue('ingestion_option') || {};
+            if (!mounted.current || demoRequest.current !== token
+                || currentTarget.graphspace !== target.graphspace
+                || currentTarget.graph !== target.graph) {
+                return;
+            }
+            if (res.status !== 200) {
+                throw new Error(res.message || t('graph.sample.failed'));
+            }
+            setGraphOptions(options => options.map(option => {
+                return option.value === selectedGraph
+                    ? {...option, schemaReady: true} : option;
+            }));
+            setDemoError('');
+            message.success(t('graph.sample.success', {
+                vertices: res.data.vertices,
+                edges: res.data.edges,
+            }));
+        }
+        catch (error) {
+            if (mounted.current && demoRequest.current === token) {
+                setDemoError(error.message || t('task.edit.demo_failed'));
+            }
+        }
+        finally {
+            if (mounted.current && demoRequest.current === token) {
+                demoRequest.current = null;
+                setDemoLoading('');
+            }
+        }
+    }, [baseForm, selectedGraph, selectedGraphspace, t]);
+
+    const confirmDemo = useCallback(dataset => {
+        if (!selectedGraphspace || !selectedGraph) {
+            return;
+        }
+        Modal.confirm({
+            title: t(`graph.sample.${dataset}_title`),
+            content: t(`graph.sample.${dataset}_description`, {graph: selectedGraph}),
+            okText: t('graph.sample.confirm'),
+            cancelText: t('common.action.cancel'),
+            onOk: () => prepareDemo(dataset),
+        });
+    }, [prepareDemo, selectedGraph, selectedGraphspace, t]);
+
+    const loadHlmDemo = useCallback(() => confirmDemo('hlm'), [confirmDemo]);
+    const loadLoaderDemo = useCallback(() => confirmDemo('loader'), [confirmDemo]);
+    const retryDemo = useCallback(() => prepareDemo(lastDemo), [lastDemo, prepareDemo]);
 
     return (
         <div style={{display: visible ? '' : 'none'}}>
@@ -337,7 +437,22 @@ const BaseForm = ({cancel, visible, loading}) => {
                         </Form.Item>
                         <Form.Item
                             name={['ingestion_option', 'graph']}
-                            rules={[rules.required(t('task.edit.select_graph'))]}
+                            rules={[
+                                rules.required(t('task.edit.select_graph')),
+                                {
+                                    validator: (_, value) => {
+                                        const selected = graphOptions.find(
+                                            option => option.value === value
+                                        );
+                                        if (selected && !selected.schemaReady) {
+                                            return Promise.reject(
+                                                t('task.edit.prepare_schema_first')
+                                            );
+                                        }
+                                        return Promise.resolve();
+                                    },
+                                },
+                            ]}
                         >
                             <Select
                                 placeholder={t('task.edit.select_graph')}
@@ -347,6 +462,48 @@ const BaseForm = ({cancel, visible, loading}) => {
                         </Form.Item>
                     </Space>
                 </Form.Item>
+                <Alert
+                    showIcon
+                    type='info'
+                    message={t('task.edit.demo_title')}
+                    description={selectedGraph
+                        ? t('task.edit.demo_target', {
+                            graphspace: selectedGraphspace,
+                            graph: selectedGraph,
+                        })
+                        : t('task.edit.demo_choose_graph')}
+                    action={(
+                        <Space wrap>
+                            <Button
+                                loading={demoLoading === 'hlm'}
+                                disabled={!selectedGraph || Boolean(demoLoading)}
+                                onClick={loadHlmDemo}
+                            >
+                                {t('graph.menu.load_hlm_sample')}
+                            </Button>
+                            <Button
+                                loading={demoLoading === 'loader'}
+                                disabled={!selectedGraph || Boolean(demoLoading)}
+                                onClick={loadLoaderDemo}
+                            >
+                                {t('graph.menu.load_loader_sample')}
+                            </Button>
+                        </Space>
+                    )}
+                />
+                {demoError && (
+                    <Alert
+                        showIcon
+                        type='error'
+                        message={t('task.edit.demo_failed')}
+                        description={demoError}
+                        action={(
+                            <Button size='small' onClick={retryDemo} loading={Boolean(demoLoading)}>
+                                {t('task.edit.retry_demo')}
+                            </Button>
+                        )}
+                    />
+                )}
                 <Typography.Paragraph type="secondary" style={{marginLeft: '12.5%'}}>
                     {t('task.edit.loader_docs_intro')}{' '}
                     <a

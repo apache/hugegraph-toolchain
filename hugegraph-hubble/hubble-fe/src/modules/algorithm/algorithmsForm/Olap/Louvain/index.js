@@ -20,7 +20,9 @@
  * @file Louvain算法
  */
 
-import React, {useState, useCallback, useContext} from 'react';
+import React, {
+    useState, useCallback, useContext, useEffect, useMemo, useRef,
+} from 'react';
 import {Input, Collapse, InputNumber} from 'antd';
 import Form from '../../PersistentForm';
 import {HomeOutlined} from '@ant-design/icons';
@@ -47,6 +49,7 @@ const Louvain = props => {
         searchValue,
         currentAlgorithm,
         updateCurrentAlgorithm,
+        canRun,
     } = props;
     const {t} = useTranslation();
     const info = {
@@ -55,21 +58,28 @@ const Louvain = props => {
         icon: <HomeOutlined />,
     };
     const {graphSpace, graph} = useContext(GraphAnalysisContext);
-    const [isEnableRun, setEnableRun] = useState(true);
+    const [isEnableRun, setEnableRun] = useState(false);
     const [isRequiring, setRequiring] = useState(false);
+    const validationVersion = useRef(0);
 
     const [form] = Form.useForm();
 
     const handleRunning = useCallback(
         e => {
             e.stopPropagation();
+            if (!canRun) {
+                return;
+            }
             form.submit();
         },
-        [form]
+        [canRun, form]
     );
 
     const handleSubmit = useCallback(
         async algorithmParams => {
+            if (!canRun) {
+                return;
+            }
             setRequiring(true);
             updateCurrentAlgorithm(LOUVAIN);
             handleFormSubmit(LOADING);
@@ -91,7 +101,7 @@ const Louvain = props => {
             }
             setRequiring(false);
         },
-        [FAILED, LOADING, LOUVAIN, SUCCESS, graph, graphSpace,
+        [FAILED, LOADING, LOUVAIN, SUCCESS, canRun, graph, graphSpace,
             handleFormSubmit, updateCurrentAlgorithm]
     );
 
@@ -102,18 +112,45 @@ const Louvain = props => {
         [handleSubmit]
     );
 
-    const onFormValuesChange = useCallback(
+    const updateRunAvailability = useCallback(
         () => {
+            const version = ++validationVersion.current;
+            if (!canRun) {
+                setEnableRun(false);
+                return;
+            }
             form.validateFields()
                 .then(() => {
-                    setEnableRun(true);
+                    if (validationVersion.current === version && canRun) {
+                        setEnableRun(true);
+                    }
                 })
                 .catch(() => {
-                    setEnableRun(false);
+                    if (validationVersion.current === version) {
+                        setEnableRun(false);
+                    }
                 });
         },
-        [form]
+        [canRun, form]
     );
+
+    const invalidateValidation = useCallback(() => {
+        validationVersion.current++;
+    }, []);
+
+    useEffect(() => {
+        updateRunAvailability();
+        return invalidateValidation;
+    }, [invalidateValidation, updateRunAvailability]);
+
+    const debouncedRunAvailability = useMemo(
+        () => _.debounce(updateRunAvailability, 300),
+        [updateRunAvailability]
+    );
+
+    useEffect(() => () => {
+        debouncedRunAvailability.cancel();
+    }, [debouncedRunAvailability]);
 
     return (
         <Collapse.Panel
@@ -137,7 +174,7 @@ const Louvain = props => {
             <Form
                 form={form}
                 onFinish={onFormFinish}
-                onValuesChange={_.debounce(onFormValuesChange, 300)}
+                onValuesChange={debouncedRunAvailability}
                 layout="vertical"
             >
                 <Form.Item

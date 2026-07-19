@@ -22,6 +22,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {Link, useNavigate, useSearchParams} from 'react-router-dom';
 import {useTranslation} from 'react-i18next';
 import {getNodes} from '../../api/operations';
+import {isPdEnabled} from '../../utils/config';
 import {displayNodeType, HealthStatus, RefreshButton, TierIcon} from './components';
 import {formatObservedAt, hasStaleMetrics} from './topology';
 import './operations.scss';
@@ -93,6 +94,7 @@ const NodeIdentityCell = ({record, unavailable, t}) => {
 
 const Nodes = () => {
     const {t, i18n} = useTranslation();
+    const pdMode = isPdEnabled();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const [data, setData] = useState({items: [], total: 0, observed_at: null, stale: false});
@@ -100,14 +102,14 @@ const Nodes = () => {
     const [error, setError] = useState(null);
     const requestSequence = useRef(0);
     const params = useMemo(() => ({
-        type: searchParams.get('type') || undefined,
+        type: pdMode ? searchParams.get('type') || undefined : 'SERVER',
         status: searchParams.get('status') || undefined,
         query: searchParams.get('query') || undefined,
         page: Number(searchParams.get('page') || 1),
         page_size: Number(searchParams.get('page_size') || 20),
         sort: searchParams.get('sort') || 'name',
         order: searchParams.get('order') || 'asc',
-    }), [searchParams]);
+    }), [pdMode, searchParams]);
     const [searchValue, setSearchValue] = useState(params.query ?? '');
 
     const load = useCallback(async () => {
@@ -117,7 +119,18 @@ const Nodes = () => {
         try {
             const response = await getNodes(params);
             if (request === requestSequence.current) {
-                setData(response);
+                if (pdMode) {
+                    setData(response);
+                }
+                else {
+                    const items = response.items.filter(item => item.type === 'SERVER');
+                    setData({
+                        ...response,
+                        items,
+                        total: items.length === response.items.length
+                            ? response.total : items.length,
+                    });
+                }
             }
         }
         catch (requestError) {
@@ -134,7 +147,7 @@ const Nodes = () => {
                 setLoading(false);
             }
         }
-    }, [params]);
+    }, [params, pdMode]);
 
     useEffect(() => {
         load();
@@ -236,10 +249,11 @@ const Nodes = () => {
                             placeholder={t('operations.all_types')}
                             aria-label={t('operations.node_type_filter')}
                             onChange={changeType}
-                            options={['SERVER', 'PD', 'STORE'].map(value => ({
-                                value,
-                                label: displayNodeType(value),
-                            }))}
+                            options={(pdMode ? ['SERVER', 'PD', 'STORE'] : ['SERVER'])
+                                .map(value => ({
+                                    value,
+                                    label: displayNodeType(value),
+                                }))}
                         />
                         <Select
                             allowClear

@@ -29,19 +29,15 @@ const DataPreparationNav = ({active, graphspace}) => {
     const schemaTarget = currentGraphspace && pdEnabled
         ? `/graphspace/${encodeURIComponent(currentGraphspace)}/schema`
         : getPreparationSchemaPath(pdEnabled);
-    const schemaLabel = pdEnabled
-        ? t('data_preparation.schema')
-        : t('data_preparation.graph_schema');
+    const schemaLabel = t('data_preparation.schema');
     const items = [
         {
             key: 'schema',
             label: schemaLabel,
             to: schemaTarget,
-            title: pdEnabled
-                ? (currentGraphspace ? undefined : t('data_preparation.choose_graphspace'))
-                : (schemaTarget.includes('/graph/')
-                    ? undefined
-                    : t('data_preparation.choose_graph')),
+            title: pdEnabled && !currentGraphspace
+                ? t('data_preparation.choose_graphspace')
+                : undefined,
         },
         {key: 'datasource', label: t('data_preparation.datasource'), to: '/source'},
         {key: 'task', label: t('data_preparation.import'), to: '/task'},

@@ -43,7 +43,8 @@ jest.mock('../ContentCommon', () => ({
         shortcutHint,
     }) => (
         <div data-testid='secondary-query-actions'>
-            <button onClick={() => setFavoriteCardVisible(true)}>open favorite</button>
+            <button>Clear</button>
+            <button onClick={() => setFavoriteCardVisible(true)}>Favorite</button>
             <span>{favoriteCardVisible ? 'favorite open' : 'favorite closed'}</span>
             <span>{isEmptyQuery ? 'query empty' : 'query ready'}</span>
             <span>{shortcutHint}</span>
@@ -124,7 +125,7 @@ it('does not transfer an open favorite popover when query tabs change', () => {
 
     render(<ControlledQueryBar />);
     expect(screen.getByText('query ready')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', {name: 'open favorite'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Favorite'}));
     expect(screen.getByText('favorite open')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('tab', {name: 'Cypher'}));
@@ -184,6 +185,14 @@ it('keeps query actions, language tabs, and Text2GQL in one navigation row', () 
         name: /Natural language/,
     }));
     expect(navigation).toContainElement(screen.getByRole('button', {name: 'Run Query'}));
+
+    const text2gqlTab = screen.getByRole('tab', {name: /Natural language/});
+    const clearButton = screen.getByRole('button', {name: 'Clear'});
+    const favoriteButton = screen.getByRole('button', {name: 'Favorite'});
+    expect(text2gqlTab.compareDocumentPosition(clearButton))
+        .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(clearButton.compareDocumentPosition(favoriteButton))
+        .toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 });
 
 it('keeps collapse as a keyboard-accessible editor control', () => {

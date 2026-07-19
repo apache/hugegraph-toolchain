@@ -225,6 +225,9 @@ const GraphAnalysisHome = props => {
                 ghost={false}
                 onBack={false}
                 title={t(pageHeaderNameKeys[moduleName])}
+                subTitle={moduleName === ALGORITHMS
+                    ? t('analysis.algorithm.guide')
+                    : undefined}
                 extra={<TopBar
                     moduleName={moduleName}
                     onGraphInfoChange={onGraphInfoChange}

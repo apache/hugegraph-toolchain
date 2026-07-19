@@ -21,8 +21,7 @@
  */
 
 import React, {useCallback, useState} from 'react';
-import {Alert, Button, Empty, Space} from 'antd';
-import {Link} from 'react-router-dom';
+import {Button, Empty, Space} from 'antd';
 import OlapFormHome from '../OlapHome';
 import OltpFormHome from '../OltpHome';
 import AlgorithmSearch from '../../AlgorithmSearch';
@@ -42,7 +41,6 @@ const AlgorithmFormHome = props => {
         currentAlgorithm,
         updateCurrentAlgorithm,
         graphNums,
-        metaData,
         graphSpace,
         graph,
     } =  props;
@@ -62,11 +60,11 @@ const AlgorithmFormHome = props => {
     const isListEmpty = _.isEmpty(
         Object.values(ALGORITHM_NAME).filter(item => isAlgorithmNameMatched(item, search, t))
     );
+    const canRunLouvain = Number(graphNums?.edgeCount) > 0;
 
     return (
         <div className={c.algorithmSidebar}>
             <AlgorithmSearch onSearch={handleSearch} />
-            <p className={c.guide}>{t('analysis.algorithm.guide')}</p>
             <Space className={c.docs} wrap size={12}>
                 <a
                     href="https://hugegraph.apache.org/docs/clients/restful-api/traverser/"
@@ -86,28 +84,6 @@ const AlgorithmFormHome = props => {
                     {t('analysis.algorithm.reset_parameters')}
                 </Button>
             </Space>
-            {((Number(graphNums?.vertexCount) === 0 && Number(graphNums?.edgeCount) === 0)
-                || (metaData?.vertexMeta?.length === 0 && metaData?.edgeMeta?.length === 0)) && (
-                <Alert
-                    className={c.prerequisite}
-                    type='info'
-                    showIcon
-                    message={t('analysis.algorithm.empty_graph_title')}
-                    description={(
-                        <Space direction='vertical' size={4}>
-                            <span>{t('analysis.algorithm.empty_graph_description')}</span>
-                            <Space>
-                                <Link to={`/graphspace/${graphSpace}/graph/${graph}/meta`}>
-                                    {t('analysis.algorithm.create_schema')}
-                                </Link>
-                                <Link to='/source'>
-                                    {t('analysis.algorithm.prepare_data')}
-                                </Link>
-                            </Space>
-                        </Space>
-                    )}
-                />
-            )}
             {isListEmpty && (
                 <Empty
                     className={c.listEmpty}
@@ -127,6 +103,7 @@ const AlgorithmFormHome = props => {
                 search={search}
                 currentAlgorithm={currentAlgorithm}
                 updateCurrentAlgorithm={updateCurrentAlgorithm}
+                canRunLouvain={canRunLouvain}
             />
         </div>
     );

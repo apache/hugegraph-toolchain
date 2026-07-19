@@ -55,34 +55,34 @@ describe('LanguageToggle', () => {
         localStorage.clear();
     });
 
-    it('shows only the target language and switches immediately', async () => {
+    it('shows only the current language and switches immediately', async () => {
         render(<LanguageToggle />);
 
-        const toChinese = screen.getByRole('button', {name: /中/});
-        expect(toChinese).toHaveTextContent('中');
-        expect(screen.queryByText('EN')).not.toBeInTheDocument();
+        const english = screen.getByRole('button', {name: /中/});
+        expect(english).toHaveTextContent('EN');
+        expect(screen.queryByText('中')).not.toBeInTheDocument();
 
-        await userEvent.click(toChinese);
+        await userEvent.click(english);
 
         expect(mockChangeLanguage).toHaveBeenCalledWith('zh-CN');
         expect(localStorage.getItem('languageType')).toBe('zh-CN');
-        expect(screen.getByRole('button', {name: /EN/})).toHaveTextContent('EN');
-        expect(screen.queryByText('中')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: /EN/})).toHaveTextContent('中');
+        expect(screen.queryByText('EN')).not.toBeInTheDocument();
     });
 
-    it('uses the active Chinese language to offer English', () => {
+    it('shows the active Chinese language while offering English accessibly', () => {
         mockI18n.language = 'zh-CN';
         mockI18n.resolvedLanguage = 'zh-CN';
 
         render(<LanguageToggle />);
 
-        expect(screen.getByRole('button', {name: /EN/})).toHaveTextContent('EN');
-        expect(screen.queryByText('中')).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: /EN/})).toHaveTextContent('中');
+        expect(screen.queryByText('EN')).not.toBeInTheDocument();
     });
 
     it('follows language changes made outside the toggle', () => {
         render(<LanguageToggle />);
-        expect(screen.getByRole('button', {name: /中/})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: /中/})).toHaveTextContent('EN');
 
         act(() => {
             mockI18n.language = 'zh-CN';
@@ -91,6 +91,6 @@ describe('LanguageToggle', () => {
             languageChanged('zh-CN');
         });
 
-        expect(screen.getByRole('button', {name: /EN/})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: /EN/})).toHaveTextContent('中');
     });
 });

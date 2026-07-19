@@ -81,13 +81,13 @@ it('never reuses a stale PD graph space in non-PD mode', () => {
         </MemoryRouter>
     );
 
-    expect(screen.getByRole('link', {name: 'Graph Schema'}))
-        .toHaveAttribute('href', '/graphspace/DEFAULT');
-    expect(screen.getByRole('link', {name: 'Graph Schema'}))
-        .toHaveAttribute('title', 'Choose a graph first');
+    expect(screen.getByRole('link', {name: 'Schema templates'}))
+        .toHaveAttribute('href', '/graphspace/DEFAULT/schema');
+    expect(screen.getByRole('link', {name: 'Schema templates'}))
+        .not.toHaveAttribute('title');
 });
 
-it('links non-PD users to the selected graph Schema instead of a guarded template route', () => {
+it('keeps the Schema template route available to non-PD users', () => {
     localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
         graphspace: 'DEFAULT',
         graph: 'hugegraph',
@@ -100,6 +100,6 @@ it('links non-PD users to the selected graph Schema instead of a guarded templat
         </MemoryRouter>
     );
 
-    expect(screen.getByRole('link', {name: 'Graph Schema'}))
-        .toHaveAttribute('href', '/graphspace/DEFAULT/graph/hugegraph/meta');
+    expect(screen.getByRole('link', {name: 'Schema templates'}))
+        .toHaveAttribute('href', '/graphspace/DEFAULT/schema');
 });

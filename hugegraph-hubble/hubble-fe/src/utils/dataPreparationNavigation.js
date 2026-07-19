@@ -32,9 +32,7 @@ const getPreparationSchemaPath = (pdEnabled, pathname = '') => {
             ? `/graphspace/${encodeURIComponent(context.graphspace)}/schema`
             : '/graphspace';
     }
-    return context.graph
-        ? `/graphspace/DEFAULT/graph/${encodeURIComponent(context.graph)}/meta`
-        : '/graphspace/DEFAULT';
+    return '/graphspace/DEFAULT/schema';
 };
 
 export {getPreparationSchemaPath};

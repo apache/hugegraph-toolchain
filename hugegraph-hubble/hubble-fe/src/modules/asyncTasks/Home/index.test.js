@@ -20,6 +20,8 @@ import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import AsyncTaskHome from './index';
 import GraphAnalysisContext from '../../Context';
 import * as api from '../../../api/index';
+import enUS from '../../../i18n/resources/en-US/modules/analysis.json';
+import zhCN from '../../../i18n/resources/zh-CN/modules/analysis.json';
 
 jest.mock('../../../api/index', () => ({
     analysis: {fetchManageTaskList: jest.fn()},
@@ -37,8 +39,8 @@ jest.mock('react-i18next', () => ({
         'analysis.async_task.retry_list': 'Retry tasks',
         'analysis.async_task.empty_title': 'No async tasks yet',
         'analysis.async_task.empty_description': 'Tasks are created from queries and algorithms.',
-        'analysis.async_task.start_query': 'Start a query',
-        'analysis.async_task.open_algorithms': 'Open algorithms',
+        'analysis.async_task.start_query': 'GQL query',
+        'analysis.async_task.open_algorithms': 'Built-in algorithms',
         'analysis.async_task.no_matches_title': 'No matching tasks',
         'analysis.async_task.no_matches_description': 'Try another search.',
         'analysis.async_task.clear_filters': 'Clear filters',
@@ -136,10 +138,17 @@ it('explains where async tasks come from when the list is empty', async () => {
     );
 
     expect(await screen.findByText('No async tasks yet')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Start a query'}))
+    expect(screen.getByRole('link', {name: 'GQL query'}))
         .toHaveAttribute('href', '/gremlin/DEFAULT/hugegraph');
-    expect(screen.getByRole('link', {name: 'Open algorithms'}))
+    expect(screen.getByRole('link', {name: 'Built-in algorithms'}))
         .toHaveAttribute('href', '/algorithms/DEFAULT/hugegraph');
+});
+
+it('uses concise destination names for empty-task actions in both locales', () => {
+    expect(zhCN.analysis.async_task.start_query).toBe('GQL 查询');
+    expect(zhCN.analysis.async_task.open_algorithms).toBe('内置图算法');
+    expect(enUS.analysis.async_task.start_query).toBe('GQL query');
+    expect(enUS.analysis.async_task.open_algorithms).toBe('Built-in algorithms');
 });
 
 it('distinguishes filtered no-results from the first-use empty journey', async () => {
@@ -162,7 +171,7 @@ it('distinguishes filtered no-results from the first-use empty journey', async (
     });
 
     expect(await screen.findByText('No matching tasks')).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'Start a query'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'GQL query'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: 'Clear filters'}));
     expect(await screen.findByText('No async tasks yet')).toBeInTheDocument();
 });

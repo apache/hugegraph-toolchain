@@ -29,6 +29,8 @@ import DataPreparationNav from '../../components/DataPreparationNav';
 import {getResourceDisplayName} from '../../utils/displayName';
 import CodeEditor from '../../components/CodeEditor';
 import {BUILTIN_SCHEMA_TEMPLATES} from './builtinSchemaTemplates';
+import {isPdEnabled} from '../../utils/config';
+import {readWorkbenchGraphContext} from '../../utils/workbenchGraphContext';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 const HIDDEN_BUILTINS_KEY = 'hubble.schema.hiddenBuiltinStartingPoints.v1';
@@ -103,6 +105,15 @@ const Schema = () => {
     const listRequest = useRef(null);
     const {graphspace} = useParams();
     const navigate = useNavigate();
+    const pdMode = isPdEnabled();
+    const workbenchContext = readWorkbenchGraphContext();
+    const currentGraph = workbenchContext.graphspace === graphspace
+        ? workbenchContext.graph
+        : undefined;
+    const templateApplyPath = currentGraph
+        ? `/graphspace/${encodeURIComponent(graphspace)}`
+            + `/graph/${encodeURIComponent(currentGraph)}/meta`
+        : `/graphspace/${encodeURIComponent(graphspace)}`;
     const {current} = pagination;
     const listKey = JSON.stringify([graphspace, query, current]);
 
@@ -144,10 +155,10 @@ const Schema = () => {
 
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
-        if (params.get('create') === 'true') {
+        if (pdMode && params.get('create') === 'true') {
             createSchema();
         }
-    }, [createSchema]);
+    }, [createSchema, pdMode]);
 
     const handleTable = useCallback(newPagination => {
         setPagination(newPagination);
@@ -207,7 +218,9 @@ const Schema = () => {
             title: t('schema_template.column.creator'),
             dataIndex: 'creator',
         },
-        {
+    ];
+    if (pdMode) {
+        columns.push({
             title: t('schema_template.column.operation'),
             render: row => (
                 <SchemaActions
@@ -216,8 +229,8 @@ const Schema = () => {
                     onDelete={deleteSchema}
                 />
             ),
-        },
-    ];
+        });
+    }
 
     useEffect(() => {
         const token = Symbol('schema-graphspace');
@@ -301,7 +314,7 @@ const Schema = () => {
         : {};
     const visibleData = listDataKey === listKey ? data : [];
     const visibleBuiltins = Object.entries(BUILTIN_SCHEMA_TEMPLATES).filter(
-        ([name]) => !hiddenBuiltins.includes(name)
+        ([name]) => !pdMode || !hiddenBuiltins.includes(name)
     );
     const visibleGraphspaceName = graphspace === 'DEFAULT'
         ? t('graphspace.default_name')
@@ -316,17 +329,22 @@ const Schema = () => {
                 <PageHeader
                     ghost={false}
                     onBack={handleBack}
-                    title={t('schema_template.title', {
-                        name: visibleGraphspaceName,
-                    })}
+                    title={t(
+                        pdMode
+                            ? 'schema_template.title'
+                            : 'schema_template.read_only.page_title',
+                        {name: visibleGraphspaceName}
+                    )}
                 >
                     <Row justify='space-between'>
                         <Col>
-                            <Space>
-                                <Button type='primary' onClick={openCreate}>
-                                    {t('schema_template.create')}
-                                </Button>
-                            </Space>
+                            {pdMode && (
+                                <Space>
+                                    <Button type='primary' onClick={openCreate}>
+                                        {t('schema_template.create')}
+                                    </Button>
+                                </Space>
+                            )}
                         </Col>
                         <Col>
                             <Input.Search
@@ -343,6 +361,23 @@ const Schema = () => {
                 <DataPreparationNav active='schema' graphspace={graphspace} />
 
                 <div className='container'>
+                    {!pdMode && (
+                        <Alert
+                            showIcon
+                            type='info'
+                            message={t('schema_template.read_only.title')}
+                            description={t('schema_template.read_only.description')}
+                            action={(
+                                <Button type='primary' href={templateApplyPath}>
+                                    {currentGraph
+                                        ? t('schema_template.read_only.apply_to_graph', {
+                                            graph: currentGraph,
+                                        })
+                                        : t('schema_template.read_only.choose_graph')}
+                                </Button>
+                            )}
+                        />
+                    )}
                     {graphspaceError && graphspaceDataKey === graphspace && (
                         <Alert
                             showIcon
@@ -408,9 +443,11 @@ const Schema = () => {
                                 </Empty>
                             ) : (
                                 <Empty description={t('schema_template.empty')}>
-                                    <Button type='primary' onClick={openCreate}>
-                                        {t('schema_template.create')}
-                                    </Button>
+                                    {pdMode && (
+                                        <Button type='primary' onClick={openCreate}>
+                                            {t('schema_template.create')}
+                                        </Button>
+                                    )}
                                 </Empty>
                             ),
                         }}
@@ -427,7 +464,7 @@ const Schema = () => {
                                     {t('schema_template.builtin_section.description')}
                                 </Typography.Paragraph>
                             </Col>
-                            {hiddenBuiltins.length > 0 && (
+                            {pdMode && hiddenBuiltins.length > 0 && (
                                 <Col>
                                     <Button onClick={restoreBuiltins}>
                                         {t('schema_template.builtin_section.restore')}
@@ -436,12 +473,12 @@ const Schema = () => {
                             )}
                         </Row>
                         <Row gutter={[16, 16]}>
-                            {visibleBuiltins.map(([name]) => (
+                            {visibleBuiltins.map(([name, schema]) => (
                                 <Col xs={24} lg={12} key={name}>
                                     <Card
                                         size='small'
                                         title={t(`schema_template.builtin.${name}`)}
-                                        extra={(
+                                        extra={pdMode ? (
                                             <Space size={4}>
                                                 <Button
                                                     type='link'
@@ -472,11 +509,22 @@ const Schema = () => {
                                                     {t('schema_template.builtin_section.unsaved')}
                                                 </Tag>
                                             </Space>
-                                        )}
+                                        ) : <Tag>{t('schema_template.read_only.builtin')}</Tag>}
                                     >
                                         <Typography.Paragraph type='secondary'>
                                             {t(`schema_template.builtin_description.${name}`)}
                                         </Typography.Paragraph>
+                                        {!pdMode && (
+                                            <CodeEditor
+                                                value={schema}
+                                                lang='groovy'
+                                                readOnly
+                                                minHeight={240}
+                                                ariaLabel={t('schema_template.row.expand', {
+                                                    name: t(`schema_template.builtin.${name}`),
+                                                })}
+                                            />
+                                        )}
                                     </Card>
                                 </Col>
                             ))}
@@ -488,14 +536,16 @@ const Schema = () => {
                             {t('schema_template.docs.link')}
                         </a>
                     </Typography.Paragraph>
-                    <EditLayer
-                        visible={editLayer}
-                        detail={detail}
-                        mode={mode}
-                        onCancel={hideEditLayer}
-                        graphspace={graphspace}
-                        refresh={handleRefresh}
-                    />
+                    {pdMode && (
+                        <EditLayer
+                            visible={editLayer}
+                            detail={detail}
+                            mode={mode}
+                            onCancel={hideEditLayer}
+                            graphspace={graphspace}
+                            refresh={handleRefresh}
+                        />
+                    )}
                 </div>
             </Spin>
         </>

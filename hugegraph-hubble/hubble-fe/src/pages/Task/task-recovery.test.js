@@ -17,6 +17,7 @@
  */
 
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {message} from 'antd';
 import Task from './index';
 import * as api from '../../api';
 
@@ -54,7 +55,7 @@ jest.mock('react-i18next', () => ({
         'task.demo.choose_graph': 'Choose a target graph first',
         'task.demo.select_graph': 'Choose graph',
         'graph.menu.load_hlm_sample': 'Build Red Chamber Demo',
-        'graph.menu.load_loader_sample': 'Load Loader Example',
+        'graph.menu.load_loader_sample': 'Build People & Software Demo',
         'graph.sample.hlm_title': 'Build demo?',
         'graph.sample.hlm_description': 'Safe demo',
         'graph.sample.confirm': 'Build demo',
@@ -111,8 +112,38 @@ it('offers quick demos for the current target graph on the import page', async (
     expect(screen.getByText('Current target')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Build Red Chamber Demo'}))
         .toBeEnabled();
-    expect(screen.getByRole('button', {name: 'Load Loader Example'}))
+    expect(screen.getByRole('button', {name: 'Build People & Software Demo'}))
         .toBeEnabled();
+    await act(async () => Promise.resolve());
+});
+
+it('does not publish a demo result after leaving the import page', async () => {
+    localStorage.setItem('hubble_workbench_graph_context', JSON.stringify({
+        graphspace: 'demo_space',
+        graph: 'literature_demo',
+    }));
+    api.manage.getTaskList.mockResolvedValue({
+        status: 200,
+        data: {records: [], total: 0, size: 10},
+    });
+    api.manage.getMetricsTask.mockResolvedValue({status: 200, data: {}});
+    let resolveDemo;
+    api.manage.loadSampleGraph.mockReturnValue(new Promise(resolve => {
+        resolveDemo = resolve;
+    }));
+    jest.spyOn(message, 'success').mockImplementation(() => undefined);
+
+    const {unmount} = render(<Task />);
+    fireEvent.click(await screen.findByRole('button', {name: 'Build Red Chamber Demo'}));
+    fireEvent.click(await screen.findByRole('button', {name: 'Build demo'}));
+    await waitFor(() => expect(api.manage.loadSampleGraph).toHaveBeenCalled());
+    unmount();
+    await act(async () => resolveDemo({
+        status: 200,
+        data: {vertices: 14, edges: 15},
+    }));
+
+    expect(message.success).not.toHaveBeenCalled();
 });
 
 it('keeps task-list failure distinct from an empty list and retries only that source', async () => {

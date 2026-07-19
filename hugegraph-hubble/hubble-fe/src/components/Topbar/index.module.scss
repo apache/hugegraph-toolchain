@@ -33,12 +33,22 @@ div.nav {
 
 .header {
   position: relative;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  column-gap: 16px;
   align-items: center;
   height: var(--workbench-header-height);
   padding: 0 24px;
   background: #061c38;
   box-shadow: 0 2px 14px rgba(2, 17, 35, 0.22);
+}
+
+.leftContainer {
+  display: flex;
+  grid-column: 1;
+  min-width: 0;
+  align-items: center;
+  overflow: hidden;
 }
 
 .logo {
@@ -52,9 +62,10 @@ div.nav {
 
 .rightContainer {
   display: flex;
+  grid-column: 3;
   align-items: center;
+  justify-self: end;
   flex: 0 0 auto;
-  margin-left: auto;
   color: #fff;
   cursor: pointer;
 
@@ -71,10 +82,11 @@ div.nav {
 
 .pageContext {
   display: flex;
+  grid-column: 2;
   min-width: 0;
   align-items: center;
-  margin-left: 20px;
-  overflow: hidden;
+  justify-self: center;
+  white-space: nowrap;
 
   &:empty {
     display: none;
@@ -126,7 +138,7 @@ div.nav {
   }
 
   .pageContext {
-    margin-left: 8px;
+    max-width: 100%;
   }
 
   .right {

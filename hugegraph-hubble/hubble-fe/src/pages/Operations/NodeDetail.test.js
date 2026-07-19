@@ -20,11 +20,14 @@ import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/
 import {MemoryRouter, Route, Routes, useNavigate} from 'react-router-dom';
 import NodeDetail from './NodeDetail';
 import {getNode} from '../../api/operations';
-import '../../i18n';
+import i18n from '../../i18n';
 
 jest.mock('../../api/operations');
 
 beforeEach(() => {
+    i18n.changeLanguage('en-US');
+    sessionStorage.clear();
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
     window.matchMedia = () => ({
         matches: false,
         addListener: () => {},
@@ -32,6 +35,95 @@ beforeEach(() => {
         addEventListener: () => {},
         removeEventListener: () => {},
     });
+});
+
+test('focuses standalone Server details on applicable sources and metric cards', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
+    getNode.mockResolvedValue({
+        node: {
+            id: 'server-safe',
+            name: 'Server A',
+            type: 'SERVER',
+            status: 'UP',
+            version: '1.7.0',
+            metrics: {
+                system: {
+                    basic: {processors: 8, uptime: 128889, systemload_average: 1.5},
+                    heap: {used: 512, max: 1024, committed: 768},
+                    nonheap: {used: 256, max: 0, committed: 320},
+                    thread: {count: 42, daemon: 20, peak: 56},
+                    process_cpu_usage: 0.125,
+                    system_cpu_usage: 0.25,
+                },
+                backend: {graphs: 2},
+            },
+            metric_statuses: {
+                system: {availability: 'AVAILABLE', observed_at: 1000},
+                backend: {availability: 'AVAILABLE', observed_at: 1000},
+                drive: {
+                    availability: 'NOT_APPLICABLE',
+                    reason: 'deployment_mode_unsupported',
+                },
+                raft: {
+                    availability: 'NOT_APPLICABLE',
+                    reason: 'deployment_mode_unsupported',
+                },
+            },
+        },
+        observed_at: 1000,
+        stale: false,
+        sources: {
+            server: {status: 'UP', availability: 'AVAILABLE', observed_at: 1000},
+            pd: {
+                status: 'UNKNOWN',
+                availability: 'UNSUPPORTED',
+                reason: 'deployment_mode_unsupported',
+            },
+            stores: {
+                status: 'UNKNOWN',
+                availability: 'UNSUPPORTED',
+                reason: 'deployment_mode_unsupported',
+            },
+        },
+    });
+
+    renderDetail();
+    await screen.findByRole('heading', {name: 'Server A'});
+
+    const sources = screen.getByRole('region', {name: 'Source freshness'});
+    expect(within(sources).getByText('Server')).toBeInTheDocument();
+    expect(within(sources).queryByText('PD')).not.toBeInTheDocument();
+    expect(within(sources).queryByText('Store')).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Drive'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', {name: 'Raft'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Unsupported by the current deployment mode'))
+        .not.toBeInTheDocument();
+
+    const system = screen.getByRole('heading', {name: 'System'}).closest('section');
+    const heap = within(system).getByRole('progressbar', {name: 'Heap memory usage'});
+    expect(heap).toHaveAttribute('aria-valuenow', '50');
+    expect(within(system).getByText(/512 MB \/ 1 GiB/)).toBeInTheDocument();
+    expect(within(system).getByText(/256 MB \/ Unavailable/)).toBeInTheDocument();
+    expect(within(system).getByText(/Committed:.*768 MB/)).toBeInTheDocument();
+    expect(within(system).queryByText(/NaN|Infinity/)).not.toBeInTheDocument();
+
+    const threads = within(system).getByRole('group', {name: 'Threads'});
+    expect(within(threads).getByText('Live')).toBeInTheDocument();
+    expect(within(threads).getByText('42')).toBeInTheDocument();
+    expect(within(threads).getByText('Daemon')).toBeInTheDocument();
+    expect(within(threads).getByText('20')).toBeInTheDocument();
+    expect(within(threads).getByText('Peak')).toBeInTheDocument();
+    expect(within(threads).getByText('56')).toBeInTheDocument();
+
+    expect(within(system).getByRole('group', {name: 'CPU and runtime'}))
+        .toHaveTextContent('12.5%');
+    expect(within(system).getByRole('group', {name: 'CPU and runtime'}))
+        .toHaveTextContent('25%');
+    expect(within(system).getByRole('group', {name: 'CPU and runtime'}))
+        .toHaveTextContent('1.5');
+    expect(within(system).getByRole('group', {name: 'CPU and runtime'}))
+        .toHaveTextContent('2m 9s');
+    expect(system.querySelectorAll('.ant-statistic').length).toBeGreaterThanOrEqual(7);
 });
 
 afterEach(() => jest.clearAllMocks());
@@ -57,16 +149,18 @@ const response = {
     },
 };
 
-const renderDetail = () => render(
-    <MemoryRouter
-        initialEntries={['/operations/nodes/store-safe']}
-        future={{v7_startTransition: true, v7_relativeSplatPath: true}}
-    >
-        <Routes>
-            <Route path='/operations/nodes/:nodeId' element={<NodeDetail />} />
-        </Routes>
-    </MemoryRouter>
-);
+function renderDetail() {
+    return render(
+        <MemoryRouter
+            initialEntries={['/operations/nodes/store-safe']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Routes>
+                <Route path='/operations/nodes/:nodeId' element={<NodeDetail />} />
+            </Routes>
+        </MemoryRouter>
+    );
+}
 
 const NodeHistoryControls = () => {
     const navigate = useNavigate();
@@ -280,6 +374,10 @@ test('explains metric groups that do not apply to a PD node', async () => {
     renderDetail();
     await screen.findByRole('heading', {name: 'PD A'});
 
+    const sources = screen.getByRole('region', {name: 'Source freshness'});
+    expect(within(sources).getByText('PD')).toBeInTheDocument();
+    expect(within(sources).getByText('Store')).toBeInTheDocument();
+
     const drive = screen.getByRole('heading', {name: 'Drive'}).closest('section');
     expect(within(drive).getByText('Not applicable')).toBeInTheDocument();
     expect(within(drive).getByText(
@@ -308,6 +406,7 @@ test('presents native metric labels, units and capacity instead of raw keys', as
                     basic: {mem_total: 64, mem_used: 46, uptime: 128889},
                     process_cpu_usage: 0.125,
                     uptime_seconds: 65,
+                    garbage_collector: {young_count: 3},
                 },
                 drive: {
                     total_space: 233752,
@@ -324,9 +423,12 @@ test('presents native metric labels, units and capacity instead of raw keys', as
     await screen.findByRole('heading', {name: 'Store A'});
 
     expect(screen.getByText(/Total memory:.*64 MB/)).toBeInTheDocument();
-    expect(screen.getByText(/Uptime:.*2m 9s/)).toBeInTheDocument();
+    const runtime = screen.getByRole('group', {name: 'CPU and runtime'});
+    expect(runtime).toHaveTextContent('Uptime');
+    expect(runtime).toHaveTextContent('2m 9s');
     expect(screen.getByText('12.5%')).toBeInTheDocument();
     expect(screen.getByText('1m 5s')).toBeInTheDocument();
+    expect(screen.getByText(/young count:.*3/i)).toBeInTheDocument();
     expect(screen.queryByText(/mem total/)).not.toBeInTheDocument();
     const capacity = screen.getAllByRole('progressbar', {name: 'Capacity usage'});
     expect(capacity.some(item => item.getAttribute('aria-valuenow') === '75')).toBe(true);

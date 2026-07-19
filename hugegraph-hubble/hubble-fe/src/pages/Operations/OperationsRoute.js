@@ -19,6 +19,8 @@
 import {Alert, Button, Skeleton} from 'antd';
 import {useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
+import {Navigate} from 'react-router-dom';
+import {isPdEnabled} from '../../utils/config';
 import {useOperationsCapabilities} from './capabilities';
 
 const OperationsRoute = ({required, children}) => {
@@ -62,4 +64,16 @@ const OperationsRoute = ({required, children}) => {
     return children;
 };
 
+const OperationsOverviewRoute = ({children}) => {
+    if (!isPdEnabled()) {
+        return <Navigate to='/operations/nodes' replace />;
+    }
+    return (
+        <OperationsRoute required='operations_health_read'>
+            {children}
+        </OperationsRoute>
+    );
+};
+
+export {OperationsOverviewRoute};
 export default OperationsRoute;
