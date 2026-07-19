@@ -219,6 +219,7 @@ test('loads built-in and saved templates in place and applies a built-in templat
     const schemaPayload = api.manage.addGraphSchema.mock.calls[0][2]['schema-groovy'];
     expect(schemaPayload.split('\n').every(line => line.startsWith('graph.schema().')))
         .toBe(true);
+    expect(schemaPayload).not.toContain('indexLabel("personByName")');
     await waitFor(() => expect(api.manage.getGraphView).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(document.querySelector('.ant-spin-spinning')).toBeNull());
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

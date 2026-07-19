@@ -38,7 +38,7 @@ import {useTranslation} from 'react-i18next';
 import {useOperationsCapabilities} from '../../pages/Operations/capabilities';
 import styles from './index.module.scss';
 
-const OPEN_SECTIONS = ['prepare', 'query', 'support'];
+const OPEN_SECTIONS = ['navigation', 'prepare', 'query', 'support'];
 
 const items = (t, pathname, capabilities = []) => {
     const pdMode = isPdEnabled();
@@ -69,15 +69,15 @@ const items = (t, pathname, capabilities = []) => {
             label: <Link to='/navigation'>{t('workbench.nav.home')}</Link>,
             key: 'navigation',
             icon: <HomeOutlined />,
-        },
-        {
-            label: (
-                <Link to={getGraphspacePath(pdMode)}>
-                    {t('workbench.nav.graph_overview')}
-                </Link>
-            ),
-            key: 'graphspace',
-            icon: <ApartmentOutlined />,
+            children: [{
+                label: (
+                    <Link to={getGraphspacePath(pdMode)}>
+                        {t('workbench.nav.graph_overview')}
+                    </Link>
+                ),
+                key: 'graphspace',
+                icon: <ApartmentOutlined />,
+            }],
         },
         {
             label: t('workbench.nav.query'),

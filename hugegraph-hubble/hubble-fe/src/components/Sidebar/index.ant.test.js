@@ -134,7 +134,9 @@ test('exposes the application menu as named primary navigation', async () => {
     const navigation = await screen.findByRole('navigation', {name: '主导航'});
     const graphOverview = screen.getByRole('link', {name: '图概览'});
     expect(graphOverview).toHaveAttribute('href', '/graphspace/DEFAULT');
-    expect(graphOverview.closest('li')).not.toHaveClass('ant-menu-submenu');
+    const homeSection = graphOverview.closest('.ant-menu-submenu');
+    expect(homeSection).toBeInTheDocument();
+    expect(homeSection).toContainElement(screen.getByRole('link', {name: '首页'}));
     expect(screen.getByText('图导入')).toBeInTheDocument();
     expect(screen.getByRole('menuitem', {name: 'database 图查询'})).toBeInTheDocument();
     expect(screen.getAllByText('系统与运维').length).toBeGreaterThan(0);
@@ -234,8 +236,8 @@ test('offers a second accessible collapse control beside Home', async () => {
     const toggleSlot = toggle.closest('.workbench-navigation-toggle-slot');
     expect(toggleSlot).toBeInTheDocument();
     expect(toggleSlot.nextElementSibling).toHaveClass('ant-menu');
-    expect(screen.getByRole('link', {name: '图概览'}).closest('li'))
-        .toHaveClass('ant-menu-item');
+    expect(screen.getByRole('link', {name: '首页'}).closest('li'))
+        .toHaveClass('ant-menu-submenu');
 });
 
 test('temporarily expands a user-collapsed sidebar and restores it after leaving', async () => {
@@ -257,6 +259,9 @@ test('temporarily expands a user-collapsed sidebar and restores it after leaving
 
         fireEvent.mouseEnter(navigation);
         expect(sider).not.toHaveClass('ant-layout-sider-collapsed');
+        expect(screen.getByRole('link', {name: '图概览'})
+            .closest('.ant-menu-submenu'))
+            .toContainElement(screen.getByRole('link', {name: '首页'}));
         expect(screen.getByRole('button', {name: '固定展开主导航'}))
             .toHaveAttribute('aria-expanded', 'true');
 

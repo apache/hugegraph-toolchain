@@ -47,7 +47,6 @@ const QueryBar = props => {
     const [isEmptyQuery, setIsEmptyQuery] = useState(() => !codeEditorContent);
     const [favoriteCardVisible, setFavoriteCardVisible] = useState(false);
     const [isEditorExpanded, setEditorExpanded] = useState(true);
-
     useEffect(() => {
         setIsEmptyQuery(!codeEditorContent);
     }, [codeEditorContent]);
@@ -113,8 +112,7 @@ const QueryBar = props => {
                             : t('analysis.query.cypher_placeholder')}
                     />
                     <div className={c.editorShortcutHints} aria-hidden='true'>
-                        <span>{t('analysis.query.shortcut_hint_ctrl')}</span>
-                        <span>{t('analysis.query.shortcut_hint_command')}</span>
+                        <span>{t('analysis.query.shortcut_hint')}</span>
                     </div>
                 </div>
             )}

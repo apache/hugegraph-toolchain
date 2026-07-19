@@ -68,6 +68,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -77,6 +78,10 @@ import static org.apache.hugegraph.util.GremlinUtil.GREMLIN_LOAD_HLM;
 @Log4j2
 @Service
 public class GraphsService {
+
+    private static final Pattern GRAPH_NAME_PATTERN = Pattern.compile(
+            "[A-Za-z][A-Za-z0-9_]{0,47}"
+    );
 
     @Autowired
     private SchemaService schemaService;
@@ -287,8 +292,12 @@ public class GraphsService {
 
     public Map<String, String> create(HugeClient client, String nickname,
                                       String graph, String schemaTemplate) {
+        Ex.check(graph != null && GRAPH_NAME_PATTERN.matcher(graph).matches(),
+                 "graph-connection.graph.unmatch-regex");
         Map<String, String> conf = new HashMap<>();
 
+        conf.put("gremlin.graph",
+                 "org.apache.hugegraph.auth.HugeFactoryAuthProxy");
         conf.put("store", graph);
         boolean pdEnabled = config.get(org.apache.hugegraph.options.HubbleOptions.PD_ENABLED);
         if (pdEnabled) {
@@ -297,6 +306,8 @@ public class GraphsService {
         } else {
             conf.put("backend", "rocksdb");
             conf.put("task.scheduler_type", "local");
+            conf.put("rocksdb.data_path", "rocksdb-data/data_" + graph);
+            conf.put("rocksdb.wal_path", "rocksdb-data/wal_" + graph);
         }
         conf.put("serializer", "binary");
         conf.put("nickname", nickname);

@@ -26,17 +26,20 @@ import java.util.Map;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import org.apache.hugegraph.api.graph.GraphMetricsAPI;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.driver.GraphManager;
 import org.apache.hugegraph.driver.GraphsManager;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.graphs.GraphStatisticsEntity;
 import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.exception.ServerException;
+import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.graphs.GraphsService;
 import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.structure.graph.Edge;
@@ -146,6 +149,46 @@ public class GraphsServiceDefaultTest {
         }
 
         Mockito.verify(this.graphs, Mockito.never()).unSetDefault(Mockito.anyString());
+    }
+
+    @Test
+    public void testCreateStandaloneGraphIncludesRequiredFactory() {
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.PD_ENABLED)).thenReturn(false);
+        ReflectionTestUtils.setField(this.service, "config", config);
+
+        this.service.create(this.client, "Demo", "demo", null);
+
+        ArgumentCaptor<String> configJson = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(this.graphs).createGraph(Mockito.eq("demo"),
+                                               configJson.capture());
+        Assert.assertTrue(configJson.getValue().contains(
+                "\"gremlin.graph\":\"org.apache.hugegraph.auth." +
+                "HugeFactoryAuthProxy\""));
+        Assert.assertTrue(configJson.getValue().contains(
+                "\"backend\":\"rocksdb\""));
+        Assert.assertTrue(configJson.getValue().contains(
+                "\"task.scheduler_type\":\"local\""));
+        Assert.assertTrue(configJson.getValue().contains(
+                "\"rocksdb.data_path\":\"rocksdb-data/data_demo\""));
+        Assert.assertTrue(configJson.getValue().contains(
+                "\"rocksdb.wal_path\":\"rocksdb-data/wal_demo\""));
+    }
+
+    @Test
+    public void testCreateStandaloneGraphRejectsUnsafeName() {
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.PD_ENABLED)).thenReturn(false);
+        ReflectionTestUtils.setField(this.service, "config", config);
+
+        try {
+            this.service.create(this.client, "Unsafe", "../unsafe", null);
+            Assert.fail("Expected unsafe graph name to be rejected");
+        } catch (ExternalException ignored) {
+            // Expected.
+        }
+        Mockito.verify(this.graphs, Mockito.never())
+               .createGraph(Mockito.anyString(), Mockito.anyString());
     }
 
     @Test

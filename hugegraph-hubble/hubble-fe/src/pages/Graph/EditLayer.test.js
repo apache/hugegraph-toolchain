@@ -34,6 +34,7 @@ jest.mock('../../api', () => ({
         getSchemaList: jest.fn(),
         getSchema: jest.fn(),
         addSchema: jest.fn(),
+        addGraphSchema: jest.fn(),
         addGraph: jest.fn(),
         getGraph: jest.fn(),
     },
@@ -41,6 +42,7 @@ jest.mock('../../api', () => ({
 
 beforeEach(() => {
     jest.clearAllMocks();
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true}));
     URL.createObjectURL = jest.fn(() => 'blob:schema');
     URL.revokeObjectURL = jest.fn();
     window.matchMedia = jest.fn().mockImplementation(query => ({
@@ -176,6 +178,77 @@ test('persists a selected built-in template before creating the graph', async ()
         'DEFAULT',
         expect.objectContaining({graph: 'people', schema: 'people_network'})
     ));
+});
+
+test('creates a standalone graph before applying its built-in schema', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
+    api.manage.getSchemaList.mockRejectedValue(new Error('PD unavailable'));
+    api.manage.addGraph.mockResolvedValue({status: 200});
+    api.manage.addGraphSchema.mockResolvedValue({status: 200});
+
+    render(
+        <EditLayer
+            visible
+            onCancel={jest.fn()}
+            refresh={jest.fn()}
+            graphspace='DEFAULT'
+        />
+    );
+
+    await waitFor(() => expect(screen.getByRole('combobox')).toBeEnabled());
+    expect(api.manage.getSchemaList).not.toHaveBeenCalled();
+    await userEvent.type(
+        screen.getByPlaceholderText('graph.form.name_placeholder'),
+        'standalone_people'
+    );
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByText('schema_template.builtin.people_network'));
+    fireEvent.click(document.querySelector('.ant-modal-footer .ant-btn-primary'));
+
+    await waitFor(() => expect(api.manage.addGraph).toHaveBeenCalledWith(
+        'DEFAULT',
+        expect.not.objectContaining({schema: 'people_network'})
+    ));
+    expect(api.manage.addSchema).not.toHaveBeenCalled();
+    await waitFor(() => expect(api.manage.addGraphSchema).toHaveBeenCalledWith(
+        'DEFAULT',
+        'standalone_people',
+        {'schema-groovy': expect.stringContaining('graph.schema().vertexLabel("person")')},
+        expect.objectContaining({suppressBusinessErrorToast: true})
+    ));
+});
+
+test('refreshes a created standalone graph when its schema application fails', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: false}));
+    api.manage.getSchemaList.mockResolvedValue({status: 200, data: {records: []}});
+    api.manage.addGraph.mockResolvedValue({status: 200});
+    api.manage.addGraphSchema.mockRejectedValue({
+        response: {data: {message: 'schema rejected by server'}},
+    });
+    const onCancel = jest.fn();
+    const refresh = jest.fn();
+
+    render(
+        <EditLayer
+            visible
+            onCancel={onCancel}
+            refresh={refresh}
+            graphspace='DEFAULT'
+        />
+    );
+
+    await waitFor(() => expect(screen.getByRole('combobox')).toBeEnabled());
+    await userEvent.type(
+        screen.getByPlaceholderText('graph.form.name_placeholder'),
+        'partial_graph'
+    );
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByText('schema_template.builtin.people_network'));
+    fireEvent.click(document.querySelector('.ant-modal-footer .ant-btn-primary'));
+
+    await waitFor(() => expect(onCancel).toHaveBeenCalled());
+    expect(refresh).toHaveBeenCalled();
+    expect(await screen.findByText('schema rejected by server')).toBeInTheDocument();
 });
 
 test('creates without an alias and never copies the graph name into nickname', async () => {

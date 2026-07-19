@@ -31,104 +31,13 @@ import {formatToGraphInData} from '../../utils/formatGraphInData';
 import {useTranslation} from 'react-i18next';
 import styles from './ImageView.module.scss';
 import {BUILTIN_SCHEMA_TEMPLATES} from '../Schema/builtinSchemaTemplates';
+import {toGraphSchemaGroovy} from '../Schema/schemaGroovy';
 
 const SCHEMA_LABEL_DOCS_URL
     = 'https://hugegraph.apache.org/docs/clients/hugegraph-client/';
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 const BUILTIN_TEMPLATE_SOURCE = 'builtin:';
 const SAVED_TEMPLATE_SOURCE = 'saved:';
-
-const sanitizeSchemaSource = schema => {
-    let result = '';
-    let quote = '';
-    let escaped = false;
-    let lineComment = false;
-    let blockComment = false;
-    for (let index = 0; index < schema.length; index += 1) {
-        const value = schema[index];
-        const next = schema[index + 1];
-        if (lineComment) {
-            if (value === '\n' || value === '\r') {
-                lineComment = false;
-                result += value;
-            }
-            continue;
-        }
-        if (blockComment) {
-            if (value === '*' && next === '/') {
-                blockComment = false;
-                index += 1;
-            }
-            else if (value === '\n' || value === '\r') {
-                result += value;
-            }
-            continue;
-        }
-        if (quote) {
-            result += value;
-            if (escaped) {
-                escaped = false;
-            }
-            else if (value === '\\') {
-                escaped = true;
-            }
-            else if (value === quote) {
-                quote = '';
-            }
-            continue;
-        }
-        if (value === '/' && next === '/') {
-            lineComment = true;
-            index += 1;
-            continue;
-        }
-        if (value === '/' && next === '*') {
-            blockComment = true;
-            index += 1;
-            continue;
-        }
-        if (value === '\'' || value === '"') {
-            quote = value;
-        }
-        result += value;
-        if (value === ';') {
-            result += '\n';
-        }
-    }
-    return result;
-};
-
-const toGraphSchemaGroovy = schema => {
-    const statements = [];
-    const rawSchema = String(schema || '').trim();
-    let decodedSchema = rawSchema;
-    if (rawSchema.startsWith('"') && rawSchema.endsWith('"')) {
-        try {
-            const parsed = JSON.parse(rawSchema);
-            if (typeof parsed === 'string') {
-                decodedSchema = parsed;
-            }
-        }
-        catch (error) {
-            // The Server will return a precise validation error for malformed content.
-        }
-    }
-    sanitizeSchemaSource(decodedSchema).split(/\r?\n/).forEach(line => {
-        const trimmed = line.trim();
-        if (!trimmed) {
-            return;
-        }
-        if (/^(schema\.|graph\.schema\(\)\.)/.test(trimmed) || !statements.length) {
-            statements.push(trimmed);
-            return;
-        }
-        statements[statements.length - 1] += trimmed;
-    });
-    return statements.map(statement => statement.replace(
-        /^schema\./,
-        'graph.schema().'
-    )).join('\n');
-};
 
 const enlargeSmallSchema = data => {
     if (!data.nodes?.length || data.nodes.length >= 10) {

@@ -12,7 +12,7 @@
       "intro": "Hubble is designed for graph visualization users",
       "mode": {
         "pd": "PD / cluster mode",
-        "non_pd": "non-PD / RocksDB standalone mode"
+        "non_pd": "non-PD standalone mode"
       },
       "journeys": {
         "title": "Start working",

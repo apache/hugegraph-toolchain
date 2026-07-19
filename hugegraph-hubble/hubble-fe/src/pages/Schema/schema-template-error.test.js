@@ -49,8 +49,15 @@ test.each(Object.entries(BUILTIN_SCHEMA_TEMPLATES))(
         expect(script).toContain('propertyKey(');
         expect(script).toContain('vertexLabel(');
         expect(script).toContain('edgeLabel(');
-        expect(script).toContain('indexLabel(');
         expect(script).toContain('primaryKeys(');
-        expect(script.match(/ifNotExist\(\)/g).length).toBeGreaterThanOrEqual(5);
+        expect(script.match(/ifNotExist\(\)/g).length).toBeGreaterThanOrEqual(4);
     }
 );
+
+test('people_network avoids a redundant secondary index on its full primary key', () => {
+    expect(BUILTIN_SCHEMA_TEMPLATES.people_network).not.toContain('indexLabel(');
+});
+
+test('product_catalog keeps its non-primary-key range index', () => {
+    expect(BUILTIN_SCHEMA_TEMPLATES.product_catalog).toContain('indexLabel(');
+});

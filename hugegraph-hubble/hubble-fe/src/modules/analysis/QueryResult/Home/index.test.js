@@ -24,6 +24,8 @@ import {
     getQueryResultStandbyMessage,
 } from './utils';
 import JSONbig from 'json-bigint';
+import enAnalysis from '../../../../i18n/resources/en-US/modules/analysis.json';
+import zhAnalysis from '../../../../i18n/resources/zh-CN/modules/analysis.json';
 
 jest.mock('react-i18next', () => ({
     useTranslation: () => ({
@@ -39,7 +41,7 @@ jest.mock('react-i18next', () => ({
                     'This result cannot be rendered as a graph; a JSON preview is shown.',
                 'analysis.query_result.view_full_json': 'View raw JSON',
                 'analysis.query_result.empty_success':
-                    'The query succeeded without displayable data.',
+                    'Query succeeded, result is empty',
             };
             return text[key] || key;
         },
@@ -137,6 +139,40 @@ it('previews a small scalar result instead of calling it an empty graph', () => 
     expect(screen.getByText('Query result preview')).toBeInTheDocument();
     expect(screen.getByText(/42/)).toBeInTheDocument();
     expect(screen.queryByText('analysis.query_result.no_graph_result'))
+        .not.toBeInTheDocument();
+});
+
+it('labels a completely empty successful result precisely', () => {
+    render(<QueryResult
+        queryStatus='success'
+        isQueryMode
+        queryResult={{
+            graph_view: {vertices: [], edges: []},
+            table_view: {header: [], rows: []},
+            json_view: {data: []},
+        }}
+    />);
+
+    expect(screen.getByText('Query succeeded, result is empty')).toBeInTheDocument();
+    expect(zhAnalysis.analysis.query_result.empty_success).toBe('查询成功，结果为空');
+    expect(enAnalysis.analysis.query_result.empty_success)
+        .toBe('Query succeeded, result is empty');
+});
+
+it('keeps a non-empty JSON-only result in the JSON preview path', () => {
+    render(<QueryResult
+        queryStatus='success'
+        isQueryMode
+        queryResult={{
+            graph_view: {vertices: [], edges: []},
+            table_view: {header: [], rows: []},
+            json_view: {data: {count: 42}},
+        }}
+    />);
+
+    expect(screen.getByText('Query result preview')).toBeInTheDocument();
+    expect(screen.getByText(/"count": 42/)).toBeInTheDocument();
+    expect(screen.queryByText('Query succeeded, result is empty'))
         .not.toBeInTheDocument();
 });
 

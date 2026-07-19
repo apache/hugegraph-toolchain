@@ -60,8 +60,7 @@ jest.mock('react-i18next', () => ({
         'analysis.query.gremlin_placeholder': 'For example: g.V().limit(10)',
         'analysis.query.cypher_tab': 'Cypher',
         'analysis.query.cypher_placeholder': 'For example: MATCH (n) RETURN n LIMIT 10',
-        'analysis.query.shortcut_hint_ctrl': 'Ctrl + Enter to run',
-        'analysis.query.shortcut_hint_command': 'Command + Enter to run',
+        'analysis.query.shortcut_hint': 'Ctrl / Command + Enter to run',
         'analysis.query.text2gql_tab': 'Natural language',
         'analysis.query.text2gql_title': 'Natural-language graph query',
         'analysis.query.text2gql_description': 'This preview is not connected.',
@@ -151,8 +150,9 @@ it('matches the editor placeholder to the active query language without promotio
         'For example: g.V().limit(10)'
     );
     expect(screen.queryByText(/safe example/i)).not.toBeInTheDocument();
-    expect(screen.getByText('Ctrl + Enter to run')).toBeInTheDocument();
-    expect(screen.getByText('Command + Enter to run')).toBeInTheDocument();
+    expect(screen.getByText('Ctrl / Command + Enter to run')).toBeInTheDocument();
+    expect(screen.getByText('Ctrl / Command + Enter to run').parentElement)
+        .toHaveAttribute('aria-hidden', 'true');
     expect(screen.getByTestId('editor-gremlin')).toHaveAttribute(
         'data-meta-enter-newline', 'false'
     );
@@ -166,6 +166,20 @@ it('matches the editor placeholder to the active query language without promotio
         'For example: MATCH (n) RETURN n LIMIT 10'
     );
     expect(screen.queryByText(/safe example/i)).not.toBeInTheDocument();
+});
+
+it('shows one combined Ctrl and Command shortcut hint on every platform', () => {
+    render(
+        <QueryBar
+            activeTab='Gremlin'
+            onTabsChange={jest.fn()}
+            onExecute={jest.fn()}
+            codeEditorContent='g.V()'
+            setCodeEditorContent={jest.fn()}
+        />
+    );
+
+    expect(screen.getByText('Ctrl / Command + Enter to run')).toBeInTheDocument();
 });
 
 it('keeps query actions, language tabs, and Text2GQL in one navigation row', () => {

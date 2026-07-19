@@ -269,6 +269,7 @@
       "schema_optional_hint": "可选；不选择模板时将创建空 Schema 图",
       "schema_create": "点击创建 Graph Schema",
       "schema_create_failed": "内置 Graph Schema 创建失败，请检查模板列表后重试。",
+      "schema_apply_failed": "图已创建，但内置 Schema 应用失败，请进入元数据页面重试。",
       "schema_verify_failed": "无法确认已有内置 Graph Schema，请等待模板服务恢复后重试。",
       "schema_conflict": "已有 {{name}} 模板与内置模板内容不同，请重命名它或改用其他模板。",
       "create_success": "创建成功",

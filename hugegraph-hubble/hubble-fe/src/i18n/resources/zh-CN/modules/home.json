@@ -12,7 +12,7 @@
       "intro": "Hubble 面向图可视化人群",
       "mode": {
         "pd": "PD / 集群模式",
-        "non_pd": "non-PD / RocksDB 单机模式"
+        "non_pd": "non-PD 单机模式"
       },
       "journeys": {
         "title": "开始工作",

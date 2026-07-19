@@ -24,7 +24,9 @@ import * as rules from '../../utils/rules';
 import {byteConvert, timeConvert} from '../../utils/format';
 import style from './index.module.scss';
 import {BUILTIN_SCHEMA_TEMPLATES} from '../Schema/builtinSchemaTemplates';
+import {toGraphSchemaGroovy} from '../Schema/schemaGroovy';
 import {getResourceAlias, getResourceDisplayName} from '../../utils/displayName';
+import {isPdEnabled} from '../../utils/config';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 const DUPLICATE_SCHEMA_TEMPLATE
@@ -37,7 +39,7 @@ const isEquivalentBuiltinSchema = (actual, expected) => (
 );
 
 const errorMessage = error => (
-    error?.response?.data?.message || error?.message
+    error?.response?.data?.message || error?.data?.message || error?.message
 );
 
 const isDuplicateSchemaError = error => (
@@ -51,18 +53,21 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
     const [loading, setLoading] = useState(false);
     const [form] = Form.useForm();
     const {t} = useTranslation();
+    const pdMode = isPdEnabled();
     const schemaOptions = useMemo(() => {
         const builtinNames = new Set(Object.keys(BUILTIN_SCHEMA_TEMPLATES));
         const builtins = [...builtinNames].map(name => ({
             label: t(`schema_template.builtin.${name}`),
             value: name,
         }));
-        const saved = schemaList
-            .filter(item => !builtinNames.has(item.name))
-            .map(item => ({label: item.name, value: item.name}));
+        const saved = pdMode
+            ? schemaList
+                .filter(item => !builtinNames.has(item.name))
+                .map(item => ({label: item.name, value: item.name}))
+            : [];
 
         return [...builtins, ...saved];
-    }, [schemaList, t]);
+    }, [pdMode, schemaList, t]);
 
     const confirmBuiltinTemplate = useCallback(async (name, expectedSchema) => {
         const res = await api.manage.getSchema(graphspace, name, PAGE_ERROR_CONFIG);
@@ -115,6 +120,10 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
     const loadSchemaTemplates = useCallback(() => {
         setSchemaList([]);
         setSchemaError(false);
+        if (!pdMode) {
+            setSchemaLoading(false);
+            return;
+        }
         setSchemaLoading(true);
         api.manage.getSchemaList(graphspace, {page_size: -1}).then(res => {
             if (res.status === 200) {
@@ -124,7 +133,7 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
             setSchemaError(true);
         }).catch(() => setSchemaError(true))
             .finally(() => setSchemaLoading(false));
-    }, [graphspace]);
+    }, [graphspace, pdMode]);
 
     const onFinish = useCallback(() => {
         form.validateFields().then(values => {
@@ -145,12 +154,44 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
             }
 
             const builtinSchema = BUILTIN_SCHEMA_TEMPLATES[values.schema];
-            const ensureTemplate = builtinSchema
+            const ensureTemplate = pdMode && builtinSchema
                 ? ensureBuiltinTemplate(values.schema, builtinSchema)
                 : Promise.resolve();
 
-            ensureTemplate.then(() => {
-                return api.manage.addGraph(graphspace, {...values, auth: false, graphspace});
+            ensureTemplate.then(async () => {
+                const graphRequest = {...values, auth: false, graphspace};
+                if (!pdMode) {
+                    delete graphRequest.schema;
+                }
+                const result = await api.manage.addGraph(graphspace, graphRequest);
+                if (result.status !== 200 || pdMode || !builtinSchema) {
+                    return result;
+                }
+                try {
+                    const schemaResult = await api.manage.addGraphSchema(
+                        graphspace,
+                        values.graph,
+                        {'schema-groovy': toGraphSchemaGroovy(builtinSchema)},
+                        PAGE_ERROR_CONFIG
+                    );
+                    if (schemaResult.status !== 200) {
+                        throw new Error(schemaResult.message
+                                        || t('graph.form.schema_apply_failed'));
+                    }
+                }
+                catch (error) {
+                    const messageText = errorMessage(error)
+                        || t('graph.form.schema_apply_failed');
+                    const partialError = error instanceof Error
+                        ? error
+                        : new Error(messageText);
+                    if (!partialError.message) {
+                        partialError.message = messageText;
+                    }
+                    partialError.graphCreated = true;
+                    throw partialError;
+                }
+                return result;
             }).then(res => {
                 setLoading(false);
                 if (res.status === 200) {
@@ -162,10 +203,14 @@ const EditLayer = ({visible, onCancel, refresh, graphspace, graph}) => {
                 message.error(res.message);
             }).catch(error => {
                 setLoading(false);
+                if (error.graphCreated) {
+                    onCancel();
+                    refresh();
+                }
                 message.error(error.message || t('common.msg.operation_failed'));
             });
         });
-    }, [form, graphspace, graph, refresh, onCancel, ensureBuiltinTemplate, t]);
+    }, [form, graphspace, graph, refresh, onCancel, ensureBuiltinTemplate, pdMode, t]);
 
     useEffect(() => {
         if (!visible) {

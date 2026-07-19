@@ -65,7 +65,7 @@ const getTaskGraphspaceOptions = (pdEnabled, graphspaces = []) => {
     }));
 };
 
-const isGraphCreateEnabled = pdEnabled => pdEnabled;
+const isGraphCreateEnabled = () => true;
 
 const isGraphDefaultMutationEnabled = pdEnabled => pdEnabled;
 

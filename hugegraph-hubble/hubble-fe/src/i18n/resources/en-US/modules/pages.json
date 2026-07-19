@@ -269,6 +269,7 @@
       "schema_optional_hint": "Optional. You can create an empty graph without a template",
       "schema_create": "Create a Graph Schema",
       "schema_create_failed": "The built-in Graph Schema could not be created. Check the template list and retry.",
+      "schema_apply_failed": "The graph was created, but its built-in Schema could not be applied. Retry from Metadata.",
       "schema_verify_failed": "The existing built-in Graph Schema could not be verified. Retry after the template service recovers.",
       "schema_conflict": "The existing {{name}} template differs from the built-in template. Rename it or use another template.",
       "create_success": "Graph created",

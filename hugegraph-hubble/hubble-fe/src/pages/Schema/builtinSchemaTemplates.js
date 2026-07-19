@@ -24,8 +24,6 @@ const BUILTIN_SCHEMA_TEMPLATES = {
         '      .ifNotExist().create()',
         'schema.edgeLabel("knows").sourceLabel("person").targetLabel("person")',
         '      .properties("since").ifNotExist().create()',
-        'schema.indexLabel("personByName").onV("person").by("name")',
-        '      .secondary().ifNotExist().create()',
     ].join('\n'),
     product_catalog: [
         'schema.propertyKey("sku").asText().ifNotExist().create()',

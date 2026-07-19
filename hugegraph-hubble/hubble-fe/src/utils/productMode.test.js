@@ -55,8 +55,8 @@ describe('product mode helpers', () => {
         expect(shouldUseNonPdDefaultGraphspace(true, 'demo')).toBe(false);
     });
 
-    test('disables graph create and default mutation in non-PD mode', () => {
-        expect(isGraphCreateEnabled(false)).toBe(false);
+    test('keeps graph create available while disabling default mutation in non-PD mode', () => {
+        expect(isGraphCreateEnabled(false)).toBe(true);
         expect(isGraphCreateEnabled(true)).toBe(true);
         expect(isGraphDefaultMutationEnabled(false)).toBe(false);
         expect(isGraphDefaultMutationEnabled(true)).toBe(true);
