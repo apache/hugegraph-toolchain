@@ -17,24 +17,18 @@
 
 package org.apache.hugegraph.loader.test.functional;
 
-import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.charset.Charset;
-import java.util.Arrays;
-import java.util.Objects;
 
 import org.apache.commons.compress.compressors.CompressorException;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.slf4j.Logger;
-
-import org.apache.hugegraph.loader.exception.LoadException;
 import org.apache.hugegraph.loader.source.file.Compression;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 public class HDFSUtil implements IOUtil {
 
@@ -42,18 +36,15 @@ public class HDFSUtil implements IOUtil {
 
     private final String storePath;
     private final Configuration conf;
-    private final FileSystem hdfs;
+    private final FileSystem fs;
 
     public HDFSUtil(String storePath) {
         this.storePath = storePath;
-        this.conf = loadConfiguration();
-        // HDFS doesn't support write by default
-        this.conf.setBoolean("dfs.support.write", true);
-        this.conf.setBoolean("fs.hdfs.impl.disable.cache", true);
+        this.conf = new Configuration();
         try {
-            this.hdfs = FileSystem.get(URI.create(storePath), this.conf);
+            this.fs = FileSystem.get(URI.create(storePath), this.conf);
         } catch (IOException e) {
-            throw new LoadException("Failed to create HDFS file system", e);
+            throw new RuntimeException("Failed to init HDFS file system", e);
         }
     }
 
@@ -67,62 +58,41 @@ public class HDFSUtil implements IOUtil {
         return this.conf;
     }
 
-    private static Configuration loadConfiguration() {
-        // Just use local hadoop with default config in test
-        String fileName = "hdfs_with_core_site_path/core-site.xml";
-        String confPath = Objects.requireNonNull(HDFSUtil.class.getClassLoader()
-                                                               .getResource(fileName)).getPath();
-        Configuration conf = new Configuration();
-        conf.addResource(new Path(confPath));
-        return conf;
-    }
-
     @Override
-    public void mkdirs(String dir) {
-        Path path = new Path(this.storePath, dir);
+    public void mkdirs(String path) {
         try {
-            this.hdfs.mkdirs(path);
+            this.fs.mkdirs(new Path(this.storePath, path));
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Failed to create directory '%s'", path), e);
+            throw new RuntimeException("Failed to mkdirs: " + path, e);
         }
     }
 
     @Override
-    public void write(String fileName, Charset charset,
-                      Compression compress, String... lines) {
+    public void write(String fileName, Charset charset, Compression compression, String... lines) {
         Path path = new Path(this.storePath, fileName);
-        checkPath(path);
-
-        if (compress == Compression.NONE) {
-            try (FSDataOutputStream fos = this.hdfs.append(path)) {
+        try (OutputStream os = this.fs.create(path, true)) {
+            if (compression == Compression.NONE) {
                 for (String line : lines) {
-                    fos.write(line.getBytes(charset));
-                    fos.write("\n".getBytes(charset));
+                    os.write(line.getBytes(charset));
+                    os.write("\n".getBytes(charset));
                 }
-                fos.flush();
-            } catch (IOException e) {
-                throw new RuntimeException(String.format("Failed to write lines '%s' to path '%s'",
-                                                         Arrays.asList(lines), path), e);
+            } else {
+                IOUtil.compress(os, charset, compression, lines);
             }
-        } else {
-            try (FSDataOutputStream fos = this.hdfs.append(path)) {
-                IOUtil.compress(fos, charset, compress, lines);
-            } catch (IOException | CompressorException e) {
-                throw new RuntimeException(String.format("Failed to write lines '%s' to file " +
-                                                         "'%s' in '%s' compression format",
-                                                         Arrays.asList(lines), path, compress), e);
-            }
+        } catch (IOException | CompressorException e) {
+            throw new RuntimeException("Failed to write file: " + fileName, e);
         }
     }
 
     @Override
     public void copy(String srcPath, String destPath) {
         try {
-            FileUtil.copy(new File(srcPath), this.hdfs, new Path(destPath),
-                          false, this.conf);
+            // 通常测试场景是将本地文件上传到 HDFS
+            Path src = new Path(srcPath);
+            Path dst = new Path(this.storePath, destPath);
+            this.fs.copyFromLocalFile(src, dst);
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Failed to copy file '%s' to '%s'",
-                                                     srcPath, destPath));
+            throw new RuntimeException("Failed to copy file from " + srcPath + " to " + destPath, e);
         }
     }
 
@@ -130,34 +100,20 @@ public class HDFSUtil implements IOUtil {
     public void delete() {
         Path path = new Path(this.storePath);
         try {
-            this.hdfs.delete(path, true);
+            if (this.fs.exists(path)) {
+                this.fs.delete(path, true);
+            }
         } catch (IOException e) {
-            throw new RuntimeException(String.format("Failed to delete file '%s'", path), e);
+            throw new RuntimeException("Failed to delete path: " + this.storePath, e);
         }
     }
 
     @Override
     public void close() {
         try {
-            this.hdfs.close();
+            this.fs.close();
         } catch (IOException e) {
             LOG.warn("Failed to close HDFS file system", e);
-        }
-    }
-
-    private void checkPath(Path path) {
-        try {
-            if (!this.hdfs.exists(path)) {
-                this.hdfs.mkdirs(path.getParent());
-                this.hdfs.createNewFile(path);
-            } else {
-                if (!this.hdfs.isFile(path)) {
-                    throw new RuntimeException(String.format("Please ensure the path '%s' is file",
-                                                             path.getName()));
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException(String.format("Failed to check HDFS path '%s'", path), e);
         }
     }
 }

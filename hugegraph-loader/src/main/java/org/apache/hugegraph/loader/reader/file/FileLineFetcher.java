@@ -37,20 +37,19 @@ import org.apache.hadoop.io.compress.CompressionInputStream;
 import org.apache.hadoop.io.compress.SnappyCodec;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hugegraph.loader.exception.LoadException;
-import org.apache.hugegraph.loader.reader.line.Line;
-import org.apache.hugegraph.loader.reader.line.LineFetcher;
-import org.apache.hugegraph.loader.source.file.Compression;
-import org.apache.hugegraph.loader.source.file.FileFormat;
-import org.apache.hugegraph.loader.source.file.FileSource;
-import org.slf4j.Logger;
-
 import org.apache.hugegraph.loader.parser.CsvLineParser;
 import org.apache.hugegraph.loader.parser.JsonLineParser;
 import org.apache.hugegraph.loader.parser.LineParser;
 import org.apache.hugegraph.loader.parser.TextLineParser;
 import org.apache.hugegraph.loader.reader.Readable;
+import org.apache.hugegraph.loader.reader.line.Line;
+import org.apache.hugegraph.loader.reader.line.LineFetcher;
+import org.apache.hugegraph.loader.source.file.Compression;
+import org.apache.hugegraph.loader.source.file.FileFormat;
+import org.apache.hugegraph.loader.source.file.FileSource;
 import org.apache.hugegraph.util.E;
 import org.apache.hugegraph.util.Log;
+import org.slf4j.Logger;
 
 /**
  * Used to iterate all readable data files, like local files, hdfs paths
@@ -158,6 +157,10 @@ public class FileLineFetcher extends LineFetcher {
     @Override
     public Line fetch() throws IOException {
         while (true) {
+            // Fix NPE: check if reader is null before reading
+            if (this.reader == null) {
+                return null;
+            }
             // Read next line from current file
             String rawLine = this.reader.readLine();
             if (rawLine == null) {
@@ -199,6 +202,11 @@ public class FileLineFetcher extends LineFetcher {
 
         try {
             for (long i = 0L; i < offset; i++) {
+                // Fix NPE: check reader again inside loop
+                if (this.reader == null) {
+                    throw new LoadException("Reader is null when skipping offset of file %s",
+                                            readable);
+                }
                 this.reader.readLine();
             }
         } catch (IOException e) {
@@ -231,9 +239,13 @@ public class FileLineFetcher extends LineFetcher {
             return false;
         }
 
-        assert this.source().header() != null;
+        String[] header = this.source().header();
+        // Fix NPE: header might be null
+        if (header == null) {
+            return false;
+        }
         String[] columns = this.parser.split(line);
-        return Arrays.equals(this.source().header(), columns);
+        return Arrays.equals(header, columns);
     }
 
     private static BufferedReader createBufferedReader(InputStream stream,

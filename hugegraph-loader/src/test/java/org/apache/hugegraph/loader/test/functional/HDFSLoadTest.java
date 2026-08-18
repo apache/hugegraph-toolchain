@@ -66,6 +66,7 @@ public class HDFSLoadTest extends FileLoadTest {
                 "-g", GRAPH,
                 "-h", SERVER,
                 "--batch-insert-threads", "2",
+                "--parser-threads", "4", // <--- 【修改点 1】增加并发解析线程数
                 "--test-mode", "true"
         ));
         argsList.addAll(Arrays.asList("--username", "admin", "--password", "pa"));
@@ -95,6 +96,7 @@ public class HDFSLoadTest extends FileLoadTest {
                 "-g", GRAPH,
                 "-h", SERVER,
                 "--batch-insert-threads", "2",
+                "--parser-threads", "4", // <--- 【修改点 2】增加并发解析线程数
                 "--test-mode", "true"
         ));
         argsList.addAll(Arrays.asList("--username", "admin", "--password", "pa"));
