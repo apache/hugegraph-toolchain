@@ -26,6 +26,7 @@ import org.junit.runners.Suite;
         PathSerializerTest.class,
         RestResultTest.class,
         RestClientStatusTest.class,
+        AuthApiPathTest.class,
         BatchElementRequestTest.class,
         PropertyKeyTest.class,
         IndexLabelTest.class,

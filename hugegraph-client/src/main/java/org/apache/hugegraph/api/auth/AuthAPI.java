@@ -24,6 +24,7 @@ import org.apache.hugegraph.structure.auth.AuthElement;
 public abstract class AuthAPI extends API {
 
     private static final String PATH = "graphspaces/%s/auth/%s";
+    private static final String LEGACY_PATH = "graphs/%s/auth/%s";
     private static final String USER_PATH = "auth/%s";
 
     public AuthAPI(RestClient client) {
@@ -34,6 +35,15 @@ public abstract class AuthAPI extends API {
     public AuthAPI(RestClient client, String graphSpace) {
         super(client);
         this.path(PATH, graphSpace, this.type());
+    }
+
+    public AuthAPI(RestClient client, String graphSpace, String graph) {
+        super(client);
+        if (!client.isSupportGs() && graph != null && !graph.isEmpty()) {
+            this.path(LEGACY_PATH, graph, this.type());
+        } else {
+            this.path(PATH, graphSpace, this.type());
+        }
     }
 
     public static String formatEntityId(Object id) {

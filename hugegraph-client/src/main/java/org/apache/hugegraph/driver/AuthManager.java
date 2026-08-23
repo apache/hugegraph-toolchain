@@ -66,7 +66,7 @@ public class AuthManager {
         this.targetAPI = new TargetAPI(client, graphSpace);
         this.groupAPI = new GroupAPI(client);
         this.graphSpaceGroupAPI = new GroupAPI(client, graphSpace);
-        this.userAPI = new UserAPI(client, graphSpace);
+        this.userAPI = new UserAPI(client, graphSpace, graph);
         this.accessAPI = new AccessAPI(client, graphSpace);
         this.projectAPI = new ProjectAPI(client, graphSpace);
         this.belongAPI = new BelongAPI(client, graphSpace);

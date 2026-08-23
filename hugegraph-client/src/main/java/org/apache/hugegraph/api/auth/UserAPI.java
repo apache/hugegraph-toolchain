@@ -30,8 +30,17 @@ import com.google.common.collect.ImmutableMap;
 
 public class UserAPI extends AuthAPI {
 
+    private final boolean legacyGraphScoped;
+
     public UserAPI(RestClient client, String graphSpace) {
         super(client, graphSpace);
+        this.legacyGraphScoped = false;
+    }
+
+    public UserAPI(RestClient client, String graphSpace, String graph) {
+        super(client, graphSpace, graph);
+        this.legacyGraphScoped = !client.isSupportGs() &&
+                                 graph != null && !graph.isEmpty();
     }
 
     @Override
@@ -70,8 +79,19 @@ public class UserAPI extends AuthAPI {
     }
 
     public User getByName(String name) {
-        Map<String, Object> params = ImmutableMap.of("name", name);
+        Map<String, Object> params = this.legacyGraphScoped ?
+                                     ImmutableMap.of("limit", -1) :
+                                     ImmutableMap.of("name", name);
         RestResult result = this.client.get(this.path(), params);
+        if (this.legacyGraphScoped) {
+            List<User> users = result.readList(this.type(), User.class);
+            for (User user : users) {
+                if (name.equals(user.name())) {
+                    return user;
+                }
+            }
+            return null;
+        }
         return result.readObject(User.class);
     }
 
