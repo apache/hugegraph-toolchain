@@ -18,10 +18,12 @@
 package org.apache.hugegraph.util;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.apache.hugegraph.rest.SerializeException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.Module;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -59,5 +61,18 @@ public final class JsonUtil {
             throw new SerializeException("Failed to deserialize json node '%s'",
                                          e, node);
         }
+    }
+
+    public static <T> List<T> fromJson2List(String json, Class<T> clazz) {
+        try {
+            return MAPPER.readValue(json, getCollectionType(List.class, clazz));
+        } catch (IOException e) {
+            throw new SerializeException("Failed to deserialize json '%s'", e, json);
+        }
+    }
+
+    private static JavaType getCollectionType(Class<?> collectionClass,
+                                              Class<?>... elementClasses) {
+        return MAPPER.getTypeFactory().constructParametricType(collectionClass, elementClasses);
     }
 }

@@ -39,7 +39,8 @@ import org.junit.runners.Suite;
         ServerCompatibilityTest.class,
         CommonUtilTest.class,
         IdUtilTest.class,
-        SplicingIdGeneratorTest.class
+        SplicingIdGeneratorTest.class,
+        JsonUtilTest.class
 })
 public class UnitTestSuite {
 }
