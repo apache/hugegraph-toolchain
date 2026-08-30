@@ -43,7 +43,7 @@
         <spark.verion>3.2.2</spark.verion>
         <spark.scope>provided</spark.scope>
         <jackson.version>2.12.3</jackson.version>
-        <log4j.version>2.18.0</log4j.version>
+        <log4j.version>2.25.3</log4j.version>
         <slf4j.api.version>1.7.25</slf4j.api.version>
         <scala.minor.version>2.12.11</scala.minor.version>
         <assembly.dir>${project.basedir}/assembly</assembly.dir>
