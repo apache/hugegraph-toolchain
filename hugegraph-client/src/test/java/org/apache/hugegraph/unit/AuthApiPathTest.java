@@ -25,6 +25,7 @@ import org.junit.Test;
 
 import org.apache.hugegraph.api.auth.UserAPI;
 import org.apache.hugegraph.client.RestClient;
+import org.apache.hugegraph.rest.ClientException;
 import org.apache.hugegraph.structure.auth.User;
 import org.apache.hugegraph.testutil.Assert;
 
@@ -49,6 +50,17 @@ public class AuthApiPathTest {
         client.setSupportGs(true);
 
         UserAPI api = new UserAPI(client, "DEFAULT", "hugegraph");
+
+        Assert.assertEquals("graphspaces/DEFAULT/auth/users", api.path());
+        client.close();
+    }
+
+    @Test
+    public void testLegacyServerWithoutGraphUsesGraphSpaceScopedAuthPath() {
+        RestClient client = new RestClient("http://localhost", "", "", 1);
+        client.setSupportGs(false);
+
+        UserAPI api = new UserAPI(client, "DEFAULT", null);
 
         Assert.assertEquals("graphspaces/DEFAULT/auth/users", api.path());
         client.close();
@@ -91,6 +103,11 @@ public class AuthApiPathTest {
             UserAPI api = new UserAPI(client, "DEFAULT", "hugegraph");
             User user = api.getByName("admin");
             Assert.assertEquals("admin", user.name());
+            Assert.assertThrows(ClientException.class,
+                                () -> api.getByName("missing"),
+                                e -> Assert.assertContains(
+                                        "User 'missing' does not exist",
+                                        e.getMessage()));
         } finally {
             client.close();
             server.stop(0);
