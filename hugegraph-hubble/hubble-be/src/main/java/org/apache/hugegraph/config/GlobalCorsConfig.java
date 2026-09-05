@@ -35,6 +35,7 @@ public class GlobalCorsConfig {
         config.setAllowCredentials(false);
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
+        config.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
