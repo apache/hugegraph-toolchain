@@ -18,6 +18,7 @@ on:
       - .github/workflows/**
       - pom.xml
 
+# Keep the newest PR run; preserve independent push, release and manual runs.
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
