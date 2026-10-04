@@ -26,12 +26,18 @@ on:
       - 'release-*'
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   check-license-header:
     runs-on: ubuntu-latest
     steps:
       - name: Fetch Code
         uses: actions/checkout@v7
+      - name: Test automatic retry freshness rules
+        run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       # More info could refer to: https://github.com/apache/skywalking-eyes
       - name: Check License Header
         uses: apache/skywalking-eyes@29bd646002b63bb4c0ed1648d1654c35fb8ff027 # main 2026-07-12

@@ -26,6 +26,10 @@ env:
   HUGEGRAPH_SERVER_GIT_URL: https://github.com/apache/hugegraph.git
   HUGEGRAPH_SERVER_BRANCH: master
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
   hubble-ci:
     runs-on: ubuntu-latest
