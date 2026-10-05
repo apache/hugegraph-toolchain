@@ -25,4 +25,3 @@ fixture_wait() {
     echo "HugeGraph readiness timed out: $url" >&2
     return 1
 }
-
