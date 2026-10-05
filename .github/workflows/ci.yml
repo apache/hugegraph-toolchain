@@ -29,7 +29,6 @@ permissions:
   contents: read
   actions: read
   pull-requests: read
-  security-events: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.run_attempt == 1 && 'head' || format('rerun-{0}', github.run_id) }}
@@ -262,7 +261,12 @@ jobs:
 
   security:
     needs: [plan, affected-module-tests]
+    permissions:
+      contents: read
+      actions: read
+      security-events: write
     if: >-
+      !cancelled() && needs.plan.result == 'success' &&
       needs.affected-module-tests.result == 'success' &&
       (needs.plan.outputs.security == 'true' ||
        (github.event_name == 'pull_request' && vars.CI_OPTIMIZED_REQUIRED != 'true'))
@@ -272,7 +276,7 @@ jobs:
   legacy-java-analysis:
     name: Analyze (java)
     needs: security
-    if: ${{ !cancelled() && vars.CI_OPTIMIZED_REQUIRED != 'true' }}
+    if: ${{ !cancelled() && github.event_name == 'pull_request' && vars.CI_OPTIMIZED_REQUIRED != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Require actual Java security analysis during migration
