@@ -3,12 +3,7 @@ name: "Rerun CI"
 on:
   workflow_run:
     workflows:
-      - "java-client-ci"
-      - "loader-ci"
-      - "tools-ci"
-      - "hubble-ci"
-      - "spark-connector-ci"
-      - "go-client-ci"
+      - "Required CI"
     types:
       - completed
 

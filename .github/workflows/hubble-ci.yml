@@ -1,35 +1,20 @@
 name: "hubble-ci"
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-      - 'release-*'
-    paths:
-      - hugegraph-hubble/**
-      - hugegraph-dist/**
-      - hugegraph-loader/**
-      - .github/workflows/**
-      - pom.xml
-  pull_request:
-    paths:
-      - hugegraph-hubble/**
-      - hugegraph-dist/**
-      - hugegraph-loader/**
-      - hugegraph-client/**
-      - .github/workflows/**
-      - pom.xml
+  workflow_call:
+    inputs:
+      artifact-name:
+        type: string
+        required: true
+      server-commit:
+        type: string
+        required: true
+      server-ref:
+        type: string
+        required: true
 
 env:
   TRAVIS_DIR: hugegraph-hubble/hubble-dist/assembly/travis
-  HUGEGRAPH_SERVER_GIT_URL: https://github.com/apache/hugegraph.git
-  HUGEGRAPH_SERVER_BRANCH: master
-
-# Keep the newest PR run; preserve independent push, release and manual runs.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   hubble-ci:
@@ -92,23 +77,6 @@ jobs:
           path: ~/.cache/ms-playwright
           key: ${{ runner.os }}-playwright-${{ hashFiles('hugegraph-hubble/hubble-fe/yarn.lock') }}
 
-      - name: Resolve HugeGraph Server revision
-        id: server-ref
-        run: |
-          SERVER_COMMIT="$(git ls-remote "$HUGEGRAPH_SERVER_GIT_URL" \
-            "refs/heads/$HUGEGRAPH_SERVER_BRANCH" | cut -f1)"
-          if [[ -z "$SERVER_COMMIT" ]]; then
-            echo "Unable to resolve HugeGraph Server branch" >&2
-            exit 1
-          fi
-          echo "commit=$SERVER_COMMIT" >> "$GITHUB_OUTPUT"
-
-      - name: Cache HugeGraph Server
-        uses: actions/cache@v6
-        with:
-          path: ~/hugegraph-cache-${{ steps.server-ref.outputs.commit }}
-          key: ${{ runner.os }}-hugegraph-server-${{ steps.server-ref.outputs.commit }}
-
       - name: Frontend i18n check
         working-directory: hugegraph-hubble/hubble-fe
         env:
@@ -132,8 +100,8 @@ jobs:
 
       - name: Prepare env and service
         env:
-          COMMIT_ID: ${{ steps.server-ref.outputs.commit }}
-          COMMIT_REF: ${{ steps.server-ref.outputs.commit }}
+          COMMIT_ID: ${{ inputs.server-commit }}
+          COMMIT_REF: ${{ inputs.server-commit }}
           NODE_OPTIONS: --max-old-space-size=4096
         run: |
           echo "=== Environment Info ==="
@@ -154,7 +122,15 @@ jobs:
           ./stop-hubble.sh
           cd ../../../
           pwd
-          $TRAVIS_DIR/install-hugegraph.sh $COMMIT_ID $COMMIT_REF
+
+      - name: Setup HugeGraph server
+        uses: ./.github/actions/setup-hugegraph-server
+        with:
+          mode: start
+          artifact-name: ${{ inputs.artifact-name }}
+          commit-id: ${{ inputs.server-commit }}
+          fetch-ref: ${{ inputs.server-ref }}
+          travis-dir: ${{ env.TRAVIS_DIR }}
 
       - name: Release package audit
         env:

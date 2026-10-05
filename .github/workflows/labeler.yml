@@ -22,7 +22,7 @@ on:
 - pull_request_target
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.run_attempt == 1 && 'head' || format('rerun-{0}', github.run_id) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request_target' }}
 
 jobs:

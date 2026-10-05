@@ -483,4 +483,4 @@ Thank you to all the people who already contributed to HugeGraph!
 
 hugegraph-toolchain is licensed under [Apache 2.0 License](https://github.com/apache/hugegraph-toolchain/blob/master/LICENSE).
 
-See [CI behavior](docs/ci.md) for PR cancellation and automatic retry rules.
+See [CI behavior](docs/ci.md) for affected-module tests, verified result reuse and retry rules.

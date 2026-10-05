@@ -1,18 +1,78 @@
-name: 'Setup HugeGraph Server'
-description: 'Prepare environment and install HugeGraph server from source'
-
+name: Setup HugeGraph Server
+description: Build an immutable fixture once, or start an independent test service
 inputs:
-  travis-dir:
-    description: 'Path to the Travis assembly directory containing install scripts'
-    required: true
+  mode:
+    description: 'standalone (legacy), build (upload), or start (download)'
+    default: standalone
+  artifact-name:
+    description: Workflow-local immutable fixture artifact name
+    default: ''
+  repository:
+    description: GitHub owner/repository containing the Server source
+    default: apache/hugegraph
+  fetch-ref:
+    description: Fetchable source ref (must resolve to commit-id)
+    default: ''
   commit-id:
-    description: 'HugeGraph commit SHA to install'
+    description: Exact Server commit SHA
     required: true
-
+  java-version:
+    description: JDK major used for the build and runtime
+    default: '11'
+  travis-dir:
+    description: Module service setup directory
+    default: hugegraph-loader/assembly/travis
 runs:
   using: composite
   steps:
-    - name: Prepare env and service
+    - name: Download shared Server fixture
+      if: inputs.mode == 'start'
+      uses: actions/download-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ runner.temp }}/hugegraph-fixture
+    - name: Restore exact Server build cache
+      if: inputs.mode == 'build'
+      uses: actions/cache@v4
+      with:
+        path: ~/hugegraph-fixture-cache
+        key: server-fixture-v1-${{ runner.os }}-${{ runner.arch }}-${{ inputs.repository }}-${{ inputs.commit-id }}-jdk${{ inputs.java-version }}-${{ hashFiles('.github/actions/setup-hugegraph-server/action.yml', '.github/actions/setup-hugegraph-server/fixture.sh', '.github/actions/setup-hugegraph-server/manifest.py', '.github/actions/setup-java-env/action.yml', '.github/configs/settings.xml', 'hugegraph-client/assembly/travis/checkout-server.sh', 'hugegraph-client/assembly/travis/start-hugegraph-servers.sh', 'hugegraph-*/assembly/travis/install-hugegraph-from-source.sh', 'hugegraph-hubble/hubble-dist/assembly/travis/download-hugegraph.sh') }}
+    - name: Prepare fixture or start service
       shell: bash
+      env:
+        FIXTURE_MODE: ${{ inputs.mode }}
+        FIXTURE_REPOSITORY: ${{ inputs.repository }}
+        FIXTURE_COMMIT: ${{ inputs.commit-id }}
+        FIXTURE_REF: ${{ inputs.fetch-ref }}
+        FIXTURE_BUILD_INPUTS: ${{ hashFiles('.github/actions/setup-hugegraph-server/action.yml', '.github/actions/setup-hugegraph-server/fixture.sh', '.github/actions/setup-hugegraph-server/manifest.py', '.github/actions/setup-java-env/action.yml', '.github/configs/settings.xml', 'hugegraph-client/assembly/travis/checkout-server.sh', 'hugegraph-client/assembly/travis/start-hugegraph-servers.sh', 'hugegraph-*/assembly/travis/install-hugegraph-from-source.sh', 'hugegraph-hubble/hubble-dist/assembly/travis/download-hugegraph.sh') }}
+        FIXTURE_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
+        FIXTURE_JAVA: ${{ inputs.java-version }}
+        FIXTURE_DIR: ${{ runner.temp }}/hugegraph-fixture
+        SERVER_REPOSITORY: ${{ inputs.repository }}
+        SERVER_FETCH_REF: ${{ inputs.fetch-ref }}
+        TRAVIS_DIR: ${{ inputs.travis-dir }}
+        FIXTURE_ACTION: ${{ github.action_path }}
+        FIXTURE_ARTIFACT: ${{ inputs.artifact-name }}
       run: |
-        ${{ inputs.travis-dir }}/install-hugegraph-from-source.sh ${{ inputs.commit-id }}
+        set -euo pipefail
+        if [[ "$FIXTURE_MODE" != standalone && -z "$FIXTURE_ARTIFACT" ]]; then
+          echo 'artifact-name is required for build/start mode' >&2
+          exit 1
+        fi
+        if [[ "$FIXTURE_MODE" == build ]]; then
+          bash "$FIXTURE_ACTION/fixture.sh"
+        elif [[ -f "$TRAVIS_DIR/install-hugegraph-from-source.sh" ]]; then
+          bash "$TRAVIS_DIR/install-hugegraph-from-source.sh" "$FIXTURE_COMMIT"
+        else
+          bash "$TRAVIS_DIR/install-hugegraph.sh" "$FIXTURE_COMMIT" "$FIXTURE_REF"
+        fi
+    - name: Upload shared Server fixture
+      if: inputs.mode == 'build'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: |
+          ${{ runner.temp }}/hugegraph-fixture/server.tar.gz
+          ${{ runner.temp }}/hugegraph-fixture/manifest.json
+        if-no-files-found: error
+        retention-days: 1

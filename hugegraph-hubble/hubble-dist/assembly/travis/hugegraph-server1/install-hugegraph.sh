@@ -18,6 +18,7 @@
 set -ev
 
 SERVER_CONFIG_DIR=$(dirname "$0")
+source "$(cd "$SERVER_CONFIG_DIR/../../../../.." && pwd)/.github/actions/setup-hugegraph-server/service-wait.sh"
 SERVER_PARENT_DIR="hugegraph-server1"
 
 mkdir ${SERVER_PARENT_DIR}
@@ -37,3 +38,5 @@ cd "${SERVER_DIR}" && pwd
 
 echo -e "pa" | bin/init-store.sh || exit 1
 bin/start-hugegraph.sh || exit 1
+
+fixture_wait http://127.0.0.1:8080

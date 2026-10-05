@@ -28,15 +28,36 @@ on:
 
 # Keep the newest PR run; preserve independent push, release and manual runs.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.run_attempt == 1 && 'head' || format('rerun-{0}', github.run_id) }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   check-license-header:
     runs-on: ubuntu-latest
+    outputs:
+      dependencies: ${{ steps.dependencies.outputs.changed }}
     steps:
       - name: Fetch Code
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - name: Select dependency license audit
+        id: dependencies
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          changed=true
+          if [[ "$EVENT_NAME" == pull_request ]]; then
+            if git diff --name-only "$BASE_SHA...$HEAD_SHA" > "$RUNNER_TEMP/license-paths"; then
+              changed=false
+              if grep -Eq '(^|/)(pom.xml|package.json|yarn.lock|package-lock.json)$|(^|/)(assembly|licenses)/|(^|/)(LICENSE|NOTICE)$|dependency/|^\.github/(configs/|workflows/license-checker.yml)' "$RUNNER_TEMP/license-paths"; then
+                changed=true
+              fi
+            fi
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
       - name: Test automatic retry freshness rules
         run: python3 -m unittest discover -s .github/scripts -p 'test_*.py'
       # More info could refer to: https://github.com/apache/skywalking-eyes
@@ -55,6 +76,8 @@ jobs:
           grep "Binaries" merged-rat.txt -C 3 && cat merged-rat.txt
 
   check-dependency-license:
+    needs: check-license-header
+    if: needs.check-license-header.outputs.dependencies == 'true'
     runs-on: ubuntu-latest
     env:
       SCRIPT_DEPENDENCY: hugegraph-dist/scripts/dependency

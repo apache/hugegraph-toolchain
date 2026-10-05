@@ -1,28 +1,17 @@
 name: "tools-ci"
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-      - 'release-*'
-    paths:
-      - hugegraph-tools/**
-      - hugegraph-dist/**
-      - .github/workflows/**
-      - pom.xml
-  pull_request:
-    paths:
-      - hugegraph-tools/**
-      - hugegraph-dist/**
-      - hugegraph-client/**
-      - .github/workflows/**
-      - pom.xml
-
-# Keep the newest PR run; preserve independent push, release and manual runs.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
+    inputs:
+      artifact-name:
+        type: string
+        required: true
+      server-commit:
+        type: string
+        required: true
+      server-ref:
+        type: string
+        required: true
 
 jobs:
   tools-ci:
@@ -40,10 +29,6 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Get HugeGraph stable commit id
-        id: get-commit
-        uses: ./.github/actions/get-hugegraph-commit
-
       - name: Setup Java environment
         uses: ./.github/actions/setup-java-env
         with:
@@ -59,7 +44,10 @@ jobs:
         uses: ./.github/actions/setup-hugegraph-server
         with:
           travis-dir: ${{ env.TRAVIS_DIR }}
-          commit-id: ${{ steps.get-commit.outputs.commit_id }}
+          commit-id: ${{ inputs.server-commit }}
+          fetch-ref: ${{ inputs.server-ref }}
+          artifact-name: ${{ inputs.artifact-name }}
+          mode: start
 
       - name: Run test
         run: |

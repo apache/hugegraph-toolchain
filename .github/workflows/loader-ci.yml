@@ -1,31 +1,21 @@
 name: "loader-ci"
 
 on:
-  workflow_dispatch:
-  push:
-    branches:
-      - master
-      - 'release-*'
-    paths:
-      - hugegraph-loader/**
-      - hugegraph-dist/**
-      - .github/workflows/**
-      - pom.xml
-  pull_request:
-    paths:
-      - hugegraph-loader/**
-      - hugegraph-dist/**
-      - hugegraph-client/**
-      - .github/workflows/**
-      - pom.xml
-
-# Keep the newest PR run; preserve independent push, release and manual runs.
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  workflow_call:
+    inputs:
+      artifact-name:
+        type: string
+        required: true
+      server-commit:
+        type: string
+        required: true
+      server-ref:
+        type: string
+        required: true
 
 jobs:
-  loader-ci:
+  profiles:
+    name: profiles
     runs-on: ubuntu-latest
     env:
       USE_STAGE: 'true' # Whether to include the stage repository.
@@ -52,9 +42,58 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Get HugeGraph stable commit id
-        id: get-commit
-        uses: ./.github/actions/get-hugegraph-commit
+      - name: Setup Java environment
+        uses: ./.github/actions/setup-java-env
+        with:
+          java-version: ${{ matrix.JAVA_VERSION }}
+          distribution: 'temurin'
+          use-stage: ${{ env.USE_STAGE }}
+
+      - name: Compile
+        run: |
+          mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
+
+      - name: Setup HugeGraph server
+        uses: ./.github/actions/setup-hugegraph-server
+        with:
+          mode: start
+          artifact-name: ${{ inputs.artifact-name }}
+          commit-id: ${{ inputs.server-commit }}
+          fetch-ref: ${{ inputs.server-ref }}
+          travis-dir: ${{ env.TRAVIS_DIR }}
+
+      - name: Run test
+        run: |
+          cd hugegraph-loader && ls
+          mvn test -P unit -ntp
+          mvn test -P file
+          mvn test -P jdbc
+          mvn test -P kafka
+
+      - name: Upload coverage to Codecov
+        uses: ./.github/actions/upload-coverage
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: hugegraph-loader/target/jacoco.xml
+
+  hdfs:
+    name: hdfs
+    runs-on: ubuntu-latest
+    env:
+      USE_STAGE: 'true' # Whether to include the stage repository.
+      TRAVIS_DIR: hugegraph-loader/assembly/travis
+      STATIC_DIR: hugegraph-loader/assembly/static
+      DB_USER: root
+      DB_PASS: root
+      DB_DATABASE: load_test
+    strategy:
+      matrix:
+        JAVA_VERSION: ['11']
+    steps:
+      - name: Fetch Code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
 
       - name: Setup Java environment
         uses: ./.github/actions/setup-java-env
@@ -63,37 +102,34 @@ jobs:
           distribution: 'temurin'
           use-stage: ${{ env.USE_STAGE }}
 
-      - name: Cache Hadoop
-        uses: actions/cache@v6
-        with:
-          path: ~/hadoop-3.3.6.tar.gz
-          key: ${{ runner.os }}-hadoop-3.3.6
-
-      - name: Cache HugeGraph Server
-        uses: actions/cache@v6
-        with:
-          path: ~/hugegraph-cache-${{ steps.get-commit.outputs.commit_id }}
-          key: ${{ runner.os }}-hugegraph-server-${{ steps.get-commit.outputs.commit_id }}
-
       - name: Compile
         run: |
           mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
 
-      - name: Prepare env and service
-        env:
-          COMMIT_ID: ${{ steps.get-commit.outputs.commit_id }}
-        run: |
-          $TRAVIS_DIR/install-hadoop.sh
-          $TRAVIS_DIR/install-hugegraph-from-source.sh $COMMIT_ID
+      - name: Setup HugeGraph server
+        uses: ./.github/actions/setup-hugegraph-server
+        with:
+          mode: start
+          artifact-name: ${{ inputs.artifact-name }}
+          commit-id: ${{ inputs.server-commit }}
+          fetch-ref: ${{ inputs.server-ref }}
+          travis-dir: ${{ env.TRAVIS_DIR }}
 
-      - name: Run test
+      - name: Cache verified Hadoop archive
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/hadoop-3.3.6.tar.gz
+            ~/hadoop-3.3.6.tar.gz.sha512
+          key: ${{ runner.os }}-hadoop-3.3.6-sha512-v1
+
+      - name: Start Hadoop
+        timeout-minutes: 35
         run: |
-          cd hugegraph-loader && ls
-          mvn test -P unit -ntp
-          mvn test -P file
-          mvn test -P hdfs
-          mvn test -P jdbc
-          mvn test -P kafka
+          "$TRAVIS_DIR/install-hadoop.sh"
+
+      - name: Run HDFS tests
+        run: mvn test -P hdfs -f hugegraph-loader/pom.xml -ntp
 
       - name: Upload coverage to Codecov
         uses: ./.github/actions/upload-coverage

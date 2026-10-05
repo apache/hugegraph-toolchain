@@ -15,7 +15,14 @@
 # License for the specific language governing permissions and limitations
 # under the License.
 #
-set -euo pipefail
+fixture_wait() {
+    local url=$1 deadline=$((SECONDS + ${SERVICE_READY_TIMEOUT:-300}))
+    while (( SECONDS < deadline )); do
+        # Use an authenticated API response, rather than a listening socket.
+        if curl --fail --silent --insecure --connect-timeout 2 --max-time 5 -u admin:pa "$url/graphs" >/dev/null; then return; fi
+        sleep 2
+    done
+    echo "HugeGraph readiness timed out: $url" >&2
+    return 1
+}
 
-SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
-exec bash "$SCRIPT_DIR/../../../hugegraph-client/assembly/travis/install-hugegraph-from-source.sh" "$@"
