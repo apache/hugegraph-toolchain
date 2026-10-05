@@ -15,6 +15,7 @@
 # limitations under the License.
 
 """Executable Git fixtures and API proof tests for CI selection."""
+import base64
 import hashlib
 import importlib.util
 import io
@@ -30,6 +31,7 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location("policy", Path(__file__).with_name("ci-policy.py"))
 policy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(policy)
+ACTUAL_REMOTE_FINGERPRINT = policy.remote_fingerprint
 
 
 class PolicyTest(unittest.TestCase):
@@ -43,6 +45,108 @@ class PolicyTest(unittest.TestCase):
                          policy.select("toolchain", ["hugegraph-client/src/A.java"]))
         self.assertEqual({"loader", "hubble"}, policy.select("toolchain", ["hugegraph-loader/src/A.java"]))
         self.assertEqual({"server", "pd", "store", "hstore", "cluster"}, policy.select("server", ["hugegraph-server/A.java"]))
+
+    def test_image_selection_is_separate_from_module_dependencies(self):
+        for path in ["hugegraph-client/src/A.java", "hugegraph-loader/src/A.java",
+                     "hugegraph-hubble/hubble-be/src/main/java/App.java",
+                     "hugegraph-hubble/hubble-fe/src/App.js", "docs/ci.md"]:
+            self.assertEqual(set(), policy.select_images([path]), path)
+        for path, images in [
+                ("hugegraph-loader/Dockerfile", {"loader_image"}),
+                ("hugegraph-hubble/Dockerfile", {"hubble_image"}),
+                (".dockerignore", policy.IMAGES),
+                (".github/workflows/image-ci.yml", policy.IMAGES)]:
+            self.assertEqual(images, policy.select_images([path]), path)
+            self.assertEqual(set(), policy.select("toolchain", [path]), path)
+
+    def test_image_packaging_and_shared_build_inputs(self):
+        for path in ["pom.xml", ".mvn/maven.config", "hugegraph-client/pom.xml",
+                     "hugegraph-dist/release-docs/licenses/dependency.txt",
+                     "hugegraph-loader/pom.xml", "hugegraph-loader/assembly/descriptor/assembly.xml",
+                     "hugegraph-loader/assembly/static/bin/hugegraph-loader.sh",
+                     "hugegraph-loader/README_CN.md", ".github/scripts/new-input.py"]:
+            self.assertEqual(policy.IMAGES, policy.select_images([path]), path)
+        for path in ["hugegraph-hubble/pom.xml", "hugegraph-hubble/hubble-be/pom.xml",
+                     "hugegraph-hubble/hubble-dist/assembly/static/conf/hugegraph-hubble.properties",
+                     "hugegraph-hubble/hubble-dist/assembly/descriptor/assembly.xml",
+                     "hugegraph-hubble/hubble-dist/assembly/travis/check-hubble-dist.sh",
+                     "hugegraph-hubble/hubble-fe/yarn.lock", "hugegraph-hubble/README.md",
+                     "hugegraph-hubble/hubble-be/src/main/resources/application.properties"]:
+            self.assertEqual({"hubble_image"}, policy.select_images([path]), path)
+
+    def test_image_only_plan_and_gate_require_no_server_fixture(self):
+        with patch.object(policy, "git", side_effect=lambda *a: (
+                "hugegraph-loader/Dockerfile" if a[0] == "diff" else "head")), patch.object(
+                policy, "fingerprint", return_value="hash"), patch.object(
+                policy, "unsafe_documentation", return_value=False), patch.object(
+                policy, "packaged_readme_state", return_value="valid"):
+            plan = policy.create_plan("toolchain", {"before": "base"}, "apache/t")
+        self.assertEqual(["loader_image"], plan["expected"])
+        self.assertFalse(plan["needsFixture"])
+        self.assertFalse(any(plan[m] for m in policy.MODULES["toolchain"]))
+        results = {"plan": {"result": "success"}, "loader_image": {"result": "success"}}
+        receipt = policy.gate(plan, results, lambda _: {"jobs": [
+            {"name": "loader_image / build-and-start", "id": 55, "conclusion": "success"}]})
+        self.assertEqual("hash", receipt["proofs"]["loader_image"]["imageFingerprint"])
+        for state in [None, "skipped", "cancelled", "failure"]:
+            results["loader_image"]["result"] = state
+            with self.subTest(state=state), self.assertRaises(ValueError):
+                policy.gate(plan, results, self.fetch)
+
+    def test_cumulative_packaging_edit_reuses_java_without_fixture(self):
+        event = {"pull_request": {"number": 7, "head": {"sha": "new"}, "base": {"sha": "base"}}}
+        live = {"state": "open", "head": {"sha": "new", "ref": "feature", "repo": {"full_name": "alice/t"}},
+                "base": {"sha": "base", "repo": {"full_name": "apache/t"}}}
+        def git(*args):
+            if args[0] == "show":
+                return "base new"
+            if args[0] == "diff":
+                return "hugegraph-client/src/A.java\nhugegraph-hubble/README.md"
+            return "new"
+        verified = {module: {"runID": 42} for module in ["client", "loader", "tools", "spark", "hubble"]}
+        with patch.object(policy, "git", side_effect=git), patch.object(policy, "fingerprint", return_value="hash"), \
+                patch.object(policy, "unsafe_documentation", return_value=False), \
+                patch.object(policy, "packaged_readme_state", return_value="valid"), \
+                patch.object(policy, "find_reuse", return_value=verified):
+            plan = policy.create_plan("toolchain", event, "apache/t", lambda _: live, external_inputs={"sha": "server"})
+        self.assertTrue(plan["hubble_image"])
+        self.assertFalse(plan["loader_image"])
+        self.assertFalse(plan["needsFixture"])
+        self.assertFalse(any(plan[module] for module in verified))
+        self.assertEqual(set(verified) | {"hubble_image"}, set(plan["expected"]))
+
+    def test_missing_or_changed_image_proof_preserves_strict_java_proof(self):
+        plan = dict(self.plan(), expected=["client", "loader_image"], imageFingerprint="current")
+        receipt = self.receipt()
+        self.assertEqual({"client"}, set(policy.validate_receipt(plan, receipt, self.fetch)))
+        receipt["proofs"]["loader_image"] = dict(receipt["proofs"]["client"], imageFingerprint="old")
+        self.assertEqual({"client"}, set(policy.validate_receipt(plan, receipt, self.fetch)))
+        receipt["proofs"]["client"]["jobIDs"] = [999]
+        with self.assertRaises(ValueError):
+            policy.validate_receipt(plan, receipt, self.fetch)
+
+    def test_image_proof_requires_actual_build_tree_and_exact_job_ids(self):
+        plan = dict(self.plan(), expected=["loader_image"], imageFingerprint="docker-inputs")
+        receipt = self.receipt()
+        receipt["proofs"] = {"loader_image": dict(receipt["proofs"]["client"],
+                                                  imageFingerprint="docker-inputs")}
+        def fetch(path):
+            value = self.fetch(path)
+            if "/jobs?" in path:
+                value["jobs"][0]["name"] = "loader_image / build-and-start"
+            return value
+        def fingerprint(*args, **kwargs):
+            return "policy" if kwargs.get("policy_only") else "docker-inputs" if kwargs.get("image") else "inputs"
+        with patch.object(policy, "remote_fingerprint", side_effect=fingerprint):
+            self.assertEqual({"loader_image"}, set(policy.validate_receipt(plan, receipt, fetch)))
+            receipt["proofs"]["loader_image"]["jobIDs"] = [999]
+            with self.assertRaises(ValueError):
+                policy.validate_receipt(plan, receipt, fetch)
+        receipt["proofs"]["loader_image"]["jobIDs"] = [123]
+        with patch.object(policy, "remote_fingerprint", side_effect=lambda *a, **k: (
+                "policy" if k.get("policy_only") else "forged" if k.get("image") else "inputs")):
+            with self.assertRaises(ValueError):
+                policy.validate_receipt(plan, receipt, fetch)
 
     def test_server_backend_and_startup_dependents(self):
         selected = policy.select("server", ["hugegraph-server/hugegraph-hstore/src/test/HstoreTableTest.java"])
@@ -105,9 +209,40 @@ class PolicyTest(unittest.TestCase):
             try:
                 os.chdir(root)
                 initial = policy.fingerprint("HEAD", project="toolchain")
+                initial_image = policy.fingerprint("HEAD", project="toolchain", image=True)
                 readme.write_text("changed nonempty docs")
                 git("commit", "-qam", "valid docs edit")
                 self.assertEqual(initial, policy.fingerprint("HEAD", project="toolchain"))
+                changed_image = policy.fingerprint("HEAD", project="toolchain", image=True)
+                def fetch_tree(path):
+                    if "/git/blobs/" in path:
+                        blob = subprocess.check_output(["git", "cat-file", "blob", path.rsplit("/", 1)[1]])
+                        return {"content": base64.b64encode(blob).decode()}
+                    entries = []
+                    for entry in subprocess.check_output(["git", "ls-tree", "-rz", "HEAD"]).split(b"\0"):
+                        if entry:
+                            metadata, name = entry.split(b"\t", 1)
+                            mode, kind, sha = metadata.decode().split()
+                            entries.append({"path": name.decode(), "mode": mode, "type": kind, "sha": sha})
+                    return {"tree": entries}
+                # Local plan hashing and API verification must agree on actual Git objects.
+                with patch.object(policy, "remote_fingerprint", ACTUAL_REMOTE_FINGERPRINT):
+                    self.assertEqual(changed_image, policy.remote_fingerprint(
+                        "apache/t", "HEAD", fetch=fetch_tree, project="toolchain", image=True))
+                self.assertNotEqual(initial_image, changed_image)
+                source = root / "hugegraph-hubble/A.java"
+                source.write_text("first source")
+                git("add", ".")
+                git("commit", "-qm", "application source")
+                source_image = policy.fingerprint("HEAD", project="toolchain", image=True)
+                self.assertNotEqual(changed_image, source_image)
+                source.write_text("changed source")
+                git("commit", "-qam", "changed application")
+                self.assertNotEqual(source_image, policy.fingerprint("HEAD", project="toolchain", image=True))
+                # Restore the original module inputs before exercising the README contract.
+                source.unlink()
+                git("add", ".")
+                git("commit", "-qm", "remove test source")
                 for content in ["", "  \t\n"]:
                     readme.write_text(content)
                     git("commit", "-qam", "empty docs")

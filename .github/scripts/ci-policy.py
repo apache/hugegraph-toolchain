@@ -49,6 +49,9 @@ WORKFLOWS = {
                   "spark-connector-ci.yml": ["spark"], "hubble-ci.yml": ["hubble"],
                   "codeql-analysis.yml": []},
 }
+IMAGES = {"loader_image", "hubble_image"}
+
+
 DEPENDENTS = {
     "server": {"commons": ["server", "pd", "store", "hstore", "cluster"],
                "struct": ["server", "pd", "store", "hstore", "cluster"],
@@ -94,9 +97,67 @@ def unsafe_documentation(ref, paths):
     return False
 
 
+def packaged_image_document(path):
+    p = Path(path)
+    return (str(p.parent) in {"hugegraph-loader", "hugegraph-hubble"}
+            and p.name.startswith("README"))
+
+
+def image_only_path(path):
+    return path in {".dockerignore", "hugegraph-loader/Dockerfile", "hugegraph-hubble/Dockerfile",
+                    ".github/workflows/image-ci.yml", ".github/scripts/check-toolchain-image.py",
+                    ".github/scripts/test_toolchain_image.py"}
+
+
+def select_images(paths):
+    """Image packaging selection is independent of the Java consumer closure."""
+    selected = set()
+    for path in paths:
+        p = Path(path)
+        if path == "hugegraph-loader/Dockerfile":
+            selected.add("loader_image")
+        elif path == "hugegraph-hubble/Dockerfile":
+            selected.add("hubble_image")
+        elif (path in {"pom.xml", ".dockerignore", "hugegraph-client/pom.xml",
+                           "hugegraph-tools/pom.xml", "hugegraph-spark-connector/pom.xml",
+                           "hugegraph-dist/pom.xml"}
+              or path.startswith((".mvn/", "hugegraph-dist/release-docs/"))):
+            selected.update(IMAGES)
+        elif path.startswith("hugegraph-loader/") and (
+                p.name == "pom.xml" or path.startswith(("hugegraph-loader/assembly/descriptor/",
+                                                       "hugegraph-loader/assembly/static/"))
+                or packaged_image_document(path) or p.name.startswith(("LICENSE", "NOTICE"))):
+            # Hubble's Dockerfile first builds and installs Client and Loader.
+            selected.update(IMAGES)
+        elif path.startswith("hugegraph-hubble/") and (
+                p.name == "pom.xml" or "/assembly/descriptor/" in path or "/assembly/static/" in path
+                or packaged_image_document(path)
+                or path == "hugegraph-hubble/hubble-dist/assembly/travis/check-hubble-dist.sh"
+                or path.startswith(("hugegraph-hubble/.mvn/", "hugegraph-hubble/hubble-fe/scripts/"))
+                or (path.startswith("hugegraph-hubble/hubble-be/src/main/resources/")
+                    and p.name in {"application.properties", "hugegraph-hubble.properties", "log4j2.xml"})
+                or p.name in {"package.json", "yarn.lock", "package-lock.json", "webpack.config.js",
+                              "tsconfig.json", "tsconfig.eslint.json", ".yarnrc", ".npmrc",
+                              "config-overrides.js", ".babelrc", "babel.config.js"}):
+            selected.add("hubble_image")
+        elif documentation(path):
+            continue
+        elif path.startswith(".github/workflows/") and p.name in WORKFLOWS["toolchain"]:
+            continue
+        elif any(path.startswith(prefix) for prefix in PREFIXES["toolchain"]):
+            # Ordinary application/test edits stay on their module behavior lanes.
+            continue
+        else:
+            # Unknown shared inputs (including CI implementation) fail conservative.
+            selected.update(IMAGES)
+    return selected
+
+
 def select(project, paths):
     selected = set()
     for path in paths:
+        if project == "toolchain" and image_only_path(path):
+            continue
         if documentation(path):
             continue
         if project == "server" and (Path(path).name == "pom.xml" or path.startswith("install-dist/")):
@@ -160,7 +221,7 @@ def packaged_readme_state(ref):
     return "valid" if content.strip() else "empty:" + blob
 
 
-def fingerprint(ref, policy=False, project=None):
+def fingerprint(ref, policy=False, project=None, image=False):
     """Hash blob identities, including paths; exclude only the strict prose whitelist."""
     entries = subprocess.check_output(["git", "ls-tree", "-rz", "--full-tree", ref]).split(b"\0")
     digest = hashlib.sha256()
@@ -172,7 +233,7 @@ def fingerprint(ref, policy=False, project=None):
         if policy:
             if not (path.startswith(".github/") or path == ".asf.yaml"):
                 continue
-        elif documentation(path, metadata.split(b" ", 1)[0].decode()):
+        elif documentation(path, metadata.split(b" ", 1)[0].decode()) and not (image and packaged_image_document(path)):
             continue
         digest.update(metadata + b"\t" + name + b"\0")
     if project == "toolchain" and not policy:
@@ -182,7 +243,7 @@ def fingerprint(ref, policy=False, project=None):
     return digest.hexdigest()
 
 
-def remote_fingerprint(repository, sha, policy_only=False, fetch=api, project=None):
+def remote_fingerprint(repository, sha, policy_only=False, fetch=api, project=None, image=False):
     tree = fetch(f"repos/{repository}/git/trees/{sha}?recursive=1")
     if tree.get("truncated"):
         raise ValueError("truncated proof tree")
@@ -194,7 +255,7 @@ def remote_fingerprint(repository, sha, policy_only=False, fetch=api, project=No
         if policy_only:
             if not (path.startswith(".github/") or path == ".asf.yaml"):
                 continue
-        elif documentation(path, entry["mode"]):
+        elif documentation(path, entry["mode"]) and not (image and packaged_image_document(path)):
             continue
         digest.update((entry["mode"] + " " + entry["type"] + " " + entry["sha"]
                        + "\t" + path + "\0").encode())
@@ -262,7 +323,7 @@ def successful_jobs(repository, run_id, suite, fetch=api):
     return sorted(job["id"] for job in matching)
 
 
-def validate_proof_run(plan, item, fetch=api):
+def validate_proof_run(plan, item, fetch=api, suite=None):
     run = fetch(f"repos/{plan['repository']}/actions/runs/{int(item['runID'])}")
     if (run.get("status") != "completed"
             or run.get("event") != "pull_request" or run.get("head_sha") != item.get("head")
@@ -283,6 +344,11 @@ def validate_proof_run(plan, item, fetch=api):
             plan["repository"], item["testedMergeSHA"], policy_only=True, fetch=fetch)
             != plan["policyFingerprint"]):
         raise ValueError("actual tested inputs differ from claimed receipt")
+    if suite in IMAGES:
+        if (not plan.get("imageFingerprint") or item.get("imageFingerprint") != plan["imageFingerprint"]
+                or remote_fingerprint(plan["repository"], item["testedMergeSHA"], fetch=fetch,
+                                      project="toolchain", image=True) != plan["imageFingerprint"]):
+            raise ValueError("actual Docker build inputs differ")
 
 
 def validate_receipt(plan, receipt, fetch=api):
@@ -291,17 +357,22 @@ def validate_receipt(plan, receipt, fetch=api):
             raise ValueError("receipt provenance differs: " + key)
     proof = receipt.get("proofs", {})
     required = plan["expected"]
-    if not required or not set(required).issubset(proof):
+    if not required or not (set(required) - IMAGES).issubset(proof):
         raise ValueError("receipt lacks selected suites")
     verified = {}
     for suite in required:
+        if suite in IMAGES and (suite not in proof or not plan.get("imageFingerprint")
+                                or proof[suite].get("imageFingerprint") != plan["imageFingerprint"]):
+            continue
         item = proof[suite]
-        validate_proof_run(plan, item, fetch)
+        validate_proof_run(plan, item, fetch, suite=suite)
         successful_jobs(plan["repository"], item["runID"], "affected-module-tests", fetch)
         ids = successful_jobs(plan["repository"], item["runID"], suite, fetch)
         if ids != item.get("jobIDs"):
             raise ValueError("actual job evidence differs")
         verified[suite] = item
+    if not verified:
+        raise ValueError("receipt contains no reusable selected suite")
     return verified
 
 
@@ -440,6 +511,7 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
             "source": repository, "branch": "", "base": "", "head": git("rev-parse", "HEAD"),
             "reused": {}, "workflowID": 0, "reason": "affected inputs",
             "externalInputs": external_inputs or {}, "testedMergeSHA": git("rev-parse", "HEAD")}
+    selected_images = set()
     try:
         pr = event.get("pull_request")
         if pr:
@@ -462,6 +534,7 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
             plan["base"] = event.get("before", "")
             paths = git("diff", "--no-renames", "--name-only", plan["base"], plan["head"]).splitlines()
         selected = select(project, paths)
+        selected_images = select_images(paths) if project == "toolchain" else set()
         if unsafe_documentation(plan["base"], paths) or unsafe_documentation(plan["testedMergeSHA"], paths):
             selected = set(MODULES[project])
         if project == "toolchain" and packaged_readme_state(plan["testedMergeSHA"]) != "valid":
@@ -472,16 +545,19 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
             context = external_context(external_inputs, selected)
             plan["inputFingerprint"] = hashlib.sha256((plan["inputFingerprint"] + context).encode()).hexdigest()
         plan["policyFingerprint"] = fingerprint(plan["testedMergeSHA"], policy=True)
-        plan["expected"] = suites(project, selected)
+        if project == "toolchain":
+            plan["imageFingerprint"] = fingerprint(plan["testedMergeSHA"], project=project, image=True)
+        plan["expected"] = sorted(suites(project, selected) + list(selected_images))
         if pr and plan["expected"] and (project != "toolchain" or external_inputs):
             plan["reused"] = find_reuse(plan, fetch)
     except (subprocess.SubprocessError, OSError, ValueError, KeyError, TypeError, AttributeError):
         selected = set(MODULES[project])
+        selected_images = set(IMAGES) if project == "toolchain" else set()
         plan.update(reused={}, reason="verification unavailable: full required coverage")
         plan.setdefault("inputFingerprint", "")
         plan.setdefault("policyFingerprint", "")
-        plan["expected"] = suites(project, selected)
-    if not selected:
+        plan["expected"] = sorted(suites(project, selected) + list(selected_images))
+    if not selected and not selected_images:
         plan["reason"] = "cumulative PR diff contains only plain prose documentation; modules unaffected"
     elif plan["reused"]:
         plan["reason"] = "affected inputs match independently verified successful tests"
@@ -489,6 +565,9 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
     for module in MODULES[project]:
         module_suites = suites(project, {module})
         plan[module] = module in selected and not (module_suites and all(s in plan["reused"] for s in module_suites))
+    plan["selectedImages"] = sorted(selected_images)
+    for image in IMAGES:
+        plan[image] = image in selected_images and image not in plan["reused"]
     plan["pd_store"] = any(plan.get(m, False) for m in ["pd", "store", "hstore", "struct"])
     plan["needsFixture"] = project == "toolchain" and any(plan.get(m, False) for m in MODULES[project])
     plan["fixture"] = plan["needsFixture"]
@@ -517,6 +596,8 @@ def gate(plan, results, fetch=api):
             raise ValueError("selected Hubble tests lack successful baseline fixture")
     receipt = {key: plan[key] for key in ["schema", "repository", "project", "pr", "source", "branch", "base",
                                           "head", "testedMergeSHA", "inputFingerprint", "policyFingerprint", "workflowID"]}
+    if "imageFingerprint" in plan:
+        receipt["imageFingerprint"] = plan["imageFingerprint"]
     receipt["runID"] = int(os.environ.get("GITHUB_RUN_ID", "0"))
     # Successful tests can gate even if receipt publication is unavailable. Never reuse
     # unverified evidence: a missing API proof only disables future receipt reuse.
@@ -524,6 +605,8 @@ def gate(plan, results, fetch=api):
         try:
             ids = successful_jobs(plan["repository"], receipt["runID"], suite, fetch)
             proofs[suite] = {"runID": receipt["runID"], "head": plan["head"], "testedMergeSHA": plan["testedMergeSHA"], "jobIDs": ids}
+            if suite in IMAGES:
+                proofs[suite]["imageFingerprint"] = plan.get("imageFingerprint", "")
         except (subprocess.SubprocessError, OSError, ValueError, KeyError, TypeError, AttributeError):
             pass
     receipt["proofs"] = proofs

@@ -100,4 +100,4 @@ runs:
           ${{ runner.temp }}/hugegraph-fixture/server.tar.gz
           ${{ runner.temp }}/hugegraph-fixture/manifest.json
         if-no-files-found: error
-        retention-days: 1
+        retention-days: 7

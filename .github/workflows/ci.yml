@@ -49,6 +49,8 @@ jobs:
       hubble: ${{ steps.select.outputs.hubble }}
       go: ${{ steps.select.outputs.go }}
       needsFixture: ${{ steps.select.outputs.needsFixture }}
+      loader-image: ${{ steps.select.outputs.loader_image }}
+      hubble-image: ${{ steps.select.outputs.hubble_image }}
       security: ${{ steps.select.outputs.security }}
     steps:
       - uses: actions/checkout@v7
@@ -107,7 +109,7 @@ jobs:
           name: ci-plan
           path: plan.json
           overwrite: true
-          retention-days: 14
+          retention-days: 7
 
   fixture:
     needs: plan
@@ -232,9 +234,23 @@ jobs:
       server-ref: ${{ needs.plan.outputs.server-ref }}
     secrets: inherit
 
+  loader_image:
+    needs: plan
+    if: needs.plan.outputs.loader-image == 'true'
+    uses: ./.github/workflows/image-ci.yml
+    with:
+      module: loader
+
+  hubble_image:
+    needs: plan
+    if: needs.plan.outputs.hubble-image == 'true'
+    uses: ./.github/workflows/image-ci.yml
+    with:
+      module: hubble
+
   affected-module-tests:
     name: affected-module-tests
-    needs: [plan, fixture, hubble-fixture, client, loader, tools, spark, hubble, go]
+    needs: [plan, fixture, hubble-fixture, client, loader, tools, spark, hubble, go, loader_image, hubble_image]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -244,7 +260,7 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: ci-plan
-      - name: Require every selected module to succeed
+      - name: Require every selected module and image to succeed
         env:
           RESULTS: ${{ toJSON(needs) }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -257,7 +273,7 @@ jobs:
           name: ci-test-receipt
           path: receipt.json
           overwrite: true
-          retention-days: 14
+          retention-days: 7
 
   security:
     needs: [plan, affected-module-tests]
