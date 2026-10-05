@@ -17,17 +17,19 @@
 
 package org.apache.hugegraph.test.functional;
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+import org.apache.hugegraph.testutil.Assert;
+import org.junit.AssumptionViolatedException;
+import org.junit.Test;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    AuthBackupTest.class,
-    AuthRestoreTest.class,
-    CommandTest.class,
-    BackupRestoreTest.class,
-    BackupRestoreSafetyTest.class,
-    HdfsDirectoryTest.class
-})
-public class FuncTestSuite {
+public class BackupRestoreSafetyTest {
+
+    @Test
+    public void testRequiresExplicitDisposableInstance() {
+        for (String value : new String[]{null, "false", "TRUE", "1"}) {
+            Assert.assertThrows(AssumptionViolatedException.class,
+                                () -> BackupRestoreTest.requireDisposableInstance(value),
+                                e -> Assert.assertContains("clears hugegraph", e.getMessage()));
+        }
+        BackupRestoreTest.requireDisposableInstance("true");
+    }
 }

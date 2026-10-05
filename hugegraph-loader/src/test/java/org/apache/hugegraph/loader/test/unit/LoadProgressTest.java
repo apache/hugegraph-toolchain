@@ -21,10 +21,9 @@ import org.apache.hugegraph.testutil.Assert;
 import org.junit.Test;
 
 import org.apache.hugegraph.loader.progress.LoadProgress;
-import org.apache.hugegraph.loader.test.functional.LoadTest;
 import org.apache.hugegraph.loader.util.JsonUtil;
 
-public class LoadProgressTest extends LoadTest {
+public class LoadProgressTest {
 
     @Test
     public void testTotalLoaded() {

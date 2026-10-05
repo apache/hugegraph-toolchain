@@ -198,23 +198,25 @@ public final class LoadContext implements Cloneable {
         if (this.closed) {
             return;
         }
-        for (FailLogger logger : this.loggers.values()) {
-            logger.close();
-        }
-        LOG.info("Close all failure loggers successfully");
+        try (HugeClient secondary = this.indirectClient != this.client ? this.indirectClient : null;
+             HugeClient primary = this.client) {
+            for (FailLogger logger : this.loggers.values()) {
+                logger.close();
+            }
+            LOG.info("Close all failure loggers successfully");
 
-        this.newProgress.plusVertexLoaded(this.summary.vertexLoaded());
-        this.newProgress.plusEdgeLoaded(this.summary.edgeLoaded());
-        try {
-            this.newProgress.write(this);
-        } catch (IOException e) {
-            LOG.error("Failed to write load progress", e);
+            this.newProgress.plusVertexLoaded(this.summary.vertexLoaded());
+            this.newProgress.plusEdgeLoaded(this.summary.edgeLoaded());
+            try {
+                this.newProgress.write(this);
+            } catch (IOException e) {
+                LOG.error("Failed to write load progress", e);
+            }
+            LOG.info("Write load progress successfully");
+        } finally {
+            this.closed = true;
         }
-        LOG.info("Write load progress successfully");
-
-        this.client.close();
-        LOG.info("Close HugeClient successfully");
-        this.closed = true;
+        LOG.info("Close loader clients successfully");
     }
 
     @Override

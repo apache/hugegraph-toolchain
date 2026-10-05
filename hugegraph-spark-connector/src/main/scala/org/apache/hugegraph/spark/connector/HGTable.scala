@@ -32,7 +32,7 @@ class HGTable(schema: StructType, hgOptions: HGOptions) extends SupportsWrite {
   private val LOG = LoggerFactory.getLogger(this.getClass)
 
   override def newWriteBuilder(info: LogicalWriteInfo): WriteBuilder = {
-    LOG.info(s"User Config Options ${info.options().asCaseSensitiveMap()}")
+    LOG.info(s"User config keys: ${info.options().asCaseSensitiveMap().keySet()}")
     LOG.info(s"Logical Write schema: ${info.schema()}")
     new HGWriterBuilder(info.schema(), hgOptions)
   }

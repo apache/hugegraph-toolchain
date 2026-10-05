@@ -38,6 +38,8 @@
     </description>
 
     <properties>
+        <!-- Keep late JaCoCo argLine evaluation valid when its agent is disabled. -->
+        <argLine/>
         <release.name>${project.artifactId}</release.name>
         <final.name>apache-${release.name}-${project.version}</final.name>
         <assembly.dir>${project.basedir}/assembly</assembly.dir>
@@ -51,7 +53,7 @@
         <mysql.connector.version>8.0.28</mysql.connector.version>
         <postgres.version>42.4.1</postgres.version>
         <mssql.jdbc.version>7.2.0.jre8</mssql.jdbc.version>
-        <kafka.testcontainer.version>1.19.0</kafka.testcontainer.version>
+        <kafka.testcontainer.version>1.21.4</kafka.testcontainer.version>
         <parboiled.version>1.1.8</parboiled.version>
     </properties>
 
@@ -747,7 +749,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.4</version>
                 <executions>
                     <execution>
                         <id>pre-unit-test</id>
@@ -801,6 +802,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <!-- Tests run on Java 11+; Hive ORC needs URI access on Java 17. -->
+                    <argLine>@{argLine} --add-opens=java.base/java.net=ALL-UNNAMED</argLine>
                     <includes>
                         <include>${test-classes}</include>
                     </includes>

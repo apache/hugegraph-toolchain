@@ -380,17 +380,16 @@ public final class LoadOptions implements Cloneable {
                                          .build();
         try {
             commander.parse(args);
-            // Check param < 3 (required minimum num)
-            if (args.length < MINIMUM_REQUIRED_ARGS) {
-                LoadUtil.exitWithUsage(commander, Constants.EXIT_CODE_NORM);
-            }
         } catch (ParameterException e) {
             // Check input error
-            LoadUtil.exitWithUsage(commander, Constants.EXIT_CODE_NORM);
+            LoadUtil.exitWithUsage(commander, Constants.EXIT_CODE_ERROR);
         }
         // Print usage and exit
         if (options.help) {
             LoadUtil.exitWithUsage(commander, Constants.EXIT_CODE_NORM);
+        }
+        if (args.length < MINIMUM_REQUIRED_ARGS) {
+            LoadUtil.exitWithUsage(commander, Constants.EXIT_CODE_ERROR);
         }
         // Check options
         // Check option "-f"

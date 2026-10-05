@@ -85,14 +85,17 @@ public class EdgeBuilderTest {
     @NotNull
     private static HGLoadContext getEdgeLoadContext() {
         Map<String, String> configs = new HashMap<>();
-        configs.put("host", HGEnvUtils.DEFAULT_HOST);
-        configs.put("port", HGEnvUtils.DEFAULT_PORT);
+        configs.put("host", HGEnvUtils.HOST);
+        configs.put("port", HGEnvUtils.PORT);
+        configs.put("graph", HGEnvUtils.GRAPH);
+        configs.put("protocol", HGEnvUtils.PROTOCOL);
         configs.put("username", "admin");
         configs.put("token", "pa");
         configs.put("data-type", "edge");
         configs.put("label", "created");
         configs.put("source-name", "v1-name");
         configs.put("target-name", "name");
+        configs.putAll(HGEnvUtils.tlsOptions());
         HGOptions options = new HGOptions(configs);
         HGLoadContext context = new HGLoadContext(options);
         context.updateSchemaCache();

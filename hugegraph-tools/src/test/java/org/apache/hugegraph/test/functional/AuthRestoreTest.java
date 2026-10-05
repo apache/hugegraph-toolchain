@@ -58,7 +58,7 @@ public class AuthRestoreTest extends AuthTest {
         this.loadData(HugeType.BELONG, "auth_belongs.txt");
         this.loadData(HugeType.ACCESS, "auth_accesses.txt");
 
-        String[] args = new String[]{"--throw-mode", "true", "--user", USER_NAME,
+        String[] args = new String[]{"--throw-mode", "true", "--url", URL, "--user", USER_NAME,
                                      "--password", USER_PASSWORD, "auth-restore",
                                      "--directory", DEFAULT_URL, "--init-password", "123456",
                                      "--strategy", "ignore"
@@ -122,6 +122,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -145,6 +146,7 @@ public class AuthRestoreTest extends AuthTest {
     public void testRestoreWithoutInitPassword() {
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -166,6 +168,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -187,6 +190,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -212,6 +216,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -234,6 +239,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -257,6 +263,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -280,6 +287,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",
@@ -303,6 +311,7 @@ public class AuthRestoreTest extends AuthTest {
 
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-restore",

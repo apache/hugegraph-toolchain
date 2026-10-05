@@ -31,12 +31,15 @@ public class HGClientHolderTest {
     @Test
     public void testHGClientHolder() {
         Map<String, String> configs = new HashMap<>();
-        configs.put("host", HGEnvUtils.DEFAULT_HOST);
-        configs.put("port", HGEnvUtils.DEFAULT_PORT);
+        configs.put("host", HGEnvUtils.HOST);
+        configs.put("port", HGEnvUtils.PORT);
+        configs.put("graph", HGEnvUtils.GRAPH);
+        configs.put("protocol", HGEnvUtils.PROTOCOL);
 
         configs.put("data-type", "vertex");
         configs.put("label", "person");
         configs.put("id", "name");
+        configs.putAll(HGEnvUtils.tlsOptions());
         HGOptions options = new HGOptions(configs);
         HugeClient client = HGClientHolder.create(options);
         Assert.assertNotNull(client);

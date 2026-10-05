@@ -21,6 +21,12 @@ import java.io.File;
 import java.io.FileWriter;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.AppenderSkeleton;
 import org.apache.log4j.Level;
@@ -33,6 +39,56 @@ import org.junit.Test;
 import org.apache.hugegraph.testutil.Assert;
 
 public class LoadOptionsTest {
+
+    @Test
+    public void testInvalidArgumentsExitNonzeroAndHelpExitsZero() throws Exception {
+        File mapping = createTempMapping();
+        try {
+            assertParserExit(false, "--file", mapping.getPath(),
+                             "--port", "not-an-integer");
+            assertParserExit(false, "--unknown-option");
+            assertParserExit(false);
+            assertParserExit(false, "--file", mapping.getPath());
+            assertParserExit(true, "--help");
+            assertParserExit(true, "-help");
+        } finally {
+            mapping.delete();
+        }
+    }
+
+    private static void assertParserExit(boolean help, String... args) throws Exception {
+        List<String> command = new ArrayList<>();
+        command.add(new File(System.getProperty("java.home"), "bin/java").getPath());
+        command.add("-Xmx128m");
+        command.add("-cp");
+        command.add(System.getProperty("surefire.test.class.path",
+                                       System.getProperty("java.class.path")));
+        command.add(ParserProcess.class.getName());
+        command.addAll(Arrays.asList(args));
+        File output = File.createTempFile("loader-parser-", ".log");
+        Process process = new ProcessBuilder(command).redirectErrorStream(true)
+                                                     .redirectOutput(output).start();
+        try {
+            Assert.assertTrue("Parser process timed out", process.waitFor(20, TimeUnit.SECONDS));
+            String usage = new String(Files.readAllBytes(output.toPath()), StandardCharsets.UTF_8);
+            Assert.assertTrue(usage, usage.contains("Usage:") && usage.contains("--file"));
+            if (help) {
+                Assert.assertEquals(0, process.exitValue());
+            } else {
+                Assert.assertTrue(usage, process.exitValue() != 0);
+            }
+        } finally {
+            process.destroyForcibly();
+            output.delete();
+        }
+    }
+
+    public static class ParserProcess {
+
+        public static void main(String[] args) {
+            LoadOptions.parseOptions(args);
+        }
+    }
 
     @Test
     public void testConnectionPoolAutoAdjustWithDefaultBatchThreads() throws Exception {

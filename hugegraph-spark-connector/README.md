@@ -19,14 +19,16 @@ under the License.
 
 [![License](https://img.shields.io/badge/license-Apache%202-0E78BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
 
-HugeGraph Spark Connector is a Spark connector application for reading and writing HugeGraph data in Spark standard format.
+HugeGraph Spark Connector writes Spark DataFrames to HugeGraph through the Spark DataSource API.
 
 ## Building
 
 Required:
 
-- Java 8+
+- Java 11 or Java 17 (driver and every executor)
+- Spark 3.5.8 with Scala 2.12 (built with Scala 2.12.18)
 - Maven 3.6+
+- UTF-8 as the default JVM charset on the driver and every executor. The published Common 1.7 request-body implementation uses that default; source encoding alone does not protect graph data.
 
 To build without executing tests:
 
@@ -37,8 +39,48 @@ mvn clean package -DskipTests
 To build with default tests:
 
 ```bash
-mvn clean packge
+mvn clean package
 ```
+
+The integration tests clear the configured graph before writing vertices and edges through Spark. Use a disposable server and graph. The defaults are `http://127.0.0.1:8080` and `hugegraph`; set `-Dhugegraph.test.url=... -Dhugegraph.test.graph=...` to select another target. The Surefire JVM starts with `-Dfile.encoding=UTF-8` so these fixtures do not depend on the caller's locale. The default Spark master is `local[2]`. `-Dspark.test.master=...` accepts only `local` or `local[...]`, for example `local[4]` or `local[*]`; remote masters and `local-cluster` are rejected because the Maven fixture does not distribute connector classes or dependencies to separate executors. CI runs this embedded fixture. Packaged `spark-submit` runs with separate executor JVMs and the assembly's SLF4J provider check are manual validation, not automated CI gates.
+
+HTTPS tests require an explicit trust store shared by the readback client and local Spark writers:
+
+```bash
+mvn test -Dhugegraph.test.url=https://127.0.0.1:8443 \
+  -Dhugegraph.test.graph=disposable_graph \
+  -Dhugegraph.test.trust-store-file=/absolute/path/to/hugegraph.truststore \
+  -Dhugegraph.test.trust-store-token=hugegraph
+```
+
+The trust-store token defaults to `hugegraph`. The URL alone does not select a trust store; these test properties provide it directly, without depending on `connector.home.path`.
+
+Run applications with `spark-submit` from the matching Spark distribution. Spark supplies its SLF4J 2 provider and Java module options; the connector assembly does not bundle an SLF4J provider. The Maven test configuration supplies the module options for embedded Spark on Java 17. The connector continues to emit Java 8 bytecode.
+
+Keep Spark's default class loading order for its logging classes. The Java Client needs `com.google.guava:guava:30.0-jre`; an older Guava from Spark can fail with a missing `Preconditions.checkNotNull` overload. Fetch the exact application dependency on the driver:
+
+```bash
+GUAVA_DIR="$PWD/spark-runtime"
+mvn org.apache.maven.plugins:maven-dependency-plugin:3.7.0:copy \
+  -Dartifact=com.google.guava:guava:30.0-jre -DoutputDirectory="$GUAVA_DIR"
+DRIVER_GUAVA_JAR="$GUAVA_DIR/guava-30.0-jre.jar"
+```
+
+Before submission, copy that JAR to each executor host, or run the same Maven copy command there. Use one consistent absolute executor path across workers, and set `EXECUTOR_GUAVA_JAR` to it. For example, after placing the JAR at `/opt/hugegraph-spark/lib/guava-30.0-jre.jar` on every worker:
+
+```bash
+EXECUTOR_GUAVA_JAR=/opt/hugegraph-spark/lib/guava-30.0-jre.jar
+spark-submit --deploy-mode client --driver-class-path "$DRIVER_GUAVA_JAR" \
+  --driver-java-options "-Dfile.encoding=UTF-8" \
+  --conf "spark.executor.extraJavaOptions=-Dfile.encoding=UTF-8" \
+  --conf "spark.executor.extraClassPath=$EXECUTOR_GUAVA_JAR" \
+  --jars /path/to/hugegraph-spark-connector-1.8.0-jar-with-dependencies.jar \
+  /path/to/your-application.jar
+```
+
+For cluster deploy mode, provision Guava on the remote driver and use its readable absolute path in `--driver-class-path`; copying it to executors does not provision the driver.
+
+Supply the class and application arguments required by your application. This setting gives the application's Guava priority on both sides; it changes the effective Guava classpath while keeping Spark's logging provider. It is not a guarantee of compatibility with every other Spark application or library in the same host.
 
 ## How to use
 

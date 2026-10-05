@@ -34,7 +34,7 @@ public class AuthBackupTest extends AuthTest {
 
     @Test
     public void testAuthBackup() {
-        String[] args = new String[]{"--throw-mode", "true", "--user", USER_NAME,
+        String[] args = new String[]{"--throw-mode", "true", "--url", URL, "--user", USER_NAME,
                                      "--password", USER_PASSWORD, "auth-backup"
         };
 
@@ -47,7 +47,7 @@ public class AuthBackupTest extends AuthTest {
 
     @Test
     public void testAuthBackupByTypes() {
-        String[] args = new String[]{"--throw-mode", "true", "--user", USER_NAME,
+        String[] args = new String[]{"--throw-mode", "true", "--url", URL, "--user", USER_NAME,
                                      "--password", USER_PASSWORD, "auth-backup",
                                      "--types", "user,group"
         };
@@ -61,7 +61,7 @@ public class AuthBackupTest extends AuthTest {
 
     @Test
     public void testAuthBackupWithWrongType() {
-        String[] args = new String[]{"--throw-mode", "true", "--user", USER_NAME,
+        String[] args = new String[]{"--throw-mode", "true", "--url", URL, "--user", USER_NAME,
                                      "--password", USER_PASSWORD, "auth-backup",
                                      "--types", "user,group,test"
         };
@@ -79,6 +79,7 @@ public class AuthBackupTest extends AuthTest {
         String directory = "./backup";
         String[] args = new String[]{
                 "--throw-mode", "true",
+                "--url", URL,
                 "--user", USER_NAME,
                 "--password", USER_PASSWORD,
                 "auth-backup",

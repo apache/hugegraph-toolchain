@@ -75,7 +75,7 @@ public class HGOptions implements Serializable {
         checkRequiredConf();
         setDefaultConf();
         checkFieldsConflict();
-        LOG.info("HugeGraph Spark Connector Configs: {}", parameters);
+        LOG.info("HugeGraph Spark Connector config keys: {}", parameters.keySet());
     }
 
     private void checkRequiredConf() {

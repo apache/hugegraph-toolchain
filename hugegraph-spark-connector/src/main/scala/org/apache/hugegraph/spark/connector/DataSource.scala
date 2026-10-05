@@ -37,7 +37,7 @@ class DataSource extends TableProvider with DataSourceRegister {
 
   override def inferSchema(options: CaseInsensitiveStringMap): StructType = {
     hgOptions = new HGOptions(options.asCaseSensitiveMap())
-    LOG.info(s"HugeGraph Options: ${hgOptions.getAllParameters}")
+    LOG.info(s"HugeGraph option keys: ${hgOptions.getAllParameters.keySet()}")
     schema = new StructType()
     LOG.info(s"Writer infer schema: ${schema}")
     schema

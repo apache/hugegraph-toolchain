@@ -57,7 +57,7 @@ else
     JAVA=java
 fi
 
-if [ -z ${JAVA} ] ; then
+if [ -z "${JAVA:-}" ] || ! command -v "$JAVA" >/dev/null 2>&1; then
     echo Unable to find java executable. Check JAVA_HOME and PATH environment variables. > /dev/stderr
     exit 1;
 fi
@@ -73,12 +73,20 @@ CP="$CP":$(find -L ${LIB} -name '*.jar' \
 
 export LOADER_CLASSPATH="${CLASSPATH:-}:$CP"
 
+# Hive ORC interns URI fields reflectively; Java 17 requires this opening.
+# Keep the existing Java baseline usable while preparing for the upgrade.
+JAVA_VERSION=$("$JAVA" -version 2>&1 | awk -F '"' '/version/ {print $2; exit}')
+JAVA_MAJOR=${JAVA_VERSION%%[.+-]*}
+if [ "$JAVA_MAJOR" -ge 17 ] 2>/dev/null; then
+    JVM_OPTS="$JVM_OPTS --add-opens=java.base/java.net=ALL-UNNAMED"
+fi
+
 # Xmx needs to be set so that it is big enough to cache all the vertexes in the run
 export JVM_OPTS="$JVM_OPTS -Xmx10g -cp $LOADER_CLASSPATH"
 
 # Uncomment to enable debugging
 #JVM_OPTS="$JVM_OPTS -agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=1414"
 
-exec ${JAVA} -Dname="HugeGraphLoader" -Dloader.home.path=${TOP} -Dlog4j.configurationFile=${CONF}/log4j2.xml \
+exec "$JAVA" -Dname="HugeGraphLoader" -Dloader.home.path=${TOP} -Dlog4j.configurationFile=${CONF}/log4j2.xml \
 -Djava.library.path=${NATIVE} \
 ${JVM_OPTS} org.apache.hugegraph.loader.HugeGraphLoader ${VARS}

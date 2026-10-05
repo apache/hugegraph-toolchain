@@ -23,7 +23,7 @@ public class AuthTest {
     public static final String DEFAULT_TEST_URL = "/auth/";
     public static final String USER_NAME = "admin";
     public static final String USER_PASSWORD = "pa";
-    public static final String URL = "http://127.0.0.1:8080";
+    public static final String URL = System.getProperty("tools.test.url", "http://127.0.0.1:8080");
     public static final String GRAPH = "hugegraph";
     public static final Integer TIME_OUT = 30;
     public static final String TRUST_STORE_FILE = "";

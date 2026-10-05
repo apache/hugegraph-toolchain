@@ -477,7 +477,6 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Jetty :: XML utilities (org.eclipse.jetty:jetty-xml:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-xml)
 	(Apache License, Version 2.0) * JSQLParser library (com.github.jsqlparser:jsqlparser:3.1 - https://github.com/JSQLParser/JSqlParser)
 	(Apache License, Version 2.0) * Javassist (org.javassist:javassist:3.24.0-GA - http://www.javassist.org/)
-	(Apache License, Version 2.0) * Javassist (org.javassist:javassist:3.25.0-GA - http://www.javassist.org/)
 	(Apache License, Version 2.0) * Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
 	(Apache License, Version 2.0) * less (less:3.13.1 - https://github.com/less/less.js)
 	(Apache License, Version 2.0) * typescript (typescript:3.9.10 - https://github.com/Microsoft/TypeScript)
@@ -590,7 +589,6 @@ See licenses/ for text of these licenses.
 	(The MIT License) * Microsoft JDBC Driver for SQL Server (com.microsoft.sqlserver:mssql-jdbc:6.4.0.jre8 - https://github.com/Microsoft/mssql-jdbc)
 	(The MIT License) * Microsoft JDBC Driver for SQL Server (com.microsoft.sqlserver:mssql-jdbc:7.2.0.jre8 - https://github.com/Microsoft/mssql-jdbc)
 	(The MIT License) * Project Lombok (org.projectlombok:lombok:1.18.8 - https://projectlombok.org)
-	(The MIT License) * SLF4J API Module (org.slf4j:slf4j-api:1.7.25 - http://www.slf4j.org)
 	(The MIT License) * SLF4J API Module (org.slf4j:slf4j-api:1.7.28 - http://www.slf4j.org)
 	(The MIT License) * SLF4J API Module (org.slf4j:slf4j-api:1.7.30 - http://www.slf4j.org)
 	(The MIT License) * SLF4J API Module (org.slf4j:slf4j-api:1.7.36 - http://www.slf4j.org)
@@ -680,3 +678,42 @@ See licenses/ for text of these licenses.
 	(Public Domain) * XZ for Java (org.tukaani:xz:1.8 - https://tukaani.org/xz/java.html)
 	(Public Domain, per Creative Commons CC0) * HdrHistogram (org.hdrhistogram:HdrHistogram:2.1.9 - http://hdrhistogram.github.io/HdrHistogram/)
 	(Public Domain, per Creative Commons CC0) * LatencyUtils (org.latencyutils:LatencyUtils:2.0.3 - http://latencyutils.github.io/LatencyUtils/)
+
+========================================================================
+Spark Connector runtime dependency updates
+========================================================================
+
+These versions are additions to the runtime dependency set for the Spark
+Connector upgrade. Other modules retain their existing runtime versions.
+The Spark framework is provided by the deployment environment and is not
+bundled in the Connector assembly. Required attribution notices are in the
+distribution NOTICE. Full bundled terms and copyright statements are in
+licenses/LICENSE-spark-java17-third-party.txt and the component files below.
+Apache-2.0 terms are reproduced at the beginning of this LICENSE.
+Jackson Core 2.15.2 also bundles FastDoubleParser under MIT; its complete
+copyright and grant are in licenses/LICENSE-spark-java17-third-party.txt.
+Javassist is distributed under its Apache-2.0 option; the EDL-1.0 option
+is used for Jakarta Activation and XML Binding APIs.
+
+    (Apache-2.0) com.fasterxml.jackson.core:jackson-annotations:2.15.2
+        Apache-2.0 terms above
+    (Apache-2.0) com.fasterxml.jackson.core:jackson-core:2.15.2
+        Apache-2.0 terms above, licenses/LICENSE-spark-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.core:jackson-databind:2.15.2
+        Apache-2.0 terms above
+    (Apache-2.0) com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.15.2
+        licenses/LICENSE-spark-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.15.2
+        licenses/LICENSE-spark-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.15.2
+        licenses/LICENSE-spark-java17-third-party.txt
+    (BSD-3-Clause) com.google.protobuf:protobuf-java:3.19.6
+        licenses/LICENSE-spark-java17-third-party.txt
+    (EDL-1.0) jakarta.activation:jakarta.activation-api:1.2.2
+        licenses/LICENSE-jakarta.activation-api.txt
+    (EDL-1.0) jakarta.xml.bind:jakarta.xml.bind-api:2.3.3
+        licenses/LICENSE-jakarta.xml.bind-api.txt
+    (Apache-2.0) org.javassist:javassist:3.30.2-GA
+        Apache-2.0 terms above
+    (MIT) org.slf4j:slf4j-api:2.0.7
+        licenses/LICENSE-spark-java17-third-party.txt

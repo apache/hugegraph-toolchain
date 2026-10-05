@@ -23,14 +23,27 @@ jobs:
       USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-spark-connector/assembly/travis
     strategy:
+      fail-fast: false
       matrix:
-        JAVA_VERSION: [ '11' ]
+        JAVA_VERSION: [ '11', '17' ]
 
     steps:
       - name: Fetch Code
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
+
+      # The published HugeGraph 1.7 authentication fixture requires Java 11.
+      - name: Setup server Java
+        id: server-java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Save server Java path
+        id: server-path
+        run: echo "path=$JAVA_HOME/bin:$PATH" >> "$GITHUB_OUTPUT"
 
       - name: Setup Java environment
         uses: ./.github/actions/setup-java-env
@@ -45,6 +58,9 @@ jobs:
 
       - name: Setup HugeGraph server
         uses: ./.github/actions/setup-hugegraph-server
+        env:
+          JAVA_HOME: ${{ steps.server-java.outputs.path }}
+          PATH: ${{ steps.server-path.outputs.path }}
         with:
           travis-dir: ${{ env.TRAVIS_DIR }}
           commit-id: ${{ inputs.server-commit }}

@@ -33,7 +33,9 @@ object SinkExampleTest {
   var client: HugeClient = _
 
   val sparkSession: SparkSession = SparkSession.builder()
-    .master("local[*]")
+    .master(HGEnvUtils.sparkTestMaster())
+    .config("spark.ui.enabled", "false")
+    .config("spark.sql.shuffle.partitions", "2")
     .appName(this.getClass.getSimpleName)
     .getOrCreate()
 
@@ -57,9 +59,9 @@ class SinkExampleTest {
   val sparkSession: SparkSession = SinkExampleTest.sparkSession
 
   val DEFAULT_ENTRANCE: String = "org.apache.hugegraph.spark.connector.DataSource"
-  val DEFAULT_HOST: String = HGEnvUtils.DEFAULT_HOST
-  val DEFAULT_PORT: String = HGEnvUtils.DEFAULT_PORT
-  val DEFAULT_GRAPH: String = HGEnvUtils.DEFAULT_GRAPH
+  val DEFAULT_HOST: String = HGEnvUtils.HOST
+  val DEFAULT_PORT: String = HGEnvUtils.PORT
+  val DEFAULT_GRAPH: String = HGEnvUtils.GRAPH
 
   @Test
   def testFirstInsertVertexPerson(): Unit = {
@@ -69,7 +71,7 @@ class SinkExampleTest {
       Tuple3("Josh", 32, "Beijing"),
       Tuple3("peter", 35, "ShangHai"),
       Tuple3("li,nary", 26, "Wu,han"),
-      Tuple3("Bob", 18, "HangZhou"),
+      Tuple3("张三🙂", 18, "杭州"),
     )).toDF("name", "age", "city")
 
     df.show()
@@ -79,6 +81,8 @@ class SinkExampleTest {
       .option("host", DEFAULT_HOST)
       .option("port", DEFAULT_PORT)
       .option("graph", DEFAULT_GRAPH)
+      .option("protocol", HGEnvUtils.PROTOCOL)
+      .options(HGEnvUtils.tlsOptions())
       .option("username", "admin")
       .option("token", "pa")
       .option("data-type", "vertex")
@@ -90,6 +94,9 @@ class SinkExampleTest {
 
     val vertices: util.List[Vertex] = client.graph().listVertices("person")
     assertEquals(6, vertices.size())
+    val unicodeVertex = client.graph().getVertex("张三🙂")
+    assertEquals("张三🙂", unicodeVertex.properties().get("name"))
+    assertEquals("杭州", unicodeVertex.properties().get("city"))
   }
 
   @Test
@@ -106,6 +113,8 @@ class SinkExampleTest {
       .option("host", DEFAULT_HOST)
       .option("port", DEFAULT_PORT)
       .option("graph", DEFAULT_GRAPH)
+      .option("protocol", HGEnvUtils.PROTOCOL)
+      .options(HGEnvUtils.tlsOptions())
       .option("username", "admin")
       .option("token", "pa")
       .option("data-type", "vertex")
@@ -139,6 +148,8 @@ class SinkExampleTest {
       .option("host", DEFAULT_HOST)
       .option("port", DEFAULT_PORT)
       .option("graph", DEFAULT_GRAPH)
+      .option("protocol", HGEnvUtils.PROTOCOL)
+      .options(HGEnvUtils.tlsOptions())
       .option("username", "admin")
       .option("token", "pa")
       .option("data-type", "edge")
@@ -169,6 +180,8 @@ class SinkExampleTest {
       .option("host", DEFAULT_HOST)
       .option("port", DEFAULT_PORT)
       .option("graph", DEFAULT_GRAPH)
+      .option("protocol", HGEnvUtils.PROTOCOL)
+      .options(HGEnvUtils.tlsOptions())
       .option("username", "admin")
       .option("token", "pa")
       .option("data-type", "edge")

@@ -55,4 +55,5 @@ jobs:
 
       - name: Run test
         run: |
-          mvn test -Dtest=FuncTestSuite -pl hugegraph-tools -ntp
+          # The setup step above creates this job's disposable server instance.
+          mvn test -Dtest=FuncTestSuite -Dtools.test.disposable=true -pl hugegraph-tools -ntp

@@ -135,10 +135,14 @@ public class HdfsDirectory extends Directory {
         Path source = new Path(path);
         try {
             is = fs.open(source);
+            // Plain JSON backups are also supported by LocalDirectory.
+            if (!file.endsWith(this.suffix(true))) {
+                return is;
+            }
             zis = new ZipInputStream(is);
             E.checkState(zis.getNextEntry() != null,
                          "Invalid zip file '%s'", file);
-        } catch (IOException e) {
+        } catch (IOException | IllegalStateException e) {
             closeAndIgnoreException(is);
             throw new ClientException("Failed to read from %s", e, path);
         }

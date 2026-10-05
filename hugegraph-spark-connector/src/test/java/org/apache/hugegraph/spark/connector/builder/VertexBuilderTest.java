@@ -75,13 +75,16 @@ public class VertexBuilderTest {
     @NotNull
     private static HGLoadContext getCustomizeIdVertexContext() {
         Map<String, String> configs = new HashMap<>();
-        configs.put("host", HGEnvUtils.DEFAULT_HOST);
-        configs.put("port", HGEnvUtils.DEFAULT_PORT);
+        configs.put("host", HGEnvUtils.HOST);
+        configs.put("port", HGEnvUtils.PORT);
+        configs.put("graph", HGEnvUtils.GRAPH);
+        configs.put("protocol", HGEnvUtils.PROTOCOL);
         configs.put("username", "admin");
         configs.put("token", "pa");
         configs.put("data-type", "vertex");
         configs.put("label", "person");
         configs.put("id", "name");
+        configs.putAll(HGEnvUtils.tlsOptions());
         HGOptions options = new HGOptions(configs);
         HGLoadContext context = new HGLoadContext(options);
         context.updateSchemaCache();
@@ -137,12 +140,15 @@ public class VertexBuilderTest {
     @NotNull
     private static HGLoadContext getPrimaryIdVertexContext() {
         Map<String, String> configs = new HashMap<>();
-        configs.put("host", HGEnvUtils.DEFAULT_HOST);
-        configs.put("port", HGEnvUtils.DEFAULT_PORT);
+        configs.put("host", HGEnvUtils.HOST);
+        configs.put("port", HGEnvUtils.PORT);
+        configs.put("graph", HGEnvUtils.GRAPH);
+        configs.put("protocol", HGEnvUtils.PROTOCOL);
         configs.put("username", "admin");
         configs.put("token", "pa");
         configs.put("data-type", "vertex");
         configs.put("label", "software");
+        configs.putAll(HGEnvUtils.tlsOptions());
         HGOptions options = new HGOptions(configs);
         HGLoadContext context = new HGLoadContext(options);
         context.updateSchemaCache();

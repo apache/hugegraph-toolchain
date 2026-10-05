@@ -42,7 +42,12 @@ for jar in "$LIB_PATH"/*.jar; do
     class_path=${class_path}:${jar}
 done
 
+JAVA=java
+if [ -n "$JAVA_HOME" ]; then
+    JAVA="$JAVA_HOME/bin/java"
+fi
+
 args=$1
 main_class="org.apache.hugegraph.loader.MappingConverter"
-exec java -Dlog4j.configurationFile="${CONF_PATH}"/log4j2.xml \
+exec "$JAVA" -Dlog4j.configurationFile="${CONF_PATH}"/log4j2.xml \
     -cp "${class_path}" ${main_class} "${args}"

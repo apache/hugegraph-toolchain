@@ -40,12 +40,15 @@
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <spark.verion>3.2.2</spark.verion>
+        <spark.version>3.5.8</spark.version>
+        <spark.log4j.version>2.20.0</spark.log4j.version>
         <spark.scope>provided</spark.scope>
-        <jackson.version>2.12.3</jackson.version>
+        <jackson.version>2.15.2</jackson.version>
+        <!-- API/core retain the application override, including on the embedded test classpath.
+             Packaged Spark uses its own API/core/provider with the default class loading order. -->
         <log4j.version>2.25.5</log4j.version>
-        <slf4j.api.version>1.7.25</slf4j.api.version>
-        <scala.minor.version>2.12.11</scala.minor.version>
+        <slf4j.api.version>2.0.7</slf4j.api.version>
+        <scala.minor.version>2.12.18</scala.minor.version>
         <assembly.dir>${project.basedir}/assembly</assembly.dir>
         <assembly.descriptor.dir>${assembly.dir}/descriptor</assembly.descriptor.dir>
         <release.name>${project.artifactId}</release.name>
@@ -56,7 +59,7 @@
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_${scala.version}</artifactId>
-            <version>${spark.verion}</version>
+            <version>${spark.version}</version>
             <scope>${spark.scope}</scope>
             <exclusions>
                 <exclusion>
@@ -81,7 +84,7 @@
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-sql_${scala.version}</artifactId>
-            <version>${spark.verion}</version>
+            <version>${spark.version}</version>
             <scope>${spark.scope}</scope>
             <exclusions>
                 <exclusion>
@@ -95,6 +98,13 @@
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-client</artifactId>
             <version>${revision}</version>
+            <exclusions>
+                <!-- Spark 3.5 uses SLF4J 2; keep only its matching Log4j binding. -->
+                <exclusion>
+                    <groupId>org.apache.logging.log4j</groupId>
+                    <artifactId>log4j-slf4j-impl</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- jackson version override -->
@@ -132,8 +142,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
-            <artifactId>log4j-slf4j-impl</artifactId>
-            <version>${log4j.version}</version>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <!-- Spark 3.5 supplies this provider; it must not enter the connector assembly. -->
+            <version>${spark.log4j.version}</version>
+            <scope>provided</scope>
         </dependency>
     </dependencies>
 
@@ -156,9 +168,9 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.scala-tools</groupId>
-                <artifactId>maven-scala-plugin</artifactId>
-                <version>2.15.2</version>
+                <groupId>net.alchim31.maven</groupId>
+                <artifactId>scala-maven-plugin</artifactId>
+                <version>4.9.2</version>
                 <configuration>
                     <scalaVersion>${scala.minor.version}</scalaVersion>
                     <args>
@@ -166,6 +178,8 @@
                     </args>
                     <jvmArgs>
                         <jvmArg>-Xss4096K</jvmArg>
+                        <jvmArg>-Xmx512m</jvmArg>
+                        <jvmArg>-XX:ActiveProcessorCount=2</jvmArg>
                     </jvmArgs>
                 </configuration>
                 <executions>
@@ -189,6 +203,32 @@
                         </goals>
                     </execution>
                 </executions>
+            </plugin>
+            <!-- Maven embeds Spark without spark-submit's Java 17 module options. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>
+                        -Xmx512m -XX:ActiveProcessorCount=2 -Dfile.encoding=UTF-8
+                        --add-opens=java.base/java.lang=ALL-UNNAMED
+                        --add-opens=java.base/java.lang.invoke=ALL-UNNAMED
+                        --add-opens=java.base/java.lang.reflect=ALL-UNNAMED
+                        --add-opens=java.base/java.io=ALL-UNNAMED
+                        --add-opens=java.base/java.net=ALL-UNNAMED
+                        --add-opens=java.base/java.nio=ALL-UNNAMED
+                        --add-opens=java.base/java.util=ALL-UNNAMED
+                        --add-opens=java.base/java.util.concurrent=ALL-UNNAMED
+                        --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED
+                        --add-opens=java.base/jdk.internal.ref=ALL-UNNAMED
+                        --add-opens=java.base/sun.nio.ch=ALL-UNNAMED
+                        --add-opens=java.base/sun.nio.cs=ALL-UNNAMED
+                        --add-opens=java.base/sun.security.action=ALL-UNNAMED
+                        --add-opens=java.base/sun.util.calendar=ALL-UNNAMED
+                        --add-opens=java.security.jgss/sun.security.krb5=ALL-UNNAMED
+                        -Djdk.reflect.useDirectMethodHandle=false
+                    </argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
