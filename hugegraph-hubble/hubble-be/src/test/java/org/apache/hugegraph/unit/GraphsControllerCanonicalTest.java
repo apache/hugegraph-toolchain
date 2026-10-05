@@ -140,7 +140,7 @@ public class GraphsControllerCanonicalTest {
                          .param("clear_schema", "true"))
                 .andExpect(status().is4xxClientError());
 
-        Mockito.verifyZeroInteractions(this.graphsService);
+        Mockito.verifyNoMoreInteractions(this.graphsService);
     }
 
     @Test

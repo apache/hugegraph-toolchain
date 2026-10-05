@@ -61,10 +61,17 @@ runs:
         fi
         if [[ "$FIXTURE_MODE" == build ]]; then
           bash "$FIXTURE_ACTION/fixture.sh"
-        elif [[ -f "$TRAVIS_DIR/install-hugegraph-from-source.sh" ]]; then
-          bash "$TRAVIS_DIR/install-hugegraph-from-source.sh" "$FIXTURE_COMMIT"
         else
-          bash "$TRAVIS_DIR/install-hugegraph.sh" "$FIXTURE_COMMIT" "$FIXTURE_REF"
+          # Keep downloaded archives and legacy source checkouts out of the caller's tree.
+          TRAVIS_DIR=$(cd "$TRAVIS_DIR" && pwd)
+          export TRAVIS_DIR
+          server_build=$(mktemp -d "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/hugegraph-build.XXXXXX")
+          cd "$server_build"
+          if [[ -f "$TRAVIS_DIR/install-hugegraph-from-source.sh" ]]; then
+            bash "$TRAVIS_DIR/install-hugegraph-from-source.sh" "$FIXTURE_COMMIT"
+          else
+            bash "$TRAVIS_DIR/install-hugegraph.sh" "$FIXTURE_COMMIT" "$FIXTURE_REF"
+          fi
         fi
     - name: Upload shared Server fixture
       if: inputs.mode == 'build'

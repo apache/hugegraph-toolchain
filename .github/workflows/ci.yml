@@ -44,6 +44,7 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     outputs:
+      server-repository: ${{ steps.baseline.outputs.repository }}
       server-commit: ${{ steps.baseline.outputs.commit_id }}
       server-ref: ${{ steps.baseline.outputs.fetch_ref }}
       hubble-commit: ${{ steps.hubble-baseline.outputs.commit }}
@@ -64,7 +65,7 @@ jobs:
         run: |
           python3 -m unittest discover -s .github/scripts -p 'test_*.py'
           python3 .github/actions/setup-hugegraph-server/runtime_test.py
-          node --test hugegraph-client/assembly/travis/checkout-server.test.cjs hugegraph-client/assembly/travis/install-server.test.cjs
+          node --test .github/actions/get-hugegraph-commit/resolve.test.cjs hugegraph-client/assembly/travis/checkout-server.test.cjs hugegraph-client/assembly/travis/install-server.test.cjs
       - name: Resolve immutable Server release baseline
         id: baseline
         uses: ./.github/actions/get-hugegraph-commit
@@ -80,6 +81,7 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
       - name: Record external test inputs
         env:
+          SERVER_REPOSITORY: ${{ steps.baseline.outputs.repository }}
           SERVER_COMMIT: ${{ steps.baseline.outputs.commit_id }}
           SERVER_REF: ${{ steps.baseline.outputs.fetch_ref }}
           HUBBLE_COMMIT: ${{ steps.hubble-baseline.outputs.commit }}
@@ -87,7 +89,7 @@ jobs:
           python3 - <<'PYINPUTS'
           import json, os
           inputs = {
-              'server': {'repository': 'apache/hugegraph', 'commit': os.environ['SERVER_COMMIT'],
+              'server': {'repository': os.environ['SERVER_REPOSITORY'], 'commit': os.environ['SERVER_COMMIT'],
                          'ref': os.environ['SERVER_REF']},
               'hubble': {'repository': 'apache/hugegraph', 'commit': os.environ['HUBBLE_COMMIT'],
                          'ref': os.environ['HUBBLE_COMMIT'], 'branch': 'master'},
@@ -134,6 +136,7 @@ jobs:
         with:
           mode: build
           artifact-name: ${{ steps.identity.outputs.artifact }}
+          repository: ${{ needs.plan.outputs.server-repository }}
           commit-id: ${{ needs.plan.outputs.server-commit }}
           fetch-ref: ${{ needs.plan.outputs.server-ref }}
           java-version: '11'
@@ -171,6 +174,7 @@ jobs:
     uses: ./.github/workflows/client-ci.yml
     with:
       artifact-name: ${{ needs.fixture.outputs.artifact }}
+      server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}
       server-ref: ${{ needs.plan.outputs.server-ref }}
     secrets: inherit
@@ -181,6 +185,7 @@ jobs:
     uses: ./.github/workflows/loader-ci.yml
     with:
       artifact-name: ${{ needs.fixture.outputs.artifact }}
+      server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}
       server-ref: ${{ needs.plan.outputs.server-ref }}
     secrets: inherit
@@ -191,6 +196,7 @@ jobs:
     uses: ./.github/workflows/tools-ci.yml
     with:
       artifact-name: ${{ needs.fixture.outputs.artifact }}
+      server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}
       server-ref: ${{ needs.plan.outputs.server-ref }}
     secrets: inherit
@@ -201,6 +207,7 @@ jobs:
     uses: ./.github/workflows/spark-connector-ci.yml
     with:
       artifact-name: ${{ needs.fixture.outputs.artifact }}
+      server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}
       server-ref: ${{ needs.plan.outputs.server-ref }}
     secrets: inherit
@@ -221,6 +228,7 @@ jobs:
     uses: ./.github/workflows/client-go-ci.yml
     with:
       artifact-name: ${{ needs.fixture.outputs.artifact }}
+      server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}
       server-ref: ${{ needs.plan.outputs.server-ref }}
     secrets: inherit

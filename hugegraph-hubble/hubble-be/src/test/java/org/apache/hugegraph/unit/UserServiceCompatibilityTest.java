@@ -105,7 +105,7 @@ public class UserServiceCompatibilityTest {
         ArgumentCaptor<User> request = ArgumentCaptor.forClass(User.class);
         Mockito.verify(this.auth).createUser(request.capture());
         Assert.assertEquals("display-name", request.getValue().nickname());
-        Mockito.verifyZeroInteractions(this.standalonePermissions);
+        Mockito.verifyNoMoreInteractions(this.standalonePermissions);
     }
 
     @Test

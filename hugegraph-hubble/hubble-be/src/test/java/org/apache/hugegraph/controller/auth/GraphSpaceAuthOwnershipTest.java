@@ -534,7 +534,7 @@ public class GraphSpaceAuthOwnershipTest {
         assertForbidden(() -> service.createOrUpdate(
                 this.client, "SPACE_A", user));
 
-        Mockito.verifyZeroInteractions(belongs);
+        Mockito.verifyNoMoreInteractions(belongs);
         Mockito.verify(this.auth, Mockito.never())
                .addSpaceMember(Mockito.anyString(), Mockito.anyString());
     }
@@ -651,7 +651,7 @@ public class GraphSpaceAuthOwnershipTest {
                              "\"permission_preset\":\"GS_READ_WRITE\"}"))
            .andExpect(status().isForbidden());
 
-        Mockito.verifyZeroInteractions(members);
+        Mockito.verifyNoMoreInteractions(members);
     }
 
     private static Target target(String id, String graphSpace) {

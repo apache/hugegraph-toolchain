@@ -3,6 +3,9 @@ name: "loader-ci"
 on:
   workflow_call:
     inputs:
+      server-repository:
+        type: string
+        default: apache/hugegraph
       artifact-name:
         type: string
         required: true
@@ -59,6 +62,7 @@ jobs:
           mode: start
           artifact-name: ${{ inputs.artifact-name }}
           commit-id: ${{ inputs.server-commit }}
+          repository: ${{ inputs.server-repository }}
           fetch-ref: ${{ inputs.server-ref }}
           travis-dir: ${{ env.TRAVIS_DIR }}
 
@@ -112,6 +116,7 @@ jobs:
           mode: start
           artifact-name: ${{ inputs.artifact-name }}
           commit-id: ${{ inputs.server-commit }}
+          repository: ${{ inputs.server-repository }}
           fetch-ref: ${{ inputs.server-ref }}
           travis-dir: ${{ env.TRAVIS_DIR }}
 

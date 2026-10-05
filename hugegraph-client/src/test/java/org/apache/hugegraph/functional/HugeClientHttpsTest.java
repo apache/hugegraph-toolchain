@@ -17,6 +17,11 @@
 
 package org.apache.hugegraph.functional;
 
+import java.math.BigInteger;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
 import java.util.Map;
 
 import org.apache.hugegraph.driver.GraphManager;
@@ -27,7 +32,7 @@ import org.apache.hugegraph.structure.graph.Vertex;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.CommonUtil;
 import org.junit.After;
-import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 import com.google.common.collect.ImmutableMap;
@@ -45,18 +50,39 @@ public class HugeClientHttpsTest extends BaseFuncTest {
     private static final int IDLE_TIME = 30;
     private static final String TRUST_STORE_PATH = "src/test/resources/hugegraph.truststore";
     private static final String TRUST_STORE_PASSWORD = "hugegraph";
+    // Source: https://github.com/apache/hugegraph-doc/raw/binary/dist/toolchain/hugegraph.truststore
+    // Update this pin together with the matching server TLS test fixture.
+    private static final String TRUST_STORE_SHA256 =
+            "4771cb107d72b2dd91da700ee623e18e69642744a9ecc17edff132999d95113f";
 
-    private static HugeClient client;
+    private HugeClient client;
 
-    @Before
-    public void initBaseFuncTest() {
-        CommonUtil.downloadFileByUrl(CommonUtil.PREFIX + "hugegraph.truststore", TRUST_STORE_PATH);
+    @BeforeClass
+    public static void prepareTrustStore() throws Exception {
+        Path path = Paths.get(TRUST_STORE_PATH);
+        if (!validTrustStore(path)) {
+            CommonUtil.downloadFileByUrl(CommonUtil.PREFIX + "hugegraph.truststore", TRUST_STORE_PATH);
+        }
+        Assert.assertTrue("Unexpected HTTPS trust store contents", validTrustStore(path));
+    }
+
+    private static boolean validTrustStore(Path path) throws Exception {
+        if (!Files.isRegularFile(path)) {
+            return false;
+        }
+        byte[] digest = MessageDigest.getInstance("SHA-256").digest(Files.readAllBytes(path));
+        return TRUST_STORE_SHA256.equals(String.format("%064x", new BigInteger(1, digest)));
     }
 
     @After
     public void teardown() throws Exception {
-        Assert.assertNotNull("Client is not opened", client);
-        client.close();
+        try {
+            if (this.client != null) {
+                this.client.close();
+            }
+        } finally {
+            this.client = null;
+        }
     }
 
     @Test

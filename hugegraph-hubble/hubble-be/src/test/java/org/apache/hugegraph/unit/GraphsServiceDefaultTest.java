@@ -316,7 +316,7 @@ public class GraphsServiceDefaultTest {
         Assert.assertEquals(7L, result.get("vertex"));
         Assert.assertEquals(6L, result.get("edge"));
         Assert.assertNotNull(result.get("date"));
-        Mockito.verifyZeroInteractions(query);
+        Mockito.verifyNoMoreInteractions(query);
     }
 
     @Test
@@ -346,7 +346,7 @@ public class GraphsServiceDefaultTest {
         Assert.assertEquals(1L, result.get("edge"));
         Assert.assertNotNull(result.get("date"));
         Mockito.verify(graph, Mockito.never()).getEVCount(Mockito.anyString());
-        Mockito.verifyZeroInteractions(query);
+        Mockito.verifyNoMoreInteractions(query);
     }
 
     @Test

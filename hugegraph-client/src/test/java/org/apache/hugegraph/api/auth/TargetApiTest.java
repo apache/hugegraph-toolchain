@@ -22,12 +22,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.hugegraph.api.version.VersionAPI;
 import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.structure.auth.HugeResource;
 import org.apache.hugegraph.structure.auth.HugeResourceType;
 import org.apache.hugegraph.structure.auth.Target;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.testutil.Whitebox;
+import org.apache.hugegraph.util.VersionUtil;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -40,6 +42,7 @@ public class TargetApiTest extends AuthApiTest {
     @BeforeClass
     public static void init() {
         api = new TargetAPI(initClient(), GRAPHSPACE);
+        client.apiVersion(VersionUtil.Version.of(new VersionAPI(client).get().get("api")));
     }
 
     @AfterClass
@@ -120,15 +123,21 @@ public class TargetApiTest extends AuthApiTest {
                                   e.getMessage());
         });
 
-        Assert.assertThrows(ServerException.class, () -> {
-            Target target3 = new Target();
-            target3.name("test");
-            target3.graph("hugegraph3");
-            api.create(target3);
-        }, e -> {
-            Assert.assertContains("The url of target can't be null",
-                                  e.getMessage());
-        });
+        Target target3 = new Target();
+        target3.name("test");
+        target3.graph("hugegraph3");
+        if (client.apiVersionLt("0.72")) {
+            Assert.assertThrows(ServerException.class, () -> api.create(target3), e -> {
+                Assert.assertContains("The url of target can't be null",
+                                      e.getMessage());
+            });
+        } else {
+            // The GraphSpace auth contract allows targets without a monitoring URL.
+            Target created = api.create(target3);
+            Assert.assertNotNull(created.id());
+            Assert.assertEquals("", created.url());
+            Assert.assertEquals("", api.get(created.id()).url());
+        }
     }
 
     @Test

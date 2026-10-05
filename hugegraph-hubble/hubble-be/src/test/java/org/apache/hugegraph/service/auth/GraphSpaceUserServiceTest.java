@@ -129,7 +129,7 @@ public class GraphSpaceUserServiceTest {
                     "auth.permission-preset.graphspace-required",
                     error.getMessage());
         }
-        Mockito.verifyZeroInteractions(this.graphSpace);
+        Mockito.verifyNoMoreInteractions(this.graphSpace);
     }
 
     @Test
@@ -145,7 +145,7 @@ public class GraphSpaceUserServiceTest {
         Assert.assertNotNull(error);
         Assert.assertEquals("auth.permission-preset.invalid",
                             error.getMessage());
-        Mockito.verifyZeroInteractions(this.graphSpace);
+        Mockito.verifyNoMoreInteractions(this.graphSpace);
     }
 
     @Test
@@ -217,7 +217,7 @@ public class GraphSpaceUserServiceTest {
                           this.client, "team", "alice"));
         Assert.assertFalse(this.service.hasGraphSpaceAccess(
                            this.client, "team", "bob"));
-        Mockito.verifyZeroInteractions(this.graphSpace);
+        Mockito.verifyNoMoreInteractions(this.graphSpace);
         Mockito.verify(this.auth, Mockito.times(2)).listSpaceMember("team");
     }
 
@@ -249,8 +249,8 @@ public class GraphSpaceUserServiceTest {
         Assert.assertNotNull(error);
         Assert.assertEquals("auth.permission-preset.required",
                             error.getMessage());
-        Mockito.verifyZeroInteractions(this.belongService);
-        Mockito.verifyZeroInteractions(this.auth);
+        Mockito.verifyNoMoreInteractions(this.belongService);
+        Mockito.verifyNoMoreInteractions(this.auth);
     }
 
     @Test

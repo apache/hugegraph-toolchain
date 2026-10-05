@@ -3,6 +3,9 @@ name: "java-client-ci"
 on:
   workflow_call:
     inputs:
+      server-repository:
+        type: string
+        default: apache/hugegraph
       artifact-name:
         type: string
         required: true
@@ -43,6 +46,7 @@ jobs:
         with:
           travis-dir: ${{ env.TRAVIS_DIR }}
           commit-id: ${{ inputs.server-commit }}
+          repository: ${{ inputs.server-repository }}
           fetch-ref: ${{ inputs.server-ref }}
           artifact-name: ${{ inputs.artifact-name }}
           mode: start

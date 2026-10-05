@@ -121,7 +121,7 @@ graph TB
 | Requirement | Version | Notes |
 |-------------|---------|-------|
 | JDK | 11+ | LTS recommended |
-| Maven | 3.6+ | For building from source |
+| Maven | 3.6.3+ | For building from source |
 | HugeGraph Server | 1.5.0+ | Required for client/loader |
 
 ### Choose Your Path

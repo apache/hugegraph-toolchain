@@ -37,6 +37,7 @@
         <app.host>localhost</app.host>
         <app.port>36320</app.port>
         <es.version>7.16.1</es.version>
+        <mockito.bytebuddy.version>1.12.19</mockito.bytebuddy.version>
     </properties>
 
     <dependencies>
@@ -60,6 +61,19 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Spring Boot 2 manages an older Byte Buddy version than Mockito 4 requires. -->
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy</artifactId>
+            <version>${mockito.bytebuddy.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.bytebuddy</groupId>
+            <artifactId>byte-buddy-agent</artifactId>
+            <version>${mockito.bytebuddy.version}</version>
             <scope>test</scope>
         </dependency>
         <!--

@@ -121,6 +121,15 @@ docker exec -it loader bin/hugegraph-loader.sh -g hugegraph -f example/file/stru
 
 The [loader homepage](https://hugegraph.apache.org/docs/quickstart/hugegraph-loader/) contains more information about it. 
 
+The CI server installer `assembly/travis/install-hugegraph-from-source.sh <full-commit-SHA>`
+uses `~/hugegraph-cache-<SHA>` by default. `SERVER_CACHE_DIR` selects the exact cache
+directory. A populated cache must contain one server archive and its generated
+`server-provenance` file matching the repository, commit, archive name and SHA-256.
+Existing custom caches without provenance and mismatched caches are preserved and
+rejected; use a fresh directory to build a verified cache, and separate directories for
+different server baselines. Loader CI uses a `provenance-v1` cache key so its first run
+builds a cache with provenance. The installer does not add SHA subdirectories to `SERVER_CACHE_DIR`.
+
 ## 5. License
 
 hugegraph-loader is licensed under Apache 2.0 License.

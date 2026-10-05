@@ -3,6 +3,9 @@ name: "hubble-ci"
 on:
   workflow_call:
     inputs:
+      server-repository:
+        type: string
+        default: apache/hugegraph
       artifact-name:
         type: string
         required: true
@@ -90,7 +93,10 @@ jobs:
 
       - name: Install Playwright Chromium
         working-directory: hugegraph-hubble/hubble-fe
-        run: yarn playwright install --with-deps chromium
+        run: |
+          # Browser dependencies use Ubuntu repositories; this job does not use the Microsoft feed.
+          sudo rm -f /etc/apt/sources.list.d/microsoft-prod.list /etc/apt/sources.list.d/microsoft-prod.sources
+          yarn playwright install --with-deps chromium
 
       - name: Compile
         run: |
@@ -129,6 +135,7 @@ jobs:
           mode: start
           artifact-name: ${{ inputs.artifact-name }}
           commit-id: ${{ inputs.server-commit }}
+          repository: ${{ inputs.server-repository }}
           fetch-ref: ${{ inputs.server-ref }}
           travis-dir: ${{ env.TRAVIS_DIR }}
 

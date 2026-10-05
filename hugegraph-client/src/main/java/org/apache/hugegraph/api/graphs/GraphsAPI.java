@@ -17,12 +17,16 @@
 
 package org.apache.hugegraph.api.graphs;
 
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.api.API;
@@ -75,8 +79,17 @@ public class GraphsAPI extends API {
     @SuppressWarnings("unchecked")
     public Map<String, String> create(String name, String cloneGraphName, String configText) {
         this.client.checkApiVersion("0.67", "dynamic graph add");
+        boolean legacy = !this.client.isSupportGs();
         RestHeaders headers = new RestHeaders().add(RestHeaders.CONTENT_TYPE,
+                                                    legacy ? "text/plain" :
                                                     RestHeaders.APPLICATION_JSON);
+        if (legacy) {
+            if (configText == null) {
+                configText = "";
+            } else if (configText.trim().startsWith("{")) {
+                configText = legacyGraphConfig(configText);
+            }
+        }
         Map<String, Object> params = null;
         if (StringUtils.isNotEmpty(cloneGraphName)) {
             params = ImmutableMap.of("clone_graph_name", cloneGraphName);
@@ -84,6 +97,46 @@ public class GraphsAPI extends API {
         RestResult result = this.client.post(joinPath(this.path(), name),
                                              configText, headers, params);
         return result.readObject(Map.class);
+    }
+
+    private static String legacyGraphConfig(String configText) {
+        Map<?, ?> config = JsonUtil.fromJson(configText, Map.class);
+        Properties properties = new Properties();
+        config.forEach((key, value) -> {
+            E.checkArgument(value instanceof String || value instanceof Number ||
+                            value instanceof Boolean,
+                            "Legacy graph config option '%s' must be a scalar value", key);
+            properties.setProperty(key.toString(), value.toString());
+        });
+        StringWriter text = new StringWriter();
+        try {
+            properties.store(text, null);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+        // Commons PropertiesConfiguration trims literal whitespace and does not
+        // decode the JDK writer's escaped leading space. Unicode escapes also
+        // keep legacy request bytes independent of the client's default charset.
+        String serialized = text.toString();
+        StringBuilder encoded = new StringBuilder(serialized.length());
+        for (int i = 0; i < serialized.length(); i++) {
+            char c = serialized.charAt(i);
+            if (c == '\\' && i + 1 < serialized.length()) {
+                char next = serialized.charAt(++i);
+                if (next == ' ') {
+                    encoded.append("\\u0020");
+                } else {
+                    encoded.append(c).append(next);
+                }
+            } else if (c == ' ') {
+                encoded.append("\\u0020");
+            } else if (c > 0x7E) {
+                encoded.append(String.format("\\u%04x", (int) c));
+            } else {
+                encoded.append(c);
+            }
+        }
+        return encoded.toString();
     }
 
     @SuppressWarnings("unchecked")

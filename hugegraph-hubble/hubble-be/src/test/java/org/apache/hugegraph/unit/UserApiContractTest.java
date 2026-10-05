@@ -109,7 +109,7 @@ public class UserApiContractTest {
                 .andExpect(status().isMethodNotAllowed());
         this.mvc.perform(delete("/api/v1.3/auth/users/super/alice"))
                 .andExpect(status().isNotFound());
-        Mockito.verifyZeroInteractions(this.userService);
+        Mockito.verifyNoMoreInteractions(this.userService);
     }
 
     private void assertRequestCause(Class<? extends Throwable> expected,

@@ -6,8 +6,20 @@ inputs:
     description: 'HugeGraph Server PR number to use as integration baseline'
     required: false
     default: ''
+  repository:
+    description: 'GitHub owner/repository containing the server source'
+    default: 'apache/hugegraph'
+  ref:
+    description: 'Branch, tag or commit; mutually exclusive with server-pr-number'
+    default: ''
+  expected-commit:
+    description: 'Optional full commit SHA; fail if the selected ref has moved'
+    default: ''
 
 outputs:
+  repository:
+    description: 'GitHub repository selected as the server baseline'
+    value: ${{ inputs.repository }}
   commit_id:
     description: 'The HugeGraph commit SHA selected as integration baseline'
     value: ${{ steps.get-commit.outputs.commit_id }}
@@ -23,44 +35,25 @@ runs:
       uses: actions/github-script@v9
       with:
         script: |
-          const owner = 'apache';
-          const repo = 'hugegraph';
-          const serverPrNumber = '${{ inputs.server-pr-number }}';
+          const resolve = require(process.env.RESOLVER_PATH);
           try {
-            if (serverPrNumber) {
-              const pull_number = Number(serverPrNumber);
-              if (!Number.isInteger(pull_number) || pull_number <= 0) {
-                throw new Error(`Invalid server PR number: ${serverPrNumber}`);
-              }
-              const { data: pull } = await github.rest.pulls.get({
-                owner, repo, pull_number
-              });
-              const sha = pull.head.sha;
-              const fetchRef = `refs/pull/${pull_number}/head`;
-              core.exportVariable('COMMIT_ID', sha);
-              core.exportVariable('COMMIT_REF', fetchRef);
-              core.setOutput('commit_id', sha);
-              core.setOutput('fetch_ref', fetchRef);
-              console.log(`Using HugeGraph Server PR #${pull_number} ${fetchRef} (${sha})`);
-              return;
-            }
-            const { data: release } = await github.rest.repos.getLatestRelease({ owner, repo });
-            const tagName = release.tag_name;
-            const { data: ref } = await github.rest.git.getRef({
-              owner, repo, ref: `tags/${tagName}`
+            const result = await resolve(github, {
+              repository: process.env.SERVER_REPOSITORY,
+              ref: process.env.SERVER_REF,
+              pr: process.env.SERVER_PR,
+              expectedCommit: process.env.SERVER_EXPECTED_COMMIT
             });
-            let sha = ref.object.sha;
-            if (ref.object.type === 'tag') {
-              const { data: tag } = await github.rest.git.getTag({ owner, repo, tag_sha: sha });
-              sha = tag.object.sha;
-            } else if (ref.object.type !== 'commit') {
-              throw new Error(`Unexpected ref type: ${ref.object.type}`);
-            }
-            core.exportVariable('COMMIT_ID', sha);
-            core.exportVariable('COMMIT_REF', `refs/tags/${tagName}`);
-            core.setOutput('commit_id', sha);
-            core.setOutput('fetch_ref', `refs/tags/${tagName}`);
-            console.log(`Using HugeGraph release ${tagName} (${sha})`);
+            core.exportVariable('COMMIT_ID', result.sha);
+            core.exportVariable('COMMIT_REF', result.fetchRef);
+            core.setOutput('commit_id', result.sha);
+            core.setOutput('fetch_ref', result.fetchRef);
+            core.info(`Server baseline: ${process.env.SERVER_REPOSITORY} ${result.fetchRef} (${result.sha})`);
           } catch (error) {
             core.setFailed(`Failed to get HugeGraph commit: ${error.message}`);
           }
+      env:
+        RESOLVER_PATH: ${{ github.action_path }}/resolve.cjs
+        SERVER_REPOSITORY: ${{ inputs.repository }}
+        SERVER_REF: ${{ inputs.ref }}
+        SERVER_PR: ${{ inputs.server-pr-number }}
+        SERVER_EXPECTED_COMMIT: ${{ inputs.expected-commit }}

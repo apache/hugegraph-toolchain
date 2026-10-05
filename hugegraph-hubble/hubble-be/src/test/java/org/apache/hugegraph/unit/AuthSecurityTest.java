@@ -514,7 +514,7 @@ public class AuthSecurityTest {
                     request, new MockHttpServletResponse(), null));
             Assert.assertNull(interceptor.graphSpace);
         }
-        Mockito.verifyZeroInteractions(spaces);
+        Mockito.verifyNoMoreInteractions(spaces);
     }
 
     @Test

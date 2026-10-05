@@ -22,6 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.hugegraph.api.gremlin.GremlinRequest;
 import org.apache.hugegraph.api.task.TasksWithPage;
@@ -267,12 +268,15 @@ public class TaskApiTest extends BaseApiTest {
 
         // Cancel async task
         Task task = taskAPI.cancel(taskId);
-        Assert.assertTrue(task.cancelling());
+        // A local scheduler may finish cancellation before serializing the reply.
+        Assert.assertTrue(task.cancelling() || task.cancelled());
 
-        // Wait for cancellation to complete
-        sleep(500L);
-
-        task = taskAPI.get(taskId);
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(TIMEOUT);
+        while (!task.cancelled() && System.nanoTime() < deadline) {
+            sleep(100L);
+            task = taskAPI.get(taskId);
+            Assert.assertTrue(task.cancelling() || task.cancelled());
+        }
         Assert.assertTrue(task.cancelled());
 
         // Verify task was cancelled before completing all iterations

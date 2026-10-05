@@ -135,7 +135,7 @@ public class SchemaTemplateControllerSecurityTest {
 
         Mockito.verify(controller.schemaTemplateService)
                .delete(controller.client, "template");
-        Mockito.verifyZeroInteractions(controller.users);
+        Mockito.verifyNoMoreInteractions(controller.users);
     }
 
     private static TestController controller(boolean authEnabled) {
