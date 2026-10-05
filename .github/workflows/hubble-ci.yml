@@ -3,6 +3,12 @@ name: "hubble-ci"
 on:
   workflow_call:
     inputs:
+      current-artifact-name:
+        type: string
+        required: true
+      current-commit:
+        type: string
+        required: true
       server-repository:
         type: string
         default: apache/hugegraph
@@ -26,8 +32,10 @@ jobs:
       USE_STAGE: 'true' # Whether to include the stage repository.
       STATIC_DIR: hugegraph-hubble/hubble-dist/assembly/static
     strategy:
+      fail-fast: false
       matrix:
-        JAVA_VERSION: ['11']
+        JAVA_VERSION: ['17']
+        SERVER_BASELINE: ['current', 'release-1.7']
         python-version: ["3.11"]
 
     steps:
@@ -35,6 +43,15 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
+
+      - name: Install released Server JVM
+        if: matrix.SERVER_BASELINE == 'release-1.7'
+        id: server-java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '11'
+          distribution: temurin
+          overwrite-settings: false
 
       - name: Setup Java environment
         uses: ./.github/actions/setup-java-env
@@ -101,13 +118,13 @@ jobs:
       - name: Compile
         run: |
           mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
-          cd hugegraph-hubble && ls *
+          cd hugegraph-hubble && ls -- *
           mvn -e compile -Dmaven.javadoc.skip=true -ntp
 
       - name: Prepare env and service
         env:
-          COMMIT_ID: ${{ inputs.server-commit }}
-          COMMIT_REF: ${{ inputs.server-commit }}
+          COMMIT_ID: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-commit }}
+          COMMIT_REF: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-commit }}
           NODE_OPTIONS: --max-old-space-size=4096
         run: |
           echo "=== Environment Info ==="
@@ -119,7 +136,7 @@ jobs:
           free -h || true
           echo "======================="
 
-          python -m pip install -r ${TRAVIS_DIR}/requirements.txt
+          python -m pip install -r "${TRAVIS_DIR}/requirements.txt"
           cd hugegraph-hubble
           mvn package -Dmaven.test.skip=true
           cd apache-hugegraph-hubble-*
@@ -133,21 +150,24 @@ jobs:
         uses: ./.github/actions/setup-hugegraph-server
         with:
           mode: start
-          artifact-name: ${{ inputs.artifact-name }}
-          commit-id: ${{ inputs.server-commit }}
+          java-version: ${{ matrix.SERVER_BASELINE == 'current' && '17' || '11' }}
+          java-home: ${{ matrix.SERVER_BASELINE == 'release-1.7' && steps.server-java.outputs.path || '' }}
+          artifact-name: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-artifact-name || inputs.artifact-name }}
+          commit-id: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-commit }}
           repository: ${{ inputs.server-repository }}
-          fetch-ref: ${{ inputs.server-ref }}
+          fetch-ref: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-ref }}
           travis-dir: ${{ env.TRAVIS_DIR }}
 
       - name: Release package audit
         env:
           GNUPGHOME: ${{ runner.temp }}/hubble-release-gate-gpghome
         run: |
-          HUBBLE_TARBALL="$(ls hugegraph-hubble/target/apache-hugegraph-hubble-*.tar.gz | head -n 1)"
-          if [[ -z "${HUBBLE_TARBALL}" ]]; then
-            echo "Hubble tarball not found" >&2
+          archives=(hugegraph-hubble/target/apache-hugegraph-hubble-*.tar.gz)
+          if [[ ${#archives[@]} -ne 1 || ! -f "${archives[0]}" ]]; then
+            echo "Expected exactly one Hubble tarball" >&2
             exit 1
           fi
+          HUBBLE_TARBALL="${archives[0]}"
 
           mkdir -p "${GNUPGHOME}"
           chmod 700 "${GNUPGHOME}"
@@ -175,7 +195,12 @@ jobs:
       - name: API test
         run: |
           cd hugegraph-hubble
-          HUBBLE_TARBALL="$(ls target/apache-hugegraph-hubble-*.tar.gz | head -n 1)"
+          archives=(target/apache-hugegraph-hubble-*.tar.gz)
+          if [[ ${#archives[@]} -ne 1 || ! -f "${archives[0]}" ]]; then
+            echo "Expected exactly one Hubble tarball" >&2
+            exit 1
+          fi
+          HUBBLE_TARBALL="${archives[0]}"
           HUBBLE_694_EVIDENCE_DIR=target/hubble-live-acceptance \
             hubble-dist/assembly/travis/verify-hubble-issue-694.sh \
             "${HUBBLE_TARBALL}" http://127.0.0.1:8080
@@ -184,7 +209,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@v7
         with:
-          name: hubble-smoke-java-${{ matrix.JAVA_VERSION }}-${{ github.run_attempt }}
+          name: hubble-smoke-java-${{ matrix.JAVA_VERSION }}-${{ matrix.SERVER_BASELINE }}-${{ github.run_attempt }}
           path: |
             hugegraph-hubble/target/hubble-dist-check.json
             hugegraph-hubble/target/hubble-live-acceptance/**/*.json

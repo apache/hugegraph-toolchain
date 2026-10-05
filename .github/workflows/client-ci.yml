@@ -26,13 +26,21 @@ jobs:
       fail-fast: false
       matrix:
         # released pd package is compiled in version 55.0, which requires java 11 to use
-        JAVA_VERSION: [ '11' ]
+        JAVA_VERSION: ['17']
 
     steps:
       - name: Fetch code
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
+
+      - name: Install released Server JVM
+        id: server-java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '11'
+          distribution: temurin
+          overwrite-settings: false
 
       - name: Setup Java environment
         uses: ./.github/actions/setup-java-env
@@ -50,6 +58,8 @@ jobs:
           fetch-ref: ${{ inputs.server-ref }}
           artifact-name: ${{ inputs.artifact-name }}
           mode: start
+          java-version: '11'
+          java-home: ${{ steps.server-java.outputs.path }}
 
       - name: Compile
         run: |
@@ -57,7 +67,7 @@ jobs:
 
       - name: Run test
         run: |
-          cd hugegraph-client && ls *
+          cd hugegraph-client && ls -- *
           mvn test -Dtest=UnitTestSuite -ntp
           mvn test -Dtest=ApiTestSuite
           mvn test -Dtest=FuncTestSuite

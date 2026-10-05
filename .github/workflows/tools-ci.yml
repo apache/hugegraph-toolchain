@@ -24,13 +24,21 @@ jobs:
       TRAVIS_DIR: hugegraph-tools/assembly/travis
     strategy:
       matrix:
-        JAVA_VERSION: [ '11' ]
+        JAVA_VERSION: ['17']
 
     steps:
       - name: Fetch Code
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
+
+      - name: Install released Server JVM
+        id: server-java
+        uses: actions/setup-java@v5
+        with:
+          java-version: '11'
+          distribution: temurin
+          overwrite-settings: false
 
       - name: Setup Java environment
         uses: ./.github/actions/setup-java-env
@@ -52,6 +60,8 @@ jobs:
           fetch-ref: ${{ inputs.server-ref }}
           artifact-name: ${{ inputs.artifact-name }}
           mode: start
+          java-version: '11'
+          java-home: ${{ steps.server-java.outputs.path }}
 
       - name: Run test
         run: |

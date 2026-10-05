@@ -382,7 +382,7 @@ def gate(plan, results, fetch=api):
             raise ValueError("selected suite did not succeed: " + suite)
         executed.append(suite)
     if plan["project"] == "toolchain":
-        if set(executed).intersection({"client", "loader", "tools", "spark", "go"}):
+        if set(executed).intersection({"client", "loader", "tools", "spark", "go", "hubble"}):
             if results.get("fixture", {}).get("result") != "success":
                 raise ValueError("selected tests lack successful fixture")
         if "hubble" in executed and results.get("hubble-fixture", {}).get("result") != "success":

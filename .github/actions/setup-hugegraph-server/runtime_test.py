@@ -75,6 +75,41 @@ class RuntimeTests(unittest.TestCase):
         archive.unlink()
         archive.symlink_to(self.dir/'missing')
         self.assertNotEqual(self.run_script(HERE/'fixture.sh', env=env).returncode, 0)
+    def test_composite_step_isolates_released_jdk_from_java17_caller(self):
+        action = (HERE / 'action.yml').read_text()
+        block = action.split('      run: |\n', 1)[1].split('    - name:', 1)[0]
+        step = self.dir / 'action-step.sh'
+        step.write_text('\n'.join(line[8:] for line in block.splitlines()) + '\n')
+        jdk11 = self.dir / 'jdk11'
+        jdk17 = self.dir / 'jdk17'
+        for version, root in ((11, jdk11), (17, jdk17)):
+            (root / 'bin').mkdir(parents=True)
+            for name, body in [('java', f'echo \'openjdk version "{version}.0.1"\' >&2'), ('javac', 'exit 0')]:
+                binary = root / 'bin' / name
+                binary.write_text('#!/bin/bash\n' + body + '\n')
+                binary.chmod(0o755)
+        travis = self.dir / 'service'
+        travis.mkdir()
+        installer = travis / 'install-hugegraph-from-source.sh'
+        installer.write_text('#!/bin/bash\nset -e\nsource "$FIXTURE_ACTION/fixture.sh"\n'
+                             'java -version 2> "$HOME/started-java"\n')
+        self.manifest()
+        env = dict(self.env, JAVA_HOME=str(jdk17), PATH=f'{jdk17}/bin:{self.env["PATH"]}',
+                   FIXTURE_JAVA_HOME=str(jdk11), FIXTURE_MODE='start', FIXTURE_ARTIFACT='release',
+                   FIXTURE_ACTION=str(HERE), ISOLATE_FIXTURE_REPO='false', TRAVIS_DIR=str(travis),
+                   RUNNER_TEMP=str(self.dir))
+        result = subprocess.run(['bash', '-c', 'bash "$HOME/action-step.sh" && java -version 2> "$HOME/caller-java"'],
+                                cwd=self.dir, env=env, text=True, capture_output=True, timeout=20)
+        self.assertEqual(0, result.returncode, result.stderr)
+        self.assertIn('11.0.1', (self.dir / 'started-java').read_text())
+        self.assertIn('17.0.1', (self.dir / 'caller-java').read_text())
+        # A declared Java 11 fixture cannot start under an accidentally selected Java 17 runtime.
+        env['FIXTURE_JAVA_HOME'] = str(jdk17)
+        result = subprocess.run(['bash', str(step)], cwd=self.dir, env=env,
+                                text=True, capture_output=True, timeout=20)
+        self.assertNotEqual(0, result.returncode)
+        self.assertIn('Fixture JDK mismatch', result.stderr)
+
     def test_legacy_bash_service_deadline_and_success(self):
         helper = str(HERE/'service-wait.sh')
         self.command('curl', 'exit 1\n')

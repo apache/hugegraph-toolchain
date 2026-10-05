@@ -224,6 +224,17 @@ class PolicyTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             policy.gate(plan, {"plan": {"result": "success"}, "hubble": {"result": "success"}}, self.fetch)
 
+    def test_hubble_gate_requires_current_and_released_fixtures(self):
+        plan = self.plan()
+        plan['expected'] = ['hubble']
+        for producer in ('fixture', 'hubble-fixture'):
+            for state in (None, 'failure', 'cancelled', 'skipped'):
+                results = {'plan': {'result': 'success'}, 'hubble': {'result': 'success'},
+                           'fixture': {'result': 'success'}, 'hubble-fixture': {'result': 'success'}}
+                results[producer] = {'result': state}
+                with self.subTest(producer=producer, state=state), self.assertRaises(ValueError):
+                    policy.gate(plan, results, self.fetch)
+
     def test_proof_failure_disables_receipt_without_falsifying_gate(self):
         def failure(path):
             raise subprocess.CalledProcessError(1, "gh")

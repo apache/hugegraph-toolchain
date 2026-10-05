@@ -19,6 +19,12 @@ inputs:
   java-version:
     description: JDK major used for the build and runtime
     default: '11'
+  java-home:
+    description: Optional fixture JDK scoped to this subprocess; keeps Toolchain JDK unchanged
+    default: ''
+  isolate-maven-repo:
+    description: Build fixtures without replacing Toolchain Maven dependencies
+    default: 'false'
   travis-dir:
     description: Module service setup directory
     default: hugegraph-loader/assembly/travis
@@ -47,6 +53,8 @@ runs:
         FIXTURE_BUILD_INPUTS: ${{ hashFiles('.github/actions/setup-hugegraph-server/action.yml', '.github/actions/setup-hugegraph-server/fixture.sh', '.github/actions/setup-hugegraph-server/manifest.py', '.github/actions/setup-java-env/action.yml', '.github/configs/settings.xml', 'hugegraph-client/assembly/travis/checkout-server.sh', 'hugegraph-client/assembly/travis/start-hugegraph-servers.sh', 'hugegraph-*/assembly/travis/install-hugegraph-from-source.sh', 'hugegraph-hubble/hubble-dist/assembly/travis/download-hugegraph.sh') }}
         FIXTURE_PLATFORM: ${{ runner.os }}-${{ runner.arch }}
         FIXTURE_JAVA: ${{ inputs.java-version }}
+        FIXTURE_JAVA_HOME: ${{ inputs.java-home }}
+        ISOLATE_FIXTURE_REPO: ${{ inputs.isolate-maven-repo }}
         FIXTURE_DIR: ${{ runner.temp }}/hugegraph-fixture
         SERVER_REPOSITORY: ${{ inputs.repository }}
         SERVER_FETCH_REF: ${{ inputs.fetch-ref }}
@@ -55,6 +63,16 @@ runs:
         FIXTURE_ARTIFACT: ${{ inputs.artifact-name }}
       run: |
         set -euo pipefail
+        if [[ -n "$FIXTURE_JAVA_HOME" ]]; then
+          [[ -x "$FIXTURE_JAVA_HOME/bin/java" && -x "$FIXTURE_JAVA_HOME/bin/javac" ]]
+          export JAVA_HOME="$FIXTURE_JAVA_HOME"
+          export PATH="$JAVA_HOME/bin:$PATH"
+        fi
+        if [[ "$ISOLATE_FIXTURE_REPO" == true && "$FIXTURE_MODE" != start ]]; then
+          fixture_repo=$(mktemp -d "$RUNNER_TEMP/hugegraph-fixture-m2.XXXXXX")
+          export MAVEN_ARGS="-Dmaven.repo.local=$fixture_repo"
+          export MAVEN_OPTS="${MAVEN_OPTS:-} -Dmaven.repo.local=$fixture_repo"
+        fi
         if [[ "$FIXTURE_MODE" != standalone && -z "$FIXTURE_ARTIFACT" ]]; then
           echo 'artifact-name is required for build/start mode' >&2
           exit 1

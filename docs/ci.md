@@ -12,10 +12,15 @@ cancelled or unexpectedly skipped module cannot satisfy it.
 | Shared build inputs or unrecognized paths | All modules |
 | One workflow | Its tests and shared dependencies |
 
+Toolchain compilation and tests use Java 17 without changing application
+dependencies. Client, Loader, Tools, Spark and Go test the released Server 1.7
+fixture on Java 11. Hubble tests both this release and the current Server master
+snapshot on Java 17; the resolved commit stays fixed while the run is queued.
+
+Each Server package is built once and shared, with independent services per job.
+Reuse verifies source, commit, JDK, build inputs and archive checksum. The Server
+JVM is scoped to service startup, so Toolchain compilation keeps Java 17.
 Loader's HDFS tests run separately, so other profiles do not wait for Hadoop.
-Client, Loader, Tools, Spark and Go share one verified Server package, but each
-starts its own service. Hubble retains its Server master baseline. Package reuse
-checks source, commit, JDK, build configuration and archive checksum.
 
 Documentation paths use an explicit allowlist. A documentation-only update may
 reuse a successful receipt from the same PR only when the base, non-document
