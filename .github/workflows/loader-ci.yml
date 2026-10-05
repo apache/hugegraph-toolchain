@@ -127,6 +127,8 @@ jobs:
             ~/hadoop-3.3.6.tar.gz
             ~/hadoop-3.3.6.tar.gz.sha512
           key: ${{ runner.os }}-hadoop-3.3.6-sha512-v1
+          # Legacy archives are accepted only after the installer's fixed SHA-512 check.
+          restore-keys: ${{ runner.os }}-hadoop-3.3.6
 
       - name: Start Hadoop
         timeout-minutes: 35
