@@ -140,23 +140,22 @@ jobs:
           fetch-ref: ${{ inputs.server-ref }}
           travis-dir: ${{ env.TRAVIS_DIR }}
 
-      - name: Cache verified Hadoop archive
-        uses: actions/cache@v6
-        with:
-          path: |
-            ~/hadoop-3.3.6.tar.gz
-            ~/hadoop-3.3.6.tar.gz.sha512
-          key: ${{ runner.os }}-hadoop-3.3.6-sha512-v1
-          # Legacy archives are accepted only after the installer's fixed SHA-512 check.
-          restore-keys: ${{ runner.os }}-hadoop-3.3.6
-
-      - name: Start Hadoop
-        timeout-minutes: 35
+      - name: Start HDFS from the official Hadoop image
+        timeout-minutes: 18
         run: |
-          "$TRAVIS_DIR/install-hadoop.sh"
+          "$TRAVIS_DIR/start-hdfs-ci.sh"
 
       - name: Run HDFS tests
         run: mvn test -P hdfs -f hugegraph-loader/pom.xml -ntp
+
+      - name: Collect HDFS logs and remove containers
+        if: ${{ always() }}
+        run: |
+          for service in namenode datanode; do
+            name="${HDFS_CONTAINER_PREFIX:-hugegraph-ci-hdfs}-$service"
+            docker logs "$name" || true
+            docker rm -f "$name" || true
+          done
 
       - name: Upload coverage to Codecov
         uses: ./.github/actions/upload-coverage

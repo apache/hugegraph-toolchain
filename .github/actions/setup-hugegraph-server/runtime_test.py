@@ -140,6 +140,30 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(args.count('--max-time\n900'), 2)
         self.assertFalse((self.dir/'installed').exists())
         self.assertFalse((self.dir/'hadoop-3.3.6.tar.gz').exists())
+    def test_hdfs_container_exit_fails_before_tests(self):
+        self.command('timeout', 'shift; exec "$@"\n')
+        self.command('docker', '''
+case "$1" in
+  inspect) echo false ;;
+  logs) echo 'NameNode startup failed' >&2 ;;
+esac
+''')
+        result = self.run_script(ROOT/'hugegraph-loader/assembly/travis/start-hdfs-ci.sh')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('NameNode startup failed', result.stderr)
+        self.assertIn('exited before readiness', result.stderr)
+    def test_hdfs_live_datanode_with_failed_write_is_not_ready(self):
+        self.command('timeout', 'shift; exec "$@"\n')
+        self.command('curl', '''echo '{"beans":[{"NumLiveDataNodes":1}]}'\n''')
+        self.command('docker', '''
+case "$1" in
+  inspect) echo true ;;
+  exec) if [[ "$*" == *"-put"* ]]; then echo 'Block write failed' >&2; exit 1; fi ;;
+esac
+''')
+        result = self.run_script(ROOT/'hugegraph-loader/assembly/travis/start-hdfs-ci.sh')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn('Block write failed', result.stderr)
     def test_real_http_readiness_requires_successful_auth_response(self):
         from http.server import BaseHTTPRequestHandler, HTTPServer
         from threading import Thread

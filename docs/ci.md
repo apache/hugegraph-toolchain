@@ -60,6 +60,12 @@ JVM is scoped to service startup, so Toolchain compilation and tests keep their
 selected Java 11 or Java 17 runtime. Both Toolchain lanes reuse the same release
 Server fixture; Hubble uses the separate Java 17 current Server fixture.
 Loader's HDFS tests run separately, so other profiles do not wait for Hadoop.
+The Ubuntu HDFS jobs use the ASF Hadoop 3.3.6 image pinned by digest, with separate
+NameNode and DataNode containers on the host network. Tests still run on the
+selected Java 11/17 host JVM and use `localhost:8020`. Startup checks live DataNode
+registration and a real block write/read before testing; containers are removed
+afterward. Image pulling and readiness are bounded. This avoids installing the
+large archive on each runner, but cold runners still need to pull the image.
 The immutable Server packages, `ci-plan` and successful `ci-test-results` artifacts
 are retained for seven days from their upload. Partial reruns need the original
 plan and fixture within that window. After an artifact expires, rerun the whole

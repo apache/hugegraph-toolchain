@@ -10,6 +10,8 @@ jobs:
   analyze:
     env:
       USE_STAGE: 'true' # Whether to include the stage repository.
+      # Preserve the master scan identity when invoked by a reusable-workflow caller.
+      CODEQL_ACTION_ANALYSIS_KEY: .github/workflows/codeql-analysis.yml:analyze
     name: Analyze
     runs-on: ubuntu-latest
     permissions:
@@ -79,6 +81,8 @@ jobs:
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v4
+      with:
+        category: .github/workflows/codeql-analysis.yml:analyze/language:${{ matrix.language }}
 
   dependency-review:
     if: github.event_name == 'pull_request'
