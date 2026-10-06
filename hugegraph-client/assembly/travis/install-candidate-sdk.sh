@@ -36,18 +36,18 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
 SOURCE_DIR=$2
-# TODO(apache/hugegraph#3263): temporary pre-merge source; after merge use apache/hugegraph and a verified ASF SHA.
-SERVER_REPOSITORY=${SERVER_REPOSITORY:-hugegraph/hugegraph}
+SERVER_REPOSITORY=${SERVER_REPOSITORY:-apache/hugegraph}
 SERVER_FETCH_REF=${SERVER_FETCH_REF:-$1}
 export SERVER_REPOSITORY SERVER_FETCH_REF
 CANDIDATE_REPO=$3
 bash "$SCRIPT_DIR/checkout-server.sh" "$1" "$SOURCE_DIR"
-# Install the entire locked reactor so Common, Core, PD and Store share one source.
+# Install the Server distribution's dependency reactor so all SDK modules share one source.
 # The fixture installers retain package-only semantics and use another repository.
 # Flatten the root too: license metadata rebuilds installed parent models, whose
 # raw ${revision} otherwise becomes an invalid artifact request outside the reactor.
 (cd "$SOURCE_DIR" && mvn "-Dmaven.repo.local=$CANDIDATE_REPO" \
     org.codehaus.mojo:flatten-maven-plugin:1.2.7:flatten install \
+    -pl hugegraph-server/hugegraph-dist -am \
     -Dflatten.mode=resolveCiFriendliesOnly -DupdatePomFile=true \
     -DskipTests -Dmaven.javadoc.skip=true -ntp)
 ACTUAL_COMMIT=$(git -C "$SOURCE_DIR" rev-parse HEAD)

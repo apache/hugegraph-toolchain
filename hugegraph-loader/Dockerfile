@@ -32,13 +32,12 @@ COPY hugegraph-client/assembly/travis/install-candidate-sdk.sh \
 COPY .github/scripts/verify_candidate_image_sdk.py /pkg/.github/scripts/
 
 # Direct builds bootstrap the same locked SDK; CI can supply a verified builder.
-# TODO(apache/hugegraph#3263): after merge replace this temporary source with apache/hugegraph and an ASF SHA.
 RUN mkdir -p /opt/candidate-m2 \
     && if [ ! -f /opt/candidate-m2/candidate-sdk-manifest.json ]; then \
-         SERVER_REPOSITORY=hugegraph/hugegraph \
-         SERVER_FETCH_REF=codex/cypher-minimal-compat \
+         SERVER_REPOSITORY=apache/hugegraph \
+         SERVER_FETCH_REF=d9abcd4317fb36128e7e4d209139ec7f3a28cdfc \
          bash /pkg/hugegraph-client/assembly/travis/install-candidate-sdk.sh \
-           4c162f539b906fa06dd83228e3691b77fa5b77d7 /opt/candidate-source /opt/candidate-m2; \
+           d9abcd4317fb36128e7e4d209139ec7f3a28cdfc /opt/candidate-source /opt/candidate-m2; \
        fi \
     && python3 /pkg/.github/scripts/verify_candidate_image_sdk.py /opt/candidate-m2
 

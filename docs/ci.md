@@ -64,9 +64,9 @@ and released Server 1.7 where configured; these runtime checks supplement affect
 selection without adding unrelated modules. Their results remain advisory.
 
 The historical Server 1.7 fixture runs on its own Java 11 JVM. The locked candidate
-Server runs on Java 17. TODO ([apache/hugegraph#3263](https://github.com/apache/hugegraph/pull/3263)):
-replace the temporary candidate source with verified ASF inputs after the Server
-migration merges, and revalidate the SDK/runtime matrix.
+Server runs on Java 17 from a verified commit on `apache/hugegraph` master.
+The SDK action, CI fixtures, image defaults and packaging verifier use the same
+locked source commit.
 
 The released Server package and Hubble's candidate fixture are each built once and
 shared, with independent services per job. Reuse verifies source, commit, JDK, build

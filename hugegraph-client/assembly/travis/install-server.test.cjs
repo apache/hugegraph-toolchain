@@ -405,6 +405,7 @@ test('candidate SDK installs the verified reactor into an explicit repository an
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(readFileSync(env.BUILD_ARGS, 'utf8').trim().split('\n'),
     [`-Dmaven.repo.local=${repo}`, 'org.codehaus.mojo:flatten-maven-plugin:1.2.7:flatten', 'install',
+      '-pl', 'hugegraph-server/hugegraph-dist', '-am',
       '-Dflatten.mode=resolveCiFriendliesOnly', '-DupdatePomFile=true',
       '-DskipTests', '-Dmaven.javadoc.skip=true', '-ntp']);
   const manifest = JSON.parse(readFileSync(join(repo, 'candidate-sdk-manifest.json'), 'utf8'));

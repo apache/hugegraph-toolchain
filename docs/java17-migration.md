@@ -4,9 +4,7 @@ Toolchain 1.8 requires Java 17 for the Java Client, ordinary Loader, Tools and H
 
 ## Build the locked candidate
 
-TODO ([apache/hugegraph#3263](https://github.com/apache/hugegraph/pull/3263)): the organization repository, branch and commit below are temporary pre-merge validation inputs. After the Java 17 Server change merges, replace them with `apache/hugegraph` and a verified ASF commit, update the SDK action/verifier, Docker defaults, CI and examples together, and rerun dependency and runtime validation. Do not retain the temporary source after the merge. Prefer distinct, published SDK coordinates when they become available.
-
-The Java 17 server candidate retains the Maven version `1.7.0`. Its Common, PD, gRPC and Store artifacts must come from the same source commit; Maven Central artifacts with that version are not interchangeable with the candidate. The locked source is `hugegraph/hugegraph`, branch `codex/cypher-minimal-compat`, commit `4c162f539b906fa06dd83228e3691b77fa5b77d7`.
+The Java 17 server candidate retains the Maven version `1.7.0`. Its Common, PD, gRPC and Store artifacts must come from the same source commit; Maven Central artifacts with that version are not interchangeable with the candidate. The locked source is `apache/hugegraph`, commit `d9abcd4317fb36128e7e4d209139ec7f3a28cdfc` from the upstream master branch after the Java 17 and TinkerPop 3.8 migration.
 
 Use an explicit JDK directory and check both Java and Maven. On systems where Java 17 is not registered, a system JDK selector can return another installed version. Checking the generated class version alone does not identify the JVM that built or tested it.
 
@@ -21,10 +19,9 @@ mvn -version
 toolchain_root="$PWD"
 candidate_dir=$(mktemp -d /tmp/hugegraph-java17.XXXXXX)
 mkdir "$candidate_dir/m2"
-# TODO(apache/hugegraph#3263): temporary pre-merge source; after merge use apache/hugegraph and a verified ASF SHA.
-export SERVER_REPOSITORY=hugegraph/hugegraph
-export SERVER_FETCH_REF=codex/cypher-minimal-compat
-server_commit=4c162f539b906fa06dd83228e3691b77fa5b77d7
+export SERVER_REPOSITORY=apache/hugegraph
+export SERVER_FETCH_REF=d9abcd4317fb36128e7e4d209139ec7f3a28cdfc
+server_commit=d9abcd4317fb36128e7e4d209139ec7f3a28cdfc
 
 bash "$toolchain_root/hugegraph-client/assembly/travis/install-candidate-sdk.sh" \
   "$server_commit" "$candidate_dir/server" "$candidate_dir/m2"
@@ -32,7 +29,7 @@ mvn -Dmaven.repo.local="$candidate_dir/m2" clean install \
   -DskipTests -Dmaven.javadoc.skip=true -ntp
 ```
 
-The SDK helper installs the complete locked server reactor without starting a server. It requires a new external source directory and a dedicated Maven repository with no existing HugeGraph artifacts. It records source and artifact provenance in `candidate-sdk-manifest.json` inside that repository. Reuse the same explicit `-Dmaven.repo.local` option for subsequent Toolchain validation. The manifest's source and JDK paths describe that build; use your own directories when rebuilding. The package command skips test execution; run the module test suites separately. These source-built packages are candidates, not an ASF release.
+The SDK helper installs the locked Server distribution and its Maven reactor dependencies without starting a server. This includes every required SDK module and parent POM, but excludes unrelated Cluster tests and PD/Store service distributions. It requires a new external source directory and a dedicated Maven repository with no existing HugeGraph artifacts. It records source and artifact provenance in `candidate-sdk-manifest.json` inside that repository. Reuse the same explicit `-Dmaven.repo.local` option for subsequent Toolchain validation. The manifest's source and JDK paths describe that build; use your own directories when rebuilding. The package command skips test execution; run the module test suites separately. These source-built packages are candidates, not an ASF release.
 
 Distribution packaging also requires Python 3.9 or newer. Before each module archive is written, the existing SDK verifier checks the locked source, required POM/JAR hashes and local installation origins, then checks the distribution's manifest and actual SDK libraries. The combined archive rechecks all three module directories before moving them. Source checks lock Server SDK artifacts; Toolchain artifacts such as the Client, Loader and Hubble backend are outputs of this reactor and may change during `install`. Older manifests can retain their metadata, but those outputs are excluded from SDK source hashes. The original manifest is still retained unchanged and compared with each packaged copy. A missing manifest, a Central artifact with the same version, or a stale/changed packaged SDK library fails packaging. Ordinary `compile` and `test` do not require the candidate manifest; they may validate published dependencies without establishing candidate package identity.
 

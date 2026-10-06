@@ -85,10 +85,9 @@ jobs:
         if: steps.scope.outputs.needsFixture == 'true'
         uses: ./.github/actions/get-hugegraph-commit
         with:
-          # TODO(apache/hugegraph#3263): switch the temporary source to ASF after merge.
-          repository: hugegraph/hugegraph
-          ref: codex/cypher-minimal-compat
-          expected-commit: 4c162f539b906fa06dd83228e3691b77fa5b77d7
+          repository: apache/hugegraph
+          ref: d9abcd4317fb36128e7e4d209139ec7f3a28cdfc
+          expected-commit: d9abcd4317fb36128e7e4d209139ec7f3a28cdfc
       - name: Record external test inputs
         env:
           NEEDS_SERVER: ${{ steps.scope.outputs.needsFixture }}
