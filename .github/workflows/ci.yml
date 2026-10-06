@@ -17,7 +17,7 @@
 # under the License.
 #
 
-name: Required CI
+name: Module validation
 
 on:
   pull_request:
@@ -51,7 +51,7 @@ jobs:
       needsFixture: ${{ steps.select.outputs.needsFixture }}
       loader-image: ${{ steps.select.outputs.loader_image }}
       hubble-image: ${{ steps.select.outputs.hubble_image }}
-      security: ${{ steps.select.outputs.security }}
+      dependency-audit: ${{ steps.select.outputs.dependency_audit }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -268,7 +268,7 @@ jobs:
 
   affected-module-tests:
     name: affected-module-tests
-    needs: [plan, fixture, hubble-fixture, client, loader, tools, spark, hubble, go, loader_image, hubble_image]
+    needs: [plan, fixture, hubble-fixture, client, loader, tools, spark, hubble, go, loader_image, hubble_image, dependency-audit]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
@@ -278,7 +278,7 @@ jobs:
       - uses: actions/download-artifact@v7
         with:
           name: ci-plan
-      - name: Require every selected module and image to succeed
+      - name: Report selected advisory tests and images
         env:
           GH_TOKEN: ${{ github.token }}
           RESULTS: ${{ toJSON(needs) }}
@@ -286,6 +286,7 @@ jobs:
           printf '%s' "$RESULTS" > results.json
           python3 .github/scripts/ci-policy.py gate --plan plan.json --results results.json --output test-results.json
       - name: Publish current-run test results
+        if: ${{ !cancelled() }}
         uses: actions/upload-artifact@v7
         with:
           name: ci-test-results
@@ -293,27 +294,7 @@ jobs:
           overwrite: true
           retention-days: 7
 
-  security:
-    needs: [plan, affected-module-tests]
-    permissions:
-      contents: read
-      actions: read
-      security-events: write
-    if: >-
-      !cancelled() && needs.plan.result == 'success' &&
-      needs.affected-module-tests.result == 'success' &&
-      (needs.plan.outputs.security == 'true' ||
-       (github.event_name == 'pull_request' && vars.CI_OPTIMIZED_REQUIRED != 'true'))
-    uses: ./.github/workflows/codeql-analysis.yml
-    secrets: inherit
-
-  legacy-java-analysis:
-    name: Analyze (java)
-    needs: security
-    if: ${{ !cancelled() && github.event_name == 'pull_request' && vars.CI_OPTIMIZED_REQUIRED != 'true' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Require actual Java security analysis during migration
-        env:
-          SECURITY_RESULT: ${{ needs.security.result }}
-        run: test "$SECURITY_RESULT" = success
+  dependency-audit:
+    needs: plan
+    if: needs.plan.outputs.dependency-audit == 'true'
+    uses: ./.github/workflows/dependency-license.yml

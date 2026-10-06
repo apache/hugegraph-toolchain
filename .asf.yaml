@@ -45,7 +45,6 @@ github:
         # contexts are the names of checks that must pass
         contexts:
           - check-license-header
-          - affected-module-tests
       required_pull_request_reviews:
         dismiss_stale_reviews: true
         require_code_owner_reviews: false

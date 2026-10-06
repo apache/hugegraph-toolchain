@@ -40,6 +40,51 @@ class PolicyTest(unittest.TestCase):
         self.addCleanup(api_mock.stop)
         self.api_mock = api_mock.start()
 
+    def test_codeql_uses_affected_supported_languages(self):
+        cases = [
+            (["README.md", "docs/ci.md"], set()),
+            (["hugegraph-client-go/client.go"], set()),
+            ([".github/workflows/client-go-ci.yml"], set()),
+            (["hugegraph-loader/Dockerfile"], set()),
+            (["hugegraph-hubble/README.md"], set()),
+            ([".github/workflows/image-ci.yml"], set()),
+            (["hugegraph-client/src/A.java"], {"java"}),
+            (["hugegraph-loader/assembly/static/bin/hugegraph-loader.sh"], {"java"}),
+            (["hugegraph-hubble/hubble-fe/src/App.tsx"], {"javascript"}),
+            (["hugegraph-hubble/hubble-dist/assembly/static/conf/application.properties"], {"java", "javascript"}),
+            ([".github/scripts/helper.py"], {"python"}),
+            (["pom.xml"], {"java", "javascript", "python"}),
+            ([".mvn/maven.config"], {"java", "javascript", "python"}),
+            (["unknown-input"], {"java", "javascript", "python"}),
+        ]
+        for paths, expected in cases:
+            with self.subTest(paths=paths):
+                plan = self.pr_plan(paths)
+                self.assertEqual(expected, set(json.loads(plan["security_languages"])))
+                self.assertEqual(bool(expected), plan["security"])
+        self.assertEqual({"java", "javascript", "python"}, policy.scan_languages([]))
+
+    def test_shared_maven_config_selects_dependency_audit_and_consumers(self):
+        plan = self.pr_plan([".mvn/maven.config"])
+        self.assertTrue(plan["dependency_audit"])
+        self.assertEqual(set(policy.MODULES["toolchain"]), set(plan["selected"]))
+        self.assertEqual(policy.IMAGES, set(plan["selectedImages"]))
+        for path in ["hugegraph-client/pom.xml", ".github/configs/settings.xml"]:
+            self.assertTrue(policy.dependency_input(path))
+        self.assertFalse(self.pr_plan(["docs/ci.md"])["dependency_audit"])
+
+    def test_failure_summary_is_written_before_advisory_failure(self):
+        with tempfile.TemporaryDirectory() as directory:
+            summary = Path(directory) / "summary.md"
+            with patch.dict(os.environ, {"GITHUB_STEP_SUMMARY": str(summary)}):
+                with self.assertRaises(ValueError):
+                    policy.gate(self.plan(), {"plan": {"result": "success"},
+                                              "client": {"result": "cancelled"}})
+            text = summary.read_text()
+            self.assertIn("check-license-header", text)
+            self.assertIn("| client | No |", text)
+            self.assertIn("cancelled", text)
+
     def test_dependency_expansion(self):
         self.assertEqual({"client", "loader", "tools", "spark", "hubble"},
                          policy.select("toolchain", ["hugegraph-client/src/A.java"]))
@@ -354,7 +399,7 @@ class PolicyTest(unittest.TestCase):
                 results.update(plan={"result": "success"}, fixture={"result": "success"},
                                **{"hubble-fixture": {"result": "success"}})
                 self.assertEqual(plan["expected"], policy.gate(plan, results, lambda _: live)["executed"])
-                for section, field, value in [("head", "sha", advanced_head), ("base", "sha", advanced_base),
+                for section, field, value in [("head", "sha", advanced_head),
                                               ("head", "ref", "other-branch"),
                                               ("head", "repo", {"full_name": "other/fork"}),
                                               ("base", "repo", {"full_name": "other/target"})]:
@@ -364,6 +409,10 @@ class PolicyTest(unittest.TestCase):
                             policy.create_plan("toolchain", event, "apache/t", lambda _: changed)
                         with self.assertRaises(policy.StaleInputError):
                             policy.gate(plan, results, lambda _: changed)
+                changed_base = dict(live, base=dict(live["base"], sha=advanced_base))
+                self.assertEqual(plan["expected"], policy.create_plan(
+                    "toolchain", event, "apache/t", lambda _: changed_base)["expected"])
+                self.assertEqual(plan["expected"], policy.gate(plan, results, lambda _: changed_base)["executed"])
                 with self.assertRaises(policy.StaleInputError):
                     policy.gate(plan, results, lambda _: dict(live, state="closed"))
                 git("checkout", "--detach", "-q", head)

@@ -38,6 +38,8 @@ def decide(repository, run_id, expected_attempt, max_reruns, fetch=api):
         return "skip", "source run changed or is no longer a completed failure"
     if expected_attempt > max_reruns:
         return "skip", "retry limit reached"
+    if run.get("path") != ".github/workflows/license-checker.yml":
+        return "skip", "automatic retry is limited to the required license workflow"
     sha = run.get("head_sha")
     if not sha:
         return "skip", "missing head SHA"

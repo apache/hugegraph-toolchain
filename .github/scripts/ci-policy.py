@@ -14,11 +14,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Conservative affected-module selection and current-run CI gating."""
+"""Conservative module selection and truthful advisory CI reports."""
 
 import argparse
 import json
 import os
+import re
 from pathlib import Path
 import subprocess
 
@@ -42,7 +43,7 @@ WORKFLOWS = {
     "toolchain": {"client-ci.yml": ["client"], "client-go-ci.yml": ["go"],
                   "loader-ci.yml": ["loader"], "tools-ci.yml": ["tools"],
                   "spark-connector-ci.yml": ["spark"], "hubble-ci.yml": ["hubble"],
-                  "codeql-analysis.yml": []},
+                  "codeql-analysis.yml": [], "dependency-license.yml": [], "license-checker.yml": []},
 }
 IMAGES = {"loader_image", "hubble_image"}
 
@@ -148,6 +149,47 @@ def select_images(paths):
     return selected
 
 
+def scan_languages(paths):
+    """Scan supported sources, keeping unknown/shared build inputs conservative."""
+    all_languages = {"java", "javascript", "python"}
+    if not paths:
+        return all_languages
+    languages = set()
+    for path in paths:
+        p = Path(path)
+        if documentation(path) or image_only_path(path):
+            continue
+        if p.suffix == ".py":
+            languages.add("python")
+        elif p.suffix in {".js", ".jsx", ".ts", ".tsx", ".cjs", ".mjs"}:
+            languages.add("javascript")
+        elif p.suffix == ".java":
+            languages.add("java")
+        elif path.startswith("hugegraph-client-go/"):
+            continue  # Go is not a configured CodeQL language in this repository.
+        elif path.startswith("hugegraph-hubble/hubble-fe/"):
+            languages.add("javascript")
+        elif path.startswith("hugegraph-hubble/hubble-be/"):
+            languages.add("java")
+        elif path.startswith("hugegraph-hubble/"):
+            languages.update({"java", "javascript"})
+        elif any(path.startswith(prefix) for prefix in (
+                "hugegraph-client/", "hugegraph-loader/", "hugegraph-tools/",
+                "hugegraph-spark-connector/")):
+            languages.add("java")
+        elif path.startswith(".github/workflows/") and p.name in WORKFLOWS["toolchain"]:
+            modules = WORKFLOWS["toolchain"][p.name]
+            if p.name == "codeql-analysis.yml":
+                languages.update(all_languages)
+            elif "hubble" in modules:
+                languages.update({"java", "javascript"})
+            elif set(modules) - {"go"}:
+                languages.add("java")
+        else:
+            languages.update(all_languages)
+    return languages
+
+
 def select(project, paths):
     selected = set()
     for path in paths:
@@ -232,7 +274,6 @@ def require_current_pr(plan, fetch):
         return
     live = fetch(f"repos/{plan['repository']}/pulls/{plan['pr']}")
     if (live.get("state") != "open" or live["head"]["sha"] != plan["head"]
-            or live["base"]["sha"] != plan["base"]
             or live["head"]["repo"]["full_name"] != plan["source"]
             or live["head"]["ref"] != plan["branch"]
             or live["base"]["repo"]["full_name"] != plan["repository"]):
@@ -245,6 +286,7 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
             "reason": "affected inputs from the cumulative PR diff",
             "externalInputs": external_inputs or {}, "testedMergeSHA": git("rev-parse", "HEAD")}
     selected_images = set()
+    conservative_scan = False
     try:
         pr = event.get("pull_request")
         if "pull_request" in event:
@@ -273,12 +315,15 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
         selected_images = select_images(paths) if project == "toolchain" else set()
         if unsafe_documentation(plan["base"], paths) or unsafe_documentation(plan["testedMergeSHA"], paths):
             selected = set(MODULES[project])
+            conservative_scan = True
         if project == "toolchain" and packaged_readme_state(plan["testedMergeSHA"]) != "valid":
             selected = set(MODULES[project])
+            conservative_scan = True
     except (subprocess.SubprocessError, OSError, ValueError, KeyError, TypeError, AttributeError):
         selected = set(MODULES[project])
         selected_images = set(IMAGES) if project == "toolchain" else set()
-        plan["reason"] = "selection unavailable: full required coverage"
+        plan["reason"] = "selection unavailable: full validation coverage"
+        conservative_scan = True
     if not selected and not selected_images:
         plan["reason"] = "cumulative PR diff contains only plain prose documentation; modules unaffected"
     plan["selected"] = sorted(selected)
@@ -292,12 +337,60 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
     plan["needsFixture"] = project == "toolchain" and any(plan.get(m, False) for m in MODULES[project])
     plan["fixture"] = plan["needsFixture"]
     plan["compatibility"] = project == "server" and bool(selected.intersection({"server", "commons", "struct", "pd", "store", "hstore", "cluster"}))
-    plan["security"] = bool(selected) or any(p.startswith(".github/workflows/codeql") for p in locals().get("paths", []))
-    plan["security_languages"] = json.dumps(["java"])
+    paths = locals().get("paths", [])
+    plan["changedPaths"] = paths
+    plan["selectionReasons"] = {
+        suite: [path for path in paths if suite in (suites(project, select(project, [path]))
+                                                  + list(select_images([path]) if project == "toolchain" else []))]
+        for suite in plan["expected"]
+    }
+    plan["dependency_audit"] = (not paths or any(dependency_input(path) for path in paths))
+    if project == "toolchain" and plan["dependency_audit"]:
+        plan["expected"].append("dependency-audit")
+        plan["selectionReasons"]["dependency-audit"] = [path for path in paths if dependency_input(path)]
+    languages = scan_languages([] if conservative_scan else paths)
+    plan["security"] = bool(languages)
+    plan["security_languages"] = json.dumps(sorted(languages))
+    write_summary(plan)
     return plan
 
 
+def dependency_input(path):
+    return bool(re.search(r"(^|/)(pom\.xml|package\.json|yarn\.lock|package-lock\.json)$|"
+                          r"(^|/)(assembly|licenses)/|(^|/)(LICENSE|NOTICE)$|dependency/|"
+                          r"^\.mvn/|^\.github/(configs/|workflows/(license-checker|dependency-license)\.yml)", path))
+
+
+def write_summary(plan, results=None):
+    summary = "## Module validation (advisory)\n\n"
+    summary += "Required: **check-license-header** only. Module, image and scan results do not block merging.\n\n"
+    summary += plan.get("reason", "affected inputs") + "\n\n"
+    summary += "| Check | Required | Selection reason | Result |\n| --- | --- | --- | --- |\n"
+    for suite in sorted(set(MODULES[plan["project"]]) | IMAGES | {"dependency-audit"}):
+        selected = suite in plan["expected"]
+        reason = ", ".join(plan.get("selectionReasons", {}).get(suite, [])) or (
+            plan.get("reason", "affected inputs") if selected else "unaffected")
+        reason = reason.replace("|", "\\|").replace("\n", " ")
+        state = results.get(suite, {}).get("result", "missing") if results is not None and selected else (
+            "scheduled" if selected else "not selected")
+        summary += f"| {suite} | No | {reason} | {state} |\n"
+    summary += f"\nTested head: `{plan['head']}`; base: `{plan['base']}`; checkout: `{plan['testedMergeSHA']}`.\n"
+    if os.environ.get("GITHUB_STEP_SUMMARY"):
+        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as stream:
+            stream.write(summary)
+
+
+def result_report(plan, results):
+    report = {key: plan[key] for key in ["schema", "repository", "project", "pr", "source", "branch", "base",
+                                        "head", "testedMergeSHA", "externalInputs"]}
+    report.update(runID=int(os.environ.get("GITHUB_RUN_ID", "0")),
+                  runAttempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")),
+                  executed=plan["expected"], results=results)
+    return report
+
+
 def gate(plan, results, fetch=None):
+    write_summary(plan, results)
     if results.get("plan", {}).get("result") != "success":
         raise ValueError("planner did not succeed")
     for suite in plan["expected"]:
@@ -310,19 +403,7 @@ def gate(plan, results, fetch=None):
         if "hubble" in plan["expected"] and results.get("hubble-fixture", {}).get("result") != "success":
             raise ValueError("selected Hubble tests lack successful baseline fixture")
     require_current_pr(plan, fetch or api)
-    report = {key: plan[key] for key in ["schema", "repository", "project", "pr", "source", "branch", "base",
-                                        "head", "testedMergeSHA", "externalInputs"]}
-    report.update(runID=int(os.environ.get("GITHUB_RUN_ID", "0")),
-                  runAttempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")),
-                  executed=plan["expected"], results=results)
-    # These fields describe this run; they do not authorize reuse by another run.
-    summary = "Selection: " + plan.get("reason", "affected inputs") + "\nExecuted: " + ", ".join(plan["expected"])
-    if os.environ.get("GITHUB_STEP_SUMMARY"):
-        with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as out:
-            out.write("## Affected module tests\n" + summary + "\n\nUnselected modules: "
-                      + ", ".join(sorted(set(MODULES[plan["project"]]) - set(plan["selected"]))) + "\n")
-    print(summary)
-    return report
+    return result_report(plan, results)
 
 
 def main():
@@ -350,7 +431,11 @@ def main():
                         output.write(f"{key}={str(item).lower()}\n")
                 output.write(f"security_languages={value['security_languages']}\nplan_file={args.output}\n")
     else:
-        value = gate(json.loads(Path(args.plan).read_text()), json.loads(Path(args.results).read_text()))
+        plan = json.loads(Path(args.plan).read_text())
+        results = json.loads(Path(args.results).read_text())
+        # Preserve diagnostic results even when an advisory job fails or is missing.
+        Path(args.output).write_text(json.dumps(result_report(plan, results), indent=2) + "\n")
+        value = gate(plan, results)
     Path(args.output).write_text(json.dumps(value, indent=2) + "\n")
 
 

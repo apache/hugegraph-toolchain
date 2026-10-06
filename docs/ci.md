@@ -1,9 +1,22 @@
 # Continuous integration
 
-Every PR runs license checks and `Required CI`. The stable
-`affected-module-tests` check requires all selected Linux tests and image startup
-checks to pass; a failed, cancelled or unexpectedly skipped selected job cannot
-satisfy it.
+Only `check-license-header` (headers and RAT) is required for merging. Execution
+selection remains conservative: changed modules and their consumers run, but their
+results are advisory. Maintainers decide whether to rerun or request changes.
+
+The independent workflows are:
+
+| Workflow | Purpose | Required | Cancellation |
+| --- | --- | --- | --- |
+| license checker | Basic license checks | Yes | Cancelling it blocks merging |
+| Module validation | Consumers, images, fixtures and dependency inventory audit | No | Can be cancelled without cancelling license checks or CodeQL |
+| CodeQL | Affected-input scans and dependency review; weekly full scan | No | Independent of module tests |
+
+`affected-module-tests` remains a truthful advisory summary under its existing
+name for migration. It fails when a selected test, image or fixture fails, is
+cancelled or unexpectedly skipped; it does not make these checks required.
+Plan and result summaries show specific checks, triggering paths, required roles
+and actual results. Native job checks provide the detailed logs.
 
 | Change | Tests |
 | --- | --- |
@@ -46,7 +59,7 @@ points; Loader data ingestion and Hubble browser workflows remain covered by
 module tests. They do not publish an image.
 
 Selected Client, Loader, Tools and Spark module tests compile and run on Java 11
-and Java 17. Both matrix entries must pass, including Loader's separate HDFS tests.
+and Java 17. Both matrix entries run, including Loader's separate HDFS tests; their results remain advisory.
 Hubble compiles and runs on Java 17, matching its merged Boot 3 runtime requirement,
 and tests against each Server baseline. These runtime checks supplement the
 existing affected-module selection; unrelated modules are not added.
@@ -66,7 +79,7 @@ selected Java 11/17 host JVM and use `localhost:8020`. Startup checks live DataN
 registration and a real block write/read before testing; containers are removed
 afterward. Image pulling and readiness are bounded. This avoids installing the
 large archive on each runner, but cold runners still need to pull the image.
-The immutable Server packages, `ci-plan` and successful `ci-test-results` artifacts
+The immutable Server packages, `ci-plan` and `ci-test-results` diagnostic artifacts
 are retained for seven days from their upload. Partial reruns need the original
 plan and fixture within that window. After an artifact expires, rerun the whole
 workflow to rebuild its plan and fixtures; extending only the result report cannot
@@ -83,31 +96,36 @@ input metadata for diagnostics; it is not a reusable success receipt.
 The planner determines affected consumers before resolving external Server inputs.
 Go-only changes resolve the release fixture but skip the Hubble master lookup;
 image-only and plain documentation changes need neither baseline. Unverifiable
-selection conservatively resolves both. A failed required baseline lookup still
+selection conservatively resolves both. A failed selected baseline lookup still
 fails planning; without a published plan, recovery requires a full workflow rerun.
 
 PR planning records the event's head, base and source before querying live metadata.
-A known mismatch with the checkout merge or current PR fails planning; expanding
-coverage cannot make an outdated checkout current. After all selected jobs and
-fixtures succeed, the gate rechecks the open PR's head, base and source using a
-read-only API request. Changed inputs or unavailable metadata fail the gate.
-Refresh the branch and start a new PR event after head or base movement: GitHub
-reruns retain the original commit and event, so rerunning alone cannot refresh the
-base. An unknown API or selection failure falls back to full coverage; a manual
-full rerun can recover a transient failure while the recorded inputs remain current.
+A known mismatch with the checkout merge, current head or source fails planning.
+The report records the actual tested base and merge; advancing master alone does
+not invalidate a completed result, consistent with non-strict branch protection.
+Unknown selection falls back to full validation. No cross-run success is reused.
 
-CodeQL follows the module gate and retains its weekly scan. During migration,
-`Analyze (java)` still runs on every PR, after a successful module gate.
-The legacy alias is PR-only; documentation pushes do not force scanning or fail
-because a deliberately unselected scan was skipped. Scan write permissions are
-limited to the security job. After ASF branch protection actually
-requires `check-license-header` and `affected-module-tests`, an administrator can
-set `CI_OPTIMIZED_REQUIRED=true` to skip security scans for documentation-only
-changes. This switch is disabled by default and does not alter branch protection.
+CodeQL starts independently on affected PR and push inputs, with its original
+analysis identity and weekly full scan. Java, frontend and Python changes select
+their supported scan language; shared/unknown build inputs keep all three languages.
+Go-only and image-only changes do not start unrelated source scans. Manual and
+weekly runs scan all three languages. Plain prose-only PRs skip compilation,
+fixtures, images and scanning; native workflows retain lightweight selection jobs.
+Packaged README files and shared build/configuration inputs are not plain prose.
+The `CI_OPTIMIZED_REQUIRED` variable is no longer needed.
+
+The dependency inventory audit includes root `.mvn/**`, POMs, dependency manifests,
+assembly/license inputs and staged Maven settings. It runs from the repository root
+with the same root Maven configuration, separately from the required license check.
+
+For rollout, `.asf.yaml` requests only `check-license-header`. Confirm actual branch
+protection has reconciled before relying on advisory cancellation. The existing
+module summary and native `Analyze (java)` context remain available during the
+migration; old required names must not remain permanently Expected.
 
 A new PR head cancels older first attempts. Reruns use separate concurrency groups,
 so retrying an old commit cannot cancel the current head. Automatic retries run
-failed **push** jobs at most twice, checking the repository branch head and
+failed **push** license jobs only at most twice, checking the repository branch head and
 unchanged completed-failure run attempt both before and after the 180-second delay.
 Retry code comes from the trusted default branch. PR automatic retries and
 cross-run success reuse are deferred until execution evidence can be verified

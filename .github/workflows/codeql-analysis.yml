@@ -2,12 +2,44 @@ name: "CodeQL"
 
 on:
   workflow_dispatch:
-  workflow_call:
+  pull_request:
+  push:
+    branches: [master, 'release-*']
   schedule:
     - cron: '42 20 * * 6'
 
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.run_id }}-${{ github.run_attempt == 1 && 'head' || format('rerun-{0}', github.run_id) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      security: ${{ steps.select.outputs.security }}
+      languages: ${{ steps.select.outputs.security_languages }}
+      dependency-audit: ${{ steps.select.outputs.dependency_audit }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Select scan inputs without preparing fixtures
+        id: select
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          python3 .github/scripts/ci-policy.py plan --project toolchain
+          --event-path "$GITHUB_EVENT_PATH" --repository "$GITHUB_REPOSITORY"
+          --output scan-plan.json
+
   analyze:
+    needs: plan
+    if: needs.plan.outputs.security == 'true'
     env:
       USE_STAGE: 'true' # Whether to include the stage repository.
       # Preserve the master scan identity when invoked by a reusable-workflow caller.
@@ -22,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ 'java', 'javascript', 'python' ]
+        language: ${{ fromJSON(needs.plan.outputs.languages) }}
         # CodeQL supports [ 'cpp', 'csharp', 'go', 'java', 'javascript', 'python', 'ruby' ]
 
     steps:
@@ -85,7 +117,8 @@ jobs:
         category: .github/workflows/codeql-analysis.yml:analyze/language:${{ matrix.language }}
 
   dependency-review:
-    if: github.event_name == 'pull_request'
+    needs: plan
+    if: github.event_name == 'pull_request' && needs.plan.outputs.dependency-audit == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: 'Checkout Repository'

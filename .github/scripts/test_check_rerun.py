@@ -32,7 +32,8 @@ class FreshnessTest(unittest.TestCase):
     def setUp(self):
         self.repository = "hugegraph/hugegraph-toolchain"
         self.run = {"status": "completed", "conclusion": "failure", "run_attempt": 1,
-                    "event": "push", "head_sha": "old", "head_branch": "release/test"}
+                    "event": "push", "head_sha": "old", "head_branch": "release/test",
+                    "path": ".github/workflows/license-checker.yml"}
         self.head = "old"
         self.calls = []
 
@@ -80,6 +81,12 @@ class FreshnessTest(unittest.TestCase):
                 self.run[key] = value
                 self.assertEqual("skip", self.decide())
                 self.run[key] = old
+
+    def test_advisory_and_unknown_workflows_are_not_retried(self):
+        for path in [None, ".github/workflows/ci.yml", ".github/workflows/codeql-analysis.yml"]:
+            self.run["path"] = path
+            with self.subTest(path=path):
+                self.assertEqual("skip", self.decide())
 
     def test_retry_limit(self):
         self.run["run_attempt"] = 2
