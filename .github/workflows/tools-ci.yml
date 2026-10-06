@@ -24,7 +24,7 @@ jobs:
       TRAVIS_DIR: hugegraph-tools/assembly/travis
     strategy:
       matrix:
-        JAVA_VERSION: ['17']
+        JAVA_VERSION: ['11', '17']
 
     steps:
       - name: Fetch Code

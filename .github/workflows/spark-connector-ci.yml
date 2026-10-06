@@ -25,7 +25,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        JAVA_VERSION: ['17']
+        JAVA_VERSION: ['11', '17']
 
     steps:
       - name: Fetch Code

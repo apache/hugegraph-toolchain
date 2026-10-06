@@ -14,12 +14,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Executable Git fixtures and API proof tests for CI selection."""
-import base64
-import hashlib
+"""Executable Git fixtures for affected-module selection and current-run gating."""
 import importlib.util
-import io
-import zipfile
 import json
 import os
 from pathlib import Path
@@ -31,14 +27,18 @@ from unittest.mock import patch
 spec = importlib.util.spec_from_file_location("policy", Path(__file__).with_name("ci-policy.py"))
 policy = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(policy)
-ACTUAL_REMOTE_FINGERPRINT = policy.remote_fingerprint
 
 
 class PolicyTest(unittest.TestCase):
+    def live_pr(self):
+        return {"state": "open", "head": {"sha": "new", "ref": "feature", "repo": {"full_name": "alice/t"}},
+                "base": {"sha": "base", "repo": {"full_name": "apache/t"}}}
+
     def setUp(self):
-        mock = patch.object(policy, "remote_fingerprint", side_effect=lambda *a, **k: "policy" if k.get("policy_only") else "inputs")
-        mock.start()
-        self.addCleanup(mock.stop)
+        # All tests stay local; successful PR gates query only this current-PR fixture.
+        api_mock = patch.object(policy, "api", return_value=self.live_pr())
+        self.addCleanup(api_mock.stop)
+        self.api_mock = api_mock.start()
 
     def test_dependency_expansion(self):
         self.assertEqual({"client", "loader", "tools", "spark", "hubble"},
@@ -73,80 +73,6 @@ class PolicyTest(unittest.TestCase):
                      "hugegraph-hubble/hubble-fe/yarn.lock", "hugegraph-hubble/README.md",
                      "hugegraph-hubble/hubble-be/src/main/resources/application.properties"]:
             self.assertEqual({"hubble_image"}, policy.select_images([path]), path)
-
-    def test_image_only_plan_and_gate_require_no_server_fixture(self):
-        with patch.object(policy, "git", side_effect=lambda *a: (
-                "hugegraph-loader/Dockerfile" if a[0] == "diff" else "head")), patch.object(
-                policy, "fingerprint", return_value="hash"), patch.object(
-                policy, "unsafe_documentation", return_value=False), patch.object(
-                policy, "packaged_readme_state", return_value="valid"):
-            plan = policy.create_plan("toolchain", {"before": "base"}, "apache/t")
-        self.assertEqual(["loader_image"], plan["expected"])
-        self.assertFalse(plan["needsFixture"])
-        self.assertFalse(any(plan[m] for m in policy.MODULES["toolchain"]))
-        results = {"plan": {"result": "success"}, "loader_image": {"result": "success"}}
-        receipt = policy.gate(plan, results, lambda _: {"jobs": [
-            {"name": "loader_image / build-and-start", "id": 55, "conclusion": "success"}]})
-        self.assertEqual("hash", receipt["proofs"]["loader_image"]["imageFingerprint"])
-        for state in [None, "skipped", "cancelled", "failure"]:
-            results["loader_image"]["result"] = state
-            with self.subTest(state=state), self.assertRaises(ValueError):
-                policy.gate(plan, results, self.fetch)
-
-    def test_cumulative_packaging_edit_reuses_java_without_fixture(self):
-        event = {"pull_request": {"number": 7, "head": {"sha": "new"}, "base": {"sha": "base"}}}
-        live = {"state": "open", "head": {"sha": "new", "ref": "feature", "repo": {"full_name": "alice/t"}},
-                "base": {"sha": "base", "repo": {"full_name": "apache/t"}}}
-        def git(*args):
-            if args[0] == "show":
-                return "base new"
-            if args[0] == "diff":
-                return "hugegraph-client/src/A.java\nhugegraph-hubble/README.md"
-            return "new"
-        verified = {module: {"runID": 42} for module in ["client", "loader", "tools", "spark", "hubble"]}
-        with patch.object(policy, "git", side_effect=git), patch.object(policy, "fingerprint", return_value="hash"), \
-                patch.object(policy, "unsafe_documentation", return_value=False), \
-                patch.object(policy, "packaged_readme_state", return_value="valid"), \
-                patch.object(policy, "find_reuse", return_value=verified):
-            plan = policy.create_plan("toolchain", event, "apache/t", lambda _: live, external_inputs={"sha": "server"})
-        self.assertTrue(plan["hubble_image"])
-        self.assertFalse(plan["loader_image"])
-        self.assertFalse(plan["needsFixture"])
-        self.assertFalse(any(plan[module] for module in verified))
-        self.assertEqual(set(verified) | {"hubble_image"}, set(plan["expected"]))
-
-    def test_missing_or_changed_image_proof_preserves_strict_java_proof(self):
-        plan = dict(self.plan(), expected=["client", "loader_image"], imageFingerprint="current")
-        receipt = self.receipt()
-        self.assertEqual({"client"}, set(policy.validate_receipt(plan, receipt, self.fetch)))
-        receipt["proofs"]["loader_image"] = dict(receipt["proofs"]["client"], imageFingerprint="old")
-        self.assertEqual({"client"}, set(policy.validate_receipt(plan, receipt, self.fetch)))
-        receipt["proofs"]["client"]["jobIDs"] = [999]
-        with self.assertRaises(ValueError):
-            policy.validate_receipt(plan, receipt, self.fetch)
-
-    def test_image_proof_requires_actual_build_tree_and_exact_job_ids(self):
-        plan = dict(self.plan(), expected=["loader_image"], imageFingerprint="docker-inputs")
-        receipt = self.receipt()
-        receipt["proofs"] = {"loader_image": dict(receipt["proofs"]["client"],
-                                                  imageFingerprint="docker-inputs")}
-        def fetch(path):
-            value = self.fetch(path)
-            if "/jobs?" in path:
-                value["jobs"][0]["name"] = "loader_image / build-and-start"
-            return value
-        def fingerprint(*args, **kwargs):
-            return "policy" if kwargs.get("policy_only") else "docker-inputs" if kwargs.get("image") else "inputs"
-        with patch.object(policy, "remote_fingerprint", side_effect=fingerprint):
-            self.assertEqual({"loader_image"}, set(policy.validate_receipt(plan, receipt, fetch)))
-            receipt["proofs"]["loader_image"]["jobIDs"] = [999]
-            with self.assertRaises(ValueError):
-                policy.validate_receipt(plan, receipt, fetch)
-        receipt["proofs"]["loader_image"]["jobIDs"] = [123]
-        with patch.object(policy, "remote_fingerprint", side_effect=lambda *a, **k: (
-                "policy" if k.get("policy_only") else "forged" if k.get("image") else "inputs")):
-            with self.assertRaises(ValueError):
-                policy.validate_receipt(plan, receipt, fetch)
 
     def test_server_backend_and_startup_dependents(self):
         selected = policy.select("server", ["hugegraph-server/hugegraph-hstore/src/test/HstoreTableTest.java"])
@@ -186,86 +112,6 @@ class PolicyTest(unittest.TestCase):
         self.assertTrue((root / resource).is_file())
         self.assertTrue({"commons", "docker"}.issubset(policy.select("server", [resource])))
 
-    def test_external_hubble_baseline_only_affects_hubble(self):
-        a = {"server": {"sha": "release"}, "hubble": {"sha": "old"}}
-        b = {"server": {"sha": "release"}, "hubble": {"sha": "new"}}
-        self.assertEqual(policy.external_context(a, ["go"]), policy.external_context(b, ["go"]))
-        self.assertNotEqual(policy.external_context(a, ["hubble"]), policy.external_context(b, ["hubble"]))
-
-    def test_packaged_readme_content_contract(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            def git(*args):
-                return subprocess.check_output(["git", *args], cwd=root, text=True).strip()
-            git("init", "-q")
-            git("config", "user.email", "ci@example.invalid")
-            git("config", "user.name", "CI")
-            (root / "hugegraph-hubble").mkdir()
-            readme = root / "hugegraph-hubble/README.md"
-            readme.write_text("nonempty docs")
-            git("add", ".")
-            git("commit", "-qm", "valid readme")
-            old = os.getcwd()
-            try:
-                os.chdir(root)
-                initial = policy.fingerprint("HEAD", project="toolchain")
-                initial_image = policy.fingerprint("HEAD", project="toolchain", image=True)
-                readme.write_text("changed nonempty docs")
-                git("commit", "-qam", "valid docs edit")
-                self.assertEqual(initial, policy.fingerprint("HEAD", project="toolchain"))
-                changed_image = policy.fingerprint("HEAD", project="toolchain", image=True)
-                def fetch_tree(path):
-                    if "/git/blobs/" in path:
-                        blob = subprocess.check_output(["git", "cat-file", "blob", path.rsplit("/", 1)[1]])
-                        return {"content": base64.b64encode(blob).decode()}
-                    entries = []
-                    for entry in subprocess.check_output(["git", "ls-tree", "-rz", "HEAD"]).split(b"\0"):
-                        if entry:
-                            metadata, name = entry.split(b"\t", 1)
-                            mode, kind, sha = metadata.decode().split()
-                            entries.append({"path": name.decode(), "mode": mode, "type": kind, "sha": sha})
-                    return {"tree": entries}
-                # Local plan hashing and API verification must agree on actual Git objects.
-                with patch.object(policy, "remote_fingerprint", ACTUAL_REMOTE_FINGERPRINT):
-                    self.assertEqual(changed_image, policy.remote_fingerprint(
-                        "apache/t", "HEAD", fetch=fetch_tree, project="toolchain", image=True))
-                self.assertNotEqual(initial_image, changed_image)
-                source = root / "hugegraph-hubble/A.java"
-                source.write_text("first source")
-                git("add", ".")
-                git("commit", "-qm", "application source")
-                source_image = policy.fingerprint("HEAD", project="toolchain", image=True)
-                self.assertNotEqual(changed_image, source_image)
-                source.write_text("changed source")
-                git("commit", "-qam", "changed application")
-                self.assertNotEqual(source_image, policy.fingerprint("HEAD", project="toolchain", image=True))
-                # Restore the original module inputs before exercising the README contract.
-                source.unlink()
-                git("add", ".")
-                git("commit", "-qm", "remove test source")
-                for content in ["", "  \t\n"]:
-                    readme.write_text(content)
-                    git("commit", "-qam", "empty docs")
-                    self.assertNotEqual("valid", policy.packaged_readme_state("HEAD"))
-                    self.assertNotEqual(initial, policy.fingerprint("HEAD", project="toolchain"))
-                readme.write_text("nonempty")
-                readme.chmod(0o755)
-                git("add", ".")
-                git("commit", "-qm", "executable docs")
-                self.assertNotEqual("valid", policy.packaged_readme_state("HEAD"))
-                readme.unlink()
-                readme.symlink_to("missing-target")
-                git("add", ".")
-                git("commit", "-qm", "symlink docs")
-                self.assertNotEqual("valid", policy.packaged_readme_state("HEAD"))
-                readme.unlink()
-                git("add", ".")
-                git("commit", "-qm", "deleted docs")
-                self.assertEqual("missing", policy.packaged_readme_state("HEAD"))
-                self.assertNotEqual(initial, policy.fingerprint("HEAD", project="toolchain"))
-            finally:
-                os.chdir(old)
-
     def test_single_workflow_has_no_global_fanout(self):
         self.assertEqual({"hubble"}, policy.select("toolchain", [".github/workflows/hubble-ci.yml"]))
         self.assertEqual({"docker"}, policy.select("server", [".github/workflows/docker-build-ci.yml"]))
@@ -279,342 +125,129 @@ class PolicyTest(unittest.TestCase):
         for path in ["hugegraph-client/src/test/resources/README.md", "docs/type.ts", "docs/config.yml", "docs/example.java", "hugegraph-server/type.ts"]:
             self.assertTrue(policy.select("server", [path]))
 
+
     def plan(self):
         return {"schema": 1, "project": "toolchain", "repository": "apache/t", "pr": 7,
-                "source": "alice/t", "branch": "feature", "base": "base", "head": "new", "testedMergeSHA": "merge", "inputFingerprint": hashlib.sha256(b"inputs{}").hexdigest(),
-                "policyFingerprint": "policy", "workflowID": 99, "expected": ["client"],
-                "selected": ["client"], "reused": {}}
+                "source": "alice/t", "branch": "feature", "base": "base", "head": "new",
+                "testedMergeSHA": "merge", "expected": ["client"], "selected": ["client"],
+                "externalInputs": {"toolchainJDK": ["11", "17"]}}
 
-    def receipt(self):
-        r = self.plan()
-        r["proofs"] = {"client": {"runID": 42, "head": "old", "testedMergeSHA": "oldmerge", "jobIDs": [123]}}
-        return r
-
-    def fetch(self, path):
-        if "/git/commits/" in path:
-            return {"parents": [{"sha": "base"}, {"sha": "old"}]}
-        if path.endswith("/jobs?per_page=100&page=1"):
-            return {"jobs": [{"name": "client / client-ci", "id": 123, "conclusion": "success"},
-                             {"name": "affected-module-tests", "id": 124, "conclusion": "success"}]}
-        return {"status": "completed", "conclusion": "success", "event": "pull_request",
-                "head_sha": "old", "head_branch": "feature", "workflow_id": 99, "head_repository": {"full_name": "alice/t"},
-                "pull_requests": [{"number": 7, "base": {"sha": "base"}}]}
-
-    def test_valid_original_proof(self):
-        with patch.object(policy, "remote_fingerprint", side_effect=lambda *a, **k: "policy" if k.get("policy_only") else "inputs"):
-            self.assertIn("client", policy.validate_receipt(self.plan(), self.receipt(), self.fetch))
-
-    def test_empty_fork_association_owner_branch_fallback(self):
-        def fetch(path):
-            if "/pulls?" in path:
-                self.assertIn("head=alice%3Afeature", path)
-                return [{"number": 7, "head": {"ref": "feature", "repo": {"full_name": "alice/t"}},
-                         "base": {"repo": {"full_name": "apache/t"}}}]
-            value = self.fetch(path)
-            if "/actions/runs/" in path and "/jobs?" not in path:
-                value.update(pull_requests=[], head_branch="feature",
-                             head_repository={"full_name": "alice/t", "owner": {"login": "alice"}})
-            return value
-        self.assertIn("client", policy.validate_receipt(self.plan(), self.receipt(), fetch))
-
-    def test_nonblocking_failure_keeps_core_proof_but_bad_gate_rejects(self):
-        def fetch(path):
-            value = self.fetch(path)
-            if "/jobs?" not in path and "/actions/runs/" in path:
-                value["conclusion"] = "failure"
-            return value
-        self.assertIn("client", policy.validate_receipt(self.plan(), self.receipt(), fetch))
-        def bad_gate(path):
-            value = fetch(path)
-            if "/jobs?" in path:
-                value["jobs"][1]["conclusion"] = "failure"
-            return value
-        with self.assertRaises(ValueError):
-            policy.validate_receipt(self.plan(), self.receipt(), bad_gate)
-
-    def test_artifact_core_reuse_with_failed_compatibility(self):
-        receipt = self.receipt()
-        receipt["runID"] = 42
-        data = io.BytesIO()
-        with zipfile.ZipFile(data, "w") as archive:
-            archive.writestr("receipt.json", json.dumps(receipt))
-        artifact_size = 256
-        def fetch(path, binary=False):
-            if "/actions/workflows/" in path:
-                self.assertIn("status=completed", path)
-                return {"workflow_runs": [{"id": 42, "head_repository": {"full_name": "alice/t"}, "head_branch": "feature", "pull_requests": [{"number": 7}]}]}
-            if "/artifacts?" in path:
-                return {"artifacts": [{"name": "ci-test-receipt", "id": 3, "expired": False, "size_in_bytes": artifact_size}]}
-            if "/actions/artifacts/" in path:
-                return data.getvalue()
-            value = self.fetch(path)
-            if "/jobs?" in path:
-                value["jobs"].append({"name": "HBase compatibility", "id": 9, "conclusion": "failure"})
-            elif "/actions/runs/" in path:
-                value["conclusion"] = "failure"
-            return value
-        plan = self.plan()
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "99"}):
-            proof = policy.find_reuse(plan, fetch)
-        self.assertIn("client", proof)
-        self.assertFalse(plan["optionalSuccess"]["compatibility"])
-        self.assertFalse(plan["optionalSuccess"]["security"])
-        for artifact_size in [None, 0, 1048577, "256"]:
-            with patch.dict(os.environ, {"GITHUB_RUN_ID": "99"}):
-                self.assertEqual({}, policy.find_reuse(self.plan(), fetch))
-        artifact_size = 256
-        data = io.BytesIO()
-        with zipfile.ZipFile(data, "w") as archive:
-            archive.writestr("receipt.json", json.dumps(receipt))
-            archive.writestr("unexpected.txt", "extra")
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "99"}):
-            self.assertEqual({}, policy.find_reuse(self.plan(), fetch))
-
-    def optional_fixture(self, receipts, optional_results=None):
-        optional_results = optional_results or {}
-        def fetch(path, binary=False):
-            if "/actions/workflows/" in path:
-                return {"workflow_runs": [{"id": run_id, "head_repository": {"full_name": "alice/t"},
-                                            "head_branch": "feature", "pull_requests": [{"number": 7}]}
-                                           for run_id in sorted(receipts, reverse=True)]}
-            if "/artifacts?" in path:
-                run_id = int(path.split("/runs/")[1].split("/")[0])
-                return {"artifacts": [{"name": "ci-test-receipt", "id": run_id,
-                                       "expired": False, "size_in_bytes": 512}]}
-            if "/actions/artifacts/" in path:
-                run_id = int(path.split("/artifacts/")[1].split("/")[0])
-                data = io.BytesIO()
-                with zipfile.ZipFile(data, "w") as archive:
-                    archive.writestr("receipt.json", json.dumps(receipts[run_id]))
-                return data.getvalue()
-            if "/git/commits/" in path:
-                head = "new" if path.endswith("/merge") else "old"
-                return {"parents": [{"sha": "base"}, {"sha": head}]}
-            if "/jobs?" in path:
-                run_id = int(path.split("/runs/")[1].split("/")[0])
-                jobs = [{"name": "affected-module-tests", "id": run_id * 10, "conclusion": "success"}]
-                if run_id == 42:
-                    jobs.append({"name": "client / client-ci", "id": 123, "conclusion": "success"})
-                for index, name in enumerate(sorted(policy.optional_groups(self.plan())["security"])):
-                    result = optional_results.get(run_id, "success" if run_id == 42 else "skipped")
-                    jobs.append({"name": name, "id": run_id * 100 + index, "conclusion": result})
-                return {"jobs": jobs}
-            value = self.fetch(path)
-            if "/actions/runs/43" in path:
-                value["head_sha"] = "new"
-            return value
-        return fetch
-
-    def find_optional(self, receipts, optional_results=None):
-        plan = self.plan()
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "99"}), patch.object(
-                policy, "remote_fingerprint", side_effect=lambda *a, **k: "policy" if k.get("policy_only") else "inputs"):
-            plan["reused"] = policy.find_reuse(plan, self.optional_fixture(receipts, optional_results))
-        return plan
-
-    def test_optional_original_proof_survives_two_documentation_updates(self):
-        original = self.receipt()
-        original.update(runID=42, head="old", testedMergeSHA="oldmerge")
-        second = self.find_optional({42: original})
-        self.assertTrue(second["optionalSuccess"]["security"])
-        self.assertEqual(42, second["optionalProofs"]["security"]["runID"])
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "43"}):
-            forwarded = policy.gate(second, {"plan": {"result": "success"}}, self.fetch)
-        third = self.find_optional({43: forwarded, 42: original})
-        self.assertTrue(third["optionalSuccess"]["security"])
-        self.assertEqual(second["optionalProofs"], third["optionalProofs"])
-        self.assertEqual(second["reused"], third["reused"])
-        for result in ["failure", "cancelled", "timed_out", None]:
-            with self.subTest(result=result):
-                latest = self.find_optional({43: forwarded, 42: original}, {43: result})
-                self.assertTrue(latest["reused"])
-                self.assertFalse(latest["optionalSuccess"]["security"])
-
-    def test_newer_unverifiable_receipt_blocks_older_optional_green(self):
-        original = self.receipt()
-        original.update(runID=42, head="old", testedMergeSHA="oldmerge")
-        invalid = dict(original, runID=43, source="other/t")
-        plan = self.find_optional({43: invalid, 42: original})
-        self.assertTrue(plan["reused"])
-        self.assertFalse(plan["optionalSuccess"]["security"])
-
-    def test_server_optional_matrix_follows_project_runtime(self):
-        plan = dict(self.plan(), project="server")
-        runtime_file = Path(__file__).resolve().parents[1] / "workflows/.java-version"
-        if not runtime_file.exists():
-            self.skipTest("Server runtime configuration is not in the Toolchain repository")
-        runtime = runtime_file.read_text().strip()
-        names = policy.optional_groups(plan)["compatibility"]
-        self.assertIn(f"HBase compatibility (Java {runtime})", names)
-        self.assertEqual(4, len(names))
-        jobs = [{"name": name, "id": index, "conclusion": "success"}
-                for index, name in enumerate(sorted(names))]
-        self.assertEqual(4, len(policy.optional_jobs(jobs, names)))
-        for missing in range(len(jobs)):
-            with self.assertRaises(ValueError):
-                policy.optional_jobs(jobs[:missing] + jobs[missing + 1:], names)
-
-    def test_optional_forwarded_forgery_and_original_failure_reject(self):
-        original = self.receipt()
-        original.update(runID=42, head="old", testedMergeSHA="oldmerge")
-        second = self.find_optional({42: original})
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "43"}):
-            forwarded = policy.gate(second, {"plan": {"result": "success"}}, self.fetch)
-        for field in ["jobIDs", "jobNames", "source", "base", "inputFingerprint", "policyFingerprint", "head"]:
-            changed = json.loads(json.dumps(forwarded))
-            changed["optionalProofs"]["security"][field] = [999] if field == "jobIDs" else "forged"
-            with self.subTest(field=field):
-                latest = self.find_optional({43: changed, 42: original})
-                self.assertTrue(latest["reused"])
-                self.assertFalse(latest["optionalSuccess"]["security"])
-        latest = self.find_optional({43: forwarded, 42: original}, {42: "failure"})
-        self.assertFalse(latest["optionalSuccess"]["security"])
-
-    def test_optional_group_requires_complete_known_matrix(self):
-        plan = self.plan()
-        original = self.receipt()
-        original.update(runID=42, head="old", testedMergeSHA="oldmerge")
-        fetch = self.optional_fixture({42: original})
-        for mutation in ["missing", "unknown", "duplicate", "api-error"]:
-            def bad_fetch(path, binary=False):
-                if "/actions/runs/" in path and mutation == "api-error":
-                    raise OSError("unavailable")
-                value = fetch(path, binary)
-                if "/jobs?" in path:
-                    if mutation == "missing":
-                        value["jobs"].pop()
-                    elif mutation == "unknown":
-                        value["jobs"].append({"name": "security / Analyze (unknown)", "id": 999, "conclusion": "success"})
-                    elif mutation == "duplicate":
-                        value["jobs"].append(dict(value["jobs"][-1]))
-                return value
-            jobs = fetch("repos/apache/t/actions/runs/42/jobs?per_page=100&page=1")["jobs"]
-            if mutation != "api-error":
-                jobs = bad_fetch("repos/apache/t/actions/runs/42/jobs?per_page=100&page=1")["jobs"]
-            with patch.object(policy, "remote_fingerprint", side_effect=lambda *a, **k: "policy" if k.get("policy_only") else "inputs"):
-                self.assertEqual({}, policy.optional_proofs(plan, original, jobs, set(), bad_fetch))
-
-    def test_branch_filtered_bounded_run_pagination(self):
-        calls = []
-        def fetch(path, binary=False):
-            if "/actions/workflows/" in path:
-                calls.append(path)
-                self.assertIn("branch=feature", path)
-                if "page=1" in path:
-                    return {"workflow_runs": [{"id": n, "head_repository": {"full_name": "alice/t"},
-                                                "head_branch": "other"} for n in range(30)]}
-                return {"workflow_runs": []}
-            return self.fetch(path)
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "99"}):
-            self.assertEqual({}, policy.find_reuse(self.plan(), fetch))
-        self.assertEqual(2, len(calls))
-
-    def test_tested_merge_parent_mismatch_rejects(self):
-        def fetch(path):
-            if "/git/commits/" in path:
-                return {"parents": [{"sha": "advanced-base"}, {"sha": "old"}]}
-            return self.fetch(path)
-        with self.assertRaises(ValueError):
-            policy.validate_receipt(self.plan(), self.receipt(), fetch)
-
-    def test_actual_tree_fingerprint_mismatch_rejects(self):
-        with patch.object(policy, "remote_fingerprint", return_value="forged"):
-            with self.assertRaises(ValueError):
-                policy.validate_receipt(self.plan(), self.receipt(), self.fetch)
-
-    def test_provenance_changes_refuse_reuse(self):
-        for key in ["base", "inputFingerprint", "policyFingerprint", "source", "repository", "pr", "schema"]:
-            receipt = self.receipt()
-            receipt[key] = "changed"
-            with self.subTest(key=key), self.assertRaises(ValueError):
-                policy.validate_receipt(self.plan(), receipt, self.fetch)
-
-    def test_original_run_and_actual_job_proof_required(self):
-        for failure in ["failure", "cancelled", "skipped"]:
-            def fetch(path):
-                value = self.fetch(path)
-                if "jobs?" in path:
-                    value["jobs"][0]["conclusion"] = failure
-                return value
-            with self.subTest(failure=failure), self.assertRaises(ValueError):
-                policy.validate_receipt(self.plan(), self.receipt(), fetch)
-        receipt = self.receipt()
-        receipt["proofs"]["client"]["jobIDs"] = [456]
-        with self.assertRaises(ValueError):
-            policy.validate_receipt(self.plan(), receipt, self.fetch)
-
-    def test_gate_rejects_missing_failed_cancelled_skipped(self):
-        for result in [None, "failure", "cancelled", "skipped"]:
-            with self.subTest(result=result), self.assertRaises(ValueError):
-                policy.gate(self.plan(), {"plan": {"result": "success"}, "client": {"result": result}}, self.fetch)
-
-    def test_gate_success_receipt_and_verified_reuse(self):
-        with patch.dict(os.environ, {"GITHUB_RUN_ID": "42"}):
-            result = policy.gate(self.plan(), {"plan": {"result": "success"}, "client": {"result": "success"}, "fixture": {"result": "success"}}, self.fetch)
-            self.assertEqual([123], result["proofs"]["client"]["jobIDs"])
-            plan = self.plan()
-            plan["reused"] = result["proofs"]
-            self.assertEqual(["client"], policy.gate(plan, {"plan": {"result": "success"}, "client": {"result": "skipped"}}, self.fetch)["reused"])
-
-    def test_gate_refuses_failed_planner_even_empty_or_reused(self):
-        for result in ["failure", "skipped", "cancelled", None]:
-            plan = self.plan()
-            plan["expected"] = []
-            with self.subTest(result=result), self.assertRaises(ValueError):
-                policy.gate(plan, {"plan": {"result": result}}, self.fetch)
-
-    def test_fixture_missing_rejects_successful_test(self):
-        with self.assertRaises(ValueError):
-            policy.gate(self.plan(), {"plan": {"result": "success"}, "client": {"result": "success"}}, self.fetch)
-        plan = self.plan()
-        plan["expected"] = ["hubble"]
-        with self.assertRaises(ValueError):
-            policy.gate(plan, {"plan": {"result": "success"}, "hubble": {"result": "success"}}, self.fetch)
-
-    def test_hubble_gate_requires_current_and_released_fixtures(self):
-        plan = self.plan()
-        plan['expected'] = ['hubble']
-        for producer in ('fixture', 'hubble-fixture'):
-            for state in (None, 'failure', 'cancelled', 'skipped'):
-                results = {'plan': {'result': 'success'}, 'hubble': {'result': 'success'},
-                           'fixture': {'result': 'success'}, 'hubble-fixture': {'result': 'success'}}
-                results[producer] = {'result': state}
-                with self.subTest(producer=producer, state=state), self.assertRaises(ValueError):
-                    policy.gate(plan, results, self.fetch)
-
-    def test_proof_failure_disables_receipt_without_falsifying_gate(self):
-        def failure(path):
-            raise subprocess.CalledProcessError(1, "gh")
-        result = policy.gate(self.plan(), {"plan": {"result": "success"}, "client": {"result": "success"},
-                                         "fixture": {"result": "success"}}, failure)
-        self.assertEqual({}, result["proofs"])
-        self.assertEqual(["client"], result["executed"])
-
-    def test_doc_update_reuses_only_with_valid_receipt(self):
-        event = {"pull_request": {"number": 7, "head": {"sha": "new"}, "base": {"sha": "base"}}}
-        live = {"state": "open", "head": {"sha": "new", "ref": "feature", "repo": {"full_name": "alice/t"}},
-                "base": {"sha": "base", "repo": {"full_name": "apache/t"}}}
+    def pr_plan(self, paths):
+        live = self.live_pr()
+        event = {"pull_request": dict(live, number=7)}
         def git(*args):
             if args[0] == "show":
                 return "base new"
             if args[0] == "diff":
-                return "hugegraph-client/src/A.java\nREADME.md"
-            return "new"
-        with patch.object(policy, "packaged_readme_state", return_value="valid"), patch.object(policy, "unsafe_documentation", return_value=False), patch.object(policy, "git", side_effect=git), patch.object(policy, "fingerprint", return_value="hash"), patch.object(
-                policy, "find_reuse", return_value={m: {"runID": 42} for m in ["client", "loader", "tools", "spark", "hubble"]}):
-            plan = policy.create_plan("toolchain", event, "apache/t", lambda p: live,
-                                      external_inputs={"serverSHA": "immutable"})
-            self.assertFalse(plan["client"])
-            self.assertFalse(plan["needsFixture"])
-            self.assertTrue(plan["security"])
-        with patch.object(policy, "packaged_readme_state", return_value="valid"), patch.object(policy, "unsafe_documentation", return_value=False), patch.object(policy, "git", side_effect=git), patch.object(policy, "fingerprint", return_value="hash"), patch.object(
-                policy, "find_reuse", return_value={}):
-            plan = policy.create_plan("toolchain", event, "apache/t", lambda p: live,
-                                      external_inputs={"serverSHA": "immutable"})
-            self.assertTrue(plan["client"])
-            self.assertTrue(plan["needsFixture"])
+                return "\n".join(paths)
+            return "merge"
+        def fetch(path):
+            self.assertEqual("repos/apache/t/pulls/7", path)
+            return live
+        with patch.object(policy, "git", side_effect=git), patch.object(
+                policy, "unsafe_documentation", return_value=False), patch.object(
+                policy, "packaged_readme_state", return_value="valid"):
+            return policy.create_plan("toolchain", event, "apache/t", fetch)
 
-    def test_real_git_fingerprint_and_cli(self):
+    def test_cumulative_pr_docs_update_runs_affected_consumers_again(self):
+        for document in ["README.md", "hugegraph-hubble/README.md"]:
+            with self.subTest(document=document):
+                plan = self.pr_plan(["hugegraph-client/src/A.java", document])
+                self.assertEqual({"client", "loader", "tools", "spark", "hubble"}, set(plan["selected"]))
+                self.assertTrue(plan["needsFixture"])
+                self.assertTrue(all(plan[module] for module in plan["selected"]))
+                self.assertEqual(document.startswith("hugegraph-hubble/"), plan["hubble_image"])
+
+    def test_pure_documentation_pr_has_no_modules_or_fixtures(self):
+        plan = self.pr_plan(["README.md", "docs/ci.md"])
+        self.assertEqual([], plan["expected"])
+        self.assertFalse(plan["needsFixture"])
+        policy.gate(plan, {"plan": {"result": "success"}})
+
+    def test_packaged_readme_selects_image_on_plain_documentation_pr(self):
+        plan = self.pr_plan(["hugegraph-hubble/README.md"])
+        self.assertEqual(["hubble_image"], plan["expected"])
+        self.assertFalse(plan["needsFixture"])
+
+    def test_image_only_plan_and_gate_require_no_server_fixture(self):
+        plan = self.pr_plan(["hugegraph-loader/Dockerfile"])
+        self.assertEqual(["loader_image"], plan["expected"])
+        self.assertFalse(plan["needsFixture"])
+        results = {"plan": {"result": "success"}, "loader_image": {"result": "success"}}
+        self.assertEqual(["loader_image"], policy.gate(plan, results)["executed"])
+        for state in [None, "skipped", "cancelled", "failure"]:
+            results["loader_image"]["result"] = state
+            with self.subTest(state=state), self.assertRaises(ValueError):
+                policy.gate(plan, results)
+
+    def test_gate_rejects_missing_failed_cancelled_skipped(self):
+        for result in [None, "failure", "cancelled", "skipped"]:
+            with self.subTest(result=result), self.assertRaises(ValueError):
+                policy.gate(self.plan(), {"plan": {"result": "success"}, "client": {"result": result},
+                                          "fixture": {"result": "success"}})
+
+    def test_gate_records_current_attempt_without_external_proof(self):
+        results = {"plan": {"result": "success"}, "client": {"result": "success"},
+                   "fixture": {"result": "success"}}
+        with patch.dict(os.environ, {"GITHUB_RUN_ID": "42", "GITHUB_RUN_ATTEMPT": "2"}), patch.object(
+                policy, "api", return_value=self.live_pr()) as fetch:
+            report = policy.gate(self.plan(), results)
+            fetch.assert_called_once_with("repos/apache/t/pulls/7")
+        self.assertEqual(["client"], report["executed"])
+        self.assertEqual(results, report["results"])
+        self.assertEqual(42, report["runID"])
+        self.assertEqual(2, report["runAttempt"])
+
+    def test_old_receipt_cannot_satisfy_current_selected_failure(self):
+        plan = dict(self.plan(), reused={"client": {"runID": 41, "jobIDs": [123]}})
+        for state in ["failure", "skipped"]:
+            with self.subTest(state=state), self.assertRaises(ValueError):
+                policy.gate(plan, {"plan": {"result": "success"}, "client": {"result": state},
+                                   "fixture": {"result": "success"}})
+
+    def test_incomplete_pr_event_never_becomes_a_push_plan(self):
+        event = {"pull_request": dict(self.live_pr(), number=7)}
+        cases = []
+        for change in ("null_repo", "missing_repo", "missing_number", "empty_ref"):
+            altered = json.loads(json.dumps(event))
+            pr = altered["pull_request"]
+            if change == "null_repo":
+                pr["head"]["repo"] = None
+            elif change == "missing_repo":
+                del pr["head"]["repo"]
+            elif change == "missing_number":
+                del pr["number"]
+            else:
+                pr["head"]["ref"] = ""
+            cases.append(altered)
+        cases.extend([{"pull_request": {}}, {"pull_request": None}])
+        with patch.object(policy, "git", return_value="merge"):
+            for altered in cases:
+                with self.subTest(event=altered), self.assertRaises(policy.StaleInputError):
+                    policy.create_plan('toolchain', altered, 'apache/t',
+                                       lambda _: self.fail("Incomplete identity must fail before any API query"))
+
+    def test_gate_refuses_failed_planner_even_empty_selection(self):
+        for result in ["failure", "skipped", "cancelled", None]:
+            plan = dict(self.plan(), expected=[])
+            with self.subTest(result=result), self.assertRaises(ValueError):
+                policy.gate(plan, {"plan": {"result": result}})
+
+    def test_fixture_missing_rejects_successful_test(self):
+        with self.assertRaises(ValueError):
+            policy.gate(self.plan(), {"plan": {"result": "success"}, "client": {"result": "success"}})
+
+    def test_hubble_gate_requires_current_and_released_fixtures(self):
+        plan = dict(self.plan(), expected=["hubble"])
+        for producer in ("fixture", "hubble-fixture"):
+            for state in (None, "failure", "cancelled", "skipped"):
+                results = {"plan": {"result": "success"}, "hubble": {"result": "success"},
+                           "fixture": {"result": "success"}, "hubble-fixture": {"result": "success"}}
+                results[producer] = {"result": state}
+                with self.subTest(producer=producer, state=state), self.assertRaises(ValueError):
+                    policy.gate(plan, results)
+
+    def test_real_git_doc_modes_and_packaged_readme_contract(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             def git(*args):
@@ -623,62 +256,126 @@ class PolicyTest(unittest.TestCase):
             git("config", "user.email", "ci@example.invalid")
             git("config", "user.name", "CI")
             (root / "README.md").write_text("initial")
+            (root / "hugegraph-hubble").mkdir()
+            readme = root / "hugegraph-hubble/README.md"
+            readme.write_text("nonempty docs")
             git("add", ".")
             git("commit", "-qm", "base")
             base = git("rev-parse", "HEAD")
-            (root / "README.md").write_text("docs change")
-            git("commit", "-qam", "docs")
-            head = git("rev-parse", "HEAD")
             old = os.getcwd()
             try:
                 os.chdir(root)
-                self.assertEqual(policy.fingerprint(base), policy.fingerprint(head))
-                (root / "type.ts").write_text("type changed")
+                self.assertEqual("valid", policy.packaged_readme_state("HEAD"))
+                for content in ["changed docs", "", "  \t\n"]:
+                    readme.write_text(content)
+                    git("commit", "-qam", "docs")
+                    self.assertEqual(content.strip() != "", policy.packaged_readme_state("HEAD") == "valid")
+                readme.write_text("nonempty")
+                readme.chmod(0o755)
                 git("add", ".")
-                git("commit", "-qm", "types")
-                self.assertNotEqual(policy.fingerprint(base), policy.fingerprint("HEAD"))
-                (root / "README.md").chmod(0o755)
-                git("add", "README.md")
-                git("commit", "-qm", "executable prose")
-                self.assertTrue(policy.unsafe_documentation("HEAD", ["README.md"]))
-                self.assertNotEqual(policy.fingerprint(base), policy.fingerprint("HEAD"))
-                (root / "README.md").unlink()
-                (root / "README.md").symlink_to("type.ts")
-                git("add", "README.md")
-                git("commit", "-qm", "symlink prose")
-                self.assertTrue(policy.unsafe_documentation("HEAD", ["README.md"]))
-                (root / "hugegraph-server").mkdir()
-                (root / "hugegraph-server" / "A.java").write_text("source")
+                git("commit", "-qm", "executable docs")
+                self.assertTrue(policy.unsafe_documentation("HEAD", ["hugegraph-hubble/README.md"]))
+                self.assertNotEqual("valid", policy.packaged_readme_state("HEAD"))
+                readme.unlink()
+                readme.symlink_to("missing-target")
                 git("add", ".")
-                git("commit", "-qm", "source")
-                before_rename = git("rev-parse", "HEAD")
-                (root / "docs").mkdir()
-                git("mv", "hugegraph-server/A.java", "docs/renamed.md")
-                git("commit", "-qm", "rename code to prose")
-                changed = git("diff", "--no-renames", "--name-only", before_rename, "HEAD").splitlines()
-                self.assertIn("server", policy.select("server", changed))
+                git("commit", "-qm", "symlink docs")
+                self.assertTrue(policy.unsafe_documentation("HEAD", ["hugegraph-hubble/README.md"]))
+                self.assertNotEqual("valid", policy.packaged_readme_state("HEAD"))
+                readme.unlink()
+                git("add", ".")
+                git("commit", "-qm", "deleted docs")
+                self.assertEqual("missing", policy.packaged_readme_state("HEAD"))
             finally:
                 os.chdir(old)
             event = root / "event.json"
             event.write_text(json.dumps({"before": base}))
             output = root / "output"
-            subprocess.run(["python3", str(Path(policy.__file__).resolve()), "plan", "--project", "server",
-                            "--repository", "apache/server", "--event-path", str(event),
+            subprocess.run(["python3", str(Path(policy.__file__).resolve()), "plan", "--project", "toolchain",
+                            "--repository", "apache/t", "--event-path", str(event),
                             "--output", str(root / "plan.json")], cwd=root, check=True,
                            env={**os.environ, "GITHUB_OUTPUT": str(output)})
-            self.assertIn("server=true\n", output.read_text())
-            self.assertEqual(policy.suites("server", set(policy.MODULES["server"])),
-                             json.loads((root / "plan.json").read_text())["expected"])
-
-    def test_api_failure_runs_full_required(self):
-        event = {"pull_request": {"number": 7, "head": {"sha": "old"}}}
-        with patch.object(policy, "git", return_value="head"):
-            def fail(path):
-                raise subprocess.CalledProcessError(1, "gh")
-            plan = policy.create_plan("toolchain", event, "apache/t", fail)
+            self.assertIn("client=true\n", output.read_text())
+            plan = json.loads((root / "plan.json").read_text())
             self.assertEqual(set(policy.MODULES["toolchain"]), set(plan["selected"]))
-            self.assertTrue(plan["security"])
-            self.assertEqual({}, plan["reused"])
+            self.assertEqual({"hubble_image"}, set(plan["selectedImages"]))
+
+    def test_api_failure_runs_full_required_without_losing_pr_identity(self):
+        event = {"pull_request": dict(self.live_pr(), number=7)}
+        def git(*args):
+            return "base new" if args[0] == "show" else "merge"
+        def fail(path):
+            raise subprocess.CalledProcessError(1, "gh")
+        with patch.object(policy, "git", side_effect=git):
+            plan = policy.create_plan("toolchain", event, "apache/t", fail)
+        self.assertEqual(set(policy.MODULES["toolchain"]), set(plan["selected"]))
+        self.assertEqual((7, "alice/t", "feature", "base", "new"),
+                         tuple(plan[key] for key in ["pr", "source", "branch", "base", "head"]))
+        results = {suite: {"result": "success"} for suite in plan["expected"]}
+        results.update(plan={"result": "success"}, fixture={"result": "success"},
+                       **{"hubble-fixture": {"result": "success"}})
+        with self.assertRaises(subprocess.CalledProcessError):
+            policy.gate(plan, results, fail)
+        self.assertEqual(plan["expected"], policy.gate(plan, results)["executed"])
+        self.api_mock.assert_called_once_with("repos/apache/t/pulls/7")
+
+    def test_real_pr_git_snapshot_and_final_gate_freshness(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.check_output(["git", *args], cwd=root, text=True).strip()
+            git("init", "-q")
+            git("config", "user.email", "ci@example.invalid")
+            git("config", "user.name", "CI")
+            (root / "README.md").write_text("base")
+            git("add", ".")
+            git("commit", "-qm", "base")
+            base = git("rev-parse", "HEAD")
+            git("checkout", "-qb", "feature")
+            (root / "hugegraph-client").mkdir()
+            (root / "hugegraph-client/A.java").write_text("source")
+            git("add", ".")
+            git("commit", "-qm", "source")
+            head = git("rev-parse", "HEAD")
+            tree = git("rev-parse", "HEAD^{tree}")
+            merge = git("commit-tree", tree, "-p", base, "-p", head, "-m", "PR merge")
+            advanced_head = git("commit-tree", tree, "-p", head, "-m", "new source head")
+            advanced_base = git("commit-tree", git("rev-parse", base + "^{tree}"),
+                                "-p", base, "-m", "new target base")
+            git("checkout", "--detach", "-q", merge)
+            live = self.live_pr()
+            live["head"]["sha"], live["base"]["sha"] = head, base
+            event = {"pull_request": dict(live, number=7)}
+            old = os.getcwd()
+            try:
+                os.chdir(root)
+                plan = policy.create_plan("toolchain", event, "apache/t", lambda _: live)
+                results = {suite: {"result": "success"} for suite in plan["expected"]}
+                results.update(plan={"result": "success"}, fixture={"result": "success"},
+                               **{"hubble-fixture": {"result": "success"}})
+                self.assertEqual(plan["expected"], policy.gate(plan, results, lambda _: live)["executed"])
+                for section, field, value in [("head", "sha", advanced_head), ("base", "sha", advanced_base),
+                                              ("head", "ref", "other-branch"),
+                                              ("head", "repo", {"full_name": "other/fork"}),
+                                              ("base", "repo", {"full_name": "other/target"})]:
+                    changed = dict(live, **{section: dict(live[section], **{field: value})})
+                    with self.subTest(section=section, field=field):
+                        with self.assertRaises(policy.StaleInputError):
+                            policy.create_plan("toolchain", event, "apache/t", lambda _: changed)
+                        with self.assertRaises(policy.StaleInputError):
+                            policy.gate(plan, results, lambda _: changed)
+                with self.assertRaises(policy.StaleInputError):
+                    policy.gate(plan, results, lambda _: dict(live, state="closed"))
+                git("checkout", "--detach", "-q", head)
+                with self.assertRaises(policy.StaleInputError):
+                    policy.create_plan("toolchain", event, "apache/t", lambda _: live)
+            finally:
+                os.chdir(old)
+
+    def test_push_gate_does_not_query_pr(self):
+        plan = dict(self.plan(), pr=0, expected=[], selected=[])
+        policy.gate(plan, {"plan": {"result": "success"}},
+                    lambda _: self.fail("push gate must not query a PR"))
 
 
 if __name__ == "__main__":

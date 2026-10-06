@@ -29,51 +29,66 @@ Hubble module-test dependency closure:
 Dockerfile-only changes run the image check without building Server fixtures.
 Hubble's Dockerfile builds Client and Loader before Hubble, so Loader packaging
 changes also select Hubble. Packaged README changes select images; the existing
-nonempty Hubble README content contract still permits reuse of module tests.
-Once an image is selected, its proof binds the complete current source inputs,
-including application source and packaged README content, plus the checked base
-and CI policy. An old or missing image proof reruns that image while independently
-verified module proofs remain reusable.
+nonempty Hubble README content contract still requires fresh validation if the
+file is missing, empty or has an invalid mode. Every selected module and image
+runs in the current workflow; successful results from another run are not reused.
 
 Each image job builds the checkout's actual Dockerfile, records its image ID and
 starts a local run-scoped tag with pulling disabled. The container's image ID must
-match the build. Loader explicitly runs its CLI with `--help`; its default idle
+match the build. Loader directly executes `./bin/hugegraph-loader.sh --help`,
+including its executable permission and shebang; its default idle
 container alone cannot pass. Hubble must remain running and return a valid `/about`
-JSON response with the application name and version. These checks validate image
-build, packaging and startup; Loader data ingestion and Hubble browser workflows
-remain covered by module tests. They do not publish an image.
+JSON response with the application name and version. Its public root page must
+contain the React root and serve nonempty local JavaScript bundles and referenced
+stylesheets with the correct content types, rejecting the HTML fallback for missing
+assets. These checks validate image build, packaging, startup and public entry
+points; Loader data ingestion and Hubble browser workflows remain covered by
+module tests. They do not publish an image.
 
-Toolchain compilation and tests use Java 17 without changing application
-dependencies. This matrix validates Toolchain on Java 17; it does not retain
-a Toolchain Java 11 runtime lane. The historical Server Java 11 fixture validates
-client/server compatibility, not Toolchain execution on Java 11.
+Selected Client, Loader, Tools and Spark module tests compile and run on Java 11
+and Java 17. Both matrix entries must pass, including Loader's separate HDFS tests.
+Hubble compiles and runs on Java 17, matching its merged Boot 3 runtime requirement,
+and tests against each Server baseline. These runtime checks supplement the
+existing affected-module selection; unrelated modules are not added.
 Client, Loader, Tools, Spark and Go test the released Server 1.7
 fixture on Java 11. Hubble tests both this release and the current Server master
 snapshot on Java 17; the resolved commit stays fixed while the run is queued.
 
 Each Server package is built once and shared, with independent services per job.
 Reuse verifies source, commit, JDK, build inputs and archive checksum. The Server
-JVM is scoped to service startup, so Toolchain compilation keeps Java 17.
+JVM is scoped to service startup, so Toolchain compilation and tests keep their
+selected Java 11 or Java 17 runtime. Both Toolchain lanes reuse the same release
+Server fixture; Hubble uses the separate Java 17 current Server fixture.
 Loader's HDFS tests run separately, so other profiles do not wait for Hadoop.
-The immutable Server packages, `ci-plan` and successful `ci-test-receipt` artifacts
+The immutable Server packages, `ci-plan` and successful `ci-test-results` artifacts
 are retained for seven days from their upload. Partial reruns need the original
 plan and fixture within that window. After an artifact expires, rerun the whole
-workflow to rebuild its plan and fixtures; extending only the receipt cannot
+workflow to rebuild its plan and fixtures; extending only the result report cannot
 restore an expired package. Test reports and coverage artifacts keep their
 existing retention settings.
 
-Documentation paths use an explicit allowlist. A documentation-only update may
-reuse a successful receipt from the same PR only when the base, non-document
-inputs and CI policy match. The latest commit receives a new gate result that
-identifies reused tests. Missing or unverifiable evidence runs the tests again;
-source, type definitions, tests and CI configuration are never treated as docs.
-Hubble's packaged README must remain a regular, nonempty file; deletion, invalid
-mode or empty content forces fresh validation. Receipt searches filter by PR
-branch and use bounded pagination. The current Server input only affects reuse
-when Hubble is selected.
-For consecutive documentation updates, optional-check proofs retain their original
-run and exact job identities and are reverified before forwarding. A newer failed
-check or unverifiable evidence prevents reuse of an older optional success.
+Documentation paths use an explicit allowlist. A PR containing only plain prose
+and static documentation assets has no module tests. Selection uses the cumulative
+PR diff, so a documentation update to a PR that also changes source runs its
+selected consumers again. Source, type definitions, tests and CI configuration
+are never treated as docs. The gate checks the current workflow's actual selected
+job results and fixture producers. Its result report records the run, attempt and
+input metadata for diagnostics; it is not a reusable success receipt.
+The planner determines affected consumers before resolving external Server inputs.
+Go-only changes resolve the release fixture but skip the Hubble master lookup;
+image-only and plain documentation changes need neither baseline. Unverifiable
+selection conservatively resolves both. A failed required baseline lookup still
+fails planning; without a published plan, recovery requires a full workflow rerun.
+
+PR planning records the event's head, base and source before querying live metadata.
+A known mismatch with the checkout merge or current PR fails planning; expanding
+coverage cannot make an outdated checkout current. After all selected jobs and
+fixtures succeed, the gate rechecks the open PR's head, base and source using a
+read-only API request. Changed inputs or unavailable metadata fail the gate.
+Refresh the branch and start a new PR event after head or base movement: GitHub
+reruns retain the original commit and event, so rerunning alone cannot refresh the
+base. An unknown API or selection failure falls back to full coverage; a manual
+full rerun can recover a transient failure while the recorded inputs remain current.
 
 CodeQL follows the module gate and retains its weekly scan. During migration,
 `Analyze (java)` still runs on every PR, after a successful module gate.
@@ -86,10 +101,11 @@ changes. This switch is disabled by default and does not alter branch protection
 
 A new PR head cancels older first attempts. Reruns use separate concurrency groups,
 so retrying an old commit cannot cancel the current head. Automatic retries run
-failed jobs at most twice, checking the open PR/current branch and unchanged run
-attempt both before and after the 180-second delay. A moved base or missing
-immutable plan also prevents an obsolete retry. Retry code comes from the trusted
-default branch.
+failed **push** jobs at most twice, checking the repository branch head and
+unchanged completed-failure run attempt both before and after the 180-second delay.
+Retry code comes from the trusted default branch. PR automatic retries and
+cross-run success reuse are deferred until execution evidence can be verified
+independently; manual workflow reruns remain available.
 
 Validate policy and retry behavior locally:
 

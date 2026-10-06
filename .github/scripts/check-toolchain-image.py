@@ -17,6 +17,7 @@
 """Build and start the selected Toolchain Dockerfile from this checkout."""
 
 import json
+from html.parser import HTMLParser
 import os
 from pathlib import Path
 import subprocess
@@ -24,6 +25,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+from urllib.parse import urljoin, urlparse
 import urllib.request
 
 
@@ -45,6 +47,60 @@ def valid_hubble_about(body):
             and isinstance(data.get("version"), str) and bool(data["version"].strip()))
 
 
+def check_loader(container):
+    help_text = output("docker", "exec", container, "./bin/hugegraph-loader.sh", "--help")
+    if "--help" not in help_text or "Usage:" not in help_text:
+        raise RuntimeError("Loader CLI did not produce its usage contract")
+
+
+class HubblePage(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.has_root = False
+        self.scripts = []
+        self.styles = []
+
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        if tag == "div" and attrs.get("id") == "root":
+            self.has_root = True
+        if tag == "script" and attrs.get("src"):
+            self.scripts.append(attrs["src"])
+        if tag == "link" and "stylesheet" in attrs.get("rel", "").lower().split() and attrs.get("href"):
+            self.styles.append(attrs["href"])
+
+
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, response, code, message, headers, newurl):
+        return None
+
+
+def check_hubble_ui(origin):
+    page_url = origin + "/"
+    opener = urllib.request.build_opener(NoRedirect)
+    with opener.open(page_url, timeout=5) as response:
+        if response.headers.get_content_type() != "text/html":
+            raise RuntimeError("Hubble UI did not return HTML")
+        page = HubblePage()
+        page.feed(response.read().decode("utf-8"))
+    if not page.has_root:
+        raise RuntimeError("Hubble UI is missing its React root")
+    def local(ref):
+        parsed = urlparse(urljoin(page_url, ref))
+        return (parsed.scheme, parsed.netloc) == (urlparse(origin).scheme, urlparse(origin).netloc)
+
+    scripts = [urljoin(page_url, ref) for ref in page.scripts if local(ref)]
+    styles = [urljoin(page_url, ref) for ref in page.styles if local(ref)]
+    if not scripts:
+        raise RuntimeError("Hubble UI is missing a local JavaScript bundle")
+    for resource, types in ([(url, {"text/javascript", "application/javascript", "application/x-javascript"})
+                             for url in scripts] + [(url, {"text/css"}) for url in styles]):
+        with opener.open(resource, timeout=5) as response:
+            body = response.read()
+            if response.headers.get_content_type() not in types or not body.strip() or body.lstrip().startswith(b"<"):
+                raise RuntimeError("Hubble UI asset is empty or has invalid content: " + resource)
+
+
 def wait_hubble(container):
     port = output("docker", "port", container, "8088/tcp").splitlines()[0].rsplit(":", 1)[1]
     deadline = time.monotonic() + 120
@@ -56,6 +112,7 @@ def wait_hubble(container):
             with urllib.request.urlopen(f"http://127.0.0.1:{port}/about", timeout=5) as response:
                 body = json.load(response)
                 if valid_hubble_about(body):
+                    check_hubble_ui(f"http://127.0.0.1:{port}")
                     return
                 last_error = str(body)
         except (OSError, ValueError, urllib.error.HTTPError) as error:
@@ -81,9 +138,7 @@ def main(module):
             subprocess.run(args + [tag], check=True, timeout=60)
             verify_image(container, built)
             if module == "loader":
-                help_text = output("docker", "exec", container, "bash", "bin/hugegraph-loader.sh", "--help")
-                if "--help" not in help_text or "Usage:" not in help_text:
-                    raise RuntimeError("Loader CLI did not produce its usage contract")
+                check_loader(container)
             else:
                 wait_hubble(container)
             if output("docker", "inspect", "--format", "{{.State.Running}}", container) != "true":

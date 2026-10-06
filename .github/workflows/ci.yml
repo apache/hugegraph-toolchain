@@ -62,8 +62,17 @@ jobs:
           python3 -m unittest discover -s .github/scripts -p 'test_*.py'
           python3 .github/actions/setup-hugegraph-server/runtime_test.py
           node --test .github/actions/get-hugegraph-commit/resolve.test.cjs hugegraph-client/assembly/travis/checkout-server.test.cjs hugegraph-client/assembly/travis/install-server.test.cjs
+      - name: Determine external test input scope
+        id: scope
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: >-
+          python3 .github/scripts/ci-policy.py plan --project toolchain
+          --event-path "$GITHUB_EVENT_PATH" --repository "$GITHUB_REPOSITORY"
+          --output scope.json
       - name: Resolve historical Server 1.7 baseline
         id: baseline
+        if: steps.scope.outputs.needsFixture == 'true'
         uses: ./.github/actions/get-hugegraph-commit
         with:
           repository: apache/hugegraph
@@ -71,6 +80,7 @@ jobs:
           expected-commit: b12425c2032bf0d21a97b8221f42a18055c2982f
       - name: Resolve Hubble's existing Server master baseline
         id: hubble-baseline
+        if: steps.scope.outputs.hubble == 'true'
         env:
           SERVER_REPOSITORY: https://github.com/apache/hugegraph.git
         run: |
@@ -79,6 +89,8 @@ jobs:
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
       - name: Record external test inputs
         env:
+          NEEDS_SERVER: ${{ steps.scope.outputs.needsFixture }}
+          NEEDS_HUBBLE: ${{ steps.scope.outputs.hubble }}
           SERVER_REPOSITORY: ${{ steps.baseline.outputs.repository }}
           SERVER_COMMIT: ${{ steps.baseline.outputs.commit_id }}
           SERVER_REF: ${{ steps.baseline.outputs.fetch_ref }}
@@ -86,17 +98,23 @@ jobs:
         run: |
           python3 - <<'PYINPUTS'
           import json, os
-          inputs = {
-              'server': {'repository': os.environ['SERVER_REPOSITORY'], 'commit': os.environ['SERVER_COMMIT'],
-                         'ref': os.environ['SERVER_REF'], 'jdk': '11'},
-              'hubble': {'repository': 'apache/hugegraph', 'commit': os.environ['HUBBLE_COMMIT'],
-                         'ref': os.environ['HUBBLE_COMMIT'], 'branch': 'master', 'jdk': '17'},
-              'toolchainJDK': '17', 'config': 'release-current-ci-v2'
-          }
+          inputs = {}
+          if os.environ['NEEDS_SERVER'] == 'true':
+              with open('scope.json') as stream:
+                  selected = json.load(stream)['selected']
+              inputs['toolchainJDK'] = {module: ['17'] if module == 'hubble' else ['11', '17']
+                                        for module in selected if module != 'go'}
+              inputs['config'] = 'release-current-ci-v2'
+              inputs['server'] = {'repository': os.environ['SERVER_REPOSITORY'],
+                                  'commit': os.environ['SERVER_COMMIT'],
+                                  'ref': os.environ['SERVER_REF'], 'jdk': '11'}
+          if os.environ['NEEDS_HUBBLE'] == 'true':
+              inputs['hubble'] = {'repository': 'apache/hugegraph', 'commit': os.environ['HUBBLE_COMMIT'],
+                                  'ref': os.environ['HUBBLE_COMMIT'], 'branch': 'master', 'jdk': '17'}
           with open('inputs.json', 'w') as stream:
               json.dump(inputs, stream, sort_keys=True)
           PYINPUTS
-      - name: Select affected modules and verified successes
+      - name: Select affected modules and images
         id: select
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -262,16 +280,16 @@ jobs:
           name: ci-plan
       - name: Require every selected module and image to succeed
         env:
+          GH_TOKEN: ${{ github.token }}
           RESULTS: ${{ toJSON(needs) }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           printf '%s' "$RESULTS" > results.json
-          python3 .github/scripts/ci-policy.py gate --plan plan.json --results results.json --output receipt.json
-      - name: Publish verified test receipt
+          python3 .github/scripts/ci-policy.py gate --plan plan.json --results results.json --output test-results.json
+      - name: Publish current-run test results
         uses: actions/upload-artifact@v7
         with:
-          name: ci-test-receipt
-          path: receipt.json
+          name: ci-test-results
+          path: test-results.json
           overwrite: true
           retention-days: 7
 

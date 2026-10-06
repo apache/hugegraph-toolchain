@@ -75,7 +75,7 @@ class RuntimeTests(unittest.TestCase):
         archive.unlink()
         archive.symlink_to(self.dir/'missing')
         self.assertNotEqual(self.run_script(HERE/'fixture.sh', env=env).returncode, 0)
-    def test_composite_step_isolates_released_jdk_from_java17_caller(self):
+    def test_composite_step_isolates_fixture_jdk_from_caller(self):
         action = (HERE / 'action.yml').read_text()
         block = action.split('      run: |\n', 1)[1].split('    - name:', 1)[0]
         step = self.dir / 'action-step.sh'
@@ -93,22 +93,27 @@ class RuntimeTests(unittest.TestCase):
         installer = travis / 'install-hugegraph-from-source.sh'
         installer.write_text('#!/bin/bash\nset -e\nsource "$FIXTURE_ACTION/fixture.sh"\n'
                              'java -version 2> "$HOME/started-java"\n')
-        self.manifest()
-        env = dict(self.env, JAVA_HOME=str(jdk17), PATH=f'{jdk17}/bin:{self.env["PATH"]}',
-                   FIXTURE_JAVA_HOME=str(jdk11), FIXTURE_MODE='start', FIXTURE_ARTIFACT='release',
-                   FIXTURE_ACTION=str(HERE), ISOLATE_FIXTURE_REPO='false', TRAVIS_DIR=str(travis),
-                   RUNNER_TEMP=str(self.dir))
-        result = subprocess.run(['bash', '-c', 'bash "$HOME/action-step.sh" && java -version 2> "$HOME/caller-java"'],
-                                cwd=self.dir, env=env, text=True, capture_output=True, timeout=20)
-        self.assertEqual(0, result.returncode, result.stderr)
-        self.assertIn('11.0.1', (self.dir / 'started-java').read_text())
-        self.assertIn('17.0.1', (self.dir / 'caller-java').read_text())
-        # A declared Java 11 fixture cannot start under an accidentally selected Java 17 runtime.
-        env['FIXTURE_JAVA_HOME'] = str(jdk17)
-        result = subprocess.run(['bash', str(step)], cwd=self.dir, env=env,
-                                text=True, capture_output=True, timeout=20)
-        self.assertNotEqual(0, result.returncode)
-        self.assertIn('Fixture JDK mismatch', result.stderr)
+        for fixture_version, fixture_jdk, caller_version, caller_jdk in (
+                (11, jdk11, 17, jdk17), (17, jdk17, 11, jdk11)):
+            with self.subTest(fixture=fixture_version, caller=caller_version):
+                self.manifest(java=str(fixture_version))
+                env = dict(self.env, JAVA_HOME=str(caller_jdk),
+                           PATH=f'{caller_jdk}/bin:{self.env["PATH"]}',
+                           FIXTURE_JAVA=str(fixture_version), FIXTURE_JAVA_HOME=str(fixture_jdk),
+                           FIXTURE_MODE='start', FIXTURE_ARTIFACT='shared', FIXTURE_ACTION=str(HERE),
+                           ISOLATE_FIXTURE_REPO='false', TRAVIS_DIR=str(travis), RUNNER_TEMP=str(self.dir))
+                result = subprocess.run(
+                    ['bash', '-c', 'bash "$HOME/action-step.sh" && java -version 2> "$HOME/caller-java"'],
+                    cwd=self.dir, env=env, text=True, capture_output=True, timeout=20)
+                self.assertEqual(0, result.returncode, result.stderr)
+                self.assertIn(f'{fixture_version}.0.1', (self.dir / 'started-java').read_text())
+                self.assertIn(f'{caller_version}.0.1', (self.dir / 'caller-java').read_text())
+                # A fixture must reject accidentally inheriting the caller's different JDK.
+                env['FIXTURE_JAVA_HOME'] = str(caller_jdk)
+                result = subprocess.run(['bash', str(step)], cwd=self.dir, env=env,
+                                        text=True, capture_output=True, timeout=20)
+                self.assertNotEqual(0, result.returncode)
+                self.assertIn('Fixture JDK mismatch', result.stderr)
 
     def test_legacy_bash_service_deadline_and_success(self):
         helper = str(HERE/'service-wait.sh')

@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         # released pd package is compiled in version 55.0, which requires java 11 to use
-        JAVA_VERSION: ['17']
+        JAVA_VERSION: ['11', '17']
 
     steps:
       - name: Fetch code
