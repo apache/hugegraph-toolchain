@@ -64,18 +64,13 @@ jobs:
         id: candidate-sdk
         uses: ./.github/actions/setup-candidate-sdk
 
-      - name: Cache Hadoop
-        uses: actions/cache@v6
-        with:
-          path: ~/hadoop-3.3.6.tar.gz
-          key: ${{ runner.os }}-hadoop-3.3.6
-
       - name: Compile
         run: |
           mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
 
-      - name: Prepare Hadoop service
-        run: bash "$TRAVIS_DIR/install-hadoop.sh"
+      - name: Prepare HDFS from the pinned Hadoop image
+        timeout-minutes: 18
+        run: bash "$TRAVIS_DIR/start-hdfs-ci.sh"
 
       - name: Setup released Server fixture
         if: matrix.SERVER_BASELINE == 'release-1.7'
@@ -104,6 +99,15 @@ jobs:
           mvn test -P hdfs
           mvn test -P jdbc
           mvn test -P kafka
+
+      - name: Collect HDFS logs and remove containers
+        if: ${{ always() }}
+        run: |
+          for service in namenode datanode; do
+            name="${HDFS_CONTAINER_PREFIX:-hugegraph-ci-hdfs}-$service"
+            docker logs "$name" || true
+            docker rm -f "$name" || true
+          done
 
       - name: Upload coverage to Codecov
         uses: ./.github/actions/upload-coverage

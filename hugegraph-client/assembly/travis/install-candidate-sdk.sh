@@ -44,7 +44,11 @@ CANDIDATE_REPO=$3
 bash "$SCRIPT_DIR/checkout-server.sh" "$1" "$SOURCE_DIR"
 # Install the entire locked reactor so Common, Core, PD and Store share one source.
 # The fixture installers retain package-only semantics and use another repository.
-(cd "$SOURCE_DIR" && mvn "-Dmaven.repo.local=$CANDIDATE_REPO" install \
+# Flatten the root too: license metadata rebuilds installed parent models, whose
+# raw ${revision} otherwise becomes an invalid artifact request outside the reactor.
+(cd "$SOURCE_DIR" && mvn "-Dmaven.repo.local=$CANDIDATE_REPO" \
+    org.codehaus.mojo:flatten-maven-plugin:1.2.7:flatten install \
+    -Dflatten.mode=resolveCiFriendliesOnly -DupdatePomFile=true \
     -DskipTests -Dmaven.javadoc.skip=true -ntp)
 ACTUAL_COMMIT=$(git -C "$SOURCE_DIR" rev-parse HEAD)
 python3 - "$SOURCE_DIR" "$CANDIDATE_REPO" "${SERVER_REPOSITORY:-apache/hugegraph}" \

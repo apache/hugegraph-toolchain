@@ -72,8 +72,10 @@ The released Server package and Hubble's candidate fixture are each built once a
 shared, with independent services per job. Reuse verifies source, commit, JDK, build
 inputs and archive checksum. Client, Loader and Tools candidate tests start the
 archive already produced by their SDK bootstrap. SDK generation remains job-local
-until distinct published SDK coordinates are available. The service JVM is scoped
-to startup; Toolchain compilation and tests remain on Java 17.
+until distinct published SDK coordinates are available. The bootstrap flattens CI-friendly
+POM versions before installation, including the root parent, so dependency and license
+metadata readers consume concrete coordinates without changing the locked source POMs.
+The service JVM is scoped to startup; Toolchain compilation and tests remain on Java 17.
 
 The shared Java initialization action requires Maven 3.9 or newer and supplies
 explicit settings through `MAVEN_ARGS`, preserving existing arguments and user
@@ -81,7 +83,7 @@ settings. Dependencies are resolved from Central before ASF Stage, with Stage
 snapshots disabled; build plugins use the standard public repositories. Maven cache
 keys include the repository settings so changes to the Stage URL invalidate the cache.
 
-Loader's HDFS tests run separately, so other profiles do not wait for Hadoop. The
+Loader validates its existing profiles against both configured Server baselines. The
 Ubuntu HDFS jobs use the ASF Hadoop 3.3.6 image pinned by digest, with separate NameNode
 and DataNode containers on the host network. Tests run on Java 17 and use
 `localhost:8020`. Startup checks live DataNode registration and a real block
