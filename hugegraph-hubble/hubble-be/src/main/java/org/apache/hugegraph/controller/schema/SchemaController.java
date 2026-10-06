@@ -63,7 +63,7 @@ import org.apache.hugegraph.util.Ex;
 import org.apache.hugegraph.util.PageUtil;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -128,7 +128,6 @@ public class SchemaController extends BaseController {
         HugeClient client = this.authClient(graphSpace, graph);
         String schema = GroovySchemaCompatibility.export(client.schema());
 
-        response.setCharacterEncoding("UTF-8");
         response.setContentType("application/octet-stream");
         response.setHeader("Content-Disposition",
                            contentDisposition(graphSpace, graph));

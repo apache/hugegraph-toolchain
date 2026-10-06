@@ -45,6 +45,7 @@ import org.apache.hugegraph.loader.util.JsonUtil;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.algorithm.AsyncTaskService;
 import org.apache.hugegraph.service.auth.UserService;
+import org.apache.hugegraph.service.auth.AuthModeService;
 import org.apache.hugegraph.service.load.LoadTaskService;
 import org.apache.hugegraph.service.query.ExecuteHistoryService;
 import org.apache.hugegraph.service.query.QueryService;
@@ -90,6 +91,8 @@ public class GraphsService {
 
     @Autowired
     UserService userService;
+    @Autowired
+    private AuthModeService authModeService;
     @Autowired
     private QueryService queryService;
     @Autowired
@@ -301,8 +304,9 @@ public class GraphsService {
                  "graph-connection.graph.unmatch-regex");
         Map<String, String> conf = new HashMap<>();
 
-        conf.put("gremlin.graph",
-                 "org.apache.hugegraph.auth.HugeFactoryAuthProxy");
+        conf.put("gremlin.graph", this.authModeService.enabled() ?
+                 "org.apache.hugegraph.auth.HugeFactoryAuthProxy" :
+                 "org.apache.hugegraph.HugeFactory");
         conf.put("store", graph);
         boolean pdEnabled = config.get(org.apache.hugegraph.options.HubbleOptions.PD_ENABLED);
         if (pdEnabled) {

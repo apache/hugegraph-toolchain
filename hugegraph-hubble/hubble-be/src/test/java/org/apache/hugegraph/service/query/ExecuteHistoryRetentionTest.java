@@ -51,13 +51,17 @@ import org.mockito.Mockito;
                     "spring.datasource.driver-class-name=org.h2.Driver",
                     "spring.datasource.username=sa",
                     "spring.datasource.password=",
-                    "spring.datasource.initialization-mode=never",
+                    "spring.sql.init.mode=never",
                     "spring.datasource.hikari.maximum-pool-size=2",
                     "spring.autoconfigure.exclude=" +
-                    "org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration",
-                    "mybatis.configuration.map-underscore-to-camel-case=true",
-                    "mybatis.configuration.use-generated-keys=true",
-                    "mybatis-plus.type-enums-package=org.apache.hugegraph.entity.enums"
+                    "org.mybatis.spring.boot.autoconfigure.MybatisAutoConfiguration," +
+                    "org.springframework.boot.autoconfigure.elasticsearch." +
+                    "ElasticsearchClientAutoConfiguration," +
+                    "org.springframework.boot.autoconfigure.elasticsearch." +
+                    "ElasticsearchRestClientAutoConfiguration",
+                    "mybatis-plus.configuration.map-underscore-to-camel-case=true",
+                    "mybatis-plus.configuration.use-generated-keys=true",
+                    "mybatis-plus.global-config.banner=false"
                 })
 public class ExecuteHistoryRetentionTest {
 

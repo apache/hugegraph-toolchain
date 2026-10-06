@@ -25,16 +25,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.junit.Test;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.jdbc.datasource.init.ScriptUtils;
 
-import org.apache.hugegraph.config.DatabaseSchemaMigrator;
 import org.apache.hugegraph.testutil.Assert;
 
 public class FileMappingSchemaTest {
@@ -60,346 +56,56 @@ public class FileMappingSchemaTest {
     }
 
     @Test
-    public void testSchemaMigratorWidensExistingFileMappingPath()
-           throws Exception {
-        String url = "jdbc:h2:mem:file_mapping_legacy_path;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url)) {
-            this.createLegacyFileMappingTable(conn);
-
-            new DatabaseSchemaMigrator().migrate(conn);
-
-            this.insertDeepPath(conn, this.deepUploadPath());
+    public void testNewDatabasePersistsAcrossRestart() throws Exception {
+        Path directory = Files.createTempDirectory("hubble-h2-");
+        String url = "jdbc:h2:file:" + directory.resolve("metadata");
+        try {
+            try (Connection conn = DriverManager.getConnection(url)) {
+                ScriptUtils.executeSqlScript(conn, new FileSystemResource(
+                                             this.mainSchemaPath()));
+                this.insertDeepPath(conn, this.deepUploadPath());
+            }
+            try (Connection conn = DriverManager.getConnection(url)) {
+                // Startup runs the same schema again; it must retain data.
+                ScriptUtils.executeSqlScript(conn, new FileSystemResource(
+                                             this.mainSchemaPath()));
+                try (Statement statement = conn.createStatement();
+                     ResultSet result = statement.executeQuery(
+                             "SELECT path FROM file_mapping")) {
+                    Assert.assertTrue(result.next());
+                    Assert.assertEquals(this.deepUploadPath(),
+                                        result.getString(1));
+                    Assert.assertFalse(result.next());
+                }
+            }
+        } finally {
+            Files.deleteIfExists(directory.resolve("metadata.mv.db"));
+            Files.deleteIfExists(directory.resolve("metadata.trace.db"));
+            Files.delete(directory);
         }
     }
 
     @Test
-    public void testSchemaMigratorAddsExecuteHistoryFailureReasonIdempotently()
-           throws Exception {
-        String url = "jdbc:h2:mem:execute_history_failure_reason;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url)) {
-            try (Statement statement = conn.createStatement()) {
-                statement.execute("CREATE TABLE `execute_history` (" +
-                                  "`id` INT NOT NULL AUTO_INCREMENT, " +
-                                  "PRIMARY KEY (`id`))");
-            }
-
-            DatabaseSchemaMigrator migrator = new DatabaseSchemaMigrator();
-            migrator.migrate(conn);
-            migrator.migrate(conn);
-
-            try (ResultSet columns = conn.getMetaData().getColumns(
-                    null, null, "EXECUTE_HISTORY", "FAILURE_REASON")) {
-                Assert.assertTrue(columns.next());
-                Assert.assertEquals(64, columns.getInt("COLUMN_SIZE"));
-            }
-        }
-    }
-
-    @Test
-    public void testSchemaMigratorRemovesLegacyLoadTaskCredentials()
-           throws Exception {
-        String url = "jdbc:h2:mem:load_task_credentials;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url);
-             Statement statement = conn.createStatement()) {
-            statement.execute("CREATE TABLE `load_task` (" +
-                              "`id` INT NOT NULL AUTO_INCREMENT, " +
-                              "`options` VARCHAR(65535) NOT NULL, " +
-                              "PRIMARY KEY (`id`))");
-            statement.execute("INSERT INTO `load_task` (`options`) VALUES (" +
-                              "'{\"graph\":\"hugegraph\"," +
-                              "\"password\":\"canary-password\"," +
-                              "\"token\":\"canary-token\"," +
-                              "\"pdToken\":\"canary-pd-token\"," +
-                              "\"trustStoreToken\":" +
-                              "\"canary-truststore-token\"," +
-                              "\"futureOption\":\"preserved\"}')");
-
-            DatabaseSchemaMigrator migrator = new DatabaseSchemaMigrator();
-            migrator.migrate(conn);
-            migrator.migrate(conn);
-
-            try (ResultSet rows = statement.executeQuery(
-                    "SELECT `options` FROM `load_task`")) {
-                Assert.assertTrue(rows.next());
-                String options = rows.getString(1);
-                Assert.assertFalse(options.contains("canary-"));
-                Assert.assertContains("futureOption", options);
-                Assert.assertContains("preserved", options);
-            }
-        }
-    }
-
-    @Test
-    public void testSchemaMigratorAddsMissingLegacyColumns() throws Exception {
-        String url = "jdbc:h2:mem:legacy_schema_columns;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url)) {
-            ScriptUtils.executeSqlScript(conn, new FileSystemResource(
-                                         this.legacySchemaPath()));
-            try (Statement statement = conn.createStatement()) {
-                statement.execute("INSERT INTO `graph_connection` " +
-                                  "(`name`, `graph`, `host`, `port`, " +
-                                  "`create_time`) VALUES " +
-                                  "('legacy', 'legacygraph', 'localhost', " +
-                                  "8080, CURRENT_TIMESTAMP)");
-                statement.execute("INSERT INTO `execute_history` " +
-                                  "(`execute_type`, `content`, " +
-                                  "`execute_status`, `duration`, " +
-                                  "`create_time`) VALUES " +
-                                  "(1, 'g.V()', 1, 10, CURRENT_TIMESTAMP)");
-                statement.execute("INSERT INTO `gremlin_collection` " +
-                                  "(`name`, `content`, `create_time`) " +
-                                  "VALUES ('saved', 'g.E()', " +
-                                  "CURRENT_TIMESTAMP)");
-            }
-
-            DatabaseSchemaMigrator migrator = new DatabaseSchemaMigrator();
-            // Running twice must be a no-op the second time
-            migrator.migrate(conn);
-            migrator.migrate(conn);
-
-            for (String column : new String[]{"CONN_ID", "GRAPHSPACE",
-                                              "GRAPH", "ASYNC_ID", "TEXT",
-                                              "ASYNC_STATUS",
-                                              "FAILURE_REASON"}) {
-                this.assertColumnExists(conn, "EXECUTE_HISTORY", column);
-            }
-            for (String column : new String[]{"CONN_ID", "GRAPHSPACE",
-                                              "GRAPH", "TYPE"}) {
-                this.assertColumnExists(conn, "GREMLIN_COLLECTION", column);
-            }
-
-            // The legacy rows survive and the new columns are backfilled
-            try (Statement statement = conn.createStatement();
-                 ResultSet rs = statement.executeQuery(
-                         "SELECT `content`, `conn_id`, `graphspace`, `graph`, " +
-                         "`async_id`, `text`, `async_status` " +
-                         "FROM `execute_history`")) {
-                Assert.assertTrue(rs.next());
-                Assert.assertEquals("g.V()", rs.getString(1));
-                Assert.assertNull(rs.getObject(2));
-                Assert.assertEquals("DEFAULT", rs.getString(3));
-                Assert.assertEquals("legacygraph", rs.getString(4));
-                Assert.assertEquals(0L, rs.getLong(5));
-                Assert.assertEquals("", rs.getString(6));
-                Assert.assertEquals(0, rs.getInt(7));
-            }
-            try (Statement statement = conn.createStatement();
-                 ResultSet rs = statement.executeQuery(
-                         "SELECT `content`, `conn_id`, `graphspace`, `graph`, " +
-                         "`type` " +
-                         "FROM `gremlin_collection`")) {
-                Assert.assertTrue(rs.next());
-                Assert.assertEquals("g.E()", rs.getString(1));
-                Assert.assertNull(rs.getObject(2));
-                Assert.assertEquals("DEFAULT", rs.getString(3));
-                Assert.assertEquals("legacygraph", rs.getString(4));
-                Assert.assertEquals("GREMLIN", rs.getString(5));
-            }
-
-            // Names are unique only inside the application-visible scope.
-            try (Statement statement = conn.createStatement()) {
-                statement.execute("INSERT INTO `gremlin_collection` " +
-                                  "(`conn_id`, `graphspace`, `graph`, `name`, " +
-                                  "`type`, `content`, `create_time`) VALUES " +
-                                  "(1, 'DEFAULT', 'othergraph', 'saved', " +
-                                  "'GREMLIN', 'g.V()', CURRENT_TIMESTAMP)");
-                Assert.assertThrows(SQLException.class, () ->
-                    statement.execute("INSERT INTO `gremlin_collection` " +
-                                      "(`conn_id`, `graphspace`, `graph`, " +
-                                      "`name`, `type`, `content`, " +
-                                      "`create_time`) VALUES (1, 'DEFAULT', " +
-                                      "'legacygraph', 'saved', 'GREMLIN', " +
-                                      "'g.V()', CURRENT_TIMESTAMP)"));
-            }
-        }
-    }
-
-    @Test
-    public void testSchemaMigratorIsNoopOnFreshSchema() throws Exception {
-        String url = "jdbc:h2:mem:fresh_schema_columns;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url)) {
+    public void testCollectionsAreScopedByGraphAndType() throws Exception {
+        try (Connection conn = DriverManager.getConnection(
+                "jdbc:h2:mem:collection_scope")) {
             ScriptUtils.executeSqlScript(conn, new FileSystemResource(
                                          this.mainSchemaPath()));
-
-            DatabaseSchemaMigrator migrator = new DatabaseSchemaMigrator();
-            migrator.migrate(conn);
-            migrator.migrate(conn);
-
-            this.assertColumnExists(conn, "EXECUTE_HISTORY", "GRAPHSPACE");
-            this.assertColumnExists(conn, "GREMLIN_COLLECTION", "TYPE");
-            this.assertIndexExists(conn, "EXECUTE_HISTORY",
-                                   "EXECUTE_HISTORY_GRAPH_CREATE_TIME");
-            this.assertIndexExists(conn, "FILE_MAPPING",
-                                   "FILE_MAPPING_JOB_ID");
-            this.assertIndexExists(conn, "LOAD_TASK", "LOAD_TASK_JOB_ID");
-            this.assertIndexExists(conn, "JOB_MANAGER",
-                                   "JOB_MANAGER_GRAPH_CREATE_TIME");
-            this.assertIndexExists(conn, "ASYNC_TASK", "ASYNC_TASK_GRAPH");
-            // The fresh schema keeps its own column types untouched
-            try (ResultSet columns = conn.getMetaData().getColumns(
-                    null, null, "EXECUTE_HISTORY", "GRAPHSPACE")) {
-                Assert.assertTrue(columns.next());
-                Assert.assertEquals(48, columns.getInt("COLUMN_SIZE"));
-            }
-        }
-    }
-
-    @Test
-    public void testSchemaMigratorRecoversScopeFromExistingConnectionId()
-           throws Exception {
-        String url = "jdbc:h2:mem:legacy_schema_conn_id;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url);
-             Statement statement = conn.createStatement()) {
-            ScriptUtils.executeSqlScript(conn, new FileSystemResource(
-                                         this.legacySchemaPath()));
-            statement.execute("INSERT INTO `graph_connection` " +
-                              "(`name`, `graph`, `host`, `port`, " +
-                              "`create_time`) VALUES " +
-                              "('first', 'graph_a', 'host_a', 8080, " +
-                              "CURRENT_TIMESTAMP), " +
-                              "('second', 'graph_b', 'host_b', 8080, " +
-                              "CURRENT_TIMESTAMP)");
-            statement.execute("ALTER TABLE `execute_history` ADD COLUMN " +
-                              "`conn_id` INT");
-            statement.execute("ALTER TABLE `execute_history` ADD COLUMN " +
-                              "`graphspace` VARCHAR(48)");
-            statement.execute("ALTER TABLE `execute_history` ADD COLUMN " +
-                              "`graph` VARCHAR(48)");
-            statement.execute("INSERT INTO `execute_history` " +
-                              "(`conn_id`, `graphspace`, `graph`, " +
-                              "`execute_type`, `content`, `execute_status`, " +
-                              "`duration`, `create_time`) VALUES " +
-                              "(2, '', '', 0, 'g.V()', 1, 1, " +
-                              "CURRENT_TIMESTAMP)");
-
-            new DatabaseSchemaMigrator().migrate(conn);
-
-            try (ResultSet rows = statement.executeQuery(
-                    "SELECT `graphspace`, `graph` FROM `execute_history`")) {
-                Assert.assertTrue(rows.next());
-                Assert.assertEquals("DEFAULT", rows.getString(1));
-                Assert.assertEquals("graph_b", rows.getString(2));
-            }
-        }
-    }
-
-    @Test
-    public void testSchemaMigratorPreservesCollidingLegacyCollections()
-           throws Exception {
-        String url = "jdbc:h2:mem:legacy_collection_collision;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url);
-             Statement statement = conn.createStatement()) {
-            statement.execute("CREATE TABLE `graph_connection` (" +
-                              "`id` INT NOT NULL AUTO_INCREMENT, " +
-                              "`graphspace` VARCHAR(48), " +
-                              "`graph` VARCHAR(48), PRIMARY KEY (`id`))");
-            statement.execute("CREATE TABLE `gremlin_collection` (" +
-                              "`id` INT NOT NULL AUTO_INCREMENT, " +
-                              "`conn_id` INT, `graphspace` VARCHAR(48), " +
-                              "`graph` VARCHAR(48), `name` VARCHAR(48), " +
-                              "`type` VARCHAR(48), `content` TEXT, " +
-                              "PRIMARY KEY (`id`), UNIQUE (`conn_id`, `name`))");
-            statement.execute("INSERT INTO `graph_connection` " +
-                              "(`graphspace`, `graph`) VALUES " +
-                              "('DEFAULT', 'shared'), ('DEFAULT', 'shared')");
-            statement.execute("INSERT INTO `gremlin_collection` " +
-                              "(`conn_id`, `name`, `content`) VALUES " +
-                              "(NULL, 'saved', 'first'), " +
-                              "(NULL, 'saved', 'second'), " +
-                              "(NULL, 'saved_2', 'reserved')");
-
-            DatabaseSchemaMigrator migrator = new DatabaseSchemaMigrator();
-            migrator.migrate(conn);
-            migrator.migrate(conn);
-
-            Set<String> names = new HashSet<>();
-            Set<String> contents = new HashSet<>();
-            try (ResultSet rows = statement.executeQuery(
-                    "SELECT `conn_id`, `name`, `content` " +
-                    "FROM `gremlin_collection`")) {
-                while (rows.next()) {
-                    Assert.assertNull(rows.getObject(1));
-                    names.add(rows.getString(2));
-                    contents.add(rows.getString(3));
+            try (PreparedStatement insert = conn.prepareStatement(
+                    "INSERT INTO gremlin_collection " +
+                    "(graphspace, graph, name, type, content, create_time) " +
+                    "VALUES ('DEFAULT', ?, 'query', ?, 'g.V()', CURRENT_TIMESTAMP)")) {
+                for (String graph : new String[]{"one", "two"}) {
+                    for (String type : new String[]{"GREMLIN", "CYPHER"}) {
+                        insert.setString(1, graph);
+                        insert.setString(2, type);
+                        Assert.assertEquals(1, insert.executeUpdate());
+                    }
                 }
-            }
-            Assert.assertEquals(3, names.size());
-            Assert.assertTrue(names.contains("saved"));
-            Assert.assertTrue(names.contains("saved_2"));
-            Assert.assertTrue(names.stream().anyMatch(
-                    name -> name.startsWith("saved_2_") &&
-                            !name.equals("saved_2")));
-            Assert.assertEquals(3, contents.size());
-            Assert.assertTrue(contents.contains("first"));
-            Assert.assertTrue(contents.contains("second"));
-            Assert.assertTrue(contents.contains("reserved"));
-        }
-    }
-
-    @Test
-    public void testSchemaMigratorAddsMissingIndexesIdempotently()
-           throws Exception {
-        String url = "jdbc:h2:mem:legacy_schema_indexes;DB_CLOSE_DELAY=-1";
-        try (Connection conn = DriverManager.getConnection(url);
-             Statement statement = conn.createStatement()) {
-            statement.execute("CREATE TABLE `execute_history` (" +
-                              "`id` INT, `graphspace` VARCHAR(48), " +
-                              "`graph` VARCHAR(48), `create_time` DATETIME)");
-            statement.execute("CREATE TABLE `file_mapping` (" +
-                              "`id` INT, `job_id` INT)");
-            statement.execute("CREATE TABLE `load_task` (" +
-                              "`id` INT, `job_id` INT, `options` TEXT)");
-            statement.execute("CREATE TABLE `job_manager` (" +
-                              "`id` INT, `graphspace` VARCHAR(48), " +
-                              "`graph` VARCHAR(48), `create_time` DATETIME)");
-            statement.execute("CREATE TABLE `async_task` (" +
-                              "`id` INT, `graphspace` VARCHAR(48), " +
-                              "`graph` VARCHAR(48))");
-
-            DatabaseSchemaMigrator migrator = new DatabaseSchemaMigrator();
-            migrator.migrate(conn);
-            migrator.migrate(conn);
-
-            this.assertIndexExists(conn, "EXECUTE_HISTORY",
-                                   "EXECUTE_HISTORY_GRAPH_CREATE_TIME");
-            this.assertIndexExists(conn, "FILE_MAPPING",
-                                   "FILE_MAPPING_JOB_ID");
-            this.assertIndexExists(conn, "LOAD_TASK", "LOAD_TASK_JOB_ID");
-            this.assertIndexExists(conn, "JOB_MANAGER",
-                                   "JOB_MANAGER_GRAPH_CREATE_TIME");
-            this.assertIndexExists(conn, "ASYNC_TASK", "ASYNC_TASK_GRAPH");
-        }
-    }
-
-    private void assertColumnExists(Connection conn, String table,
-                                    String column) throws Exception {
-        try (ResultSet columns = conn.getMetaData().getColumns(
-                null, null, table, column)) {
-            Assert.assertTrue(table + "." + column + " should exist",
-                              columns.next());
-        }
-    }
-
-    private void assertIndexExists(Connection conn, String table,
-                                   String index) throws Exception {
-        try (ResultSet indexes = conn.getMetaData().getIndexInfo(
-                conn.getCatalog(), null, table, false, false)) {
-            while (indexes.next()) {
-                if (index.equalsIgnoreCase(indexes.getString("INDEX_NAME"))) {
-                    return;
-                }
+                Assert.assertThrows(java.sql.SQLException.class,
+                                    insert::executeUpdate);
             }
         }
-        Assert.fail(table + "." + index + " should exist");
-    }
-
-    private Path legacySchemaPath() {
-        Path modulePath = Paths.get("src/test/resources/database/schema.sql");
-        if (Files.exists(modulePath)) {
-            return modulePath;
-        }
-        return Paths.get("hugegraph-hubble/hubble-be/src/test/resources/" +
-                         "database/schema.sql");
     }
 
     private void insertDeepPath(Connection conn, String deepPath)
@@ -425,28 +131,6 @@ public class FileMappingSchemaTest {
             insert.setString(11, "[]");
             insert.setString(12, "{}");
             insert.executeUpdate();
-        }
-    }
-
-    private void createLegacyFileMappingTable(Connection conn) throws Exception {
-        try (Statement statement = conn.createStatement()) {
-            statement.execute("CREATE TABLE `file_mapping` (" +
-                              "`id` INT NOT NULL AUTO_INCREMENT, " +
-                              "`graphspace` VARCHAR(48) NOT NULL, " +
-                              "`graph` VARCHAR(48) NOT NULL, " +
-                              "`job_id` INT NOT NULL DEFAULT 0, " +
-                              "`name` VARCHAR(128) NOT NULL, " +
-                              "`path` VARCHAR(256) NOT NULL, " +
-                              "`total_lines` LONG NOT NULL, " +
-                              "`total_size` LONG NOT NULL, " +
-                              "`file_status` TINYINT NOT NULL DEFAULT 0, " +
-                              "`file_setting` VARCHAR(65535) NOT NULL, " +
-                              "`vertex_mappings` VARCHAR(65535) NOT NULL, " +
-                              "`edge_mappings` VARCHAR(65535) NOT NULL, " +
-                              "`load_parameter` VARCHAR(65535) NOT NULL, " +
-                              "`create_time` DATETIME(6) NOT NULL, " +
-                              "`update_time` DATETIME(6) NOT NULL, " +
-                              "PRIMARY KEY (`id`))");
         }
     }
 

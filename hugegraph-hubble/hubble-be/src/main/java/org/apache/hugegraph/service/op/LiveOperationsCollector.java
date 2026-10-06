@@ -18,7 +18,7 @@
 
 package org.apache.hugegraph.service.op;
 
-import javax.annotation.PreDestroy;
+import jakarta.annotation.PreDestroy;
 
 import java.net.URI;
 import java.nio.charset.StandardCharsets;

@@ -32,7 +32,9 @@ process_start_time() {
     if [[ -r /proc/${process_pid}/stat ]]; then
         awk '{print $22}' "/proc/${process_pid}/stat"
     else
-        LC_ALL=C ps -o lstart= -p "${process_pid}" 2>/dev/null
+        local process_stamp
+        process_stamp=$(LC_ALL=C ps -o lstart= -p "${process_pid}" 2>/dev/null) || return 1
+        printf '%s\n' "${process_stamp}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
     fi
 }
 
@@ -47,14 +49,14 @@ if [[ -f ${PID_FILE} ]]; then
         if ! kill -0 "${pid}" > /dev/null 2>&1; then
             return 1
         fi
-        if [[ -n ${expected_start} ]]; then
-            [[ $(process_start_time "${pid}") == "${expected_start}" ]]
-            return
+        if [[ -n ${expected_start} && $(process_start_time "${pid}") != "${expected_start}" ]]; then
+            return 1
         fi
-        # Backward compatibility for PID files written by older launchers.
+        # Verify this release's command signature even when a start stamp is present.
+        # Older PID-only launchers retain the same command-signature fallback.
         process_args=$(ps -p "${pid}" -o args= 2>/dev/null) || return 1
-        [[ ${process_args} == *"org.apache.hugegraph.HugeGraphHubble"* &&
-           ${process_args} == *"-Dhubble.home.path=${HOME_PATH}"* ]]
+        [[ " ${process_args} " == *" org.apache.hugegraph.HugeGraphHubble "* &&
+           " ${process_args} " == *" -Dhubble.home.path=${HOME_PATH} "* ]]
     }
 
     if same_process; then

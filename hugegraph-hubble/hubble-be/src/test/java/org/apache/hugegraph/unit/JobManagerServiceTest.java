@@ -120,7 +120,7 @@ public class JobManagerServiceTest {
         service.refreshStatus(job);
 
         Assert.assertEquals(JobStatus.LOADING, job.getJobStatus());
-        Mockito.verify(mapper, Mockito.never()).updateById(Mockito.any());
+        Mockito.verify(mapper, Mockito.never()).updateById(Mockito.any(JobManager.class));
     }
 
     @Test

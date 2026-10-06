@@ -157,13 +157,13 @@ public class LoadTaskService {
     }
 
     public int count() {
-        return this.mapper.selectCount(null);
+        return Math.toIntExact(this.mapper.selectCount(null));
     }
 
     public int taskCountByJob(int jobId) {
         QueryWrapper<LoadTask> query = Wrappers.query();
         query.eq("job_id", jobId);
-        return this.mapper.selectCount(query);
+        return Math.toIntExact(this.mapper.selectCount(query));
     }
 
     public List<LoadTask> taskListByJob(int jobId) {

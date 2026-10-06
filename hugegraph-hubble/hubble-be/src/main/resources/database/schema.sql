@@ -4,8 +4,8 @@
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
  * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * "License"); you may not use this file except in compliance with the
+ * License. You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -14,41 +14,6 @@
  * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
  * License for the specific language governing permissions and limitations
  * under the License.
- */
-
-/*
- *
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with this
- * work for additional information regarding copyright ownership. The ASF
- * licenses this file to You under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
- * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
- * License for the specific language governing permissions and limitations
- * under the License.
- */
-
-/*
- * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements.  See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
  */
 
 CREATE TABLE IF NOT EXISTS `user_info` (
@@ -76,14 +41,14 @@ CREATE TABLE IF NOT EXISTS `execute_history` (
     `conn_id` INT,
     `graphspace` VARCHAR(48) NOT NULL,
     `graph` VARCHAR(48) NOT NULL,
-    `async_id` LONG NOT NULL,
+    `async_id` BIGINT NOT NULL,
     `execute_type` TINYINT NOT NULL,
     `content` TEXT NOT NULL,
     `text` TEXT NOT NULL,
     `execute_status` TINYINT NOT NULL,
     `failure_reason` VARCHAR(64) DEFAULT NULL,
     `async_status` TINYINT NOT NULL DEFAULT 0,
-    `duration` LONG NOT NULL,
+    `duration` BIGINT NOT NULL,
     `create_time` DATETIME(6) NOT NULL,
     PRIMARY KEY (`id`)
     );
@@ -92,7 +57,7 @@ CREATE INDEX IF NOT EXISTS `execute_history_conn_id` ON `execute_history`(`conn_
 CREATE INDEX IF NOT EXISTS `execute_history_graph_create_time` ON `execute_history`(`graphspace`, `graph`, `create_time`);
 
 
-// DROP TABLE IF EXISTS `edit_history`;
+-- DROP TABLE IF EXISTS `edit_history`;
 CREATE TABLE IF NOT EXISTS `edit_history`
 (
     `id`            int NOT NULL AUTO_INCREMENT,
@@ -104,7 +69,7 @@ CREATE TABLE IF NOT EXISTS `edit_history`
     `option_type`   varchar(255) DEFAULT NULL,
     `option_time`   datetime     DEFAULT NULL,
     `option_person` varchar(255) DEFAULT NULL,
-    `content`       longtext,
+    `content`       text,
     PRIMARY KEY (`id`)
 );
 
@@ -133,8 +98,8 @@ CREATE TABLE IF NOT EXISTS `file_mapping` (
     `job_id` INT NOT NULL DEFAULT 0,
     `name` VARCHAR(128) NOT NULL,
     `path` VARCHAR(2048) NOT NULL,
-    `total_lines` LONG NOT NULL,
-    `total_size` LONG NOT NULL,
+    `total_lines` BIGINT NOT NULL,
+    `total_size` BIGINT NOT NULL,
     `file_status` TINYINT NOT NULL DEFAULT 0,
     `file_setting` VARCHAR(65535) NOT NULL,
     `vertex_mappings` VARCHAR(65535) NOT NULL,
@@ -159,11 +124,11 @@ CREATE TABLE IF NOT EXISTS `load_task` (
     `options` VARCHAR(65535) NOT NULL,
     `vertices` VARCHAR(512) NOT NULL,
     `edges` VARCHAR(512) NOT NULL,
-    `file_total_lines` LONG NOT NULL,
+    `file_total_lines` BIGINT NOT NULL,
     `load_status` TINYINT NOT NULL,
-    `file_read_lines` LONG NOT NULL,
-    `last_duration` LONG NOT NULL,
-    `curr_duration` LONG NOT NULL,
+    `file_read_lines` BIGINT NOT NULL,
+    `last_duration` BIGINT NOT NULL,
+    `curr_duration` BIGINT NOT NULL,
     `create_time` DATETIME(6) NOT NULL,
     PRIMARY KEY (`id`)
 );
@@ -175,9 +140,9 @@ CREATE TABLE IF NOT EXISTS `job_manager` (
     `graph` VARCHAR(48) NOT NULL,
     `job_name` VARCHAR(100) NOT NULL DEFAULT '',
     `job_remarks` VARCHAR(200) NOT NULL DEFAULT '',
-    `job_size` LONG NOT NULL DEFAULT 0,
+    `job_size` BIGINT NOT NULL DEFAULT 0,
     `job_status` TINYINT NOT NULL DEFAULT 0,
-    `job_duration` LONG NOT NULL DEFAULT 0,
+    `job_duration` BIGINT NOT NULL DEFAULT 0,
     `update_time` DATETIME(6) NOT NULL,
     `create_time` DATETIME(6) NOT NULL,
     PRIMARY KEY (`id`),
@@ -196,7 +161,7 @@ CREATE TABLE IF NOT EXISTS `async_task` (
     `algorithm_name` VARCHAR(48) NOT NULL DEFAULT '',
     `task_content` VARCHAR(65535) NOT NULL DEFAULT '',
     `task_status` TINYINT NOT NULL DEFAULT 0,
-    `task_duration` LONG NOT NULL DEFAULT 0,
+    `task_duration` BIGINT NOT NULL DEFAULT 0,
     `create_time`  DATETIME(6)  NOT NULL,
     PRIMARY KEY (`id`)
 );
@@ -215,3 +180,10 @@ CREATE TABLE IF NOT EXISTS `datasource` (
     `create_time` DATETIME(6) NOT NULL,
     PRIMARY KEY (`id`)
 );
+
+-- Written only after the complete new schema has initialized successfully.
+CREATE TABLE IF NOT EXISTS "PUBLIC"."HUBBLE_SCHEMA_VERSION" (
+    "ID" INT PRIMARY KEY CHECK ("ID" = 1),
+    "VERSION" INT NOT NULL
+);
+MERGE INTO "PUBLIC"."HUBBLE_SCHEMA_VERSION" ("ID", "VERSION") KEY ("ID") VALUES (1, 1);

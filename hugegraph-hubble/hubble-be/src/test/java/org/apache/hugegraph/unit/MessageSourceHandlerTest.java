@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.util.Locale;
 import java.util.Properties;
 
-import javax.servlet.http.Cookie;
+import jakarta.servlet.http.Cookie;
 
 import org.junit.After;
 import org.junit.Assert;

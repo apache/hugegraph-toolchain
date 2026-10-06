@@ -41,6 +41,7 @@ import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.graphs.GraphsService;
+import org.apache.hugegraph.service.auth.AuthModeService;
 import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.structure.graph.Edge;
 import org.apache.hugegraph.structure.graph.Vertex;
@@ -51,6 +52,7 @@ public class GraphsServiceDefaultTest {
     private HugeClient client;
     private GraphsManager graphs;
     private GraphsService service;
+    private AuthModeService authMode;
 
     @Before
     public void setup() {
@@ -58,6 +60,9 @@ public class GraphsServiceDefaultTest {
         this.graphs = Mockito.mock(GraphsManager.class);
         Mockito.when(this.client.graphs()).thenReturn(this.graphs);
         this.service = new GraphsService();
+        this.authMode = Mockito.mock(AuthModeService.class);
+        Mockito.when(this.authMode.enabled()).thenReturn(true);
+        ReflectionTestUtils.setField(this.service, "authModeService", this.authMode);
     }
 
     @Test
@@ -173,6 +178,25 @@ public class GraphsServiceDefaultTest {
                 "\"rocksdb.data_path\":\"rocksdb-data/data_demo\""));
         Assert.assertTrue(configJson.getValue().contains(
                 "\"rocksdb.wal_path\":\"rocksdb-data/wal_demo\""));
+    }
+
+    @Test
+    public void testAnonymousGraphFactoryDoesNotDependOnPdMode() {
+        Mockito.when(this.authMode.enabled()).thenReturn(false);
+        for (boolean pdEnabled : new boolean[]{false, true}) {
+            Mockito.reset(this.graphs);
+            HugeConfig config = Mockito.mock(HugeConfig.class);
+            Mockito.when(config.get(HubbleOptions.PD_ENABLED)).thenReturn(pdEnabled);
+            ReflectionTestUtils.setField(this.service, "config", config);
+
+            this.service.create(this.client, "Demo", "demo", null);
+
+            ArgumentCaptor<String> configJson = ArgumentCaptor.forClass(String.class);
+            Mockito.verify(this.graphs).createGraph(Mockito.eq("demo"), configJson.capture());
+            Assert.assertTrue(configJson.getValue().contains(
+                    "\"gremlin.graph\":\"org.apache.hugegraph.HugeFactory\""));
+            Assert.assertFalse(configJson.getValue().contains("HugeFactoryAuthProxy"));
+        }
     }
 
     @Test
@@ -316,7 +340,7 @@ public class GraphsServiceDefaultTest {
         Assert.assertEquals(7L, result.get("vertex"));
         Assert.assertEquals(6L, result.get("edge"));
         Assert.assertNotNull(result.get("date"));
-        Mockito.verifyNoMoreInteractions(query);
+        Mockito.verifyNoInteractions(query);
     }
 
     @Test
@@ -346,7 +370,7 @@ public class GraphsServiceDefaultTest {
         Assert.assertEquals(1L, result.get("edge"));
         Assert.assertNotNull(result.get("date"));
         Mockito.verify(graph, Mockito.never()).getEVCount(Mockito.anyString());
-        Mockito.verifyNoMoreInteractions(query);
+        Mockito.verifyNoInteractions(query);
     }
 
     @Test

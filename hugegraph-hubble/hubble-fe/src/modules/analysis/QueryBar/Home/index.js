@@ -42,6 +42,7 @@ const QueryBar = props => {
         onTabsChange,
         onExecute,
         isExecuting,
+        isGraphReady = true,
         cypherEnabled = false,
     } = args;
 
@@ -74,11 +75,11 @@ const QueryBar = props => {
 
     const onExecution = useCallback(
         () => {
-            if (!isEmptyQuery && !isExecuting) {
+            if (isGraphReady && !isEmptyQuery && !isExecuting) {
                 onExecute(activeTab);
             }
         },
-        [activeTab, isEmptyQuery, isExecuting, onExecute]
+        [activeTab, isEmptyQuery, isExecuting, isGraphReady, onExecute]
     );
 
     const toggleEditor = useCallback(() => {

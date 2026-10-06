@@ -33,7 +33,9 @@ process_start_time() {
     if [[ -r /proc/${process_pid}/stat ]]; then
         awk '{print $22}' "/proc/${process_pid}/stat"
     else
-        LC_ALL=C ps -o lstart= -p "${process_pid}" 2>/dev/null
+        local process_stamp
+        process_stamp=$(LC_ALL=C ps -o lstart= -p "${process_pid}" 2>/dev/null) || return 1
+        printf '%s\n' "${process_stamp}" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//'
     fi
 }
 
@@ -51,7 +53,8 @@ for jar in "${LIB_PATH}"/*.jar; do
     class_path=${class_path}:${jar}
 done
 
-JAVA_OPTS="-Xms512m -Dfile.encoding=UTF-8"
+# Hive ORC interns URI strings through reflection on Java 17.
+JAVA_OPTS="-Xms512m -Dfile.encoding=UTF-8 --add-opens=java.base/java.net=ALL-UNNAMED"
 JAVA_DEBUG_OPTS=""
 FOREGROUND="false"
 
@@ -91,23 +94,23 @@ if [[ -f ${PID_FILE} ]] ; then
         echo "Invalid HugeGraphHubble PID file, removing it"
         rm "${PID_FILE}"
     elif kill -0 "${PID}" > /dev/null 2>&1; then
-        CURRENT_START=$(process_start_time "${PID}") || CURRENT_START=""
-        if [[ -z ${PID_START} ]]; then
-            PROCESS_ARGS=$(ps -p "${PID}" -o args= 2>/dev/null || true)
-            if [[ ${PROCESS_ARGS} == *"${MAIN_CLASS}"* &&
-                  ${PROCESS_ARGS} == *"-Dhubble.home.path=${HOME_PATH}"* ]]; then
-                echo "HugeGraphHubble is running as process ${PID}, please stop it first!"
-                exit 1
-            fi
-            echo "Stale HugeGraphHubble PID file, removing it"
-            rm "${PID_FILE}"
-        elif [[ ${PID_START} != "${CURRENT_START}" ]]; then
-            echo "Stale HugeGraphHubble PID file, removing it"
-            rm "${PID_FILE}"
-        else
+        if ! CURRENT_START=$(process_start_time "${PID}") || [[ -z ${CURRENT_START} ]]; then
+            echo "Unable to verify process ${PID} start time; retaining PID file" >&2
+            exit 1
+        fi
+        if ! PROCESS_ARGS=$(ps -p "${PID}" -o args= 2>/dev/null) ||
+           [[ ! ${PROCESS_ARGS} =~ [^[:space:]] ]]; then
+            echo "Unable to verify process ${PID} arguments; retaining PID file" >&2
+            exit 1
+        fi
+        if [[ " ${PROCESS_ARGS} " == *" ${MAIN_CLASS} "* &&
+              " ${PROCESS_ARGS} " == *" -Dhubble.home.path=${HOME_PATH} "* &&
+              ( -z ${PID_START} || ${PID_START} == "${CURRENT_START}" ) ]]; then
             echo "HugeGraphHubble is running as process ${PID}, please stop it first!"
             exit 1
         fi
+        echo "Stale HugeGraphHubble PID file, removing it"
+        rm "${PID_FILE}"
     else
         rm "${PID_FILE}"
     fi
@@ -119,11 +122,11 @@ LOG=${LOG_PATH}/hugegraph-hubble.log
 if [[ $FOREGROUND == "false" ]]; then
     echo "Starting Hubble in daemon mode..."
     nohup nice -n 0 java -server ${JAVA_OPTS} ${JAVA_DEBUG_OPTS} -Dhubble.home.path="${HOME_PATH}" \
-  -cp ${class_path} ${MAIN_CLASS} ${ARGS} > ${LOG} 2>&1 < /dev/null &
+  -cp "${class_path}" "${MAIN_CLASS}" "${ARGS}" > "${LOG}" 2>&1 < /dev/null &
 else
     echo "Starting Hubble in foreground mode..."
     exec nice -n 0 java -server ${JAVA_OPTS} ${JAVA_DEBUG_OPTS} -Dhubble.home.path="${HOME_PATH}" \
-  -cp ${class_path} ${MAIN_CLASS} ${ARGS}
+  -cp "${class_path}" "${MAIN_CLASS}" "${ARGS}"
 fi
 
 PID=$!

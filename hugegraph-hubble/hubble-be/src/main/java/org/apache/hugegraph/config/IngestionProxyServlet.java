@@ -28,8 +28,8 @@ import org.apache.http.message.BasicHttpResponse;
 import org.apache.hugegraph.common.Constant;
 import org.mitre.dsmiley.httpproxy.ProxyServlet;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.nio.charset.StandardCharsets;
 import java.io.IOException;
 

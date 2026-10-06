@@ -80,6 +80,24 @@ beforeAll(() => {
     }));
 });
 
+it('ignores execution shortcuts until the graph context is ready', () => {
+    const onExecute = jest.fn();
+    const props = {
+        activeTab: 'Gremlin',
+        codeEditorContent: 'g.V().limit(10)',
+        onExecute,
+        onTabsChange: jest.fn(),
+        setCodeEditorContent: jest.fn(),
+    };
+    const {rerender} = render(<QueryBar {...props} isGraphReady={false} />);
+    fireEvent.keyDown(screen.getByTestId('editor-gremlin'), {key: 'Enter', ctrlKey: true});
+    expect(onExecute).not.toHaveBeenCalled();
+
+    rerender(<QueryBar {...props} isGraphReady />);
+    fireEvent.keyDown(screen.getByTestId('editor-gremlin'), {key: 'Enter', ctrlKey: true});
+    expect(onExecute).toHaveBeenCalledWith('Gremlin');
+});
+
 it('shows a same-level Text2GQL preview with no executable control', () => {
     const onTabsChange = jest.fn();
     const {rerender} = render(

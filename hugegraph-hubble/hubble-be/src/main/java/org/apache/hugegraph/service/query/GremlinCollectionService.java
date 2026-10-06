@@ -130,7 +130,7 @@ public class GremlinCollectionService {
     }
 
     public int count() {
-        return this.mapper.selectCount(null);
+        return Math.toIntExact(this.mapper.selectCount(null));
     }
 
     @Transactional(isolation = Isolation.READ_COMMITTED)

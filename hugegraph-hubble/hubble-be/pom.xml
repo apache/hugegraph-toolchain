@@ -32,19 +32,28 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <release.name>hugegraph-hubble</release.name>
         <final.name>${release.name}-${project.version}</final.name>
-        <java.version>11</java.version>
+        <java.version>17</java.version>
         <skip.dump>true</skip.dump>
+        <argLine></argLine>
         <app.host>localhost</app.host>
         <app.port>36320</app.port>
-        <es.version>7.16.1</es.version>
-        <mockito.bytebuddy.version>1.12.19</mockito.bytebuddy.version>
     </properties>
 
     <dependencies>
         <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.17</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>org.mitre.dsmiley.httpproxy</groupId>
             <artifactId>smiley-http-proxy-servlet</artifactId>
-            <version>1.12.1</version>
+            <version>2.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -63,19 +72,6 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!-- Spring Boot 2 manages an older Byte Buddy version than Mockito 4 requires. -->
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy</artifactId>
-            <version>${mockito.bytebuddy.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>net.bytebuddy</groupId>
-            <artifactId>byte-buddy-agent</artifactId>
-            <version>${mockito.bytebuddy.version}</version>
-            <scope>test</scope>
-        </dependency>
         <!--
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -83,19 +79,17 @@
         </dependency>
         -->
         <dependency>
-            <groupId>co.elastic.clients</groupId>
-            <artifactId>elasticsearch-java</artifactId>
-            <version>${es.version}</version>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-client</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.mybatis.spring.boot</groupId>
-            <artifactId>mybatis-spring-boot-starter</artifactId>
-            <version>2.1.0</version>
+            <groupId>co.elastic.clients</groupId>
+            <artifactId>elasticsearch-java</artifactId>
         </dependency>
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-boot-starter</artifactId>
-            <version>3.3.0</version>
+            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
+            <version>3.5.17</version>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -110,7 +104,6 @@
         <dependency>
             <groupId>com.github.ben-manes.caffeine</groupId>
             <artifactId>caffeine</artifactId>
-            <version>2.8.0</version>
         </dependency>
         <dependency>
             <groupId>net.sourceforge.javacsv</groupId>
@@ -121,6 +114,10 @@
             <groupId>org.apache.hugegraph</groupId>
             <artifactId>hugegraph-common</artifactId>
             <exclusions>
+                <exclusion>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-api</artifactId>
@@ -148,6 +145,10 @@
             <artifactId>hg-pd-client</artifactId>
             <exclusions>
                 <exclusion>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-api</artifactId>
                 </exclusion>
@@ -166,6 +167,15 @@
             <artifactId>hugegraph-loader</artifactId>
             <version>${revision}</version>
             <exclusions>
+                <exclusion>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                </exclusion>
+                <!-- HBase's legacy JSP implementation is not Jakarta Servlet. -->
+                <exclusion>
+                    <groupId>org.glassfish.web</groupId>
+                    <artifactId>javax.servlet.jsp</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-api</artifactId>
@@ -197,6 +207,10 @@
             <artifactId>hugegraph-client</artifactId>
             <version>${revision}</version>
             <exclusions>
+                <exclusion>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                </exclusion>
                 <exclusion>
                     <groupId>org.apache.logging.log4j</groupId>
                     <artifactId>log4j-api</artifactId>
@@ -237,11 +251,6 @@
         </dependency>
 
         <dependency>
-            <groupId>commons-fileupload</groupId>
-            <artifactId>commons-fileupload</artifactId>
-            <version>1.4</version>
-        </dependency>
-        <dependency>
             <groupId>org.parboiled</groupId>
             <artifactId>parboiled-core</artifactId>
             <version>1.2.0</version>
@@ -251,6 +260,10 @@
             <artifactId>hugegraph-core</artifactId>
             <scope>compile</scope>
             <exclusions>
+                <exclusion>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                </exclusion>
                 <!-- Hubble only uses server configuration types. The store
                      dependency pulls a broken 1.7.0 hugegraph-struct POM. -->
                 <exclusion>
@@ -285,6 +298,14 @@
             <scope>compile</scope>
             <exclusions>
                 <exclusion>
+                    <groupId>com.sun.xml.bind</groupId>
+                    <artifactId>jaxb-impl</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.calcite.avatica</groupId>
+                    <artifactId>avatica</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>com.google.guava</groupId>
                     <artifactId>guava</artifactId>
                 </exclusion>
@@ -300,6 +321,18 @@
                     <artifactId>log4j-slf4j-impl</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <!-- Use one modular JAXB provider; the Sun bundle duplicates runtime/core classes. -->
+        <dependency>
+            <groupId>org.glassfish.jaxb</groupId>
+            <artifactId>jaxb-runtime</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- The shaded Avatica bundle embeds SLF4J 1.x. Use the patched
+             unshaded implementation with Boot's managed logging API. -->
+        <dependency>
+            <groupId>org.apache.calcite.avatica</groupId>
+            <artifactId>avatica-core</artifactId>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp -->
         <dependency>
@@ -348,16 +381,14 @@
             -->
             <plugin>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.8.0</version>
                 <configuration>
-                    <source>${java.version}</source>
-                    <target>${java.version}</target>
+                    <release>${java.version}</release>
+                    <parameters>true</parameters>
                     <compilerArgs>
                         <arg>-Xmaxerrs</arg>
                         <arg>500</arg>
                         <arg>-Xlint:unchecked</arg>
                         <arg>-Xlint:deprecation</arg>
-                        <arg>--add-modules=java.base</arg>
                     </compilerArgs>
                 </configuration>
             </plugin>
@@ -385,7 +416,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <!-- Hive ORC interns URI strings through reflection. -->
+                    <argLine>@{argLine} --add-opens=java.base/java.net=ALL-UNNAMED</argLine>
+                </configuration>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -404,7 +438,6 @@
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>${jacoco.version}</version>
                 <executions>
                     <execution>
                         <id>pre-unit-test</id>

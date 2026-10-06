@@ -296,7 +296,7 @@ public class AuthContextServiceTest {
         Assert.assertEquals(Set.of("read_health", "read_topology",
                                    "read_metrics"),
                             actions(context, "operations"));
-        Mockito.verifyNoMoreInteractions(fixture.users);
+        Mockito.verifyNoInteractions(fixture.users);
     }
 
     @Test

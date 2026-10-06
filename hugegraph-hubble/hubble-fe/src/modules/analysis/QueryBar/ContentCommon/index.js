@@ -175,6 +175,7 @@ const PrimaryActions = props => {
         onExecute,
         isEmptyQuery,
         isExecuting,
+        isGraphReady = true,
     } = props;
     const isQueryMode = executeMode === QUERY;
     const emptyDesc = t('analysis.query.empty_query');
@@ -186,11 +187,11 @@ const PrimaryActions = props => {
 
     const onExecution = useCallback(
         () => {
-            if (!isEmptyQuery && !isExecuting) {
+            if (isGraphReady && !isEmptyQuery && !isExecuting) {
                 onExecute(activeTab);
             }
         },
-        [activeTab, isEmptyQuery, isExecuting, onExecute]
+        [activeTab, isEmptyQuery, isExecuting, isGraphReady, onExecute]
     );
 
     return (
@@ -226,7 +227,7 @@ const PrimaryActions = props => {
                     <Button
                         className={c.executeButton}
                         type='primary'
-                        disabled={isEmptyQuery || isExecuting}
+                        disabled={!isGraphReady || isEmptyQuery || isExecuting}
                         onClick={onExecution}
                         title={t('analysis.query.execute_shortcut')}
                     >

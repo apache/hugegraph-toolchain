@@ -28,7 +28,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.util.NestedServletException;
+import jakarta.servlet.ServletException;
 
 import org.apache.hugegraph.controller.graphs.GraphsController;
 import org.apache.hugegraph.config.HugeConfig;
@@ -125,7 +125,7 @@ public class GraphsControllerCanonicalTest {
                     post("/api/v1.3/graphspaces/DEFAULT/graphs/graph_a/clear")
                     .with(this.withClient));
             org.junit.Assert.fail("Expected default graph rejection");
-        } catch (NestedServletException e) {
+        } catch (ServletException e) {
             Assert.assertInstanceOf(ExternalException.class, e.getCause());
         }
 
@@ -140,7 +140,7 @@ public class GraphsControllerCanonicalTest {
                          .param("clear_schema", "true"))
                 .andExpect(status().is4xxClientError());
 
-        Mockito.verifyNoMoreInteractions(this.graphsService);
+        Mockito.verifyNoInteractions(this.graphsService);
     }
 
     @Test

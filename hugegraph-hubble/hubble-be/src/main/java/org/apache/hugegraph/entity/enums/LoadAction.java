@@ -18,7 +18,7 @@
 
 package org.apache.hugegraph.entity.enums;
 
-import com.baomidou.mybatisplus.core.enums.IEnum;
+import com.baomidou.mybatisplus.annotation.IEnum;
 
 public enum LoadAction implements IEnum<Byte> {
 

@@ -20,7 +20,6 @@ package org.apache.hugegraph.config;
 
 import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.options.HubbleOptions;
-import org.apache.tomcat.util.http.LegacyCookieProcessor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
 import org.springframework.boot.web.server.WebServerFactoryCustomizer;
@@ -29,9 +28,6 @@ import org.springframework.stereotype.Component;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 
-/**
- * Reference http://www.zizhixiaoshe.com/article/invalidcookie.html
- */
 @Component
 public class TomcatServletConfig
        implements WebServerFactoryCustomizer<TomcatServletWebServerFactory> {
@@ -49,8 +45,5 @@ public class TomcatServletConfig
             throw new ExternalException("service.unknown-host", e, host);
         }
         factory.setPort(this.config.get(HubbleOptions.SERVER_PORT));
-        factory.addContextCustomizers(context -> {
-            context.setCookieProcessor(new LegacyCookieProcessor());
-        });
     }
 }

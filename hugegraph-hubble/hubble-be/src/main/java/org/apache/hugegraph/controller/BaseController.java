@@ -20,8 +20,8 @@ package org.apache.hugegraph.controller;
 
 import java.util.List;
 import java.util.function.Function;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.driver.factory.PDHugeClientFactory;

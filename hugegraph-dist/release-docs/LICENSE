@@ -217,7 +217,6 @@ Third party Apache 2.0 licenses
 
 The following components are provided under the Apache 2.0 License.
 See licenses/ for text of these licenses.
-	(Apache License, Version 2.0) * ASM based accessors helper used by json-smart (net.minidev:accessors-smart:1.2 - http://www.minidev.net/)
 	(Apache License, Version 2.0) * FlatBuffers Java API (com.google.flatbuffers:flatbuffers-java:1.9.0 - https://github.com/google/flatbuffers)
 	(Apache License, Version 2.0) * ASM based accessors helper used by json-smart (net.minidev:accessors-smart:2.4.2 - https://urielch.github.io/)
 	(Apache License, Version 2.0) * Apache Ant Core (org.apache.ant:ant:1.9.1 - http://ant.apache.org/)
@@ -234,7 +233,6 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Apache Commons Configuration (org.apache.commons:commons-configuration2:2.8.0 - https://commons.apache.org/proper/commons-configuration/)
 	(Apache License, Version 2.0) * Apache Commons Crypto (org.apache.commons:commons-crypto:1.0.0 - http://commons.apache.org/proper/commons-crypto/)
 	(Apache License, Version 2.0) * Apache Commons Crypto (org.apache.commons:commons-crypto:1.1.0 - https://commons.apache.org/proper/commons-crypto/)
-	(Apache License, Version 2.0) * Apache Commons FileUpload (commons-fileupload:commons-fileupload:1.5 - http://commons.apache.org/proper/commons-fileupload/)
 	(Apache License, Version 2.0) * Apache Commons IO (commons-io:commons-io:2.8.0 - https://commons.apache.org/proper/commons-io/)
 	(Apache License, Version 2.0) * Apache Commons Lang (org.apache.commons:commons-lang3:3.9 - http://commons.apache.org/proper/commons-lang/)
 	(Apache License, Version 2.0) * Apache Commons Math (org.apache.commons:commons-math3:3.4.1 - http://commons.apache.org/proper/commons-math/)
@@ -274,12 +272,9 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Apache Hadoop shaded Guava (org.apache.hadoop.thirdparty:hadoop-shaded-guava:1.1.1 - https://www.apache.org/hadoop-thirdparty/hadoop-shaded-guava/)
 	(Apache License, Version 2.0) * Apache Hadoop shaded Protobuf 3.7 (org.apache.hadoop.thirdparty:hadoop-shaded-protobuf_3_7:1.1.1 - https://www.apache.org/hadoop-thirdparty/hadoop-shaded-protobuf_3_7/)
 	(Apache License, Version 2.0) * Apache HttpClient (org.apache.httpcomponents:httpclient:4.5.13 - http://hc.apache.org/httpcomponents-client)
-	(Apache License, Version 2.0) * Apache HttpClient (org.apache.httpcomponents:httpclient:4.5.9 - http://hc.apache.org/httpcomponents-client)
-	(Apache License, Version 2.0) * Apache HttpCore (org.apache.httpcomponents:httpcore:4.4.12 - http://hc.apache.org/httpcomponents-core-ga)
 	(Apache License, Version 2.0) * Apache HttpCore (org.apache.httpcomponents:httpcore:4.4.13 - http://hc.apache.org/httpcomponents-core-ga)
 	(Apache License, Version 2.0) * Apache Ivy (org.apache.ivy:ivy:2.4.0 - http://ant.apache.org/ivy/)
 	(Apache License, Version 2.0) * Apache Ivy (org.apache.ivy:ivy:2.5.0 - http://ant.apache.org/ivy/)
-	(Apache License, Version 2.0) * Apache Log4j 1.x Compatibility API (org.apache.logging.log4j:log4j-1.2-api:2.11.2 - https://logging.apache.org/log4j/2.x/log4j-1.2-api/)
 	(Apache License, Version 2.0) * Apache Log4j 1.x Compatibility API (org.apache.logging.log4j:log4j-1.2-api:2.17.1 - https://logging.apache.org/log4j/2.x/log4j-1.2-api/)
 	(Apache License, Version 2.0) * Apache Log4j API (org.apache.logging.log4j:log4j-api:2.25.5 - https://logging.apache.org/log4j/2.x/log4j-api/)
 	(Apache License, Version 2.0) * Apache Log4j Core (org.apache.logging.log4j:log4j-core:2.25.5 - https://logging.apache.org/log4j/2.x/log4j-core/)
@@ -295,9 +290,6 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Arrow Memory - Core (org.apache.arrow:arrow-memory-core:2.0.0 - https://arrow.apache.org/arrow-memory/arrow-memory-core/)
 	(Apache License, Version 2.0) * Arrow Vectors (org.apache.arrow:arrow-vector:0.8.0 - http://arrow.apache.org/arrow-vector/)
 	(Apache License, Version 2.0) * Arrow Vectors (org.apache.arrow:arrow-vector:2.0.0 - https://arrow.apache.org/arrow-vector/)
-	(Apache License, Version 2.0) * Bean Validation API (javax.validation:validation-api:2.0.1.Final - http://beanvalidation.org)
-	(Apache License, Version 2.0) * Caffeine cache (com.github.ben-manes.caffeine:caffeine:2.6.2 - https://github.com/ben-manes/caffeine)
-	(Apache License, Version 2.0) * ClassMate (com.fasterxml:classmate:1.4.0 - http://github.com/FasterXML/java-classmate)
 	(Apache License, Version 2.0) * Commons CLI (commons-cli:commons-cli:1.2 - http://commons.apache.org/cli/)
 	(Apache License, Version 2.0) * Commons Daemon (commons-daemon:commons-daemon:1.0.13 - http://commons.apache.org/daemon/)
 	(Apache License, Version 2.0) * Commons Lang (commons-lang:commons-lang:2.6 - http://commons.apache.org/lang/)
@@ -324,8 +316,6 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Guava: Google Core Libraries for Java (com.google.guava:guava:30.0-jre - https://github.com/google/guava/guava)
 	(Apache License, Version 2.0) * HPPC Collections (com.carrotsearch:hppc:0.7.2 - http://labs.carrotsearch.com/hppc.html/hppc)
 	(Apache License, Version 2.0) * Hadoop Metrics2 Reporter for Dropwizard Metrics (com.github.joshelser:dropwizard-metrics-hadoop-metrics2-reporter:0.1.2 - https://github.com/joshelser/dropwizard-hadoop-metrics2)
-	(Apache License, Version 2.0) * Hibernate Validator Engine (org.hibernate.validator:hibernate-validator:6.0.17.Final - http://hibernate.org/validator/hibernate-validator)
-	(Apache License, Version 2.0) * HikariCP (com.zaxxer:HikariCP:3.2.0 - https://github.com/brettwooldridge/HikariCP)
 	(Apache License, Version 2.0) * Hive Classifications (org.apache.hive:hive-classification:3.1.3 - https://hive.apache.org/hive-classification)
 	(Apache License, Version 2.0) * Hive Common (org.apache.hive:hive-common:3.1.3 - https://hive.apache.org/hive-common)
 	(Apache License, Version 2.0) * Hive Llap Client (org.apache.hive:hive-llap-client:3.1.3 - https://hive.apache.org/hive-llap-client)
@@ -343,28 +333,22 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Hive Upgrade Acid (org.apache.hive:hive-upgrade-acid:3.1.3 - https://www.apache.org/hive-upgrade-acid/)
 	(Apache License, Version 2.0) * Hive Vector-Code-Gen Utilities (org.apache.hive:hive-vector-code-gen:3.1.3 - https://hive.apache.org/hive-vector-code-gen)
 	(Apache License, Version 2.0) * J2ObjC Annotations (com.google.j2objc:j2objc-annotations:1.3 - https://github.com/google/j2objc/)
-	(Apache License, Version 2.0) * JBoss Logging 3 (org.jboss.logging:jboss-logging:3.3.3.Final - http://www.jboss.org)
 	(Apache License, Version 2.0) * JCIP Annotations under Apache License (com.github.stephenc.jcip:jcip-annotations:1.0-1 - http://stephenc.github.com/jcip-annotations)
 	(Apache License, Version 2.0) * JPam (net.sf.jpam:jpam:1.1 - http://jpam.sf.net)
-	(Apache License, Version 2.0) * JSON Small and Fast Parser (net.minidev:json-smart:2.3 - http://www.minidev.net/)
 	(Apache License, Version 2.0) * JSON Small and Fast Parser (net.minidev:json-smart:2.4.2 - https://urielch.github.io/)
 	(Apache License, Version 2.0) * JVM Integration for Metrics (io.dropwizard.metrics:metrics-jvm:4.2.0 - https://metrics.dropwizard.io/metrics-jvm)
 	(Apache License, Version 2.0) * Jackson (org.codehaus.jackson:jackson-core-asl:1.9.13 - http://jackson.codehaus.org)
 	(Apache License, Version 2.0) * Jackson Integration for Metrics (io.dropwizard.metrics:metrics-json:4.2.0 - https://metrics.dropwizard.io/metrics-json)
-	(Apache License, Version 2.0) * Jackson datatype: JSR310 (com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.12.3 - https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jsr310)
-	(Apache License, Version 2.0) * Jackson datatype: jdk8 (com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.12.3 - https://github.com/FasterXML/jackson-modules-java8/jackson-datatype-jdk8)
 	(Apache License, Version 2.0) * Jackson module: Old JAXB Annotations (javax.xml.bind) (com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.14.0-rc1 - https://github.com/FasterXML/jackson-modules-base)
 	(Apache License, Version 2.0) * Jackson-JAXRS: JSON (com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.12.3 - https://github.com/FasterXML/jackson-jaxrs-providers/jackson-jaxrs-json-provider)
 	(Apache License, Version 2.0) * Jackson-JAXRS: base (com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.12.3 - https://github.com/FasterXML/jackson-jaxrs-providers/jackson-jaxrs-base)
 	(Apache License, Version 2.0) * Jackson-annotations (com.fasterxml.jackson.core:jackson-annotations:2.12.3 - http://github.com/FasterXML/jackson)
 	(Apache License, Version 2.0) * Jackson-core (com.fasterxml.jackson.core:jackson-core:2.12.3 - https://github.com/FasterXML/jackson-core)
 	(Apache License, Version 2.0) * Jackson-module-JAXB-annotations (com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.12.3 - http://github.com/FasterXML/jackson-module-jaxb-annotations)
-	(Apache License, Version 2.0) * Jackson-module-parameter-names (com.fasterxml.jackson.module:jackson-module-parameter-names:2.12.3 - https://github.com/FasterXML/jackson-modules-java8/jackson-module-parameter-names)
 	(Apache License, Version 2.0) * Jackson-module-scala (com.fasterxml.jackson.module:jackson-module-scala_2.12:2.12.3 - https://github.com/FasterXML/jackson-module-scala)
 	(Apache License, Version 2.0) * Jakarta Bean Validation API (jakarta.validation:jakarta.validation-api:2.0.2 - https://beanvalidation.org)
 	(Apache License, Version 2.0) * JetBrains Java Annotations (org.jetbrains:annotations:13.0 - https://github.com/JetBrains/java-annotations)
 	(Apache License, Version 2.0) * JetBrains Java Annotations (org.jetbrains:annotations:17.0.0 - https://github.com/JetBrains/java-annotations)
-	(Apache License, Version 2.0) * Joda-Time (joda-time:joda-time:2.10.3 - https://www.joda.org/joda-time/)
 	(Apache License, Version 2.0) * Joda-Time (joda-time:joda-time:2.10.8 - https://www.joda.org/joda-time/)
 	(Apache License, Version 2.0) * Kerb Simple Kdc (org.apache.kerby:kerb-simplekdc:1.0.1 - http://directory.apache.org/kerby/kerby-kerb/kerb-simplekdc)
 	(Apache License, Version 2.0) * Kerby ASN1 Project (org.apache.kerby:kerby-asn1:1.0.1 - http://directory.apache.org/kerby/kerby-common/kerby-asn1)
@@ -401,33 +385,12 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Okio (com.squareup.okio:okio-jvm:3.0.0 - https://github.com/square/okio)
 	(Apache License, Version 2.0) * logging-interceptor (com.squareup.okhttp3:logging-interceptor:4.10.0 - https://square.github.io/okhttp/)
 	(Apache License, Version 2.0) * Open JSON (com.tdunning:json:1.8 - https://github.com/tdunning/open-json)
-	(Apache License, Version 2.0) * SnakeYAML (org.yaml:snakeyaml:1.23 - http://www.snakeyaml.org)
-	(Apache License, Version 2.0) * Spring AOP (org.springframework:spring-aop:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Beans (org.springframework:spring-beans:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Boot (org.springframework.boot:spring-boot:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot)
 	(Apache License, Version 2.0) * Spring Boot Actuator (org.springframework.boot:spring-boot-actuator:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-actuator)
 	(Apache License, Version 2.0) * Spring Boot Actuator AutoConfigure (org.springframework.boot:spring-boot-actuator-autoconfigure:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-actuator-autoconfigure)
 	(Apache License, Version 2.0) * Spring Boot Actuator Starter (org.springframework.boot:spring-boot-starter-actuator:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter-actuator)
-	(Apache License, Version 2.0) * Spring Boot AutoConfigure (org.springframework.boot:spring-boot-autoconfigure:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-autoconfigure)
-	(Apache License, Version 2.0) * Spring Boot Cache Starter (org.springframework.boot:spring-boot-starter-cache:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter-cache)
-	(Apache License, Version 2.0) * Spring Boot JDBC Starter (org.springframework.boot:spring-boot-starter-jdbc:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter-jdbc)
-	(Apache License, Version 2.0) * Spring Boot Json Starter (org.springframework.boot:spring-boot-starter-json:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter-json)
 	(Apache License, Version 2.0) * Spring Boot Log4j 2 Starter (org.springframework.boot:spring-boot-starter-log4j2:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter-log4j2)
-	(Apache License, Version 2.0) * Spring Boot Starter (org.springframework.boot:spring-boot-starter:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter)
-	(Apache License, Version 2.0) * Spring Boot Tomcat Starter (org.springframework.boot:spring-boot-starter-tomcat:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter-tomcat)
-	(Apache License, Version 2.0) * Spring Boot Web Starter (org.springframework.boot:spring-boot-starter-web:2.1.8.RELEASE - https://projects.spring.io/spring-boot/#/spring-boot-parent/spring-boot-starters/spring-boot-starter-web)
-	(Apache License, Version 2.0) * Spring Commons Logging Bridge (org.springframework:spring-jcl:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Context (org.springframework:spring-context:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Context Support (org.springframework:spring-context-support:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Core (org.springframework:spring-core:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Expression Language (SpEL) (org.springframework:spring-expression:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring JDBC (org.springframework:spring-jdbc:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Transaction (org.springframework:spring-tx:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Web (org.springframework:spring-web:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
-	(Apache License, Version 2.0) * Spring Web MVC (org.springframework:spring-webmvc:5.1.9.RELEASE - https://github.com/spring-projects/spring-framework)
 	(Apache License, Version 2.0) * StAX API (stax:stax-api:1.0.1 - http://stax.codehaus.org/)
 	(Apache License, Version 2.0) * Token provider (org.apache.kerby:token-provider:1.0.1 - http://directory.apache.org/kerby/kerby-provider/token-provider)
-	(Apache License, Version 2.0) * Woodstox (com.fasterxml.woodstox:woodstox-core:5.0.3 - https://github.com/FasterXML/woodstox)
 	(Apache License, Version 2.0) * Woodstox (com.fasterxml.woodstox:woodstox-core:5.3.0 - https://github.com/FasterXML/woodstox)
 	(Apache License, Version 2.0) * aircompressor (io.airlift:aircompressor:0.10 - http://github.com/airlift/aircompressor)
 	(Apache License, Version 2.0) * aircompressor (io.airlift:aircompressor:0.21 - http://github.com/airlift/aircompressor)
@@ -438,44 +401,21 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * jcommander (com.beust:jcommander:1.72 - http://jcommander.org)
 	(Apache License, Version 2.0) * jcommander (com.beust:jcommander:1.78 - https://jcommander.org)
 	(Apache License, Version 2.0) * micrometer-core (io.micrometer:micrometer-core:1.1.6 - https://github.com/micrometer-metrics/micrometer)
-	(Apache License, Version 2.0) * mybatis (org.mybatis:mybatis:3.5.2 - http://www.mybatis.org/mybatis-3)
-	(Apache License, Version 2.0) * mybatis-plus (com.baomidou:mybatis-plus-annotation:3.3.0 - https://github.com/baomidou/mybatis-plus)
-	(Apache License, Version 2.0) * mybatis-plus (com.baomidou:mybatis-plus-boot-starter:3.3.0 - https://github.com/baomidou/mybatis-plus)
-	(Apache License, Version 2.0) * mybatis-plus (com.baomidou:mybatis-plus-core:3.3.0 - https://github.com/baomidou/mybatis-plus)
-	(Apache License, Version 2.0) * mybatis-plus (com.baomidou:mybatis-plus-extension:3.3.0 - https://github.com/baomidou/mybatis-plus)
-	(Apache License, Version 2.0) * mybatis-plus (com.baomidou:mybatis-plus:3.3.0 - https://github.com/baomidou/mybatis-plus)
-	(Apache License, Version 2.0) * mybatis-spring (org.mybatis:mybatis-spring:2.0.2 - http://www.mybatis.org/spring/)
-	(Apache License, Version 2.0) * mybatis-spring-boot-autoconfigure (org.mybatis.spring.boot:mybatis-spring-boot-autoconfigure:2.1.0 - http://www.mybatis.org/spring-boot-starter/mybatis-spring-boot-autoconfigure/)
-	(Apache License, Version 2.0) * mybatis-spring-boot-starter (org.mybatis.spring.boot:mybatis-spring-boot-starter:2.1.0 - http://www.mybatis.org/spring-boot-starter/mybatis-spring-boot-starter/)
 	(Apache License, Version 2.0) * opencsv (net.sf.opencsv:opencsv:2.3 - http://opencsv.sf.net)
 	(Apache License, Version 2.0) * snappy-java (org.xerial.snappy:snappy-java:1.1.8.2 - https://github.com/xerial/snappy-java)
 	(Apache License, Version 2.0) * snappy-java (org.xerial.snappy:snappy-java:1.1.8.4 - https://github.com/xerial/snappy-java)
-	(Apache License, Version 2.0) * tomcat-embed-core (org.apache.tomcat.embed:tomcat-embed-core:9.0.24 - https://tomcat.apache.org/)
-	(Apache License, Version 2.0) * tomcat-embed-el (org.apache.tomcat.embed:tomcat-embed-el:9.0.24 - https://tomcat.apache.org/)
-	(Apache License, Version 2.0) * tomcat-embed-websocket (org.apache.tomcat.embed:tomcat-embed-websocket:9.0.24 - https://tomcat.apache.org/)
 	(Apache License, Version 2.0) * Jetty :: Asynchronous HTTP Client (org.eclipse.jetty:jetty-client:9.4.33.v20201020 - https://eclipse.org/jetty/jetty-client)
 	(Apache License, Version 2.0) * Jetty :: Asynchronous HTTP Client (org.eclipse.jetty:jetty-client:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-client)
-	(Apache License, Version 2.0) * Jetty :: Http Utility (org.eclipse.jetty:jetty-http:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: Http Utility (org.eclipse.jetty:jetty-http:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-http)
-	(Apache License, Version 2.0) * Jetty :: IO Utility (org.eclipse.jetty:jetty-io:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: IO Utility (org.eclipse.jetty:jetty-io:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-io)
 	(Apache License, Version 2.0) * Jetty :: Rewrite Handler (org.eclipse.jetty:jetty-rewrite:9.3.20.v20170531 - http://www.eclipse.org/jetty)
-	(Apache License, Version 2.0) * Jetty :: Rewrite Handler (org.eclipse.jetty:jetty-rewrite:9.4.19.v20190610 - http://www.eclipse.org/jetty)
-	(Apache License, Version 2.0) * Jetty :: Security (org.eclipse.jetty:jetty-security:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: Security (org.eclipse.jetty:jetty-security:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-security)
-	(Apache License, Version 2.0) * Jetty :: Server Core (org.eclipse.jetty:jetty-server:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: Server Core (org.eclipse.jetty:jetty-server:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-server)
-	(Apache License, Version 2.0) * Jetty :: Servlet Handling (org.eclipse.jetty:jetty-servlet:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: Servlet Handling (org.eclipse.jetty:jetty-servlet:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-servlet)
-	(Apache License, Version 2.0) * Jetty :: Utilities (org.eclipse.jetty:jetty-util:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: Utilities (org.eclipse.jetty:jetty-util:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-util)
-	(Apache License, Version 2.0) * Jetty :: Utilities :: Ajax(JSON) (org.eclipse.jetty:jetty-util-ajax:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: Utilities :: Ajax(JSON) (org.eclipse.jetty:jetty-util-ajax:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-util-ajax)
-	(Apache License, Version 2.0) * Jetty :: Webapp Application Support (org.eclipse.jetty:jetty-webapp:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: Webapp Application Support (org.eclipse.jetty:jetty-webapp:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-webapp)
-	(Apache License, Version 2.0) * Jetty :: XML utilities (org.eclipse.jetty:jetty-xml:9.4.19.v20190610 - http://www.eclipse.org/jetty)
 	(Apache License, Version 2.0) * Jetty :: XML utilities (org.eclipse.jetty:jetty-xml:9.4.40.v20210413 - https://eclipse.org/jetty/jetty-xml)
-	(Apache License, Version 2.0) * JSQLParser library (com.github.jsqlparser:jsqlparser:3.1 - https://github.com/JSQLParser/JSqlParser)
 	(Apache License, Version 2.0) * Javassist (org.javassist:javassist:3.24.0-GA - http://www.javassist.org/)
 	(Apache License, Version 2.0) * Javassist (org.javassist:javassist:3.28.0-GA - http://www.javassist.org/)
 	(Apache License, Version 2.0) * less (less:3.13.1 - https://github.com/less/less.js)
@@ -483,10 +423,7 @@ See licenses/ for text of these licenses.
 	hugegraph-hubble/ui/favicon.ico
 	(Apache License, Version 2.0) * kotlin-stdlib (org.jetbrains.kotlin:kotlin-stdlib:1.6.20 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * kotlin-stdlib-common (org.jetbrains.kotlin:kotlin-stdlib-common:1.5.31 - https://github.com/JetBrains/kotlin)
-	(Apache License, Version 2.0) * kotlin-stdlib-common (org.jetbrains.kotlin:kotlin-stdlib-common:1.6.20 - https://github.com/JetBrains/kotlin)
-	(Apache License, Version 2.0) * kotlin-stdlib-jdk7 (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.2.71 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * kotlin-stdlib-jdk7 (org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.6.10 - https://github.com/JetBrains/kotlin)
-	(Apache License, Version 2.0) * kotlin-stdlib-jdk8 (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.2.71 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * kotlin-stdlib-jdk8 (org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.6.10 - https://github.com/JetBrains/kotlin)
 	(Apache License, Version 2.0) * Jetty :: Websocket :: API (org.eclipse.jetty.websocket:websocket-api:9.4.40.v20210413 - https://github.com/jetty/jetty.project/tree/jetty-9.4.x/jetty-websocket)
     (Apache License, Version 2.0) * Jetty :: Websocket :: Client (org.eclipse.jetty.websocket:websocket-client:9.4.40.v20210413 - https://github.com/jetty/jetty.project/tree/jetty-9.4.x/jetty-websocket)
@@ -499,21 +436,15 @@ Third party CDDL licenses
 
 The following components are provided under the CDDL License.
 See licenses/ for text of these licenses.
-	(CDDL) * Expression Language 3.0 (org.glassfish:javax.el:3.0.0 - http://el-spec.java.net)
 	(CDDL) * Expression Language 3.0 (org.glassfish:javax.el:3.0.1-b12 - http://uel.java.net)
 	(CDDL) * HK2 API module (org.glassfish.hk2:hk2-api:2.6.1 - https://github.com/hk2-project/hk2/hk2-api)
 	(CDDL) * HK2 Implementation Utilities (org.glassfish.hk2:hk2-utils:2.6.1 - https://github.com/hk2-project/hk2/hk2-utils)
 	(CDDL) * JSP implementation (org.glassfish.web:javax.servlet.jsp:2.3.2 - http://jsp.java.net)
 	(CDDL) * Java Servlet API (javax.servlet:javax.servlet-api:3.1.0 - http://servlet-spec.java.net)
-	(CDDL) * Java Servlet API (javax.servlet:javax.servlet-api:4.0.1 - https://javaee.github.io/servlet-spec/)
-	(CDDL) * JavaBeans Activation Framework API jar (javax.activation:javax.activation-api:1.2.0 - http://java.net/all/javax.activation-api/)
 	(CDDL) * JavaServer Pages(TM) API (javax.servlet.jsp:javax.servlet.jsp-api:2.3.1 - http://jsp.java.net)
 	(CDDL) * javax.annotation API (javax.annotation:javax.annotation-api:1.3.2 - http://jcp.org/en/jsr/detail?id=250)
 	(CDDL) * javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:2.5.0-b32 - https://github.com/hk2-project/hk2/external/javax.inject)
-	(CDDL) * javax.inject:1 as OSGi bundle (org.glassfish.hk2.external:javax.inject:2.5.0-b42 - https://github.com/hk2-project/hk2/external/javax.inject)
 	(CDDL 1.1) * Java Architecture for XML Binding (javax.xml.bind:jaxb-api:2.2.11 - http://jaxb.java.net/)
-	(CDDL 1.1) * javax.ws.rs-api (javax.ws.rs:javax.ws.rs-api:2.1 - http://jax-rs-spec.java.net)
-	(CDDL 1.1) * jaxb-api (javax.xml.bind:jaxb-api:2.3.1 - https://github.com/javaee/jaxb-spec/jaxb-api)
 	(CDDL 1.1) * jaxb-api (javax.xml.bind:jaxb-api:2.2.11 - https://github.com/javaee/jaxb-spec/jaxb-api)
 	(CDDL 1.1) * JSR 353 (JSON Processing) Default Provider (org.glassfish:javax.json:1.0 - http://jsonp.java.net)
 	(Dual license consisting of the CDDL v1.1) * JSR 353 (JSON Processing) Default Provider (org.glassfish:javax.json:1.0 - http://jsonp.java.net)
@@ -528,9 +459,7 @@ See licenses/ for text of these licenses.
 
 	(EPL 2.0) * Jakarta Annotations API (jakarta.annotation:jakarta.annotation-api:1.3.5 - https://projects.eclipse.org/projects/ee4j.ca)
 	(EPL-2.0) * jakarta.ws.rs-api (jakarta.ws.rs:jakarta.ws.rs-api:2.1.6 - https://github.com/eclipse-ee4j/jaxrs-api)
-	(EPL 1.0) * H2 Database Engine (com.h2database:h2:1.4.199 - http://www.h2database.com)
 	(EPL-2.0) * jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:2.25.1 - https://jersey.github.io/project/jersey-container-servlet-core/)
-    (EPL-2.0) * jersey-container-servlet-core (org.glassfish.jersey.containers:jersey-container-servlet-core:2.27 - https://jersey.github.io/project/jersey-container-servlet-core/)
 
 
 ========================================================================
@@ -545,8 +474,6 @@ See licenses/ for text of these licenses.
 	(Eclipse Distribution License - v1.0) * JavaBeans Activation Framework API jar (jakarta.activation:jakarta.activation-api:1.2.1 - https://github.com/eclipse-ee4j/jaf/jakarta.activation-api)
 	(Eclipse Distribution License - v1.0) * Old JAXB Core (com.sun.xml.bind:jaxb-core:3.0.2 - https://eclipse-ee4j.github.io/jaxb-ri/)
 	(Eclipse Distribution License - v1.0) * Old JAXB Runtime (com.sun.xml.bind:jaxb-impl:3.0.2 - https://eclipse-ee4j.github.io/jaxb-ri/)
-	(Eclipse Public License v1.0) * Logback Classic Module (ch.qos.logback:logback-classic:1.2.3 - http://logback.qos.ch/logback-classic)
-	(Eclipse Public License v1.0) * Logback Core Module (ch.qos.logback:logback-core:1.2.3 - http://logback.qos.ch/logback-core)
 
 
 ========================================================================
@@ -567,7 +494,6 @@ See licenses/ for text of these licenses.
 	(The 2-Clause BSD License) * Javolution (javolution:javolution:5.5.1 - http://javolution.org)
 	(The 2-Clause BSD License) * ParaNamer Core (com.thoughtworks.paranamer:paranamer:2.3 - http://paranamer.codehaus.org/paranamer)
 	(The 2-Clause BSD License) * PostgreSQL JDBC Driver (org.postgresql:postgresql:42.4.1 - https://jdbc.postgresql.org)
-	(The 2-Clause BSD License) * PostgreSQL JDBC Driver - JDBC 4.2 (org.postgresql:postgresql:42.2.6 - https://github.com/pgjdbc/pgjdbc)
 	(The 2-Clause BSD License) * Repackaged OW2 ASM Core (org.simpleflatmapper:ow2-asm:6.2 - http://github.com/arnaudroger/SimpleFlatMapper/ow2-asm)
 	(The 2-Clause BSD License) * Stax2 API (org.codehaus.woodstox:stax2-api:4.2.1 - http://github.com/FasterXML/stax2-api)
 	(The 3-Clause BSD License) * ThreeTen-Extra (org.threeten:threeten-extra:1.5.0 - https://www.threeten.org/threeten-extra)
@@ -584,12 +510,9 @@ See licenses/ for text of these licenses.
 
 	(The MIT License) * Checker Qual (org.checkerframework:checker-qual:3.5.0 - https://checkerframework.org)
 	(The MIT License) * JCodings (org.jruby.jcodings:jcodings:1.0.18 - http://nexus.sonatype.org/oss-repository-hosting.html/jcodings)
-	(The MIT License) * JUL to SLF4J bridge (org.slf4j:jul-to-slf4j:1.7.28 - http://www.slf4j.org)
 	(The MIT License) * Joni (org.jruby.joni:joni:2.1.11 - http://nexus.sonatype.org/oss-repository-hosting.html/joni)
-	(The MIT License) * Microsoft JDBC Driver for SQL Server (com.microsoft.sqlserver:mssql-jdbc:6.4.0.jre8 - https://github.com/Microsoft/mssql-jdbc)
 	(The MIT License) * Microsoft JDBC Driver for SQL Server (com.microsoft.sqlserver:mssql-jdbc:7.2.0.jre8 - https://github.com/Microsoft/mssql-jdbc)
 	(The MIT License) * Project Lombok (org.projectlombok:lombok:1.18.8 - https://projectlombok.org)
-	(The MIT License) * SLF4J API Module (org.slf4j:slf4j-api:1.7.28 - http://www.slf4j.org)
 	(The MIT License) * SLF4J API Module (org.slf4j:slf4j-api:1.7.30 - http://www.slf4j.org)
 	(The MIT License) * SLF4J API Module (org.slf4j:slf4j-api:1.7.36 - http://www.slf4j.org)
 	(The MIT License) * SLF4J LOG4J-12 Binding (org.slf4j:slf4j-log4j12:1.7.28 - http://www.slf4j.org)
@@ -680,11 +603,348 @@ See licenses/ for text of these licenses.
 	(Public Domain, per Creative Commons CC0) * LatencyUtils (org.latencyutils:LatencyUtils:2.0.3 - http://latencyutils.github.io/LatencyUtils/)
 
 ========================================================================
+Hubble Java 17 runtime dependency updates
+========================================================================
+
+The following versions are used by Hubble's Spring Boot 3 runtime. Apache-2.0 terms are
+reproduced above. Full additional license terms and copyright statements are
+in licenses/LICENSE-hubble-java17-third-party.txt and the files referenced
+below. Required attribution notices are reproduced in the distribution NOTICE.
+
+Where dual licensing is offered, this distribution uses Apache-2.0 when
+available, EPL-2.0 for Logback and the Jakarta/HK2 APIs, EPL-1.0 for H2,
+and CDDL-1.1 for javax.xml.bind:jaxb-api:2.2.12. Their alternative licenses
+in upstream texts do not change these selections. The EDL-1.0 option is used
+for GlassFish JAXB, istack and Activation. Full EPL-1.0 terms are in
+licenses/LICENSE-h2.txt; full EPL-2.0 and EDL-1.0 terms are in the Hubble
+supplement. These dependencies are distributed as unmodified binaries.
+Their source code is available from Maven Central as the matching sources
+JAR, or from the upstream release sources identified in the supplement:
+https://repo.maven.apache.org/maven2/
+https://github.com/qos-ch/logback/tree/v_1.5.34
+https://github.com/h2database/h2database/tree/version-2.3.232
+
+    (EPL-2.0) ch.qos.logback:logback-classic:1.5.34
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EPL-2.0) ch.qos.logback:logback-core:1.5.34
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.baomidou:mybatis-plus-annotation:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-core:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-extension:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-jsqlparser-common:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-jsqlparser:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-spring-boot-autoconfigure:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-spring-boot-native-image:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-spring-boot3-starter:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus-spring:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.baomidou:mybatis-plus:3.5.17
+        Apache-2.0 terms above
+    (Apache-2.0) com.fasterxml.jackson.core:jackson-annotations:2.21
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) com.fasterxml.jackson.core:jackson-core:2.21.4
+        licenses/LICENSE-hive-shims.txt, licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.core:jackson-databind:2.21.4
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.21.4
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.datatype:jackson-datatype-jdk8:2.21.4
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.datatype:jackson-datatype-jsr310:2.21.4
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.jaxrs:jackson-jaxrs-base:2.21.4
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.jaxrs:jackson-jaxrs-json-provider:2.21.4
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.module:jackson-module-jaxb-annotations:2.21.4
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.fasterxml.jackson.module:jackson-module-parameter-names:2.21.4
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.github.jsqlparser:jsqlparser:5.2
+        Apache-2.0 terms above
+    (EPL-1.0) com.h2database:h2:2.3.232
+        licenses/LICENSE-h2.txt, licenses/LICENSE-hubble-java17-third-party.txt
+    (MIT License) com.microsoft.sqlserver:mssql-jdbc:12.10.2.jre11
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.squareup.okhttp3:logging-interceptor:4.12.0
+        Apache-2.0 terms above
+    (EDL-1.0) com.sun.istack:istack-commons-runtime:4.1.2
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) com.zaxxer:HikariCP:6.3.3
+        Apache-2.0 terms above
+    (Apache-2.0) info.picocli:picocli:4.3.2
+        Apache-2.0 terms above
+    (Apache-2.0) io.micrometer:micrometer-commons:1.15.12
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.micrometer:micrometer-observation:1.15.12
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-all:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-buffer:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-dns:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-haproxy:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-http2:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-http:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-memcache:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-mqtt:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-redis:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-smtp:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-socks:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-stomp:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec-xml:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-codec:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-common:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-handler-proxy:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-handler-ssl-ocsp:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-handler:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-resolver-dns-classes-macos:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-resolver-dns-native-macos:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-resolver-dns:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-resolver:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-classes-epoll:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-classes-kqueue:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-native-epoll:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-native-kqueue:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-native-unix-common:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-rxtx:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-sctp:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport-udt:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.netty:netty-transport:4.1.135.Final
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (EDL-1.0) jakarta.activation:jakarta.activation-api:2.1.4
+        licenses/LICENSE-jakarta.activation.txt
+    (EPL-2.0) jakarta.annotation:jakarta.annotation-api:2.1.1
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) jakarta.inject:jakarta.inject-api:2.0.1
+        licenses/LICENSE-hive-shims.txt
+    (EPL-2.0) jakarta.ws.rs:jakarta.ws.rs-api:3.1.0
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EDL-1.0) jakarta.xml.bind:jakarta.xml.bind-api:4.0.5
+        licenses/LICENSE-jakarta.xml.bind-api.txt
+    (Apache-2.0) javax.cache:cache-api:1.1.1
+        Apache-2.0 terms above
+    (CDDL-1.1) javax.xml.bind:jaxb-api:2.2.12
+        licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-jaxb-api.txt
+    (Apache-2.0) net.java.dev.jna:jna:5.12.1
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) net.minidev:accessors-smart:2.5.2
+        Apache-2.0 terms above
+    (Apache-2.0) net.minidev:json-smart:2.5.2
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.calcite.avatica:avatica-core:1.22.0
+        licenses/LICENSE-snakeyaml.txt
+    (Apache-2.0) org.apache.calcite.avatica:avatica-metrics:1.22.0
+        licenses/LICENSE-snakeyaml.txt
+    (Apache-2.0) org.apache.httpcomponents.client5:httpclient5:5.5.2
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.httpcomponents.core5:httpcore5-h2:5.3.6
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.httpcomponents.core5:httpcore5:5.3.6
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.httpcomponents:httpasyncclient:4.1.5
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.httpcomponents:httpclient:4.5.14
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.httpcomponents:httpcore-nio:4.4.16
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.httpcomponents:httpcore:4.4.16
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.logging.log4j:log4j-1.2-api:2.25.5
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.logging.log4j:log4j-to-slf4j:2.25.5
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.logging.log4j:log4j-web:2.25.5
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.tomcat.embed:tomcat-embed-core:10.1.55
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.apache.tomcat.embed:tomcat-embed-el:10.1.55
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.apache.tomcat.embed:tomcat-embed-websocket:10.1.55
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.codehaus.groovy:groovy-cli-picocli:2.5.14
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.codehaus.groovy:groovy-console:2.5.14
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.codehaus.groovy:groovy-swing:2.5.14
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.codehaus.groovy:groovy-templates:2.5.14
+        licenses/LICENSE-hive-shims.txt
+    (Apache-2.0) org.codehaus.groovy:groovy-xml:2.5.14
+        licenses/LICENSE-hive-shims.txt
+    (BSD-3-Clause) org.codehaus.janino:commons-compiler:3.1.12
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (BSD-3-Clause) org.codehaus.janino:janino:3.1.12
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EDL-1.0) org.eclipse.angus:angus-activation:2.0.3
+        licenses/LICENSE-jakarta.activation.txt
+    (Apache-2.0) org.eclipse.jetty:jetty-http:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.eclipse.jetty:jetty-io:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.eclipse.jetty:jetty-rewrite:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.eclipse.jetty:jetty-security:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.eclipse.jetty:jetty-server:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.eclipse.jetty:jetty-util-ajax:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.eclipse.jetty:jetty-util:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.eclipse.jetty:jetty-xml:12.0.36
+        Apache-2.0 terms above
+    (Apache-2.0) org.ehcache:ehcache:3.10.9
+        Apache-2.0 terms above
+    (Apache-2.0) org.elasticsearch.client:elasticsearch-rest-client:7.16.1
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EPL-2.0) org.glassfish.hk2.external:aopalliance-repackaged:3.0.6
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EPL-2.0) org.glassfish.hk2:hk2-api:3.0.6
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EPL-2.0) org.glassfish.hk2:hk2-locator:3.0.6
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EPL-2.0) org.glassfish.hk2:hk2-utils:3.0.6
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EPL-2.0) org.glassfish.hk2:osgi-resource-locator:1.0.3
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (EDL-1.0) org.glassfish.jaxb:jaxb-core:4.0.9
+        licenses/LICENSE-jakarta.activation.txt
+    (EDL-1.0) org.glassfish.jaxb:jaxb-runtime:4.0.9
+        licenses/LICENSE-jakarta.activation.txt
+    (EDL-1.0) org.glassfish.jaxb:txw2:4.0.9
+        licenses/LICENSE-jakarta.activation.txt
+    (Apache-2.0) org.glassfish.jersey.connectors:jersey-apache-connector:3.1.11
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.glassfish.jersey.containers:jersey-container-servlet-core:3.1.11
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.glassfish.jersey.core:jersey-client:3.1.11
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.glassfish.jersey.core:jersey-common:3.1.11
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.glassfish.jersey.inject:jersey-hk2:3.1.11
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (BSD-3-Clause) org.hamcrest:hamcrest:3.0
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.javassist:javassist:3.30.2-GA
+        Apache-2.0 terms above
+    (Apache-2.0) org.jetbrains.kotlin:kotlin-stdlib-common:1.9.25
+        Apache-2.0 terms above
+    (Apache-2.0) org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.9.25
+        Apache-2.0 terms above
+    (Apache-2.0) org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25
+        Apache-2.0 terms above
+    (Apache-2.0) org.jetbrains.kotlin:kotlin-stdlib:1.9.25
+        Apache-2.0 terms above
+    (Apache-2.0) org.mitre.dsmiley.httpproxy:smiley-http-proxy-servlet:2.0
+        Apache-2.0 terms above
+    (Apache-2.0) org.mybatis:mybatis-spring:3.0.5
+        licenses/LICENSE-netty-handler.txt
+    (Apache-2.0) org.mybatis:mybatis:3.5.19
+        licenses/LICENSE-netty-handler.txt
+    (BSD-2-Clause) org.postgresql:postgresql:42.7.11
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.slf4j:jcl-over-slf4j:2.0.18
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (MIT) org.slf4j:jul-to-slf4j:2.0.18
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (MIT) org.slf4j:slf4j-api:2.0.18
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-autoconfigure:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-starter-cache:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-starter-jdbc:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-starter-json:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-starter-logging:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-starter-tomcat:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-starter-web:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot-starter:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework.boot:spring-boot:3.5.16
+        licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) org.springframework:spring-aop:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-beans:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-context-support:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-context:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-core:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-expression:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-jcl:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-jdbc:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-tx:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-web:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.springframework:spring-webmvc:6.2.19
+        licenses/LICENSE-hubble-java17-third-party.txt
+    (Apache-2.0) org.yaml:snakeyaml:2.4
+        Apache-2.0 terms above
+
+========================================================================
+Retained published baseline license coverage
+========================================================================
+
+This version was already present in the original published runtime classpaths.
+Its Apache-2.0 terms are reproduced at the beginning of this LICENSE.
+
+    (Apache-2.0) io.grpc:grpc-core:1.39.0
+        Apache-2.0 terms above
+
+========================================================================
 Spark Connector runtime dependency updates
 ========================================================================
 
-These versions are additions to the runtime dependency set for the Spark
-Connector upgrade. Other modules retain their existing runtime versions.
+The following versions are used by the Spark Connector runtime.
+Shared versions already declared above are not repeated.
 The Spark framework is provided by the deployment environment and is not
 bundled in the Connector assembly. Required attribution notices are in the
 distribution NOTICE. Full bundled terms and copyright statements are in
@@ -713,7 +973,5 @@ is used for Jakarta Activation and XML Binding APIs.
         licenses/LICENSE-jakarta.activation-api.txt
     (EDL-1.0) jakarta.xml.bind:jakarta.xml.bind-api:2.3.3
         licenses/LICENSE-jakarta.xml.bind-api.txt
-    (Apache-2.0) org.javassist:javassist:3.30.2-GA
-        Apache-2.0 terms above
     (MIT) org.slf4j:slf4j-api:2.0.7
         licenses/LICENSE-spark-java17-third-party.txt

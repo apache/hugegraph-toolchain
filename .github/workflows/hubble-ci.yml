@@ -29,7 +29,7 @@ jobs:
   hubble-ci:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
+      USE_STAGE: 'false' # Whether to include the stage repository.
       STATIC_DIR: hugegraph-hubble/hubble-dist/assembly/static
     strategy:
       fail-fast: false
@@ -157,6 +157,9 @@ jobs:
           repository: ${{ inputs.server-repository }}
           fetch-ref: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-ref }}
           travis-dir: ${{ env.TRAVIS_DIR }}
+
+      - name: Archive preservation test
+        run: python3 "$TRAVIS_DIR/test_archive_hubble.py"
 
       - name: Release package audit
         env:

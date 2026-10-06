@@ -23,6 +23,13 @@ function java_env_check() {
         echo "cannot find java in environment."
         exit 1
     fi
+    local java_version
+    java_version=$(java -version 2>&1 | sed -n 's/.*version "\([^"]*\)".*/\1/p' | head -1)
+    local java_major=${java_version%%.*}
+    if [[ ! "${java_major}" =~ ^[0-9]+$ ]] || [[ ${java_major} -lt 17 ]]; then
+        echo "Hubble requires Java 17 or newer; found ${java_version:-unknown}." >&2
+        exit 1
+    fi
 }
 
 # read a property from .properties file

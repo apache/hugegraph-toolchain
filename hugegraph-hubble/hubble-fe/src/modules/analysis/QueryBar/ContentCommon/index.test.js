@@ -85,6 +85,14 @@ it('does not execute while a request is pending', () => {
     expect(screen.getByRole('button', {name: /Run Query/})).toBeDisabled();
 });
 
+it('disables execution until the graph context is ready', () => {
+    const props = renderContent({isGraphReady: false});
+    const run = screen.getByRole('button', {name: /Run Query/});
+    expect(run).toBeDisabled();
+    fireEvent.click(run);
+    expect(props.onExecute).not.toHaveBeenCalled();
+});
+
 it('switches between immediate query and async task with one compact control', () => {
     const props = renderContent();
 

@@ -22,6 +22,7 @@
 
 import React, {useState, useCallback, useEffect, useContext, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
+import {useParams} from 'react-router-dom';
 import GraphAnalysisContext from '../../Context';
 import QueryBar from '../QueryBar/Home';
 import QueryResult from '../QueryResult/Home';
@@ -76,6 +77,10 @@ export const extractQueryErrorMessage = (error, fallback) => {
 const AnalysisHome = () => {
     const {t} = useTranslation();
     const {graphSpace, graph} = useContext(GraphAnalysisContext);
+    const {graphSpace: routeGraphSpace, graph: routeGraph} = useParams();
+    const isGraphReady = Boolean(graphSpace && graph)
+        && (!routeGraphSpace || routeGraphSpace === graphSpace)
+        && (!routeGraph || routeGraph === graph);
     const cypherEnabled = isCypherEnabled();
     const [queryStatus, setQueryStatus] = useState(STANDBY);
     const [queryMessage, setQueryMessage] = useState();
@@ -105,13 +110,15 @@ const AnalysisHome = () => {
     const [sortMode, setSortMode] = useState();
     const [graphRenderMode, setGraphRenderMode] = useState(CANVAS2D);
     const queryRequest = useRef(null);
-    const executionInFlight = useRef(false);
+    const graphNumsRequest = useRef(null);
+    const executionInFlight = useRef(null);
     const executionLogsRequest = useRef(null);
     const favoriteQueriesRequest = useRef(null);
 
     useEffect(() => () => {
         queryRequest.current = null;
-        executionInFlight.current = false;
+        graphNumsRequest.current = null;
+        executionInFlight.current = null;
         executionLogsRequest.current = null;
         favoriteQueriesRequest.current = null;
     }, []);
@@ -268,7 +275,12 @@ const AnalysisHome = () => {
 
     const getGraphNumsInfo = useCallback(
         async () => {
+            const request = Symbol('graph-counts');
+            graphNumsRequest.current = request;
             const response = await api.analysis.getGraphData(graphSpace, graph);
+            if (graphNumsRequest.current !== request) {
+                return;
+            }
             const {status, data} = response || {};
             if (status === 200) {
                 const {vertexcount, edgecount} = data || {};
@@ -288,6 +300,7 @@ const AnalysisHome = () => {
     const onAnalysisModeChange = useCallback(
         queryType => {
             queryRequest.current = null;
+            executionInFlight.current = null;
             executionLogsRequest.current = null;
             favoriteQueriesRequest.current = null;
             analysisModeRef.current = queryType;
@@ -316,6 +329,9 @@ const AnalysisHome = () => {
 
     useEffect(() => {
         queryRequest.current = null;
+        graphNumsRequest.current = null;
+        executionInFlight.current = null;
+        setGraphNums({vertexCount: -1, edgeCount: -1});
         setCodeEditorContent(restoreQuery(graphSpace, graph, analysisModeRef.current));
         if (graphSpace && graph) {
             resetGraphInfo();
@@ -455,13 +471,14 @@ const AnalysisHome = () => {
 
     const onExecute = useCallback(
         tabKey => {
-            if (tabKey !== GREMLIN && tabKey !== CYPHER) {
+            if (!isGraphReady || (tabKey !== GREMLIN && tabKey !== CYPHER)) {
                 return;
             }
             if (executionInFlight.current) {
                 return;
             }
-            executionInFlight.current = true;
+            const request = Symbol('execution');
+            executionInFlight.current = request;
             let execution;
             if (executeMode === QUERY) {
                 execution = onExecuteQuery(tabKey);
@@ -470,10 +487,12 @@ const AnalysisHome = () => {
                 execution = onExecuteTask(tabKey);
             }
             execution.finally(() => {
-                executionInFlight.current = false;
+                if (executionInFlight.current === request) {
+                    executionInFlight.current = null;
+                }
             });
         },
-        [executeMode, onExecuteQuery, onExecuteTask]
+        [executeMode, isGraphReady, onExecuteQuery, onExecuteTask]
     );
 
     useEffect(
@@ -569,6 +588,7 @@ const AnalysisHome = () => {
                 onExecute={onExecute}
                 onRefresh={onFavoriteRefresh}
                 isExecuting={queryStatus === LOADING}
+                isGraphReady={isGraphReady}
                 cypherEnabled={cypherEnabled}
             />
             {analysisMode !== TEXT2GQL && <QueryResult

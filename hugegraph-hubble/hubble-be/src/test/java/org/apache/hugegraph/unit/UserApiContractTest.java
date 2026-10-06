@@ -28,7 +28,7 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.util.NestedServletException;
+import jakarta.servlet.ServletException;
 
 import org.apache.hugegraph.common.Constant;
 import org.apache.hugegraph.controller.auth.UserController;
@@ -109,7 +109,7 @@ public class UserApiContractTest {
                 .andExpect(status().isMethodNotAllowed());
         this.mvc.perform(delete("/api/v1.3/auth/users/super/alice"))
                 .andExpect(status().isNotFound());
-        Mockito.verifyNoMoreInteractions(this.userService);
+        Mockito.verifyNoInteractions(this.userService);
     }
 
     private void assertRequestCause(Class<? extends Throwable> expected,
@@ -118,7 +118,7 @@ public class UserApiContractTest {
             request.perform();
             org.junit.Assert.fail("Expected request to throw " +
                                   expected.getName());
-        } catch (NestedServletException e) {
+        } catch (ServletException e) {
             org.apache.hugegraph.testutil.Assert.assertInstanceOf(expected,
                                                                   e.getCause());
         }

@@ -261,7 +261,7 @@ public class GraphSpaceServiceTest {
         } catch (ExternalException e) {
             Assert.assertEquals(404, e.status());
         }
-        Mockito.verifyNoMoreInteractions(this.graphsService);
+        Mockito.verifyNoInteractions(this.graphsService);
     }
 
     @Test
@@ -289,7 +289,7 @@ public class GraphSpaceServiceTest {
             Assert.assertEquals(404, e.status());
         }
         Mockito.verify(auth, Mockito.times(2)).isSpaceMember("protected");
-        Mockito.verifyNoMoreInteractions(this.graphsService);
+        Mockito.verifyNoInteractions(this.graphsService);
     }
 
     @Test

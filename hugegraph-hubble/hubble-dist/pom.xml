@@ -149,19 +149,12 @@
                                     cd ${top.level.dir} &amp;&amp; pwd
                                     rm -rf ${final.name}/ui
                                     cp -r ${hubble-fe.dir}/build ${final.name}/ui
-                                    rm -rf ${final.name}/logs
-                                    rm -rf ${final.name}/upload-files
-                                    rm -f ${final.name}/db.mv.db
-                                    rm -f ${final.name}/db.trace.db
-                                    rm -f ${final.name}/*.pid
-                                    rm -f ${final.name}/bin/pid
                                     find ${final.name}/ui -name "*.map" -type f -delete
 
-                                    tar -zcvf ${top.level.dir}/target/${final.name}.tar.gz ${final.name} || exit 1
+                                    bash ${assembly.dir}/travis/archive-hubble.sh \
+                                         ${final.name} ${top.level.dir}/target/${final.name}.tar.gz || exit 1
                                     bash ${assembly.dir}/travis/check-hubble-dist.sh \
                                          ${top.level.dir}/target/${final.name}.tar.gz || exit 1
-                                    rm -rf ./hubble-dist/${final.name}
-                                    cp -r ${final.name} ./hubble-dist
                                     echo -n "${final.name} tar.gz available at: "
                                     echo "${top.level.dir}/target/${final.name}.tar.gz"
                                     rm -f ${top.level.dir}/dist.sh

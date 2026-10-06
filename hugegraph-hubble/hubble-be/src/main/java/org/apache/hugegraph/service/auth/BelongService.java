@@ -38,12 +38,15 @@ import org.apache.hugegraph.structure.auth.Group;
 import org.apache.hugegraph.util.PageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Lazy;
 
 @Log4j2
 @Service
 public class BelongService extends AuthService {
 
+    // Resolve user details only when listing memberships, after service initialization.
     @Autowired
+    @Lazy
     private UserService userService;
 
     public void add(HugeClient client, String roleId, String userId) {

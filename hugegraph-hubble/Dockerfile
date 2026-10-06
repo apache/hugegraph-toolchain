@@ -15,7 +15,7 @@
 # limitations under the License.
 #
 
-FROM --platform=$BUILDPLATFORM maven:3.9.0-eclipse-temurin-11 AS build
+FROM --platform=$BUILDPLATFORM maven:3.9.11-eclipse-temurin-17 AS build
 
 ENV NODE_OPTIONS=--dns-result-order=ipv4first
 
@@ -34,16 +34,20 @@ COPY . /pkg
 RUN set -x \
     && mvn install $MAVEN_ARGS -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp \
     && cd /pkg/hugegraph-hubble/ \
-    && mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true
+    && mvn package $MAVEN_ARGS -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true \
+    && set -- /pkg/hugegraph-hubble/target/apache-hugegraph-hubble-*.tar.gz \
+    && test "$#" -eq 1 \
+    && mkdir /hubble-release \
+    && tar -xzf "$1" --strip-components=1 -C /hubble-release
 
-FROM eclipse-temurin:11-jre-jammy
+FROM eclipse-temurin:17-jre-jammy
 
 RUN apt-get -q update \
     && apt-get install --no-install-recommends curl -yq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-COPY --from=build /pkg/hugegraph-hubble/apache-hugegraph-hubble-*/ /hubble
+COPY --from=build /hubble-release/ /hubble
 RUN sed -i \
     -e 's/^server\.host=.*/server.host=0.0.0.0/' \
     -e 's/^dashboard\.address=.*/dashboard.address=/' \

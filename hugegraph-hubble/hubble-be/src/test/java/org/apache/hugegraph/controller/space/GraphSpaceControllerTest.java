@@ -288,7 +288,7 @@ public class GraphSpaceControllerTest {
         assertForbidden(() -> controller.delete("foreign"));
         assertForbidden(() -> controller.initBuiltIn(new BuiltInEntity()));
 
-        Mockito.verifyNoMoreInteractions(graphSpaceService);
+        Mockito.verifyNoInteractions(graphSpaceService);
         Mockito.when(userService.isSuperAdmin(client)).thenReturn(true);
         Assert.assertSame(client, controller.requireGlobalManager());
     }
@@ -310,7 +310,7 @@ public class GraphSpaceControllerTest {
 
         assertForbidden(() -> controller.add(new GraphSpaceEntity()));
 
-        Mockito.verifyNoMoreInteractions(userService, graphSpaceService);
+        Mockito.verifyNoInteractions(userService, graphSpaceService);
     }
 
     @Test
@@ -335,7 +335,7 @@ public class GraphSpaceControllerTest {
            .andExpect(status().isForbidden())
            .andExpect(jsonPath("$.status").value(403));
 
-        Mockito.verifyNoMoreInteractions(graphSpaceService);
+        Mockito.verifyNoInteractions(graphSpaceService);
     }
 
     private static TestGraphSpaceController controller(

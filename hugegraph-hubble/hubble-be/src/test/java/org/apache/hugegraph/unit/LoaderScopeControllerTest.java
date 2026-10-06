@@ -48,7 +48,7 @@ public class LoaderScopeControllerTest {
         } catch (ExternalException expected) {
             // Expected: the controller must not leak a NullPointerException.
         }
-        Mockito.verifyNoMoreInteractions(service);
+        Mockito.verifyNoInteractions(service);
     }
 
     @Test

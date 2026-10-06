@@ -518,7 +518,7 @@ public class AccountMutationAuthorizationTest {
 
         org.junit.Assert.assertTrue(failure.getMessage()
                                            .contains("authorization objects"));
-        Mockito.verifyNoMoreInteractions(memberService);
+        Mockito.verifyNoInteractions(memberService);
     }
 
     @Test
@@ -540,7 +540,7 @@ public class AccountMutationAuthorizationTest {
         assertForbidden(() -> controller.create("SPACE", member));
         assertForbidden(() -> controller.createOrUpdate("SPACE", "bob",
                                                         member));
-        Mockito.verifyNoMoreInteractions(memberService);
+        Mockito.verifyNoInteractions(memberService);
     }
 
     @Test
@@ -566,7 +566,7 @@ public class AccountMutationAuthorizationTest {
         assertForbidden(() -> controller.removeGraphSpaceAdmin("SPACE",
                                                                "bob"));
 
-        Mockito.verifyNoMoreInteractions(memberService);
+        Mockito.verifyNoInteractions(memberService);
     }
 
     private void setBaseUserService(BaseController controller,

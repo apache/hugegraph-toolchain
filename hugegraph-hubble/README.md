@@ -58,15 +58,16 @@ cd hubble-fe
 yarn dev
 ```
 
-Run the backend incrementally with Java 11 and the Maven daemon:
+Run the backend incrementally with Java 17 and the Maven daemon:
 
 ```bash
-export JAVA_HOME=$(/usr/libexec/java_home -v 11)
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
 mvnd -pl hubble-be -DskipTests compile dependency:build-classpath \
   -Dmdep.outputFile=/tmp/hubble-be-classpath
 mkdir -p /tmp/hubble-dev-home
 cd hubble-be
 "$JAVA_HOME/bin/java" -Dfile.encoding=UTF-8 \
+  --add-opens=java.base/java.net=ALL-UNNAMED \
   -Dhubble.home.path=/tmp/hubble-dev-home \
   -cp "target/classes:$(</tmp/hubble-be-classpath)" \
   org.apache.hugegraph.HugeGraphHubble
@@ -236,4 +237,14 @@ The `hubble-fe` folder contains the frontend code, including all related source 
 
 The `hubble-be` folder contains the backend code, including all related source code for the backend.
 
-The `hubble-dist` folder contains files that can be directly used for deployment, generated after compiling and packaging both the frontend and backend code.
+The `hubble-dist/assembly` folder contains distribution resources. Packaging the frontend and backend produces the deployment archive under `target/`.
+
+## Runtime and metadata
+
+Hubble 1.8 requires Java 17 and uses Spring Boot 3 with H2 2.x for metadata. MySQL remains available as a Loader source. When upgrading, use a new metadata database and retain the previous database with its matching Hubble release; automatic metadata migration is not supported. See [metadata storage](docs/metadata-storage.md) for configuration and troubleshooting.
+
+The startup script includes `--add-opens=java.base/java.net=ALL-UNNAMED` for the embedded Loader's Hive ORC reader. Include this option when using a custom Java launch command. Packaged archives are generated under `target/` and exclude local runtime data.
+
+## Graph switching
+
+Query execution waits until the graph context matches the current route, including keyboard shortcuts during a graph switch. Standalone Server 1.5 supports core graph, schema and data operations; GraphSpace management and PD mode require a newer server.

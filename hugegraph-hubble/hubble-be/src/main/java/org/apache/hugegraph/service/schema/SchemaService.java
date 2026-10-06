@@ -45,6 +45,7 @@ import org.apache.hugegraph.structure.schema.SchemaLabel;
 import org.apache.hugegraph.util.HubbleUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.util.CollectionUtils;
 
 import java.util.ArrayList;
@@ -69,11 +70,15 @@ public class SchemaService {
 
     @Autowired
     private HugeConfig config;
+    // Subclasses inherit these collaborators, so resolve self-references lazily.
     @Autowired
+    @Lazy
     private PropertyKeyService pkService;
     @Autowired
+    @Lazy
     private VertexLabelService vlService;
     @Autowired
+    @Lazy
     private EdgeLabelService elService;
 
     public HugeConfig config() {

@@ -63,7 +63,7 @@ public class JobManagerService {
     private FileMappingService fileMappingService;
 
     public int count() {
-        return this.mapper.selectCount(null);
+        return Math.toIntExact(this.mapper.selectCount(null));
     }
 
     public JobManager get(int id) {

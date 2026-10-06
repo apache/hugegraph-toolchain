@@ -22,9 +22,9 @@ import java.util.regex.Pattern;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 //import org.apache.hugegraph.license.LicenseVerifier; // TODO C Remove Licence
 import org.apache.hugegraph.service.HugeClientPoolService;
@@ -34,7 +34,7 @@ import org.apache.hugegraph.service.space.GraphSpaceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
-import org.springframework.web.servlet.handler.HandlerInterceptorAdapter;
+import org.springframework.web.servlet.HandlerInterceptor;
 
 import org.apache.hugegraph.common.Constant;
 import org.apache.hugegraph.config.HugeConfig;
@@ -47,7 +47,7 @@ import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 @Component
-public class CustomInterceptor extends HandlerInterceptorAdapter {
+public class CustomInterceptor implements HandlerInterceptor {
 
     //@Autowired
     //private LicenseService licenseService;// TODO C Remove Licence

@@ -57,7 +57,7 @@ public class OltpAlgoControllerTest {
         Assert.assertEquals("DEFAULT", controller.graphSpace);
         Assert.assertEquals("hugegraph", controller.graph);
         Mockito.verify(service).shortestPath(gremlinClient, body);
-        Mockito.verifyNoMoreInteractions(tokenClient);
+        Mockito.verifyNoInteractions(tokenClient);
     }
 
     @Test
