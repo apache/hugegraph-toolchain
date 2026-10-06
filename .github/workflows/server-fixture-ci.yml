@@ -44,3 +44,5 @@ jobs:
           node --test .github/actions/get-hugegraph-commit/resolve.test.cjs \
             hugegraph-client/assembly/travis/checkout-server.test.cjs \
             hugegraph-client/assembly/travis/install-server.test.cjs
+      - name: Test candidate SDK and distribution provenance
+        run: python3 -m unittest discover -s .github/scripts -p 'test_candidate_sdk.py'

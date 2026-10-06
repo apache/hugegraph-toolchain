@@ -21,33 +21,38 @@ package org.apache.hugegraph.service;
 import static org.apache.hugegraph.driver.factory.PDHugeClientFactory.DEFAULT_GRAPHSPACE;
 import static org.apache.hugegraph.driver.factory.PDHugeClientFactory.DEFAULT_SERVICE;
 
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
-
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
+import javax.net.ssl.SSLException;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
+import lombok.extern.log4j.Log4j2;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.driver.factory.PDHugeClientFactory;
 import org.apache.hugegraph.entity.GraphConnection;
 import org.apache.hugegraph.exception.ParameterizedException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import lombok.extern.log4j.Log4j2;
-import org.apache.hugegraph.config.HugeConfig;
-import com.google.common.cache.Cache;
-import com.google.common.cache.CacheBuilder;
-
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.util.HugeClientUtil;
 import org.apache.hugegraph.util.UrlUtil;
-import com.google.common.collect.ImmutableList;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 @Log4j2
 @Service
@@ -164,16 +169,25 @@ public final class HugeClientPoolService {
                 if (StringUtils.isEmpty(tmpurl)) {
                     continue;
                 }
-                HugeClient tmpclient = this.create(tmpurl, graphSpace, graph,
-                                                   token, username, password,
-                                                   timeoutOverride);
-
-                if (checkHealth(tmpclient)) {
+                HugeClient tmpclient = null;
+                try {
+                    tmpclient = this.create(tmpurl, graphSpace, graph,
+                                            token, username, password,
+                                            timeoutOverride);
+                    tmpclient.versionManager().getApiVersion();
                     return tmpclient;
-                } else {
-                    tmpclient.close();
+                } catch (Exception e) {
+                    if (tmpclient != null) {
+                        tmpclient.close();
+                    }
+                    if (!isTransportFailure(e)) {
+                        throw e;
+                    }
+                    // Do not log endpoint credentials or replay business requests.
+                    log.debug("Discovered server connection failed; trying next candidate");
                 }
             }
+            throw new ParameterizedException("service.no-available");
         }
 
         GraphConnection connection = new GraphConnection();
@@ -297,14 +311,20 @@ public final class HugeClientPoolService {
         return value == null ? "-1:" : value.length() + ":" + value;
     }
 
-    private boolean checkHealth(HugeClient client) {
-        try {
-            client.versionManager().getApiVersion();
-        } catch (Exception e) {
-            log.debug("Check client health throw exception", e);
-            return false;
+    private static boolean isTransportFailure(Throwable error) {
+        boolean transportFailure = false;
+        Set<Throwable> seen = Collections.newSetFromMap(new IdentityHashMap<>());
+        for (Throwable cause = error; cause != null && seen.add(cause);
+             cause = cause.getCause()) {
+            if (cause instanceof ServerException || cause instanceof SSLException ||
+                cause instanceof IllegalArgumentException || cause instanceof IllegalStateException) {
+                return false;
+            }
+            if (cause instanceof ConnectException || cause instanceof SocketTimeoutException) {
+                transportFailure = true;
+            }
         }
-
-        return true;
+        return transportFailure;
     }
+
 }

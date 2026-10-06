@@ -43,7 +43,6 @@
 
     <properties>
         <top.level.dir>${project.basedir}/..</top.level.dir>
-        <java.version>17</java.version>
         <springboot.version>3.5.16</springboot.version>
         <okhttp.version>4.12.0</okhttp.version>
         <kotlin.version>1.9.25</kotlin.version>
@@ -146,17 +145,6 @@
     </dependencyManagement>
 
     <build>
-        <pluginManagement>
-            <plugins>
-                <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
-                    <artifactId>maven-compiler-plugin</artifactId>
-                    <configuration>
-                        <release>${java.version}</release>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
         <plugins>
             <plugin>
                 <artifactId>maven-clean-plugin</artifactId>

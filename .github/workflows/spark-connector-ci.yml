@@ -20,12 +20,10 @@ jobs:
   spark-connector-ci:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
       TRAVIS_DIR: hugegraph-spark-connector/assembly/travis
     strategy:
-      fail-fast: false
       matrix:
-        JAVA_VERSION: ['11', '17']
+        JAVA_VERSION: ['17']
 
     steps:
       - name: Fetch Code
@@ -34,11 +32,11 @@ jobs:
           fetch-depth: 2
 
       - name: Install released Server JVM
-        id: server-java
+        id: released-java
         uses: actions/setup-java@v5
         with:
           java-version: '11'
-          distribution: temurin
+          distribution: 'temurin'
           overwrite-settings: false
 
       - name: Setup Java environment
@@ -46,7 +44,10 @@ jobs:
         with:
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'temurin'
-          use-stage: ${{ env.USE_STAGE }}
+
+      - name: Install locked candidate SDK
+        id: candidate-sdk
+        uses: ./.github/actions/setup-candidate-sdk
 
       - name: Compile
         run: |
@@ -59,10 +60,10 @@ jobs:
           commit-id: ${{ inputs.server-commit }}
           repository: ${{ inputs.server-repository }}
           fetch-ref: ${{ inputs.server-ref }}
-          artifact-name: ${{ inputs.artifact-name }}
+          java-home: ${{ steps.released-java.outputs.path }}
           mode: start
+          artifact-name: ${{ inputs.artifact-name }}
           java-version: '11'
-          java-home: ${{ steps.server-java.outputs.path }}
 
       - name: Run test
         run: |

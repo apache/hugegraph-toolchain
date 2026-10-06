@@ -41,7 +41,9 @@ jobs:
       server-repository: ${{ steps.baseline.outputs.repository }}
       server-commit: ${{ steps.baseline.outputs.commit_id }}
       server-ref: ${{ steps.baseline.outputs.fetch_ref }}
-      hubble-commit: ${{ steps.hubble-baseline.outputs.commit }}
+      hubble-commit: ${{ steps.hubble-baseline.outputs.commit_id }}
+      hubble-repository: ${{ steps.hubble-baseline.outputs.repository }}
+      hubble-ref: ${{ steps.hubble-baseline.outputs.fetch_ref }}
       client: ${{ steps.select.outputs.client }}
       loader: ${{ steps.select.outputs.loader }}
       tools: ${{ steps.select.outputs.tools }}
@@ -78,15 +80,15 @@ jobs:
           repository: apache/hugegraph
           ref: refs/tags/1.7.0
           expected-commit: b12425c2032bf0d21a97b8221f42a18055c2982f
-      - name: Resolve Hubble's existing Server master baseline
+      - name: Resolve locked Java17 candidate baseline
         id: hubble-baseline
-        if: steps.scope.outputs.hubble == 'true'
-        env:
-          SERVER_REPOSITORY: https://github.com/apache/hugegraph.git
-        run: |
-          commit=$(git ls-remote "$SERVER_REPOSITORY" refs/heads/master | cut -f1)
-          [[ "$commit" =~ ^[0-9a-f]{40}$ ]]
-          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+        if: steps.scope.outputs.needsFixture == 'true'
+        uses: ./.github/actions/get-hugegraph-commit
+        with:
+          # TODO(apache/hugegraph#3263): switch the temporary source to ASF after merge.
+          repository: hugegraph/hugegraph
+          ref: codex/cypher-minimal-compat
+          expected-commit: 4c162f539b906fa06dd83228e3691b77fa5b77d7
       - name: Record external test inputs
         env:
           NEEDS_SERVER: ${{ steps.scope.outputs.needsFixture }}
@@ -94,7 +96,9 @@ jobs:
           SERVER_REPOSITORY: ${{ steps.baseline.outputs.repository }}
           SERVER_COMMIT: ${{ steps.baseline.outputs.commit_id }}
           SERVER_REF: ${{ steps.baseline.outputs.fetch_ref }}
-          HUBBLE_COMMIT: ${{ steps.hubble-baseline.outputs.commit }}
+          HUBBLE_REPOSITORY: ${{ steps.hubble-baseline.outputs.repository }}
+          HUBBLE_REF: ${{ steps.hubble-baseline.outputs.fetch_ref }}
+          HUBBLE_COMMIT: ${{ steps.hubble-baseline.outputs.commit_id }}
         run: |
           python3 - <<'PYINPUTS'
           import json, os
@@ -102,15 +106,15 @@ jobs:
           if os.environ['NEEDS_SERVER'] == 'true':
               with open('scope.json') as stream:
                   selected = json.load(stream)['selected']
-              inputs['toolchainJDK'] = {module: ['17'] if module == 'hubble' else ['11', '17']
+              inputs['toolchainJDK'] = {module: ['17']
                                         for module in selected if module != 'go'}
-              inputs['config'] = 'release-current-ci-v2'
+              inputs['config'] = 'candidate-release-java17-ci-v3'
               inputs['server'] = {'repository': os.environ['SERVER_REPOSITORY'],
                                   'commit': os.environ['SERVER_COMMIT'],
                                   'ref': os.environ['SERVER_REF'], 'jdk': '11'}
-          if os.environ['NEEDS_HUBBLE'] == 'true':
-              inputs['hubble'] = {'repository': 'apache/hugegraph', 'commit': os.environ['HUBBLE_COMMIT'],
-                                  'ref': os.environ['HUBBLE_COMMIT'], 'branch': 'master', 'jdk': '17'}
+          if os.environ['NEEDS_SERVER'] == 'true':
+              inputs['candidateSDK'] = {'repository': os.environ['HUBBLE_REPOSITORY'], 'commit': os.environ['HUBBLE_COMMIT'],
+                                  'ref': os.environ['HUBBLE_REF'], 'jdk': '17'}
           with open('inputs.json', 'w') as stream:
               json.dump(inputs, stream, sort_keys=True)
           PYINPUTS
@@ -146,7 +150,6 @@ jobs:
         with:
           java-version: '11'
           distribution: temurin
-          use-stage: 'true'
       - name: Build reusable Server package
         uses: ./.github/actions/setup-hugegraph-server
         with:
@@ -174,14 +177,14 @@ jobs:
         with:
           java-version: '17'
           distribution: temurin
-          use-stage: 'true'
       - name: Build reusable Server package
         uses: ./.github/actions/setup-hugegraph-server
         with:
           mode: build
           artifact-name: ${{ steps.identity.outputs.artifact }}
+          repository: ${{ needs.plan.outputs.hubble-repository }}
           commit-id: ${{ needs.plan.outputs.hubble-commit }}
-          fetch-ref: ${{ needs.plan.outputs.hubble-commit }}
+          fetch-ref: ${{ needs.plan.outputs.hubble-ref }}
           java-version: '17'
 
   client:
@@ -235,6 +238,8 @@ jobs:
     with:
       current-artifact-name: ${{ needs.hubble-fixture.outputs.artifact }}
       current-commit: ${{ needs.plan.outputs.hubble-commit }}
+      current-repository: ${{ needs.plan.outputs.hubble-repository }}
+      current-ref: ${{ needs.plan.outputs.hubble-ref }}
       artifact-name: ${{ needs.fixture.outputs.artifact }}
       server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}

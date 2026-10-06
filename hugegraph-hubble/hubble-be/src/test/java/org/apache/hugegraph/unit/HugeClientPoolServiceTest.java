@@ -18,16 +18,29 @@
 
 package org.apache.hugegraph.unit;
 
+import java.net.ConnectException;
+import java.net.InetSocketAddress;
+import java.net.ServerSocket;
+import java.net.SocketTimeoutException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
-import org.apache.hugegraph.config.HugeConfig;
+import javax.net.ssl.SSLException;
+
+import com.google.common.cache.Cache;
+import com.sun.net.httpserver.HttpServer;
 import org.apache.hugegraph.config.ConfigException;
+import org.apache.hugegraph.config.HugeConfig;
+import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.driver.factory.PDHugeClientFactory;
 import org.apache.hugegraph.exception.ParameterizedException;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.HugeClientPoolService;
+import org.apache.hugegraph.service.SettingSSLService;
 import org.apache.hugegraph.testutil.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -216,6 +229,153 @@ public class HugeClientPoolServiceTest {
             Assert.assertFalse(e.toString().contains("malformed"));
             Assert.assertFalse(e.toString().contains("private"));
         }
+    }
+
+    @Test
+    public void testRetryRefusedCandidateBeforeLiveServer() throws Exception {
+        AtomicInteger calls = new AtomicInteger();
+        HttpServer server = this.versionServer(200, "0.80", calls);
+        try {
+            this.cacheCandidates(this.refusedUrl(), this.serverUrl(server));
+            try (HugeClient client = this.service.create(null, GRAPH_SPACE, SERVICE, null)) {
+                Assert.assertEquals("0.80", client.versionManager().getApiVersion());
+                Assert.assertTrue(calls.get() >= 4);
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testAllRefusedCandidatesFailClosed() throws Exception {
+        this.cacheCandidates(this.refusedUrl(), this.refusedUrl());
+        try {
+            this.service.create(null, GRAPH_SPACE, SERVICE, null);
+            Assert.fail("Expected unavailable service");
+        } catch (ParameterizedException e) {
+            Assert.assertEquals("service.no-available", e.getMessage());
+        }
+    }
+
+    @Test
+    public void testDoNotRetryAuthenticationFailures() throws Exception {
+        for (int status : new int[]{401, 403}) {
+            AtomicInteger nextCalls = new AtomicInteger();
+            HttpServer rejected = this.versionServer(status, "0.80", new AtomicInteger());
+            HttpServer next = this.versionServer(200, "0.80", nextCalls);
+            try {
+                this.cacheCandidates(this.serverUrl(rejected), this.serverUrl(next));
+                Assert.assertThrows(Exception.class, () ->
+                        this.service.create(null, GRAPH_SPACE, SERVICE, null));
+                Assert.assertEquals(0, nextCalls.get());
+            } finally {
+                rejected.stop(0);
+                next.stop(0);
+            }
+        }
+    }
+
+    @Test
+    public void testDoNotRetryAuthenticationFailureAfterInitialization() throws Exception {
+        for (int status : new int[]{401, 403}) {
+            AtomicInteger nextCalls = new AtomicInteger();
+            HttpServer rejected = this.versionServer(status, "0.80", new AtomicInteger(), 2);
+            HttpServer next = this.versionServer(200, "0.80", nextCalls);
+            try {
+                this.cacheCandidates(this.serverUrl(rejected), this.serverUrl(next));
+                Assert.assertThrows(Exception.class, () ->
+                        this.service.create(null, GRAPH_SPACE, SERVICE, null));
+                Assert.assertEquals(0, nextCalls.get());
+            } finally {
+                rejected.stop(0);
+                next.stop(0);
+            }
+        }
+    }
+
+    @Test
+    public void testDoNotRetryIncompatibleVersion() throws Exception {
+        AtomicInteger nextCalls = new AtomicInteger();
+        HttpServer incompatible = this.versionServer(200, "9.0", new AtomicInteger());
+        HttpServer next = this.versionServer(200, "0.80", nextCalls);
+        try {
+            this.cacheCandidates(this.serverUrl(incompatible), this.serverUrl(next));
+            Assert.assertThrows(ParameterizedException.class, () ->
+                    this.service.create(null, GRAPH_SPACE, SERVICE, null));
+            Assert.assertEquals(0, nextCalls.get());
+        } finally {
+            incompatible.stop(0);
+            next.stop(0);
+        }
+    }
+
+    @Test
+    public void testTransportClassificationPreservesOtherFailures() {
+        Assert.assertTrue(this.isTransportFailure(new ConnectException()));
+        Assert.assertTrue(this.isTransportFailure(
+                          new Exception(new SocketTimeoutException())));
+        Assert.assertFalse(this.isTransportFailure(new Exception("Connection refused")));
+        Assert.assertFalse(this.isTransportFailure(new java.io.IOException()));
+        Assert.assertFalse(this.isTransportFailure(
+                           new SSLException(new SocketTimeoutException())));
+        Assert.assertFalse(this.isTransportFailure(
+                           new IllegalArgumentException(new ConnectException())));
+        Assert.assertFalse(this.isTransportFailure(
+                           new IllegalStateException(new SocketTimeoutException())));
+        Exception cyclic = new Exception();
+        Exception second = new Exception(cyclic);
+        cyclic.initCause(second);
+        Assert.assertFalse(this.isTransportFailure(cyclic));
+    }
+
+    private boolean isTransportFailure(Throwable error) {
+        return Boolean.TRUE.equals(ReflectionTestUtils.invokeMethod(
+                this.service, "isTransportFailure", error));
+    }
+
+    @SuppressWarnings("unchecked")
+    private void cacheCandidates(String... urls) {
+        HugeConfig config = (HugeConfig) ReflectionTestUtils.getField(this.service, "config");
+        Mockito.when(config.get(HubbleOptions.CLIENT_REQUEST_TIMEOUT)).thenReturn(2);
+        ReflectionTestUtils.setField(this.service, "sslService", Mockito.mock(SettingSSLService.class));
+        Cache<String, List<String>> cache = (Cache<String, List<String>>)
+                ReflectionTestUtils.getField(this.service, "urlCache");
+        String key = ReflectionTestUtils.invokeMethod(this.service, "cacheKey", GRAPH_SPACE, SERVICE);
+        cache.put(key, Arrays.asList(urls));
+    }
+
+    private String refusedUrl() throws Exception {
+        try (ServerSocket socket = new ServerSocket(0, 1,
+                                                   java.net.InetAddress.getLoopbackAddress())) {
+            return "http://127.0.0.1:" + socket.getLocalPort();
+        }
+    }
+
+    private String serverUrl(HttpServer server) {
+        return "http://127.0.0.1:" + server.getAddress().getPort();
+    }
+
+    private HttpServer versionServer(int status, String api, AtomicInteger calls) throws Exception {
+        return this.versionServer(status, api, calls, 0);
+    }
+
+    private HttpServer versionServer(int status, String api, AtomicInteger calls,
+                                    int acceptedRequests) throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/versions", exchange -> {
+            int responseStatus = calls.incrementAndGet() <= acceptedRequests ? 200 : status;
+            String json = responseStatus == 200 ?
+                          "{\"versions\":{\"api\":\"" + api + "\",\"core\":\"1.7.0\"}}" :
+                          "{\"exception\":\"Forbidden\",\"message\":\"fixture rejection\"}";
+            byte[] body = json.getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().set("Content-Type", "application/json");
+            exchange.sendResponseHeaders(responseStatus, body.length);
+            try (java.io.OutputStream output = exchange.getResponseBody()) {
+                output.write(body);
+            }
+        });
+        server.start();
+        return server;
     }
 
     private void stubSuccessfulDiscovery(String graphSpace, String service,

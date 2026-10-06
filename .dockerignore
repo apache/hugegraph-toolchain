@@ -15,7 +15,10 @@
 
 # Version-control and local development metadata
 .git
-.github
+.github/**
+!.github/scripts/
+.github/scripts/**
+!.github/scripts/verify_candidate_image_sdk.py
 .idea
 .vscode
 .codex-task

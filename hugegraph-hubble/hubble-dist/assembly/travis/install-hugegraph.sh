@@ -16,7 +16,7 @@
 # limitations under the License.
 #
 export LANG=zh_CN.UTF-8
-set -ev
+set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 2 ]]; then
     echo "Usage: $0 <commit-id> [fetch-ref]" >&2
@@ -25,7 +25,13 @@ fi
 
 COMMIT_ID=$1
 COMMIT_REF=${2:-}
+SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd)
+if [[ -n "${SERVER_JAVA_HOME:-}" ]]; then
+    [[ -x "$SERVER_JAVA_HOME/bin/java" ]] || { echo "Server JDK is unavailable" >&2; exit 1; }
+    export JAVA_HOME="$SERVER_JAVA_HOME"
+    export PATH="$SERVER_JAVA_HOME/bin:$PATH"
+fi
 
-"$TRAVIS_DIR"/download-hugegraph.sh "$COMMIT_ID" "$COMMIT_REF"
-"$TRAVIS_DIR"/hugegraph-server1/install-hugegraph.sh
-"$TRAVIS_DIR"/hugegraph-server2/install-hugegraph.sh
+"$SCRIPT_DIR"/download-hugegraph.sh "$COMMIT_ID" "$COMMIT_REF"
+"$SCRIPT_DIR"/hugegraph-server1/install-hugegraph.sh
+"$SCRIPT_DIR"/hugegraph-server2/install-hugegraph.sh

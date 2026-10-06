@@ -25,10 +25,11 @@ HugeGraph Spark Connector writes Spark DataFrames to HugeGraph through the Spark
 
 Required:
 
-- Java 11 or Java 17 (driver and every executor)
+- Java 17 (driver and every executor)
 - Spark 3.5.8 with Scala 2.12 (built with Scala 2.12.18)
-- Maven 3.6+
-- UTF-8 as the default JVM charset on the driver and every executor. The published Common 1.7 request-body implementation uses that default; source encoding alone does not protect graph data.
+- Maven 3.6.3+
+
+The default Maven commands below use published Common 1.7.0, whose request bodies depend on the JVM default charset. Retain the UTF-8 submission options below when running this build on Java 17. The isolated same-source candidate SDK used by CI supplies a Common implementation that uses the declared request-body charset and defaults to UTF-8.
 
 To build without executing tests:
 
@@ -55,7 +56,7 @@ mvn test -Dhugegraph.test.url=https://127.0.0.1:8443 \
 
 The trust-store token defaults to `hugegraph`. The URL alone does not select a trust store; these test properties provide it directly, without depending on `connector.home.path`.
 
-Run applications with `spark-submit` from the matching Spark distribution. Spark supplies its SLF4J 2 provider and Java module options; the connector assembly does not bundle an SLF4J provider. The Maven test configuration supplies the module options for embedded Spark on Java 17. The connector continues to emit Java 8 bytecode.
+Run applications with `spark-submit` from the matching Spark distribution. Spark supplies its SLF4J 2 provider and Java module options; the connector assembly does not bundle an SLF4J provider. The Maven test configuration supplies the module options for embedded Spark on Java 17. The connector and its Java Client dependencies require Java 17. Scala classes retain their Java 8 compiler target, which does not lower the runtime requirement of the complete connector.
 
 Keep Spark's default class loading order for its logging classes. The Java Client needs `com.google.guava:guava:30.0-jre`; an older Guava from Spark can fail with a missing `Preconditions.checkNotNull` overload. Fetch the exact application dependency on the driver:
 
@@ -72,11 +73,13 @@ Before submission, copy that JAR to each executor host, or run the same Maven co
 EXECUTOR_GUAVA_JAR=/opt/hugegraph-spark/lib/guava-30.0-jre.jar
 spark-submit --deploy-mode client --driver-class-path "$DRIVER_GUAVA_JAR" \
   --driver-java-options "-Dfile.encoding=UTF-8" \
-  --conf "spark.executor.extraJavaOptions=-Dfile.encoding=UTF-8" \
   --conf "spark.executor.extraClassPath=$EXECUTOR_GUAVA_JAR" \
+  --conf "spark.executor.extraJavaOptions=-Dfile.encoding=UTF-8" \
   --jars /path/to/hugegraph-spark-connector-1.8.0-jar-with-dependencies.jar \
   /path/to/your-application.jar
 ```
+
+Omit the UTF-8 driver and executor options only when the connector and Java Client were built using the isolated same-source candidate SDK. The default Maven build still requires them.
 
 For cluster deploy mode, provision Guava on the remote driver and use its readable absolute path in `--driver-class-path`; copying it to executors does not provision the driver.
 

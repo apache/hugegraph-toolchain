@@ -210,6 +210,14 @@
                         </goals>
                         <configuration>
                             <target>
+                                <exec executable="python3" failonerror="true">
+                                    <arg value="${project.basedir}/../.github/scripts/verify_candidate_image_sdk.py"/>
+                                    <arg value="${settings.localRepository}"/>
+                                    <arg value="--distribution"/>
+                                    <arg value="${project.basedir}/${final.name}"/>
+                                    <arg value="--module"/>
+                                    <arg value="tools"/>
+                                </exec>
                                 <tar destfile="${project.basedir}/target/${final.name}.tar.gz"
                                      compression="gzip">
                                     <tarfileset dir="${project.basedir}" filemode="755">

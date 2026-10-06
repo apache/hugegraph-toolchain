@@ -70,7 +70,7 @@ runs:
         fi
         if [[ "$ISOLATE_FIXTURE_REPO" == true && "$FIXTURE_MODE" != start ]]; then
           fixture_repo=$(mktemp -d "$RUNNER_TEMP/hugegraph-fixture-m2.XXXXXX")
-          export MAVEN_ARGS="-Dmaven.repo.local=$fixture_repo"
+          export MAVEN_ARGS="${MAVEN_ARGS:-} -Dmaven.repo.local=$fixture_repo"
           export MAVEN_OPTS="${MAVEN_OPTS:-} -Dmaven.repo.local=$fixture_repo"
         fi
         if [[ "$FIXTURE_MODE" != standalone && -z "$FIXTURE_ARTIFACT" ]]; then

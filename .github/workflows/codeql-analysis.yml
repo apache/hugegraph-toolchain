@@ -41,7 +41,6 @@ jobs:
     needs: plan
     if: needs.plan.outputs.security == 'true'
     env:
-      USE_STAGE: 'true' # Whether to include the stage repository.
       # Preserve the master scan identity when invoked by a reusable-workflow caller.
       CODEQL_ACTION_ANALYSIS_KEY: .github/workflows/codeql-analysis.yml:analyze
     name: Analyze
@@ -61,17 +60,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v7
 
-    - name: Setup Java JDK
-      uses: actions/setup-java@v5
+    - name: Setup Java and Maven
+      uses: ./.github/actions/setup-java-env
       with:
-        distribution: 'zulu'
+        distribution: zulu
         java-version: '17'
 
-    - name: use staged maven repo settings
-      if: ${{ env.USE_STAGE == 'true' }}
-      run: |
-        cp "$HOME/.m2/settings.xml" /tmp/settings.xml
-        mv -vf .github/configs/settings.xml "$HOME/.m2/settings.xml"
+    # Prepare dependency sources outside the workspace before CodeQL tracing.
+    - name: Install locked candidate SDK
+      if: matrix.language == 'java'
+      uses: ./.github/actions/setup-candidate-sdk
 
     - name: Use Node.js 16
       uses: actions/setup-node@v6

@@ -4775,3 +4775,599 @@ Copyright 1999-2026 The Apache Software Foundation
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
+
+========================================================================
+Java 17 candidate SDK runtime dependency notices
+========================================================================
+
+========================================================================
+io.cucumber:cucumber-core:7.21.1 / META-INF/FastDoubleParser-NOTICE
+========================================================================
+
+# FastDoubleParser
+
+This is a Java port of Daniel Lemire's fast_float project.
+This project provides parsers for double, float, BigDecimal and BigInteger values.
+
+## Copyright
+
+Copyright © 2024 Werner Randelshofer, Switzerland.
+
+## Licensing
+
+This code is licensed under MIT License.
+https://github.com/wrandelshofer/FastDoubleParser/blob/522be16e145f43308c43b23094e31d5efcaa580e/LICENSE
+(The file 'LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+Some portions of the code have been derived from other projects.
+All these projects require that we include a copyright notice, and some require that we also include some text of their
+license file.
+
+fast_double_parser, Copyright (c) 2022 Daniel Lemire. BSL License.
+https://github.com/lemire/fast_double_parser
+https://github.com/lemire/fast_double_parser/blob/07d9189a8fb815fe800cb15ca022e7a07093236e/LICENSE.BSL
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+fast_float, Copyright (c) 2021 The fast_float authors. MIT License.
+https://github.com/fastfloat/fast_float
+https://github.com/fastfloat/fast_float/blob/cc1e01e9eee74128e48d51488a6b1df4a767a810/LICENSE-MIT
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+bigint, Copyright 2020 Tim Buktu. 2-clause BSD License.
+https://github.com/tbuktu/bigint/tree/floatfft
+https://github.com/tbuktu/bigint/blob/617c8cd8a7c5e4fb4d919c6a4d11e2586107f029/LICENSE
+https://github.com/wrandelshofer/FastDoubleParser/blob/39e123b15b71f29a38a087d16a0bc620fc879aa6/bigint-LICENSE
+(We only use those portions of the bigint project that can be licensed under 2-clause BSD License.)
+(The file 'thirdparty-LICENSE' is included in the sources and classes Jar files that are released by this project
+- as is required by that license.)
+
+========================================================================
+io.cucumber:cucumber-core:7.21.1 / META-INF/NOTICE
+========================================================================
+
+
+Copyright © 2023 Werner Randelshofer, Switzerland. MIT License.
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+# Jackson JSON processor
+
+Jackson is a high-performance, Free/Open Source JSON processing library.
+It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+been in development since 2007.
+It is currently developed by a community of developers.
+
+## Copyright
+
+Copyright 2007-, Tatu Saloranta (tatu.saloranta@iki.fi)
+
+## Licensing
+
+Jackson 2.x core and extension components are licensed under Apache License 2.0
+To find the details that apply to this artifact see the accompanying LICENSE file.
+
+## Credits
+
+A list of contributors may be found from CREDITS(-2.x) file, which is included
+in some artifacts (usually source distributions); but is always available
+from the source code management (SCM) system project uses.
+
+## FastDoubleParser
+
+jackson-core bundles a shaded copy of FastDoubleParser <https://github.com/wrandelshofer/FastDoubleParser>.
+That code is available under an MIT license <https://github.com/wrandelshofer/FastDoubleParser/blob/main/LICENSE>
+under the following copyright.
+
+See FastDoubleParser-NOTICE for details of other source code included in FastDoubleParser
+and the licenses and copyrights that apply to that code.
+
+Jackson components are licensed under Apache (Software) License, version 2.0,
+as per accompanying LICENSE file.
+
+A list of contributors may be found from CREDITS file, which is included
+in some artifacts (usually source distributions); but is always available
+from the source code management (SCM) system project uses.
+
+
+========================================================================
+org.apache.commons:commons-configuration2:2.10.1 / META-INF/NOTICE.txt
+========================================================================
+
+Apache Commons Configuration
+Copyright 2001-2024 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (https://www.apache.org/).
+
+========================================================================
+org.apache.groovy:groovy:4.0.32 / META-INF/NOTICE
+========================================================================
+
+Apache Groovy
+Copyright 2003-2025 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+This product includes/uses ANTLR4 (https://github.com/antlr/antlr4)
+Copyright (c) 2012-2017 The ANTLR Project. All rights reserved.
+
+========================================================================
+org.apache.kerby:kerb-admin:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby-kerb Admin
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerb-client:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby-kerb Client
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerb-common:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby-kerb Common
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerb-crypto:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby-kerb Crypto
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerb-identity:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby-kerb Identity
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerb-server:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby-kerb Server
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerb-simplekdc:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerb Simple Kdc
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerb-util:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby-kerb Util
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerby-config:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby Config
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:kerby-xdr:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Kerby XDR Project
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.kerby:token-provider:2.0.1 / META-INF/NOTICE
+========================================================================
+
+
+Token provider
+Copyright 2014-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.tinkerpop:gremlin-core:3.8.1 / META-INF/NOTICE
+========================================================================
+
+
+Apache TinkerPop :: Gremlin Core
+Copyright 2013-2022 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.tinkerpop:gremlin-driver:3.8.1 / META-INF/NOTICE
+========================================================================
+
+
+Apache TinkerPop :: Gremlin Driver
+Copyright 2013-2022 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.tinkerpop:gremlin-groovy:3.8.1 / META-INF/NOTICE
+========================================================================
+
+
+Apache TinkerPop :: Gremlin Groovy
+Copyright 2013-2022 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.tinkerpop:gremlin-language:3.8.1 / META-INF/NOTICE
+========================================================================
+
+
+Apache TinkerPop :: Gremlin Language
+Copyright 2013-2022 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.tinkerpop:gremlin-shaded:3.8.1 / META-INF/NOTICE
+========================================================================
+
+Apache TinkerPop :: Gremlin Shaded
+Copyright 2015-2026 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+------------------------------------------------------------------------
+Jackson-Databind, Jackson-Annotation and Jackson-Core 2.15.2
+------------------------------------------------------------------------
+It was originally written by Tatu Saloranta (tatu.saloranta@iki.fi), and has
+been in development since 2007.
+It is currently developed by a community of developers.
+
+* FastDoubleParser
+
+    jackson-core bundles a shaded copy of FastDoubleParser <https://github.com/wrandelshofer/FastDoubleParser>.
+    That code is available under an MIT license <https://github.com/wrandelshofer/FastDoubleParser/blob/main/LICENSE>
+    under the following copyright.
+
+    Copyright © 2023 Werner Randelshofer, Switzerland. MIT License.
+
+    Some portions of the code have been derived from other projects.
+
+        fast_double_parser, Copyright (c) 2022 Daniel Lemire. Apache 2.0 License.
+        https://github.com/fastfloat/fast_float
+
+        fast_float, Copyright (c) 2021 The fast_float authors. Apache 2.0 License.
+        https://github.com/fastfloat/fast_float
+
+        bigint, Copyright 2020 Tim Buktu. 2-clause BSD License.
+        https://github.com/tbuktu/bigint/tree/floatfft
+        (We only use those portions of the bigint project that can be licensed under 2-clause BSD License.)
+
+------------------------------------------------------------------------
+Objenesis 3.3 - shaded in gremlin-shaded to org.apache.tinkerpop.shaded.objenesis
+------------------------------------------------------------------------
+Copyright 2006-2022 Joe Walnes, Henri Tremblay, Leonardo Mesquita
+
+========================================================================
+org.apache.tinkerpop:gremlin-test:3.8.1 / META-INF/NOTICE
+========================================================================
+
+
+Apache TinkerPop :: Gremlin Test
+Copyright 2013-2022 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.tinkerpop:gremlin-util:3.8.1 / META-INF/NOTICE
+========================================================================
+
+
+Apache TinkerPop :: Gremlin Util
+Copyright 2013-2022 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.tinkerpop:tinkergraph-gremlin:3.8.1 / META-INF/NOTICE
+========================================================================
+
+
+Apache TinkerPop :: TinkerGraph Gremlin
+Copyright 2013-2022 Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.hugegraph:hg-pd-client:1.7.0 / META-INF/NOTICE
+========================================================================
+
+
+hg-pd-client
+Copyright 2017-2020 The Apache Software Foundation
+
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.hugegraph:hg-pd-common:1.7.0 / META-INF/NOTICE
+========================================================================
+
+
+hg-pd-common
+Copyright 2017-2020 The Apache Software Foundation
+
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.hugegraph:hg-pd-grpc:1.7.0 / META-INF/NOTICE
+========================================================================
+
+
+hg-pd-grpc
+Copyright 2017-2020 The Apache Software Foundation
+
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.hugegraph:hugegraph-common:1.7.0 / META-INF/NOTICE
+========================================================================
+
+
+hugegraph-common
+Copyright 2017-2020 The Apache Software Foundation
+
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+
+
+========================================================================
+org.apache.hugegraph:hugegraph-core:1.7.0 / META-INF/NOTICE
+========================================================================
+
+
+hugegraph-core
+Copyright 2017-2020 The Apache Software Foundation
+
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+========================================================================
+Inherited runtime dependency attribution notices
+========================================================================
+
+========================================================================
+commons-codec:commons-codec:1.15 / META-INF/NOTICE.txt
+========================================================================
+
+Apache Commons Codec
+Copyright 2002-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (https://www.apache.org/).
+
+src/test/org/apache/commons/codec/language/DoubleMetaphoneTest.java
+contains test data from http://aspell.net/test/orig/batch0.tab.
+Copyright (C) 2002 Kevin Atkinson (kevina@gnu.org)
+
+===============================================================================
+
+The content of package org.apache.commons.codec.language.bm has been translated
+from the original php source code available at http://stevemorse.org/phoneticinfo.htm
+with permission from the original authors.
+Original source copyright:
+Copyright (c) 2008 Alexander Beider & Stephen P. Morse.
+
+========================================================================
+commons-io:commons-io:2.8.0 / META-INF/NOTICE.txt
+========================================================================
+
+Apache Commons IO
+Copyright 2002-2020 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (https://www.apache.org/).
+
+========================================================================
+org.apache.commons:commons-text:1.10.0 / META-INF/NOTICE.txt
+========================================================================
+
+Apache Commons Text
+Copyright 2014-2022 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (https://www.apache.org/).
+
+========================================================================
+io.grpc:grpc-netty-shaded:1.39.0 / META-INF/NOTICE.txt
+========================================================================
+
+                          The Netty Project
+                            =================
+
+Please visit the Netty web site for more information:
+
+  * http://netty.io/
+
+Copyright 2016 The Netty Project
+
+The Netty Project licenses this file to you under the Apache License,
+version 2.0 (the "License"); you may not use this file except in compliance
+with the License. You may obtain a copy of the License at:
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+
+-------------------------------------------------------------------------------
+This product contains a forked and modified version of Tomcat Native
+
+  * LICENSE:
+    * license/LICENSE.tomcat-native.txt (Apache License 2.0)
+  * HOMEPAGE:
+    * http://tomcat.apache.org/native-doc/
+    * https://svn.apache.org/repos/asf/tomcat/native/
+
+This product contains the Maven wrapper scripts from 'Maven Wrapper', that provides an easy way to ensure a user has everything necessary to run the Maven build.
+
+  * LICENSE:
+    * license/LICENSE.mvn-wrapper.txt (Apache License 2.0)
+  * HOMEPAGE:
+    * https://github.com/takari/maven-wrapper
+
+This product contains small piece of code to support AIX, taken from netbsd.
+
+  * LICENSE:
+    * license/LICENSE.aix-netbsd.txt (OpenSSL License)
+  * HOMEPAGE:
+    * https://ftp.netbsd.org/pub/NetBSD/NetBSD-current/src/crypto/external/bsd/openssl/dist
+
+
+This product contains code from boringssl.
+
+  * LICENSE (Combination ISC and OpenSSL license)
+    * license/LICENSE.boringssl.txt (Combination ISC and OpenSSL license)
+  * HOMEPAGE:
+    * https://boringssl.googlesource.com/boringssl/
+
+========================================================================
+org.apache.commons:commons-lang3:3.9 / META-INF/NOTICE.txt
+========================================================================
+
+Apache Commons Lang
+Copyright 2001-2018 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+========================================================================
+commons-beanutils:commons-beanutils:1.9.4 / META-INF/NOTICE.txt
+========================================================================
+
+Apache Commons BeanUtils
+Copyright 2000-2019 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+========================================================================
+org.apache.commons:commons-collections4:4.4 / META-INF/NOTICE.txt
+========================================================================
+
+Apache Commons Collections
+Copyright 2001-2019 The Apache Software Foundation
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).

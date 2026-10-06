@@ -58,27 +58,36 @@ assets. These checks validate image build, packaging, startup and public entry
 points; Loader data ingestion and Hubble browser workflows remain covered by
 module tests. They do not publish an image.
 
-Selected Client, Loader, Tools and Spark module tests compile and run on Java 11
-and Java 17. Both matrix entries run, including Loader's separate HDFS tests; their results remain advisory.
-Hubble compiles and runs on Java 17, matching its merged Boot 3 runtime requirement,
-and tests against each Server baseline. These runtime checks supplement the
-existing affected-module selection; unrelated modules are not added.
-Client, Loader, Tools, Spark and Go test the released Server 1.7
-fixture on Java 11. Hubble tests both this release and the current Server master
-snapshot on Java 17; the resolved commit stays fixed while the run is queued.
+Selected Client, Loader, Tools, Spark and Hubble tests compile and run on Java 17,
+including Loader's separate HDFS jobs. Core module tests cover the locked candidate
+and released Server 1.7 where configured; these runtime checks supplement affected-module
+selection without adding unrelated modules. Their results remain advisory.
 
-Each Server package is built once and shared, with independent services per job.
-Reuse verifies source, commit, JDK, build inputs and archive checksum. The Server
-JVM is scoped to service startup, so Toolchain compilation and tests keep their
-selected Java 11 or Java 17 runtime. Both Toolchain lanes reuse the same release
-Server fixture; Hubble uses the separate Java 17 current Server fixture.
-Loader's HDFS tests run separately, so other profiles do not wait for Hadoop.
-The Ubuntu HDFS jobs use the ASF Hadoop 3.3.6 image pinned by digest, with separate
-NameNode and DataNode containers on the host network. Tests still run on the
-selected Java 11/17 host JVM and use `localhost:8020`. Startup checks live DataNode
-registration and a real block write/read before testing; containers are removed
-afterward. Image pulling and readiness are bounded. This avoids installing the
-large archive on each runner, but cold runners still need to pull the image.
+The historical Server 1.7 fixture runs on its own Java 11 JVM. The locked candidate
+Server runs on Java 17. TODO ([apache/hugegraph#3263](https://github.com/apache/hugegraph/pull/3263)):
+replace the temporary candidate source with verified ASF inputs after the Server
+migration merges, and revalidate the SDK/runtime matrix.
+
+The released Server package and Hubble's candidate fixture are each built once and
+shared, with independent services per job. Reuse verifies source, commit, JDK, build
+inputs and archive checksum. Client, Loader and Tools candidate tests start the
+archive already produced by their SDK bootstrap. SDK generation remains job-local
+until distinct published SDK coordinates are available. The service JVM is scoped
+to startup; Toolchain compilation and tests remain on Java 17.
+
+The shared Java initialization action requires Maven 3.9 or newer and supplies
+explicit settings through `MAVEN_ARGS`, preserving existing arguments and user
+settings. Dependencies are resolved from Central before ASF Stage, with Stage
+snapshots disabled; build plugins use the standard public repositories. Maven cache
+keys include the repository settings so changes to the Stage URL invalidate the cache.
+
+Loader's HDFS tests run separately, so other profiles do not wait for Hadoop. The
+Ubuntu HDFS jobs use the ASF Hadoop 3.3.6 image pinned by digest, with separate NameNode
+and DataNode containers on the host network. Tests run on Java 17 and use
+`localhost:8020`. Startup checks live DataNode registration and a real block
+write/read before testing; containers are removed afterward. Image pulling and
+readiness are bounded. Cold runners still need to pull the image.
+
 The immutable Server packages, `ci-plan` and `ci-test-results` diagnostic artifacts
 are retained for seven days from their upload. Partial reruns need the original
 plan and fixture within that window. After an artifact expires, rerun the whole
@@ -94,10 +103,11 @@ are never treated as docs. The gate checks the current workflow's actual selecte
 job results and fixture producers. Its result report records the run, attempt and
 input metadata for diagnostics; it is not a reusable success receipt.
 The planner determines affected consumers before resolving external Server inputs.
-Go-only changes resolve the release fixture but skip the Hubble master lookup;
-image-only and plain documentation changes need neither baseline. Unverifiable
-selection conservatively resolves both. A failed selected baseline lookup still
-fails planning; without a published plan, recovery requires a full workflow rerun.
+Plans that require Server fixtures record the historical release and locked
+candidate source; Go-only module tests consume only the release fixture. Image-only
+and plain documentation plans need neither baseline. Unverifiable selection
+conservatively resolves both. A failed selected baseline lookup fails planning;
+without a published plan, recovery requires a full workflow rerun.
 
 PR planning records the event's head, base and source before querying live metadata.
 A known mismatch with the checkout merge, current head or source fails planning.

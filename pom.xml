@@ -108,9 +108,8 @@
         <assembly.static.dir>${assembly.dir}/static</assembly.static.dir>
         <shell-executable>bash</shell-executable>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <java.version>1.8</java.version>
-        <compiler.source>1.8</compiler.source>
-        <compiler.target>1.8</compiler.target>
+        <java.version>17</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
         <maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
         <maven.surefire.plugin.version>3.5.6</maven.surefire.plugin.version>
         <jacoco.version>0.8.15</jacoco.version>
@@ -131,7 +130,7 @@
         <hadoop.version>3.3.1</hadoop.version>
         <zookeeper.version>3.6.2</zookeeper.version>
         <junit.version>4.12</junit.version>
-        <mockito.version>4.11.0</mockito.version>
+        <mockito.version>5.17.0</mockito.version>
         <lombok.version>1.18.32</lombok.version>
         <commons.io.version>2.8.0</commons.io.version>
         <commons.lang3.version>3.9</commons.lang3.version>
@@ -604,6 +603,7 @@
                         <exclude>**/.wrangler/**/*</exclude>
                         <exclude>**/*.mv.db</exclude>
                         <exclude>**/*.trace.db</exclude>
+                        <exclude>**/*.truststore</exclude>
                         <exclude>**/*.svg</exclude>
                         <exclude>**/*.woff2</exclude>
                         <exclude>**/hubble-fe/**/*</exclude>
@@ -625,8 +625,7 @@
                     <artifactId>maven-compiler-plugin</artifactId>
                     <version>${maven.compiler.plugin.version}</version>
                     <configuration>
-                        <source>${compiler.source}</source>
-                        <target>${compiler.target}</target>
+                        <release>${maven.compiler.release}</release>
                         <encoding>${project.build.sourceEncoding}</encoding>
                         <compilerArgs>
                             <arg>-Xmaxerrs</arg>

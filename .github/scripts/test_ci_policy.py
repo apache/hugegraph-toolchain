@@ -421,6 +421,151 @@ class PolicyTest(unittest.TestCase):
             finally:
                 os.chdir(old)
 
+    def test_native_stack_canonical_base_and_gate_freshness(self):
+        # Reproduce GitHub native stacks: REST base.sha can remain at the old
+        # head, while the merge's first parent wraps the actual branch head.
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            def git(*args):
+                return subprocess.check_output(["git", *args], cwd=root, text=True).strip()
+            git("init", "-q")
+            git("config", "user.email", "ci@example.invalid")
+            git("config", "user.name", "CI")
+            (root / "README.md").write_text("anchor")
+            (root / "hugegraph-hubble").mkdir()
+            (root / "hugegraph-hubble/README.md").write_text("Hubble")
+            git("add", ".")
+            git("commit", "-qm", "anchor")
+            anchor = git("rev-parse", "HEAD")
+            anchor_tree = git("rev-parse", "HEAD^{tree}")
+            (root / "hugegraph-client").mkdir()
+            (root / "hugegraph-client/A.java").write_text("canonical base")
+            git("add", ".")
+            git("commit", "-qm", "parent PR")
+            canonical = git("rev-parse", "HEAD")
+            canonical_tree = git("rev-parse", "HEAD^{tree}")
+            (root / "hugegraph-loader").mkdir()
+            (root / "hugegraph-loader/A.java").write_text("child PR")
+            git("add", ".")
+            git("commit", "-qm", "child PR")
+            head = git("rev-parse", "HEAD")
+            head_tree = git("rev-parse", "HEAD^{tree}")
+            virtual = git("commit-tree", canonical_tree, "-p", anchor, "-p", canonical, "-m", "stack parent")
+            merge = git("commit-tree", head_tree, "-p", virtual, "-p", head, "-m", "PR merge")
+            unrelated = git("commit-tree", anchor_tree, "-m", "unrelated root")
+            advanced = git("commit-tree", canonical_tree, "-p", canonical, "-m", "advanced base")
+            wrong_tree = git("commit-tree", anchor_tree, "-p", anchor, "-p", canonical, "-m", "wrong tree")
+            wrong_parents = git("commit-tree", canonical_tree, "-p", unrelated, "-p", canonical,
+                                "-m", "wrong anchor")
+            live = self.live_pr()
+            live.update(merge_commit_sha=merge, stack={"id": 172, "number": 48, "position": 2, "size": 2,
+                                                     "base": {"ref": "prerequisites", "sha": anchor}})
+            live["head"]["sha"] = head
+            live["base"].update(sha=anchor, ref="candidate")
+            event = {"pull_request": json.loads(json.dumps(dict(live, number=7)))}
+            ref = {"object": {"type": "commit", "sha": canonical}}
+            def fetch(path):
+                if path == "repos/apache/t/pulls/7":
+                    return live
+                self.assertEqual("repos/apache/t/git/ref/heads/candidate", path)
+                return ref
+            old = os.getcwd()
+            try:
+                os.chdir(root)
+                git("checkout", "--detach", "-q", merge)
+                plan = policy.create_plan("toolchain", event, "apache/t", fetch)
+                self.assertEqual(canonical, plan["base"])
+                self.assertEqual("candidate", plan["baseBranch"])
+                self.assertEqual(live["stack"], plan["stack"])
+                without_stack = {"pull_request": dict(event["pull_request"])}
+                without_stack["pull_request"].pop("stack")
+                self.assertEqual(plan["base"], policy.create_plan(
+                    "toolchain", without_stack, "apache/t", fetch)["base"])
+                # Parent PR changes must not replace the cumulative child diff.
+                self.assertEqual(["hubble", "loader"], plan["selected"])
+                results = {suite: {"result": "success"} for suite in plan["expected"]}
+                results.update(plan={"result": "success"}, fixture={"result": "success"},
+                               **{"hubble-fixture": {"result": "success"}})
+                report = policy.gate(plan, results, fetch)
+                self.assertEqual(canonical, report["base"])
+                self.assertEqual("candidate", report["baseBranch"])
+                self.assertEqual(live["stack"], report["stack"])
+                # Advisory failures retain the same tested stack identity.
+                failed = policy.result_report(plan, {"loader": {"result": "cancelled"}})
+                self.assertEqual(canonical, failed["base"])
+                self.assertEqual("candidate", failed["baseBranch"])
+                self.assertEqual(live["stack"], failed["stack"])
+                self.assertEqual("cancelled", failed["results"]["loader"]["result"])
+                original = json.loads(json.dumps(live))
+                for name in ["missing_stack", "changed_head", "changed_branch", "changed_stack", "changed_merge",
+                             "changed_base_ref", "unrelated_anchor"]:
+                    live = json.loads(json.dumps(original))
+                    if name == "missing_stack":
+                        del live["stack"]
+                    elif name == "changed_head":
+                        live["head"]["sha"] = advanced
+                    elif name == "changed_branch":
+                        live["head"]["ref"] = "other"
+                    elif name == "changed_stack":
+                        live["stack"]["id"] += 1
+                    elif name == "changed_merge":
+                        live["merge_commit_sha"] = advanced
+                    elif name == "changed_base_ref":
+                        live["base"]["ref"] = "other"
+                    else:
+                        live["stack"]["base"]["sha"] = unrelated
+                    with self.subTest(change=name):
+                        with self.assertRaises(policy.StaleInputError):
+                            policy.create_plan("toolchain", event, "apache/t", fetch)
+                        with self.assertRaises(policy.StaleInputError):
+                            policy.gate(plan, results, fetch)
+                live = json.loads(json.dumps(original))
+                for bad_virtual in [wrong_tree, wrong_parents]:
+                    bad_merge = git("commit-tree", head_tree, "-p", bad_virtual, "-p", head, "-m", "bad PR merge")
+                    live["merge_commit_sha"] = bad_merge
+                    git("checkout", "--detach", "-q", bad_merge)
+                    with self.subTest(virtual=bad_virtual), self.assertRaises(policy.StaleInputError):
+                        policy.create_plan("toolchain", event, "apache/t", fetch)
+                # Even matching API stack metadata cannot authorize an unrelated
+                # anchor. Exact parent IDs and tree equality alone are insufficient.
+                live = json.loads(json.dumps(original))
+                live["stack"]["base"]["sha"] = unrelated
+                orphan_merge = git("commit-tree", head_tree, "-p", wrong_parents, "-p", head,
+                                   "-m", "unrelated stack")
+                live["merge_commit_sha"] = orphan_merge
+                orphan_event = {"pull_request": json.loads(json.dumps(dict(live, number=7)))}
+                git("checkout", "--detach", "-q", orphan_merge)
+                with self.assertRaises(policy.StaleInputError):
+                    policy.create_plan("toolchain", orphan_event, "apache/t", fetch)
+                live = json.loads(json.dumps(original))
+                git("checkout", "--detach", "-q", merge)
+                ref["object"]["sha"] = advanced
+                with self.assertRaises(policy.StaleInputError):
+                    policy.create_plan("toolchain", event, "apache/t", fetch)
+                with self.assertRaises(policy.StaleInputError):
+                    policy.gate(plan, results, fetch)
+                ref["object"].pop("sha")
+                with self.assertRaises(policy.StaleInputError):
+                    policy.create_plan("toolchain", event, "apache/t", fetch)
+                ref["object"]["sha"] = canonical
+                calls = []
+                def temporarily_malformed_api(path):
+                    calls.append(path)
+                    if len(calls) == 1:
+                        raise json.JSONDecodeError("malformed API JSON", "", 0)
+                    return fetch(path)
+                # A later healthy gate must never rescue an unverified plan:
+                # the transient planner error aborts instead of returning one.
+                with self.assertRaises(policy.StaleInputError):
+                    policy.create_plan("toolchain", event, "apache/t", temporarily_malformed_api)
+                self.assertEqual(1, len(calls))
+                recovered = policy.create_plan("toolchain", event, "apache/t", temporarily_malformed_api)
+                self.assertEqual(canonical, recovered["base"])
+                self.assertEqual(recovered["expected"], policy.gate(
+                    recovered, results, temporarily_malformed_api)["executed"])
+            finally:
+                os.chdir(old)
+
     def test_push_gate_does_not_query_pr(self):
         plan = dict(self.plan(), pr=0, expected=[], selected=[])
         policy.gate(plan, {"plan": {"result": "success"}},

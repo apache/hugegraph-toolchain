@@ -22,6 +22,7 @@ import os
 import re
 from pathlib import Path
 import subprocess
+from urllib.parse import quote
 
 MODULES = {
     "server": ["server", "commons", "struct", "pd", "store", "hstore", "cluster", "docker", "helm", "dependency_license"],
@@ -278,6 +279,45 @@ def require_current_pr(plan, fetch):
             or live["head"]["ref"] != plan["branch"]
             or live["base"]["repo"]["full_name"] != plan["repository"]):
         raise StaleInputError("PR inputs changed; refresh the branch and start a new PR run")
+    if "stack" in plan:
+        # Native stacks can leave REST base.sha at an older snapshot. The actual
+        # branch ref, rather than that snapshot, identifies the tested base.
+        ref = fetch(f"repos/{plan['repository']}/git/ref/heads/{quote(plan['baseBranch'], safe='')}")
+        if (live.get("stack") != plan["stack"] or live["base"].get("ref") != plan["baseBranch"]
+                or ref.get("object", {}).get("sha") != plan["base"]
+                or live.get("merge_commit_sha") != plan["testedMergeSHA"]):
+            raise StaleInputError("PR stack or canonical base changed; start a new PR run")
+
+
+def record_stack_merge(plan, event_pr, parents, fetch):
+    """Accept only GitHub's native stack merge of the canonical base tree."""
+    try:
+        live = fetch(f"repos/{plan['repository']}/pulls/{plan['pr']}")
+        stack = live["stack"]
+        branch = live["base"]["ref"]
+        anchor = stack["base"]["sha"]
+        if (type(stack["id"]) is not int or stack["id"] <= 0
+                or type(stack["number"]) is not int or stack["number"] <= 0
+                or type(stack["position"]) is not int or stack["position"] <= 1
+                or type(stack["size"]) is not int or stack["size"] < stack["position"]
+                or not stack["base"]["ref"] or not anchor or not branch
+                or event_pr["base"]["ref"] != branch
+                or ("stack" in event_pr and event_pr["stack"] != stack)
+                or live.get("merge_commit_sha") != plan["testedMergeSHA"]
+                or len(parents) != 2 or parents[1] != plan["head"]):
+            raise StaleInputError("checkout lacks a valid native PR stack merge identity")
+        ref = fetch(f"repos/{plan['repository']}/git/ref/heads/{quote(branch, safe='')}")
+        canonical = ref["object"]["sha"]
+        virtual = parents[0]
+        if (ref["object"].get("type") != "commit" or not canonical
+                or git("show", "-s", "--format=%P", virtual).split() != [anchor, canonical]
+                or git("rev-parse", virtual + "^{tree}") != git("rev-parse", canonical + "^{tree}")
+                or git("merge-base", anchor, canonical) != anchor):
+            raise StaleInputError("stack virtual parent does not prove the current canonical base")
+        plan.update(base=canonical, baseBranch=branch, stack=stack)
+        require_current_pr(plan, fetch)
+    except (ValueError, KeyError, TypeError, AttributeError, subprocess.SubprocessError, OSError) as error:
+        raise StaleInputError("native PR stack identity could not be verified") from error
 
 
 def create_plan(project, event, repository, fetch=api, external_inputs=None):
@@ -303,8 +343,9 @@ def create_plan(project, event, repository, fetch=api, external_inputs=None):
                 raise StaleInputError("PR event has an empty input identity")
             parents = git("show", "-s", "--format=%P", plan["testedMergeSHA"]).split()
             if parents != [plan["base"], plan["head"]]:
-                raise StaleInputError("checkout is not the event PR merge; start a new PR run")
-            require_current_pr(plan, fetch)
+                record_stack_merge(plan, pr, parents, fetch)
+            else:
+                require_current_pr(plan, fetch)
             # head/base objects must exist locally; workflow fetches both before planning.
             ancestor = git("merge-base", plan["base"], plan["head"])
             paths = git("diff", "--no-renames", "--name-only", ancestor, plan["head"]).splitlines()
@@ -383,6 +424,8 @@ def write_summary(plan, results=None):
 def result_report(plan, results):
     report = {key: plan[key] for key in ["schema", "repository", "project", "pr", "source", "branch", "base",
                                         "head", "testedMergeSHA", "externalInputs"]}
+    if "stack" in plan:
+        report.update(baseBranch=plan["baseBranch"], stack=plan["stack"])
     report.update(runID=int(os.environ.get("GITHUB_RUN_ID", "0")),
                   runAttempt=int(os.environ.get("GITHUB_RUN_ATTEMPT", "1")),
                   executed=plan["expected"], results=results)

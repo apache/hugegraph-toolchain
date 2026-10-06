@@ -159,6 +159,14 @@
                                     echo "${top.level.dir}/target/${final.name}.tar.gz"
                                     rm -f ${top.level.dir}/dist.sh
                                 </echo>
+                                <exec executable="python3" failonerror="true">
+                                    <arg value="${repo.root.dir}/.github/scripts/verify_candidate_image_sdk.py"/>
+                                    <arg value="${settings.localRepository}"/>
+                                    <arg value="--distribution"/>
+                                    <arg value="${top.level.dir}/${final.name}"/>
+                                    <arg value="--module"/>
+                                    <arg value="hubble"/>
+                                </exec>
                                 <exec executable="${shell-executable}" dir="${top.level.dir}" failonerror="true">
                                     <arg line="./dist.sh" />
                                 </exec>

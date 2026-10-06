@@ -95,8 +95,14 @@ it('clears the selection error before entering with a different data source', as
         data: [id === 'A' ? 'old_name' : 'new_name'],
     }));
     const onFormFinish = jest.fn();
+    let fieldForm;
+    const onFormChange = jest.fn((name, {forms}) => {
+        if (name === 'field_form') {
+            fieldForm = forms.field_form;
+        }
+    });
     const view = datasourceID => (
-        <Form.Provider onFormFinish={onFormFinish}>
+        <Form.Provider onFormFinish={onFormFinish} onFormChange={onFormChange}>
             <FieldForm visible prev={jest.fn()} datasourceID={datasourceID} />
         </Form.Provider>
     );
@@ -108,9 +114,10 @@ it('clears the selection error before entering with a different data source', as
     await waitFor(() => expect(
         oldError.closest('[role="alert"]').parentElement
     ).toHaveFocus());
+    expect(fieldForm.getFieldError('target_keys')).toEqual(['task.edit.select_source_fields']);
 
     rerender(
-        <Form.Provider onFormFinish={onFormFinish}>
+        <Form.Provider onFormFinish={onFormFinish} onFormChange={onFormChange}>
             <FieldForm visible={false} prev={jest.fn()} datasourceID='A' />
         </Form.Provider>
     );
@@ -120,6 +127,7 @@ it('clears the selection error before entering with a different data source', as
     await waitFor(() => expect(
         screen.queryByText('task.edit.select_source_fields')
     ).not.toBeInTheDocument());
+    expect(fieldForm.getFieldError('target_keys')).toEqual([]);
     expect(document.querySelector('.ant-transfer')).not.toHaveClass(
         'ant-transfer-status-error'
     );

@@ -59,10 +59,16 @@ if [[ ! -f "${tarball}" ]]; then
     exit 1
 fi
 
+if ! command -v jar >/dev/null 2>&1; then
+    echo "jar is required to inspect bundled JARs; select a JDK through PATH" >&2
+    exit 1
+fi
+
 tmp_list=$(mktemp)
 tmp_dir=$(mktemp -d)
 native_list=$(mktemp)
-trap 'rm -f "${tmp_list}" "${native_list}"; rm -rf "${tmp_dir}"' EXIT
+jar_entries=$(mktemp)
+trap 'rm -f "${tmp_list}" "${native_list}" "${jar_entries}"; rm -rf "${tmp_dir}"' EXIT
 
 tar -tzf "${tarball}" > "${tmp_list}"
 
@@ -208,7 +214,11 @@ fi
 
 while IFS= read -r jar_path; do
     local_jar="${tmp_dir}/${jar_path}"
-    if jar tf "${local_jar}" | grep -qE "\\.(so|dylib|dll|jnilib)$"; then
+    if ! jar tf "${local_jar}" > "${jar_entries}"; then
+        echo "Unable to inspect packaged JAR: ${jar_path}" >&2
+        exit 1
+    fi
+    if grep -qE "\\.(so|dylib|dll|jnilib)$" "${jar_entries}"; then
         echo "${jar_path}" >> "${native_list}"
     fi
 done < <(grep -E "^${root}/lib/[^/]+\\.jar$" "${tmp_list}")

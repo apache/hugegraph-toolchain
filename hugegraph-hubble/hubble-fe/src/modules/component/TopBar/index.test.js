@@ -144,6 +144,10 @@ it('settles a rejected Vermeer load and lets the user retry', async () => {
         'analysis.topbar.load_vermeer_failed'
     ));
 
+    await waitFor(() => {
+        expect(reload).toBeEnabled();
+        expect(reload).not.toHaveClass('ant-btn-loading');
+    });
     fireEvent.click(reload);
     await waitFor(() => expect(api.analysis.loadVermeerTask).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(api.analysis.getGraphList).toHaveBeenCalledTimes(2));

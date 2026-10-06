@@ -106,7 +106,7 @@ const FieldForm = ({visible, prev, datasourceID}) => {
 
     const setKey = useCallback(val => {
         setTargetKeys(val);
-        fieldForm.setFieldValue('target_keys', val);
+        fieldForm.setFieldsValue({target_keys: val});
         if (val.length > 0) {
             setTransferStatus('');
         }
@@ -202,7 +202,7 @@ const FieldForm = ({visible, prev, datasourceID}) => {
         let active = true;
         setSourceData([]);
         setTargetKeys([]);
-        fieldForm.setFieldValue('target_keys', []);
+        fieldForm.setFieldsValue({target_keys: []});
         setTransferStatus('');
         setLoadError(false);
         api.manage.getDatasourceSchema(datasourceID).then(res => {

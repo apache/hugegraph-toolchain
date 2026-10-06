@@ -6,6 +6,12 @@ on:
       current-artifact-name:
         type: string
         required: true
+      current-repository:
+        type: string
+        required: true
+      current-ref:
+        type: string
+        required: true
       current-commit:
         type: string
         required: true
@@ -29,13 +35,12 @@ jobs:
   hubble-ci:
     runs-on: ubuntu-latest
     env:
-      USE_STAGE: 'false' # Whether to include the stage repository.
       STATIC_DIR: hugegraph-hubble/hubble-dist/assembly/static
     strategy:
       fail-fast: false
       matrix:
         JAVA_VERSION: ['17']
-        SERVER_BASELINE: ['current', 'release-1.7']
+        SERVER_BASELINE: ['candidate', 'release-1.7']
         python-version: ["3.11"]
 
     steps:
@@ -44,20 +49,32 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install Server fixture JVM
-        id: server-java
+      - name: Install released Server JDK
+        if: matrix.SERVER_BASELINE == 'release-1.7'
+        id: released-java
         uses: actions/setup-java@v5
         with:
-          java-version: ${{ matrix.SERVER_BASELINE == 'current' && '17' || '11' }}
-          distribution: temurin
+          java-version: '11'
+          distribution: 'temurin'
           overwrite-settings: false
+
+      - name: Record released Server JDK
+        if: matrix.SERVER_BASELINE == 'release-1.7'
+        run: echo "SERVER_JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
 
       - name: Setup Java environment
         uses: ./.github/actions/setup-java-env
         with:
           java-version: ${{ matrix.JAVA_VERSION }}
           distribution: 'temurin'
-          use-stage: ${{ env.USE_STAGE }}
+
+      - name: Record candidate Server JDK
+        if: matrix.SERVER_BASELINE == 'candidate'
+        run: echo "SERVER_JAVA_HOME=$JAVA_HOME" >> "$GITHUB_ENV"
+
+      - name: Install locked candidate SDK
+        id: candidate-sdk
+        uses: ./.github/actions/setup-candidate-sdk
 
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v6
@@ -117,13 +134,16 @@ jobs:
       - name: Compile
         run: |
           mvn install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
-          cd hugegraph-hubble && ls -- *
+          cd hugegraph-hubble
           mvn -e compile -Dmaven.javadoc.skip=true -ntp
 
       - name: Prepare env and service
         env:
-          COMMIT_ID: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-commit }}
-          COMMIT_REF: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-commit }}
+          COMMIT_ID: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-commit || inputs.server-commit }}
+          COMMIT_REF: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-commit || inputs.server-ref }}
+          SERVER_REPOSITORY: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-repository || inputs.server-repository }}
+          HG_SERVER_BASELINE: ${{ matrix.SERVER_BASELINE }}
+          SERVER_MAVEN_REPO: ${{ runner.temp }}/hubble-fixture-${{ matrix.SERVER_BASELINE }}-m2
           NODE_OPTIONS: --max-old-space-size=4096
         run: |
           echo "=== Environment Info ==="
@@ -145,20 +165,26 @@ jobs:
           cd ../../../
           pwd
 
-      - name: Setup HugeGraph server
+
+      - name: Setup shared HugeGraph server
         uses: ./.github/actions/setup-hugegraph-server
         with:
           mode: start
-          java-version: ${{ matrix.SERVER_BASELINE == 'current' && '17' || '11' }}
-          java-home: ${{ steps.server-java.outputs.path }}
-          artifact-name: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-artifact-name || inputs.artifact-name }}
-          commit-id: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-commit }}
-          repository: ${{ inputs.server-repository }}
-          fetch-ref: ${{ matrix.SERVER_BASELINE == 'current' && inputs.current-commit || inputs.server-ref }}
+          java-version: ${{ matrix.SERVER_BASELINE == 'candidate' && '17' || '11' }}
+          java-home: ${{ env.SERVER_JAVA_HOME }}
+          artifact-name: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-artifact-name || inputs.artifact-name }}
+          commit-id: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-commit || inputs.server-commit }}
+          repository: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-repository || inputs.server-repository }}
+          fetch-ref: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-ref || inputs.server-ref }}
           travis-dir: ${{ env.TRAVIS_DIR }}
 
-      - name: Archive preservation test
-        run: python3 "$TRAVIS_DIR/test_archive_hubble.py"
+      - name: Test Gremlin fixture configuration
+        run: python3 "$TRAVIS_DIR/test_configure_gremlin_fixture.py"
+
+      - name: Archive and distribution audit tests
+        run: |
+          python3 "$TRAVIS_DIR/test_archive_hubble.py"
+          python3 "$TRAVIS_DIR/test_check_hubble_dist.py"
 
       - name: Release package audit
         env:
@@ -169,8 +195,8 @@ jobs:
             echo "Expected exactly one Hubble tarball" >&2
             exit 1
           fi
-          HUBBLE_TARBALL="${archives[0]}"
 
+          HUBBLE_TARBALL="${archives[0]}"
           mkdir -p "${GNUPGHOME}"
           chmod 700 "${GNUPGHOME}"
           shasum -a 512 "${HUBBLE_TARBALL}" > "${HUBBLE_TARBALL}.sha512"
@@ -195,6 +221,8 @@ jobs:
         run: mvn test -P unit-test -pl hugegraph-hubble/hubble-be -ntp
 
       - name: API test
+        env:
+          HG_SERVER_BASELINE: ${{ matrix.SERVER_BASELINE }}
         run: |
           cd hugegraph-hubble
           archives=(target/apache-hugegraph-hubble-*.tar.gz)

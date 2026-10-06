@@ -48,6 +48,12 @@ jobs:
           log: info
           config: .licenserc.yaml
 
+      - name: Setup Java and Maven
+        uses: ./.github/actions/setup-java-env
+        with:
+          java-version: '17'
+          distribution: temurin
+
       - name: License check(RAT)
         run: |
           mvn apache-rat:check -ntp

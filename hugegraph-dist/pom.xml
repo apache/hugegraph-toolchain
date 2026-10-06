@@ -57,7 +57,8 @@
                                     mv -v $root_path/hugegraph-tools/apache-hugegraph-tools-${project.version} ${final.name}/ || exit
                                     cp -r -v $root_path/hugegraph-dist/release-docs/* ${final.name}/ || exit
 
-                                    tar zcvf $root_path/target/${final.name}.tar.gz ./${final.name} || exit 1
+                                    COPYFILE_DISABLE=1 tar zcvf "$root_path/target/${final.name}.tar.gz" \
+                                        ./${final.name} || exit 1
 
                                     md5sum $root_path/target/${final.name}.tar.gz
                                     echo -n "hugegraph-toolchain tar.gz available at: "
@@ -65,6 +66,37 @@
                                     rm -f ${project.basedir}/dist.sh
 
                                 </echo>
+                                <delete file="${project.basedir}/../${final.name}/candidate-sdk-manifest.json"
+                                        failonerror="true"/>
+                                <copy todir="${project.basedir}/../${final.name}">
+                                    <fileset dir="${settings.localRepository}">
+                                        <include name="candidate-sdk-manifest.json"/>
+                                    </fileset>
+                                </copy>
+                                <exec executable="python3" failonerror="true">
+                                    <arg value="${project.basedir}/../.github/scripts/verify_candidate_image_sdk.py"/>
+                                    <arg value="${settings.localRepository}"/>
+                                    <arg value="--distribution"/>
+                                    <arg value="${project.basedir}/../hugegraph-loader/apache-hugegraph-loader-${project.version}"/>
+                                    <arg value="--module"/>
+                                    <arg value="loader"/>
+                                </exec>
+                                <exec executable="python3" failonerror="true">
+                                    <arg value="${project.basedir}/../.github/scripts/verify_candidate_image_sdk.py"/>
+                                    <arg value="${settings.localRepository}"/>
+                                    <arg value="--distribution"/>
+                                    <arg value="${project.basedir}/../hugegraph-tools/apache-hugegraph-tools-${project.version}"/>
+                                    <arg value="--module"/>
+                                    <arg value="tools"/>
+                                </exec>
+                                <exec executable="python3" failonerror="true">
+                                    <arg value="${project.basedir}/../.github/scripts/verify_candidate_image_sdk.py"/>
+                                    <arg value="${settings.localRepository}"/>
+                                    <arg value="--distribution"/>
+                                    <arg value="${project.basedir}/../hugegraph-hubble/apache-hugegraph-hubble-${project.version}"/>
+                                    <arg value="--module"/>
+                                    <arg value="hubble"/>
+                                </exec>
                                 <exec executable="${shell-executable}" dir="${project.basedir}" failonerror="true">
                                     <arg line="./dist.sh"/>
                                 </exec>

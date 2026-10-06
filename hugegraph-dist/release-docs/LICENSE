@@ -230,7 +230,6 @@ See licenses/ for text of these licenses.
 	(Apache License, Version 2.0) * Apache Commons Compress (org.apache.commons:commons-compress:1.21 - https://commons.apache.org/proper/commons-compress/)
 	(Apache License, Version 2.0) * Apache Commons Configuration (commons-configuration:commons-configuration:1.10 - http://commons.apache.org/configuration/)
 	(Apache License, Version 2.0) * Apache Commons Configuration (org.apache.commons:commons-configuration2:2.1.1 - http://commons.apache.org/proper/commons-configuration/)
-	(Apache License, Version 2.0) * Apache Commons Configuration (org.apache.commons:commons-configuration2:2.8.0 - https://commons.apache.org/proper/commons-configuration/)
 	(Apache License, Version 2.0) * Apache Commons Crypto (org.apache.commons:commons-crypto:1.0.0 - http://commons.apache.org/proper/commons-crypto/)
 	(Apache License, Version 2.0) * Apache Commons Crypto (org.apache.commons:commons-crypto:1.1.0 - https://commons.apache.org/proper/commons-crypto/)
 	(Apache License, Version 2.0) * Apache Commons IO (commons-io:commons-io:2.8.0 - https://commons.apache.org/proper/commons-io/)
@@ -680,8 +679,6 @@ https://github.com/h2database/h2database/tree/version-2.3.232
         licenses/LICENSE-hubble-java17-third-party.txt
     (Apache-2.0) com.zaxxer:HikariCP:6.3.3
         Apache-2.0 terms above
-    (Apache-2.0) info.picocli:picocli:4.3.2
-        Apache-2.0 terms above
     (Apache-2.0) io.micrometer:micrometer-commons:1.15.12
         licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
     (Apache-2.0) io.micrometer:micrometer-observation:1.15.12
@@ -797,16 +794,6 @@ https://github.com/h2database/h2database/tree/version-2.3.232
     (Apache-2.0) org.apache.tomcat.embed:tomcat-embed-el:10.1.55
         licenses/LICENSE-hive-shims.txt
     (Apache-2.0) org.apache.tomcat.embed:tomcat-embed-websocket:10.1.55
-        licenses/LICENSE-hive-shims.txt
-    (Apache-2.0) org.codehaus.groovy:groovy-cli-picocli:2.5.14
-        licenses/LICENSE-hive-shims.txt
-    (Apache-2.0) org.codehaus.groovy:groovy-console:2.5.14
-        licenses/LICENSE-hive-shims.txt
-    (Apache-2.0) org.codehaus.groovy:groovy-swing:2.5.14
-        licenses/LICENSE-hive-shims.txt
-    (Apache-2.0) org.codehaus.groovy:groovy-templates:2.5.14
-        licenses/LICENSE-hive-shims.txt
-    (Apache-2.0) org.codehaus.groovy:groovy-xml:2.5.14
         licenses/LICENSE-hive-shims.txt
     (BSD-3-Clause) org.codehaus.janino:commons-compiler:3.1.12
         licenses/LICENSE-hubble-java17-third-party.txt
@@ -975,3 +962,125 @@ is used for Jakarta Activation and XML Binding APIs.
         licenses/LICENSE-jakarta.xml.bind-api.txt
     (MIT) org.slf4j:slf4j-api:2.0.7
         licenses/LICENSE-spark-java17-third-party.txt
+
+========================================================================
+Java 17 candidate SDK runtime additions
+========================================================================
+
+These exact versions are additions to the prepared prerequisite runtime
+union. Apache-2.0 terms are reproduced at the beginning of this LICENSE;
+full bundled and third-party grants are in licenses/LICENSE-java17-candidate-sdk.txt
+or the referenced existing component files. Required attribution notices are
+reproduced in the main distribution NOTICE. JavaParser uses its Apache-2.0
+option; Cucumber components use MIT and ANTLR/TreeLayout use BSD-3-Clause.
+These grants do not replace the terms of other bundled components.
+
+The HugeGraph Common/Core and PD client/common/grpc SDK payloads retain the
+1.7.0 Maven coordinates while originating from the verified same-source
+Java 17 candidate build. Their payload identity is recorded with its source
+revision and SHA256 in the accompanying build/audit metadata; they are not
+represented as byte-identical Maven Central 1.7.0 artifacts.
+
+    (Apache-2.0) com.github.javaparser:javaparser-core:3.28.0
+        Apache-2.0 terms above
+    (Apache-2.0) com.squareup:javapoet:1.13.0
+        Apache-2.0 terms above
+    (MIT) io.cucumber:ci-environment:10.0.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:cucumber-core:7.21.1
+        Apache-2.0 terms above, licenses/LICENSE-java17-candidate-sdk.txt,
+        licenses/LICENSE-spark-java17-third-party.txt, licenses/LICENSE-hubble-java17-third-party.txt
+    (MIT) io.cucumber:cucumber-expressions:18.0.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:cucumber-gherkin-messages:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:cucumber-gherkin:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:cucumber-guice:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:cucumber-java:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:cucumber-junit:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:cucumber-plugin:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:datatable:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:docstring:7.21.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:gherkin:31.0.0
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:html-formatter:21.9.0
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:junit-xml-formatter:0.7.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:messages:27.2.0
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:query:13.6.0
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:tag-expressions:6.1.2
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (MIT) io.cucumber:testng-xml-formatter:0.3.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (BSD-3-Clause) org.abego.treelayout:org.abego.treelayout.core:1.0.3
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (BSD-3-Clause) org.antlr:antlr4-runtime:4.9.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (Apache-2.0) org.apache.commons:commons-configuration2:2.10.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy-console:4.0.32
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy-groovysh:4.0.32
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy-json:4.0.32
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy-jsr223:4.0.32
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy-swing:4.0.32
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy-templates:4.0.32
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy-xml:4.0.32
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.groovy:groovy:4.0.32
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (Apache-2.0) org.apache.kerby:kerb-admin:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerb-client:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerb-common:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerb-crypto:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerb-identity:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerb-server:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerb-simplekdc:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerb-util:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerby-config:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:kerby-xdr:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.kerby:token-provider:2.0.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.tinkerpop:gremlin-core:3.8.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.tinkerpop:gremlin-driver:3.8.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.tinkerpop:gremlin-groovy:3.8.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.tinkerpop:gremlin-language:3.8.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.tinkerpop:gremlin-shaded:3.8.1
+        licenses/LICENSE-java17-candidate-sdk.txt
+    (Apache-2.0) org.apache.tinkerpop:gremlin-test:3.8.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.tinkerpop:gremlin-util:3.8.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apache.tinkerpop:tinkergraph-gremlin:3.8.1
+        Apache-2.0 terms above
+    (Apache-2.0) org.apiguardian:apiguardian-api:1.1.2
+        licenses/LICENSE-jackson-datatype-jdk8.txt

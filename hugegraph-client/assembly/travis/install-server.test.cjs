@@ -313,6 +313,147 @@ test('Loader retains its source cache while using the selected repository and sh
   }
 });
 
+const candidateSdkModules = [
+  ['pom.xml', 'hugegraph', 'pom'],
+  ['hugegraph-commons/pom.xml', 'hugegraph-commons', 'pom'],
+  ['hugegraph-server/pom.xml', 'hugegraph-server', 'pom'],
+  ['hugegraph-pd/pom.xml', 'hugegraph-pd', 'pom'],
+  ['hugegraph-store/pom.xml', 'hugegraph-store', 'pom'],
+  ['hugegraph-commons/hugegraph-common/pom.xml', 'hugegraph-common', 'jar'],
+  ['hugegraph-server/hugegraph-core/pom.xml', 'hugegraph-core', 'jar'],
+  ['hugegraph-struct/pom.xml', 'hugegraph-struct', 'jar'],
+  ['hugegraph-pd/hg-pd-common/pom.xml', 'hg-pd-common', 'jar'],
+  ['hugegraph-pd/hg-pd-client/pom.xml', 'hg-pd-client', 'jar'],
+  ['hugegraph-pd/hg-pd-grpc/pom.xml', 'hg-pd-grpc', 'jar'],
+  ['hugegraph-store/hg-store-common/pom.xml', 'hg-store-common', 'jar'],
+  ['hugegraph-store/hg-store-client/pom.xml', 'hg-store-client', 'jar'],
+  ['hugegraph-store/hg-store-grpc/pom.xml', 'hg-store-grpc', 'jar']
+];
+
+function candidateSdkFixture(t) {
+  const root = temp(t);
+  const source = join(root, 'source');
+  const git = (...args) => execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  git('init', source);
+  git('-C', source, 'config', 'user.name', 'Fixture');
+  git('-C', source, 'config', 'user.email', 'fixture@example.invalid');
+  const revision = '9.8.7'; // A source-derived version, deliberately different from the current SDK.
+  const version = '${revision}';
+  for (const [pomPath, artifactId, packaging] of candidateSdkModules) {
+    const parts = pomPath.split('/');
+    const parent = parts.length > 2 ? parts[parts.length - 3] : 'hugegraph';
+    const coordinates = pomPath === 'pom.xml'
+      ? '<groupId>org.apache.hugegraph</groupId>'
+      : `<parent><groupId>org.apache.hugegraph</groupId><artifactId>${parent}</artifactId><version>${version}</version></parent>`;
+    const properties = pomPath === 'pom.xml' ? `<properties><revision>${revision}</revision></properties>` : '';
+    mkdirSync(join(source, ...parts.slice(0, -1)), { recursive: true });
+    writeFileSync(join(source, pomPath),
+      `<project xmlns="http://maven.apache.org/POM/4.0.0">${coordinates}<artifactId>${artifactId}</artifactId>` +
+      (packaging === 'pom' ? `<version>${version}</version><packaging>pom</packaging>` : '') + properties + '</project>');
+  }
+  git('-C', source, 'add', '.');
+  git('-C', source, 'commit', '-m', 'initial');
+  const sha = git('-C', source, 'rev-parse', 'HEAD');
+  const bin = join(root, 'bin');
+  const javaHome = join(root, 'jdk');
+  const repo = join(root, 'm2');
+  mkdirSync(bin);
+  mkdirSync(join(javaHome, 'bin'), { recursive: true });
+  mkdirSync(repo);
+  const coordinates = join(root, 'coordinates');
+  writeFileSync(coordinates, candidateSdkModules.map(([, id, packaging]) => `${id} ${packaging}`).join('\n') + '\n');
+  // Check the CLI contract without compiling a synthetic reactor or starting a server.
+  writeFileSync(join(javaHome, 'bin/java'), '#!/bin/bash\nprintf "    java.specification.version = %s\\n" "$SDK_JAVA_VERSION" >&2\n', { mode: 0o755 });
+  writeFileSync(join(bin, 'mvn'), `#!/bin/bash
+set -e
+printf '%s\\n' "$@" > "$BUILD_ARGS"
+repo="\${1#-Dmaven.repo.local=}"
+while read -r id packaging; do
+  [[ "$SDK_CASE" != partial || "$packaging" == pom || "$id" == hugegraph-common ]] || continue
+  artifact="$repo/org/apache/hugegraph/$id/$SDK_REVISION"
+  mkdir -p "$artifact"
+  for ext in pom jar; do
+    [[ "$ext" != jar || "$packaging" == jar ]] || continue
+    case "$SDK_CASE:$id:$ext" in
+      missing-jar:hg-pd-grpc:jar|missing-pom:hg-store-common:pom) continue ;;
+    esac
+    file="$id-$SDK_REVISION.$ext"
+    printf 'same-source fixture' > "$artifact/$file"
+    case "$SDK_CASE:$id:$ext" in
+      remote-jar:hg-pd-client:jar|remote-pom:hg-store-client:pom|remote-parent:hugegraph-commons:pom)
+        printf '%s>central=\\n' "$file" >> "$artifact/_remote.repositories" ;;
+      *) printf '%s>=\\n' "$file" >> "$artifact/_remote.repositories" ;;
+    esac
+  done
+done < "$SDK_COORDINATES"
+`, { mode: 0o755 });
+  const env = { ...process.env, JAVA_HOME: javaHome, SDK_JAVA_VERSION: '17', SDK_CASE: 'complete',
+    SDK_REVISION: revision, SDK_COORDINATES: coordinates,
+    SERVER_REPOSITORY: 'example/server', SERVER_FETCH_REF: sha,
+    PATH: `${bin}:${process.env.PATH}`, BUILD_ARGS: join(root, 'args'),
+    GIT_CONFIG_COUNT: '1', GIT_CONFIG_KEY_0: `url.file://${source}.insteadOf`,
+    GIT_CONFIG_VALUE_0: 'https://github.com/example/server.git' };
+  const run = (name, commit = sha, extra = {}) => spawnSync('bash',
+    [join(__dirname, 'install-candidate-sdk.sh'), commit, join(root, name), repo],
+    { cwd: root, env: { ...env, ...extra }, encoding: 'utf8' });
+  return { root, repo, sha, env, revision, run };
+}
+
+test('candidate SDK installs the verified reactor into an explicit repository and records provenance', t => {
+  const { root, repo, sha, env, revision, run } = candidateSdkFixture(t);
+  const result = run('checkout');
+  assert.equal(result.status, 0, result.stderr);
+  assert.deepEqual(readFileSync(env.BUILD_ARGS, 'utf8').trim().split('\n'),
+    [`-Dmaven.repo.local=${repo}`, 'install', '-DskipTests', '-Dmaven.javadoc.skip=true', '-ntp']);
+  const manifest = JSON.parse(readFileSync(join(repo, 'candidate-sdk-manifest.json'), 'utf8'));
+  assert.equal(manifest.repository, 'example/server');
+  assert.equal(manifest.commit, sha);
+  assert.equal(manifest.source_dir, join(root, 'checkout'));
+  assert.equal(manifest.java_home, env.JAVA_HOME);
+  assert.equal(manifest.java_version, '17');
+  assert.equal(manifest.source_revision, revision);
+  assert.equal(manifest.required_sdk_modules.length, candidateSdkModules.length);
+  assert.ok(manifest.required_sdk_modules.every(module => module.version === revision));
+  assert.equal(manifest.required_sdk_modules.reduce((count, module) => count + module.files.length, 0), 23);
+  assert.equal(manifest.artifacts.length, 23);
+  assert.ok(manifest.artifacts.every(artifact => artifact.source_reactor_install));
+  const jar = manifest.artifacts.find(artifact => artifact.path.endsWith('.jar'));
+  assert.equal(jar.sha256, require('node:crypto').createHash('sha256').update('same-source fixture').digest('hex'));
+  assert.equal(readFileSync(join(repo, 'candidate-source.txt'), 'utf8'), `example/server@${sha}\n`);
+  assert.equal(readdirSync(root).some(name => name.startsWith('hugegraph-servers.')), false);
+});
+
+test('candidate SDK rejects a moved source before Maven or manifest publication', t => {
+  const { repo, env, run } = candidateSdkFixture(t);
+  const result = run('moved', '0'.repeat(40));
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Server checkout mismatch/);
+  assert.equal(existsSync(env.BUILD_ARGS), false);
+  assert.equal(existsSync(join(repo, 'candidate-sdk-manifest.json')), false);
+});
+
+test('candidate SDK refuses missing or legacy JVMs and existing HugeGraph artifact repositories', t => {
+  const { root, repo, env, run } = candidateSdkFixture(t);
+  assert.notEqual(run('missing-jvm', undefined, { JAVA_HOME: '' }).status, 0);
+  assert.notEqual(run('legacy-jvm', undefined, { SDK_JAVA_VERSION: '11' }).status, 0);
+  mkdirSync(join(repo, 'org/apache/hugegraph'), { recursive: true });
+  const result = run('existing-repo');
+  assert.notEqual(result.status, 0);
+  assert.equal(existsSync(join(root, 'existing-repo')), false);
+  assert.equal(existsSync(env.BUILD_ARGS), false);
+});
+
+for (const scenario of ['partial', 'missing-jar', 'missing-pom', 'remote-jar', 'remote-pom', 'remote-parent']) {
+  test(`candidate SDK rejects ${scenario} reactor artifacts without publishing provenance`, t => {
+    const { repo, run } = candidateSdkFixture(t);
+    const result = run('checkout', undefined, { SDK_CASE: scenario });
+    assert.notEqual(result.status, 0, result.stderr);
+    assert.match(result.stderr, /required candidate SDK artifact/i);
+    assert.equal(existsSync(join(repo, 'candidate-sdk-manifest.json')), false);
+    assert.equal(existsSync(join(repo, 'candidate-source.txt')), false);
+  });
+}
+
 for (const scenario of [
   { name: 'another commit', commit: 'b'.repeat(40), error: /provenance mismatch/ },
   { name: 'another repository', repository: 'example/other', error: /provenance mismatch/ },

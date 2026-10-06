@@ -15,18 +15,41 @@
 # limitations under the License.
 #
 
-FROM --platform=$BUILDPLATFORM maven:3.9.0-eclipse-temurin-11 AS build
+ARG MAVEN_BUILDER_IMAGE=maven:3.9.11-eclipse-temurin-17
+FROM --platform=$BUILDPLATFORM ${MAVEN_BUILDER_IMAGE} AS build
 
-COPY . /pkg
 WORKDIR /pkg
 
 ARG MAVEN_ARGS
 
-RUN set -x \
-    && mvn clean package $MAVEN_ARGS -pl hugegraph-client,hugegraph-loader -am \
-       -Dmaven.javadoc.skip=true -DskipTests -ntp
+RUN apt-get -q update \
+    && apt-get install --no-install-recommends git python3 -yq \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-FROM eclipse-temurin:11-jre-jammy
+COPY hugegraph-client/assembly/travis/install-candidate-sdk.sh \
+     hugegraph-client/assembly/travis/checkout-server.sh /pkg/hugegraph-client/assembly/travis/
+COPY .github/scripts/verify_candidate_image_sdk.py /pkg/.github/scripts/
+
+# Direct builds bootstrap the same locked SDK; CI can supply a verified builder.
+# TODO(apache/hugegraph#3263): after merge replace this temporary source with apache/hugegraph and an ASF SHA.
+RUN mkdir -p /opt/candidate-m2 \
+    && if [ ! -f /opt/candidate-m2/candidate-sdk-manifest.json ]; then \
+         SERVER_REPOSITORY=hugegraph/hugegraph \
+         SERVER_FETCH_REF=codex/cypher-minimal-compat \
+         bash /pkg/hugegraph-client/assembly/travis/install-candidate-sdk.sh \
+           4c162f539b906fa06dd83228e3691b77fa5b77d7 /opt/candidate-source /opt/candidate-m2; \
+       fi \
+    && python3 /pkg/.github/scripts/verify_candidate_image_sdk.py /opt/candidate-m2
+
+COPY . /pkg
+
+RUN set -x \
+    && mvn clean package $MAVEN_ARGS -Dmaven.repo.local=/opt/candidate-m2 -pl hugegraph-client,hugegraph-loader -am \
+       -Dmaven.javadoc.skip=true -DskipTests -ntp \
+    && python3 /pkg/.github/scripts/verify_candidate_image_sdk.py /opt/candidate-m2
+
+FROM eclipse-temurin:17-jre-jammy
 
 RUN set -x \
     && apt-get -q update \

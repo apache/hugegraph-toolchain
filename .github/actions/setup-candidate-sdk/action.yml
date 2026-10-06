@@ -1,0 +1,88 @@
+name: 'Setup same-source candidate SDK'
+description: 'Build a locked Java 17 server reactor outside the workspace in an isolated Maven repository'
+
+# TODO(apache/hugegraph#3263): temporary pre-merge source; after merge use apache/hugegraph and a verified ASF SHA.
+inputs:
+  repository:
+    description: 'GitHub owner/repository for the candidate SDK'
+    default: 'hugegraph/hugegraph'
+  ref:
+    description: 'Fetchable candidate source ref'
+    default: 'codex/cypher-minimal-compat'
+  expected-commit:
+    description: 'Locked full candidate source commit'
+    default: '4c162f539b906fa06dd83228e3691b77fa5b77d7'
+
+outputs:
+  repository:
+    description: Resolved candidate source repository
+    value: ${{ steps.source.outputs.repository }}
+  commit_id:
+    description: Verified full candidate source SHA
+    value: ${{ steps.source.outputs.commit_id }}
+  fetch_ref:
+    description: Fetchable candidate source ref
+    value: ${{ steps.source.outputs.fetch_ref }}
+  archive:
+    description: 'Server distribution built from the same candidate source'
+    value: ${{ steps.build.outputs.archive }}
+  archive-sha256:
+    description: SHA256 of the same-source candidate distribution
+    value: ${{ steps.build.outputs.archive-sha256 }}
+  manifest:
+    description: SDK artifact hashes and source provenance manifest
+    value: ${{ steps.build.outputs.manifest }}
+  maven-repo:
+    description: Isolated Maven repository used by subsequent toolchain builds
+    value: ${{ steps.build.outputs.maven-repo }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve locked candidate source
+      id: source
+      uses: ./.github/actions/get-hugegraph-commit
+      with:
+        repository: ${{ inputs.repository }}
+        ref: ${{ inputs.ref }}
+        expected-commit: ${{ inputs.expected-commit }}
+    - name: Install same-source candidate reactor
+      id: build
+      shell: bash
+      env:
+        SERVER_COMMIT: ${{ steps.source.outputs.commit_id }}
+        SERVER_REPOSITORY: ${{ steps.source.outputs.repository }}
+        SERVER_FETCH_REF: ${{ steps.source.outputs.fetch_ref }}
+      run: |
+        candidate_repo=$(mktemp -d "$RUNNER_TEMP/hugegraph-candidate-m2.XXXXXX")
+        server_build=$(mktemp -d "$RUNNER_TEMP/hugegraph-candidate-build.XXXXXX")
+        bash "$GITHUB_WORKSPACE/hugegraph-client/assembly/travis/install-candidate-sdk.sh" \
+          "$SERVER_COMMIT" "$server_build/hugegraph" "$candidate_repo"
+        archives=("$server_build"/hugegraph/hugegraph-server/apache-hugegraph-*.tar.gz)
+        if [[ ${#archives[@]} -ne 1 || ! -f "${archives[0]}" ]]; then
+          printf 'Expected one candidate server archive, found: %s\n' "${archives[*]}" >&2
+          exit 1
+        fi
+        manifest="$candidate_repo/candidate-sdk-manifest.json"
+        if [[ ! -s "$manifest" ]]; then
+          printf 'Candidate SDK installer did not produce a provenance manifest\n' >&2
+          exit 1
+        fi
+        manifest_artifact_id=$(python3 -c 'import uuid; print(uuid.uuid4().hex)')
+        archive_sha=$(sha256sum "${archives[0]}" | cut -d ' ' -f 1)
+        printf 'archive-sha256=%s\nmanifest=%s\n' "$archive_sha" \
+          "$manifest" >> "$GITHUB_OUTPUT"
+        printf 'manifest-artifact-id=%s\n' "$manifest_artifact_id" >> "$GITHUB_OUTPUT"
+        # Keep subprocess Maven repository isolation aligned with CLI arguments.
+        {
+          printf 'MAVEN_OPTS=%s -Dmaven.repo.local=%s\n' "${MAVEN_OPTS:-}" "$candidate_repo"
+          printf 'MAVEN_ARGS=%s -Dmaven.repo.local=%s\n' "${MAVEN_ARGS:-}" "$candidate_repo"
+          printf 'CANDIDATE_SOURCE_COMMIT=%s\n' "$SERVER_COMMIT"
+        } >> "$GITHUB_ENV"
+        printf 'archive=%s\nmaven-repo=%s\n' "${archives[0]}" "$candidate_repo" >> "$GITHUB_OUTPUT"
+    - name: Retain candidate SDK provenance
+      uses: actions/upload-artifact@v7
+      with:
+        name: candidate-sdk-manifest-${{ steps.build.outputs.manifest-artifact-id }}
+        path: ${{ steps.build.outputs.manifest }}
+        if-no-files-found: error

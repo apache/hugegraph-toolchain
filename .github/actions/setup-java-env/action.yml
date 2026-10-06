@@ -1,19 +1,15 @@
 name: 'Setup Java and Maven Environment'
-description: 'Install JDK, cache Maven packages, and optionally apply staged Maven repository settings'
+description: 'Install JDK, cache Maven packages, and configure Central with ASF Stage fallback'
 
 inputs:
   java-version:
     description: 'Java version to install'
     required: false
-    default: '11'
+    default: '17'
   distribution:
     description: 'JDK distribution'
     required: false
     default: 'zulu'
-  use-stage:
-    description: 'Whether to apply staged Maven repository settings'
-    required: false
-    default: 'true'
 
 runs:
   using: composite
@@ -24,10 +20,21 @@ runs:
         java-version: ${{ inputs.java-version }}
         distribution: ${{ inputs.distribution }}
         cache: 'maven'
+        cache-dependency-path: |
+          **/pom.xml
+          .github/configs/settings.xml
+        overwrite-settings: false
 
-    - name: Use staged maven repo settings
-      if: ${{ inputs.use-stage == 'true' }}
+    - name: Configure Maven repositories
       shell: bash
       run: |
-        cp "$HOME/.m2/settings.xml" /tmp/settings.xml
-        cp .github/configs/settings.xml "$HOME/.m2/settings.xml"
+        set -euo pipefail
+        maven_version=$(mvn -version | sed $'s/\033\\[[0-9;]*m//g' | sed -n 's/^Apache Maven \([0-9.]*\).*/\1/p' | head -1)
+        if [[ ! "$maven_version" =~ ^([0-9]+)\.([0-9]+)\. ]] ||
+           (( 10#${BASH_REMATCH[1]:-0} < 3 ||
+              (10#${BASH_REMATCH[1]:-0} == 3 && 10#${BASH_REMATCH[2]:-0} < 9) )); then
+          echo 'Maven 3.9 or newer is required for shared MAVEN_ARGS settings' >&2
+          exit 1
+        fi
+        printf 'MAVEN_ARGS=%s --settings %s/.github/configs/settings.xml\n' \
+          "${MAVEN_ARGS:-}" "$GITHUB_WORKSPACE" >> "$GITHUB_ENV"

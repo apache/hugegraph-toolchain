@@ -24,6 +24,18 @@
 
     <fileSets>
         <fileSet>
+            <directory>${settings.localRepository}</directory>
+            <outputDirectory>/</outputDirectory>
+            <includes>
+                <include>candidate-sdk-manifest.json</include>
+            </includes>
+            <filtered>false</filtered>
+        </fileSet>
+        <fileSet>
+            <directory>${project.basedir}/../hugegraph-dist/release-docs</directory>
+            <outputDirectory>/</outputDirectory>
+        </fileSet>
+        <fileSet>
             <directory>${assembly.static.dir}/bin</directory>
             <outputDirectory>bin</outputDirectory>
             <includes>
