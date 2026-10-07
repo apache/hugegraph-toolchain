@@ -19,7 +19,7 @@
 
 name: "server-fixture-ci"
 
-# Automatic PR validation runs these contracts in Required CI.
+# Automatic PR validation runs these contracts in Module validation.
 on:
   workflow_dispatch:
 
@@ -44,5 +44,11 @@ jobs:
           node --test .github/actions/get-hugegraph-commit/resolve.test.cjs \
             hugegraph-client/assembly/travis/checkout-server.test.cjs \
             hugegraph-client/assembly/travis/install-server.test.cjs
+      - uses: ./.github/actions/setup-java-env
+        with:
+          java-version: '17'
+          distribution: temurin
       - name: Test candidate SDK and distribution provenance
+        env:
+          CANDIDATE_SDK_MAVEN_TEST: mvn
         run: python3 -m unittest discover -s .github/scripts -p 'test_candidate_sdk.py'

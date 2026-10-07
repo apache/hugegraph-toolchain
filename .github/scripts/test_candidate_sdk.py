@@ -74,8 +74,9 @@ class CandidateParentModelTest(unittest.TestCase):
                 original_poms = {p: p.read_bytes() for p in source.rglob("pom.xml")}
 
                 def run(*arguments):
-                    return subprocess.run([maven, "--settings", str(settings), "-B", "-ntp", *arguments],
-                                          cwd=source, capture_output=True, text=True, timeout=120)
+                    return subprocess.run([maven, "--settings", str(settings),
+                                           "-Dmaven.repo.local=" + str(root / "m2"), "-B", "-ntp", *arguments],
+                                          cwd=source, capture_output=True, text=True, timeout=240)
 
                 goals = (["org.codehaus.mojo:flatten-maven-plugin:1.2.7:flatten", "install",
                           "-Dflatten.mode=resolveCiFriendliesOnly", "-DupdatePomFile=true"]

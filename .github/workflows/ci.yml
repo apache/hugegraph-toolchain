@@ -149,6 +149,11 @@ jobs:
         with:
           java-version: '11'
           distribution: temurin
+      - name: Test isolated candidate parent metadata
+        if: needs.plan.outputs.client == 'true' || needs.plan.outputs.loader == 'true' || needs.plan.outputs.tools == 'true' || needs.plan.outputs.spark == 'true' || needs.plan.outputs.hubble == 'true'
+        env:
+          CANDIDATE_SDK_MAVEN_TEST: mvn
+        run: python3 -m unittest discover -s .github/scripts -p 'test_candidate_sdk.py'
       - name: Build reusable Server package
         uses: ./.github/actions/setup-hugegraph-server
         with:

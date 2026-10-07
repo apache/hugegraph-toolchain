@@ -132,8 +132,10 @@ with the same root Maven configuration, separately from the required license che
 
 For rollout, `.asf.yaml` requests only `check-license-header`. Confirm actual branch
 protection has reconciled before relying on advisory cancellation. The existing
-module summary and native `Analyze (java)` context remain available during the
-migration; old required names must not remain permanently Expected.
+module summary remains available during migration.
+`Analyze (java)` runs for Java or shared/unknown build inputs, and for manual and
+weekly full scans; it is not emitted for every PR. Old required names must not
+remain permanently Expected.
 
 A new PR head cancels older first attempts. Reruns use separate concurrency groups,
 so retrying an old commit cannot cancel the current head. Automatic retries run
@@ -142,6 +144,11 @@ unchanged completed-failure run attempt both before and after the 180-second del
 Retry code comes from the trusted default branch. PR automatic retries and
 cross-run success reuse are deferred until execution evidence can be verified
 independently; manual workflow reruns remain available.
+
+The parent-metadata Maven regression runs once in the selected shared fixture
+for Java consumer validation, using a temporary Maven repository. Documentation
+and Go-only PRs keep the lightweight planner; the manual fixture workflow also
+runs this regression.
 
 Validate policy and retry behavior locally:
 
