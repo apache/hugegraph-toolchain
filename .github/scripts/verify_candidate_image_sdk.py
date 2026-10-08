@@ -199,9 +199,10 @@ def release_artifact(repository, artifact, version):
 
 
 def validate_release_sdk(repository, version, directory=None, module=None):
+    """Check the explicitly selected SDK version and bytes, without approving a release."""
     repository = Path(repository)
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
-        raise RuntimeError("Release SDK requires a concrete release version")
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-SNAPSHOT)?", version):
+        raise RuntimeError("SDK validation requires a concrete release or SNAPSHOT version")
     if (repository / "candidate-sdk-manifest.json").exists():
         raise RuntimeError("Candidate SDK manifest is not allowed in a release repository")
     required = required_libraries(module)

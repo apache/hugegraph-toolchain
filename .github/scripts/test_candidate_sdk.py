@@ -25,6 +25,7 @@ from pathlib import Path
 import shutil
 import subprocess
 import tempfile
+import textwrap
 import unittest
 import uuid
 import xml.etree.ElementTree as ET
@@ -425,18 +426,18 @@ class CandidateDistributionTest(unittest.TestCase):
 
 
 class ReleaseDistributionTest(unittest.TestCase):
-    def fixture(self, root):
+    def fixture(self, root, version="1.8.0"):
         repository, directory = root / "m2", root / "distribution"
         library = directory / "lib"
         library.mkdir(parents=True)
         for artifact in ("hugegraph-common", "hg-pd-common", "hg-pd-client", "hg-pd-grpc", "hugegraph-core"):
-            parent = repository / "org/apache/hugegraph" / artifact / "1.8.0"
+            parent = repository / "org/apache/hugegraph" / artifact / version
             parent.mkdir(parents=True)
             pom = ('<project xmlns="http://maven.apache.org/POM/4.0.0"><parent>'
                    '<groupId>org.apache.hugegraph</groupId><artifactId>hugegraph</artifactId>'
-                   '<version>1.8.0</version></parent><artifactId>' + artifact + '</artifactId></project>')
-            (parent / (artifact + "-1.8.0.pom")).write_text(pom)
-            jar = parent / (artifact + "-1.8.0.jar")
+                   '<version>' + version + '</version></parent><artifactId>' + artifact + '</artifactId></project>')
+            (parent / (artifact + "-" + version + ".pom")).write_text(pom)
+            jar = parent / (artifact + "-" + version + ".jar")
             jar.write_bytes(artifact.encode())
             shutil.copyfile(jar, library / jar.name)
         (library / "hugegraph-client-1.8.0.jar").write_bytes(b"Toolchain output")
@@ -513,15 +514,95 @@ class ReleaseDistributionTest(unittest.TestCase):
                 with self.subTest(module=module), self.assertRaisesRegex(RuntimeError, "hg-pd-common"):
                     sdk.validate_release_sdk(repository, "1.8.0", directory, module)
 
-    def test_release_rejects_snapshot_and_unspecified_versions(self):
+    def test_sdk_rejects_unresolved_and_unspecified_versions(self):
         with tempfile.TemporaryDirectory() as temporary:
             repository, directory = self.fixture(Path(temporary))
-            with self.assertRaisesRegex(RuntimeError, "concrete release version"):
-                sdk.validate_release_sdk(repository, "1.8.0-SNAPSHOT", directory, "loader")
+            with self.assertRaisesRegex(RuntimeError, "concrete release or SNAPSHOT version"):
+                sdk.validate_release_sdk(repository, "${revision}", directory, "loader")
             result = subprocess.run(["python3", str(Path(sdk.__file__)), str(repository), "--mode", "release"],
                                     capture_output=True, text=True, timeout=5)
             self.assertNotEqual(0, result.returncode)
             self.assertIn("--version is required", result.stderr)
+
+    def test_explicit_source_snapshot_requires_matching_version_and_bytes(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository, directory = self.fixture(Path(temporary), "1.9.0-SNAPSHOT")
+            self.assertEqual(5, len(sdk.validate_release_sdk(repository, "1.9.0-SNAPSHOT", directory,
+                                                            "hubble")))
+            with self.assertRaisesRegex(RuntimeError, "Missing or invalid"):
+                sdk.validate_release_sdk(repository, "1.9.0", directory, "hubble")
+            command = ["python3", str(Path(sdk.__file__)), str(repository), "--mode", "release",
+                       "--version", "1.9.0-SNAPSHOT", "--distribution", str(directory), "--module", "hubble"]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+            self.assertEqual(0, result.returncode, result.stderr)
+            (directory / "lib/hugegraph-common-1.9.0-SNAPSHOT.jar").write_bytes(b"Replaced source SDK")
+            with self.assertRaisesRegex(RuntimeError, "Changed packaged"):
+                sdk.validate_release_sdk(repository, "1.9.0-SNAPSHOT", directory, "hubble")
+
+
+class SDKActionTest(unittest.TestCase):
+    def run_action(self, root, mode, revision, corrupt_candidate=False):
+        fixture = root / "fixture"
+        if revision == "1.7.0":
+            candidate = CandidateDistributionTest()
+            candidate.source_commit = sdk.COMMIT
+            repository, manifest = candidate.fixture(fixture)
+            if corrupt_candidate:
+                manifest["commit"] = "0" * 40
+                candidate.write_manifest(repository, manifest)
+        else:
+            repository, _ = ReleaseDistributionTest().fixture(fixture, revision)
+            (repository / "candidate-sdk-manifest.json").write_text(json.dumps({"source_revision": revision}))
+        workspace = root / "workspace"
+        installer = workspace / "hugegraph-client/assembly/travis/install-candidate-sdk.sh"
+        installer.parent.mkdir(parents=True)
+        installer.write_text('#!/bin/bash\nset -euo pipefail\n'
+                             'cp -R "$SDK_FIXTURE/." "$3/"\n'
+                             'mkdir -p "$2/hugegraph-server"\n'
+                             'printf archive > "$2/hugegraph-server/apache-hugegraph-fixture.tar.gz"\n')
+        verifier = workspace / ".github/scripts/verify_candidate_image_sdk.py"
+        verifier.parent.mkdir(parents=True)
+        shutil.copyfile(sdk.__file__, verifier)
+        runner = root / "runner"
+        runner.mkdir()
+        home = root / "home"
+        home.mkdir()
+        environment, output = root / "env", root / "output"
+        action = (Path(__file__).resolve().parents[2] / ".github/actions/setup-candidate-sdk/action.yml").read_text()
+        script = textwrap.dedent(action.split("      run: |\n", 1)[1].split("\n    - name:", 1)[0])
+        env = dict(os.environ, HOME=str(home), RUNNER_TEMP=str(runner), GITHUB_WORKSPACE=str(workspace),
+                   GITHUB_ENV=str(environment), GITHUB_OUTPUT=str(output), SDK_FIXTURE=str(repository),
+                   SDK_VALIDATION_MODE=mode, SERVER_COMMIT=sdk.COMMIT, SERVER_REPOSITORY=sdk.REPOSITORY,
+                   SERVER_FETCH_REF=sdk.COMMIT, MAVEN_OPTS="-Xmx1g", MAVEN_ARGS="-ntp --settings settings.xml")
+        result = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True, timeout=10)
+        variables = dict(line.split("=", 1) for line in environment.read_text().splitlines()) if environment.exists() else {}
+        outputs = dict(line.split("=", 1) for line in output.read_text().splitlines()) if output.exists() else {}
+        return result, variables, outputs
+
+    def test_action_selects_actual_version_and_retains_provenance(self):
+        for mode, revision in (("candidate", "1.7.0"), ("release", "1.8.0"), ("release", "1.9.0-SNAPSHOT")):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as temporary:
+                result, variables, outputs = self.run_action(Path(temporary), mode, revision)
+                self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+                for key in ("MAVEN_ARGS", "MAVEN_OPTS"):
+                    self.assertIn("-Dmaven.repo.local=" + outputs["maven-repo"], variables[key])
+                    self.assertIn("-Dhugegraph.version=" + revision, variables[key])
+                    self.assertIn("-Dsdk.validation.mode=" + mode, variables[key])
+                manifest = Path(outputs["manifest"])
+                self.assertTrue(manifest.is_file())
+                self.assertEqual(revision, json.loads(manifest.read_text())["source_revision"])
+                packaged_manifest = Path(outputs["maven-repo"]) / "candidate-sdk-manifest.json"
+                self.assertEqual(mode == "candidate", packaged_manifest.exists())
+                self.assertEqual(mode == "candidate", manifest.parent == Path(outputs["maven-repo"]))
+
+    def test_action_rejects_wrong_mode_revision_and_source(self):
+        for mode, revision, corrupt in (("invalid", "1.7.0", False), ("candidate", "1.8.0", False),
+                                        ("release", "${revision}", False), ("candidate", "1.7.0-SNAPSHOT", False),
+                                        ("candidate", "1.7.0", True)):
+            with self.subTest(mode=mode, revision=revision, corrupt=corrupt), tempfile.TemporaryDirectory() as temporary:
+                result, variables, _ = self.run_action(Path(temporary), mode, revision, corrupt)
+                self.assertNotEqual(0, result.returncode)
+                self.assertEqual({}, variables)
 
 
 if __name__ == "__main__":

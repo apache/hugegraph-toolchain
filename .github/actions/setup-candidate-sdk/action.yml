@@ -1,5 +1,5 @@
 name: 'Setup same-source candidate SDK'
-description: 'Build a locked Java 17 server reactor outside the workspace in an isolated Maven repository'
+description: 'Build a same-source Java 17 SDK outside the workspace in an isolated Maven repository'
 
 inputs:
   repository:
@@ -11,6 +11,9 @@ inputs:
   expected-commit:
     description: 'Locked candidate source commit'
     default: 'e62c961e00221569d4f955abbadf60faee45b283'
+  validation-mode:
+    description: 'candidate for the locked SDK; release for the actual upstream source version'
+    default: 'candidate'
 
 outputs:
   repository:
@@ -52,7 +55,13 @@ runs:
         SERVER_COMMIT: ${{ steps.source.outputs.commit_id }}
         SERVER_REPOSITORY: ${{ steps.source.outputs.repository }}
         SERVER_FETCH_REF: ${{ steps.source.outputs.fetch_ref }}
+        SDK_VALIDATION_MODE: ${{ inputs.validation-mode }}
       run: |
+        set -euo pipefail
+        case "$SDK_VALIDATION_MODE" in
+          candidate|release) ;;
+          *) echo 'validation-mode must be candidate or release' >&2; exit 1 ;;
+        esac
         candidate_repo=$(mktemp -d "$RUNNER_TEMP/hugegraph-candidate-m2.XXXXXX")
         server_build=$(mktemp -d "$RUNNER_TEMP/hugegraph-candidate-build.XXXXXX")
         source_dir="$server_build/source"
@@ -76,6 +85,19 @@ runs:
           printf 'Candidate SDK installer did not produce a provenance manifest\n' >&2
           exit 1
         fi
+        sdk_version=$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1]))["source_revision"])' "$manifest")
+        if [[ ! "$sdk_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-SNAPSHOT)?$ ]]; then
+          echo 'SDK source revision must be a concrete release or SNAPSHOT version' >&2
+          exit 1
+        fi
+        if [[ "$SDK_VALIDATION_MODE" == release ]]; then
+          # Retain source provenance as evidence, outside the release dependency repository.
+          mv "$manifest" "$server_build/source-sdk-manifest.json"
+          manifest="$server_build/source-sdk-manifest.json"
+        fi
+        CANDIDATE_SOURCE_COMMIT="$SERVER_COMMIT" \
+          python3 "$GITHUB_WORKSPACE/.github/scripts/verify_candidate_image_sdk.py" "$candidate_repo" \
+          --mode "$SDK_VALIDATION_MODE" --version "$sdk_version"
         manifest_artifact_id=$(python3 -c 'import uuid; print(uuid.uuid4().hex)')
         archive_sha=$(sha256sum "${archives[0]}" | cut -d ' ' -f 1)
         printf 'archive-sha256=%s\nmanifest=%s\n' "$archive_sha" \
@@ -83,8 +105,10 @@ runs:
         printf 'manifest-artifact-id=%s\n' "$manifest_artifact_id" >> "$GITHUB_OUTPUT"
         # Keep subprocess Maven repository isolation aligned with CLI arguments.
         {
-          printf 'MAVEN_OPTS=%s -Dmaven.repo.local=%s -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate\n' "${MAVEN_OPTS:-}" "$candidate_repo"
-          printf 'MAVEN_ARGS=%s -Dmaven.repo.local=%s -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate\n' "${MAVEN_ARGS:-}" "$candidate_repo"
+          printf 'MAVEN_OPTS=%s -Dmaven.repo.local=%s -Dhugegraph.version=%s -Dsdk.validation.mode=%s\n' \
+            "${MAVEN_OPTS:-}" "$candidate_repo" "$sdk_version" "$SDK_VALIDATION_MODE"
+          printf 'MAVEN_ARGS=%s -Dmaven.repo.local=%s -Dhugegraph.version=%s -Dsdk.validation.mode=%s\n' \
+            "${MAVEN_ARGS:-}" "$candidate_repo" "$sdk_version" "$SDK_VALIDATION_MODE"
           printf 'CANDIDATE_SOURCE_COMMIT=%s\n' "$SERVER_COMMIT"
         } >> "$GITHUB_ENV"
         printf 'archive=%s\nmaven-repo=%s\n' "${archives[0]}" "$candidate_repo" >> "$GITHUB_OUTPUT"
