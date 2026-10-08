@@ -427,6 +427,8 @@
             <groupId>org.apache.hive</groupId>
             <artifactId>hive-exec</artifactId>
             <version>${hive.version}</version>
+            <!-- Keep Hive's embedded old Guava out of the shared Loader classpath. -->
+            <classifier>core</classifier>
             <exclusions>
                 <exclusion>
                     <groupId>log4j</groupId>
