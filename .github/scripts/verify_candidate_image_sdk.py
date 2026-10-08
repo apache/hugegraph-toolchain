@@ -15,13 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-"""Validate the locked SDK and the actual libraries in a candidate distribution."""
+"""Validate SDK libraries against a locked candidate or the release Maven repository."""
 
 import argparse
 import hashlib
 import json
 import os
 import re
+import xml.etree.ElementTree as ET
 from pathlib import Path
 
 REPOSITORY = "apache/hugegraph"
@@ -143,9 +144,7 @@ def validate_distribution(repository, directory, module):
                            type(error).__name__ + ")") from None
     if packaged != manifest:
         raise RuntimeError("Packaged SDK manifest differs from the build repository")
-    required = {"hugegraph-common", "hg-pd-client", "hg-pd-grpc"}
-    if module == "hubble":
-        required.add("hugegraph-core")
+    required = required_libraries(module)
     actual = {}
     # Check only distribution libraries, never runtime data or user plugins.
     for path in (directory / "lib").glob("*.jar"):
@@ -174,24 +173,97 @@ def configure_upstream(repository, environment):
     return manifest, jars
 
 
+def required_libraries(module):
+    required = {"hugegraph-common", "hg-pd-common", "hg-pd-client", "hg-pd-grpc"}
+    if module == "hubble":
+        required.add("hugegraph-core")
+    return required
+
+
+def release_artifact(repository, artifact, version):
+    directory = repository / "org/apache/hugegraph" / artifact / version
+    paths = [directory / f"{artifact}-{version}.{extension}" for extension in ("pom", "jar")]
+    for path in paths:
+        if path.is_symlink() or not path.is_file() or not path.resolve().is_relative_to(repository.resolve()):
+            raise RuntimeError("Missing or invalid release SDK artifact: " + path.name)
+    try:
+        pom = ET.parse(paths[0]).getroot()
+        namespace = "{http://maven.apache.org/POM/4.0.0}"
+        group = pom.findtext(namespace + "groupId") or pom.findtext(namespace + "parent/" + namespace + "groupId")
+        revision = pom.findtext(namespace + "version") or pom.findtext(namespace + "parent/" + namespace + "version")
+        if (group, pom.findtext(namespace + "artifactId"), revision) != ("org.apache.hugegraph", artifact, version):
+            raise RuntimeError("Unexpected release SDK POM coordinates: " + paths[0].name)
+    except (OSError, ET.ParseError):
+        raise RuntimeError("Invalid release SDK POM: " + paths[0].name) from None
+    return digest(paths[1])
+
+
+def validate_release_sdk(repository, version, directory=None, module=None):
+    repository = Path(repository)
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+        raise RuntimeError("Release SDK requires a concrete release version")
+    if (repository / "candidate-sdk-manifest.json").exists():
+        raise RuntimeError("Candidate SDK manifest is not allowed in a release repository")
+    required = required_libraries(module)
+    expected = {f"{artifact}-{version}.jar": release_artifact(repository, artifact, version)
+                for artifact in required}
+    if directory is None:
+        return expected
+    directory = Path(directory)
+    if (directory / "candidate-sdk-manifest.json").exists():
+        raise RuntimeError("Candidate SDK manifest is not allowed in a release distribution")
+    library = directory / "lib"
+    if library.is_symlink() or not library.is_dir():
+        raise RuntimeError("Missing or invalid release SDK library directory")
+    actual = {}
+    for path in library.glob("*.jar"):
+        if path.name.startswith(("hugegraph-client-", "hugegraph-loader-", "hugegraph-tools-")):
+            continue
+        if not path.name.startswith(("hugegraph-", "hg-")):
+            continue
+        if (path.is_symlink() or not path.resolve().is_relative_to(directory.resolve()) or
+                not path.name.endswith(f"-{version}.jar")):
+            raise RuntimeError("Unexpected release SDK library version: " + path.name)
+        artifact = path.name[:-len(f"-{version}.jar")]
+        expected_hash = release_artifact(repository, artifact, version)
+        if digest(path) != expected_hash:
+            raise RuntimeError("Changed packaged release SDK library: " + path.name)
+        actual[path.name] = expected_hash
+    for name in expected:
+        if name not in actual:
+            raise RuntimeError("Missing packaged release SDK library: " + name)
+    return actual
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("repository", type=Path)
     parser.add_argument("--distribution", type=Path)
     parser.add_argument("--configure-upstream-env", type=Path)
     parser.add_argument("--module", choices=("loader", "tools", "hubble"))
+    parser.add_argument("--mode", choices=("candidate", "release"), default="candidate")
+    parser.add_argument("--version", help="Expected release SDK version (required in release mode)")
     args = parser.parse_args()
     if bool(args.distribution) != bool(args.module):
         parser.error("--distribution and --module must be used together")
     if args.configure_upstream_env and args.distribution:
         parser.error("--configure-upstream-env cannot be combined with --distribution")
+    if args.configure_upstream_env and args.mode != "candidate":
+        parser.error("--configure-upstream-env requires candidate mode")
+    if args.mode == "release" and not args.version:
+        parser.error("--version is required in release mode")
     try:
-        if args.configure_upstream_env:
-            manifest, jars = configure_upstream(args.repository, args.configure_upstream_env)
+        if args.mode == "release":
+            jars = validate_release_sdk(args.repository, args.version, args.distribution, args.module)
+            identity = "release SDK " + args.version
         else:
-            manifest, jars = validate_sdk(args.repository)
-        if args.distribution:
-            validate_distribution(args.repository, args.distribution, args.module)
+            if args.configure_upstream_env:
+                manifest, jars = configure_upstream(args.repository, args.configure_upstream_env)
+            else:
+                manifest, jars = validate_sdk(args.repository, args.version)
+            if args.distribution:
+                validate_distribution(args.repository, args.distribution, args.module)
+            identity = f"{manifest['repository']}@{manifest['commit'][:6]}"
     except RuntimeError as error:
         parser.exit(1, str(error) + "\n")
-    print(f"Verified {manifest['repository']}@{manifest['commit'][:6]}: {len(jars)} candidate JARs")
+    print(f"Verified {identity}: {len(jars)} SDK JARs")

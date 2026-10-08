@@ -6,7 +6,10 @@ Toolchain builds, tests and applications use Java 17. The released Server 1.7 co
 
 ## Build the locked candidate
 
-The ASF Server master uses Java 17 and TinkerPop 3.8.1 while retaining the Maven version `1.7.0`. Its Common, PD, gRPC and Store artifacts must come from the same source commit; Maven Central artifacts with that version are not interchangeable with the candidate. CI uses the verified `apache/hugegraph` master baseline (shown as `e62c96` here), storing and fetching its complete immutable commit identity. Update the SDK action, verifier, Docker defaults and CI baseline together when advancing that commit; moving master alone must not silently change packaged SDK provenance.
+The locked Java 17 Server candidate uses TinkerPop 3.8.1 and Maven version `1.7.0`. Its Common, PD, gRPC and Store artifacts must come from the
+same source commit; Maven Central artifacts with that version are not interchangeable with the candidate. Candidate CI uses the verified
+`apache/hugegraph` baseline (shown as `e62c96` here), storing and fetching its complete immutable commit identity. Update the SDK action, verifier,
+Docker defaults and CI baseline together when advancing that commit; moving master alone must not silently change packaged SDK provenance.
 
 Use an explicit JDK directory and check both Java and Maven. On systems where Java 17 is not registered, a system JDK selector can return another installed version. Checking the generated class version alone does not identify the JVM that built or tested it.
 
@@ -30,7 +33,7 @@ PY_COMMIT
 
 bash "$toolchain_root/hugegraph-client/assembly/travis/install-candidate-sdk.sh" \
   "$server_commit" "$candidate_dir/server" "$candidate_dir/m2"
-mvn -Dmaven.repo.local="$candidate_dir/m2" clean install \
+mvn -Dmaven.repo.local="$candidate_dir/m2" -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate clean install \
   -DskipTests -Dmaven.javadoc.skip=true -ntp
 ```
 
@@ -38,7 +41,26 @@ The SDK helper installs the locked Server distribution, PD client, Store client 
 
 Distribution packaging also requires Python 3.9 or newer. Before each module archive is written, the existing SDK verifier checks the locked source, required POM/JAR hashes and local installation origins, then checks the distribution's manifest and actual SDK libraries. The combined archive rechecks all three module directories before moving them. Source checks lock Server SDK artifacts; Toolchain artifacts such as the Client, Loader and Hubble backend are outputs of this reactor and may change during `install`. Older manifests can retain their metadata, but those outputs are excluded from SDK source hashes. The original manifest is still retained unchanged and compared with each packaged copy. A missing manifest, a Central artifact with the same version, or a stale/changed packaged SDK library fails packaging. Ordinary `compile` and `test` do not require the candidate manifest; they may validate published dependencies without establishing candidate package identity.
 
-These isolated builds reuse `1.7.0` coordinates only for source validation. Before proposing a release candidate or deploying Toolchain Maven artifacts for external consumers, every Java 17 SDK dependency must have coordinates that distinguish it from the previously released `1.7.0` artifacts and are available to those consumers. Update the Toolchain dependencies and rerun the module dependency and runtime matrices against those publishable identities. Server versioning and publication are separate release work; this candidate validation does not authorize either.
+These isolated builds reuse `1.7.0` coordinates only for source validation. The normal SDK dependency version is `1.8.0` and packaging defaults to
+release checks. Candidate CI and Docker builds explicitly select `-Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate`. Always apply both
+options together with the candidate Maven repository.
+
+## Release packaging
+
+Build 1.8.0 release packages with Java 17, Python 3.9 or newer, and `-Papache-release`. Use a fresh Maven repository and settings that resolve the
+chosen Apache staging repository. The existing `stage` profile selects Apache's staging group; specific repository selection belongs in Maven
+settings. Do not preinstall local Server artifacts when validating remote staging dependencies.
+
+```bash
+mvn --settings "$release_settings" -Dmaven.repo.local="$release_repository" -Papache-release \
+  clean install -DskipTests -Dmaven.javadoc.skip=true -ntp
+```
+
+Release mode requires the Common and PD Common/Client/gRPC 1.8.0 POM/JARs, plus Core for Hubble. Every bundled Server SDK library must have the selected
+version and match the JAR bytes in the build repository; missing, mixed or replaced libraries fail packaging. Candidate manifests in the Maven
+repository or distribution are rejected. This verifies dependency/package consistency, while staging origin is established separately by fresh
+resolution and retained build logs. For unsigned source prevalidation only, add `-Dgpg.skip=true` and record the local dependency origin explicitly.
+Passing that build does not establish RC signatures or constitute an ASF release. Staging upload and formal publication remain separate actions.
 
 ## Upgrade the core tools
 

@@ -100,7 +100,8 @@
     <properties>
         <revision>1.8.0</revision>
         <!-- Unified release line for HugeGraph common, server/core, PD and store artifacts -->
-        <hugegraph.version>1.7.0</hugegraph.version>
+        <hugegraph.version>1.8.0</hugegraph.version>
+        <sdk.validation.mode>release</sdk.validation.mode>
         <release.name>${project.artifactId}</release.name>
         <final.name>apache-${release.name}-${project.version}</final.name>
         <assembly.dir>${project.basedir}/assembly</assembly.dir>
@@ -340,6 +341,9 @@
     <profiles>
         <profile>
             <id>apache-release</id>
+            <properties>
+                <sdk.validation.mode>release</sdk.validation.mode>
+            </properties>
             <build>
                 <pluginManagement>
                     <plugins>

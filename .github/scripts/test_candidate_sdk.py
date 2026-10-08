@@ -424,5 +424,105 @@ class CandidateDistributionTest(unittest.TestCase):
             self.assertNotIn("secret", result.stderr)
 
 
+class ReleaseDistributionTest(unittest.TestCase):
+    def fixture(self, root):
+        repository, directory = root / "m2", root / "distribution"
+        library = directory / "lib"
+        library.mkdir(parents=True)
+        for artifact in ("hugegraph-common", "hg-pd-common", "hg-pd-client", "hg-pd-grpc", "hugegraph-core"):
+            parent = repository / "org/apache/hugegraph" / artifact / "1.8.0"
+            parent.mkdir(parents=True)
+            pom = ('<project xmlns="http://maven.apache.org/POM/4.0.0"><parent>'
+                   '<groupId>org.apache.hugegraph</groupId><artifactId>hugegraph</artifactId>'
+                   '<version>1.8.0</version></parent><artifactId>' + artifact + '</artifactId></project>')
+            (parent / (artifact + "-1.8.0.pom")).write_text(pom)
+            jar = parent / (artifact + "-1.8.0.jar")
+            jar.write_bytes(artifact.encode())
+            shutil.copyfile(jar, library / jar.name)
+        (library / "hugegraph-client-1.8.0.jar").write_bytes(b"Toolchain output")
+        return repository, directory
+
+    def test_release_uses_exact_maven_artifacts_without_a_candidate_manifest(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository, directory = self.fixture(Path(temporary))
+            for module in ("loader", "tools", "hubble"):
+                self.assertEqual(5, len(sdk.validate_release_sdk(repository, "1.8.0", directory, module)))
+            command = ["python3", str(Path(sdk.__file__)), str(repository), "--mode", "release",
+                       "--version", "1.8.0", "--distribution", str(directory), "--module", "hubble"]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+            self.assertEqual(0, result.returncode, result.stderr)
+            self.assertIn("release SDK 1.8.0", result.stdout)
+
+    def test_release_rejects_missing_mixed_and_replaced_sdk_inputs(self):
+        scenarios = ("missing_jar", "missing_pom", "missing_library", "mixed_version", "duplicate_version",
+                     "replaced_library", "stale_repo_manifest", "stale_package_manifest", "wrong_pom_version",
+                     "invalid_pom", "repository_symlink", "package_symlink", "library_directory_symlink")
+        for scenario in scenarios:
+            with self.subTest(scenario=scenario), tempfile.TemporaryDirectory() as temporary:
+                root = Path(temporary)
+                repository, directory = self.fixture(root)
+                common = repository / "org/apache/hugegraph/hugegraph-common/1.8.0/hugegraph-common-1.8.0.jar"
+                packaged = directory / "lib" / common.name
+                pom = common.with_suffix(".pom")
+                if scenario == "missing_jar":
+                    common.unlink()
+                elif scenario == "missing_pom":
+                    pom.unlink()
+                elif scenario == "missing_library":
+                    packaged.unlink()
+                elif scenario in ("mixed_version", "duplicate_version"):
+                    old = packaged.with_name("hugegraph-common-1.7.0.jar")
+                    shutil.copyfile(packaged, old)
+                    if scenario == "mixed_version":
+                        packaged.unlink()
+                elif scenario == "replaced_library":
+                    packaged.write_bytes(b"Other repository's same GAV")
+                elif scenario in ("stale_repo_manifest", "stale_package_manifest"):
+                    target = repository if scenario == "stale_repo_manifest" else directory
+                    (target / "candidate-sdk-manifest.json").write_text("{}")
+                elif scenario == "wrong_pom_version":
+                    pom.write_text(pom.read_text().replace("1.8.0", "1.7.0"))
+                elif scenario == "invalid_pom":
+                    pom.write_text("<project>")
+                elif scenario == "repository_symlink":
+                    common.unlink()
+                    common.symlink_to(packaged)
+                elif scenario == "library_directory_symlink":
+                    external = root / "external-library"
+                    (directory / "lib").rename(external)
+                    (directory / "lib").symlink_to(external, target_is_directory=True)
+                else:
+                    packaged.unlink()
+                    packaged.symlink_to(common)
+                with self.assertRaises(RuntimeError):
+                    sdk.validate_release_sdk(repository, "1.8.0", directory, "loader")
+
+    def test_release_hubble_requires_core_but_loader_does_not(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository, directory = self.fixture(Path(temporary))
+            (directory / "lib/hugegraph-core-1.8.0.jar").unlink()
+            sdk.validate_release_sdk(repository, "1.8.0", directory, "loader")
+            with self.assertRaisesRegex(RuntimeError, "hugegraph-core"):
+                sdk.validate_release_sdk(repository, "1.8.0", directory, "hubble")
+
+    def test_release_requires_transitive_pd_common_library(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository, directory = self.fixture(Path(temporary))
+            (directory / "lib/hg-pd-common-1.8.0.jar").unlink()
+            for module in ("loader", "tools", "hubble"):
+                with self.subTest(module=module), self.assertRaisesRegex(RuntimeError, "hg-pd-common"):
+                    sdk.validate_release_sdk(repository, "1.8.0", directory, module)
+
+    def test_release_rejects_snapshot_and_unspecified_versions(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository, directory = self.fixture(Path(temporary))
+            with self.assertRaisesRegex(RuntimeError, "concrete release version"):
+                sdk.validate_release_sdk(repository, "1.8.0-SNAPSHOT", directory, "loader")
+            result = subprocess.run(["python3", str(Path(sdk.__file__)), str(repository), "--mode", "release"],
+                                    capture_output=True, text=True, timeout=5)
+            self.assertNotEqual(0, result.returncode)
+            self.assertIn("--version is required", result.stderr)
+
+
 if __name__ == "__main__":
     unittest.main()

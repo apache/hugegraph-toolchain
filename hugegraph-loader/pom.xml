@@ -734,6 +734,10 @@
                                 <exec executable="python3" failonerror="true">
                                     <arg value="${project.basedir}/../.github/scripts/verify_candidate_image_sdk.py"/>
                                     <arg value="${settings.localRepository}"/>
+                                    <arg value="--mode"/>
+                                    <arg value="${sdk.validation.mode}"/>
+                                    <arg value="--version"/>
+                                    <arg value="${hugegraph.version}"/>
                                     <arg value="--distribution"/>
                                     <arg value="${project.basedir}/${final.name}"/>
                                     <arg value="--module"/>

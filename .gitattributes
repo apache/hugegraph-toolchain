@@ -8,7 +8,8 @@ apache-release.sh export-ignore
 .licenserc.yaml export-ignore
 
 # ignored directory
-.github/ export-ignore
+.github/workflows/ export-ignore
+.github/outdated/ export-ignore
 hugegraph-dist/scripts/ export-ignore
 .serena/ export-ignore
 # only exclude the root

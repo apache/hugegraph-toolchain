@@ -47,9 +47,13 @@ RUN mkdir -p /opt/candidate-m2 \
 COPY . /pkg
 
 RUN set -x \
-    && mvn install $MAVEN_ARGS -Dmaven.repo.local=/opt/candidate-m2 -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp \
+    && mvn install $MAVEN_ARGS -Dmaven.repo.local=/opt/candidate-m2 \
+       -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate \
+       -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp \
     && cd /pkg/hugegraph-hubble/ \
-    && mvn package $MAVEN_ARGS -Dmaven.repo.local=/opt/candidate-m2 -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true \
+    && mvn package $MAVEN_ARGS -Dmaven.repo.local=/opt/candidate-m2 \
+       -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate \
+       -e -B -ntp -DskipTests -Dmaven.javadoc.skip=true \
     && python3 /pkg/.github/scripts/verify_candidate_image_sdk.py /opt/candidate-m2 \
     && set -- /pkg/hugegraph-hubble/target/apache-hugegraph-hubble-*.tar.gz \
     && test "$#" -eq 1 \

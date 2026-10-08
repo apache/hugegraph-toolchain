@@ -364,15 +364,22 @@ Check [Maven Central](https://mvnrepository.com/artifact/org.apache.hugegraph) f
 
 ### Full Build
 
-Follow the [Java 17 bootstrap instructions](docs/java17-migration.md#build-the-locked-candidate) to install the locked SDK into an isolated Maven repository, then build with that repository:
+Normal builds use the 1.8.0 SDK and release packaging checks. Select the staging repository in Maven settings and use an isolated local repository:
 
 ```bash
-mvn -Dmaven.repo.local="$candidate_dir/m2" clean install -DskipTests -Dmaven.javadoc.skip=true -ntp
+mvn --settings "$release_settings" -Dmaven.repo.local="$release_repository" clean install \
+  -DskipTests -Dmaven.javadoc.skip=true -ntp
 ```
 
-Distribution packaging requires Python 3.9 or newer and verifies the SDK manifest and bundled libraries before producing archives. Ordinary `compile` and `test` remain available with published dependencies; those checks do not validate a candidate distribution. Use the same `-Dmaven.repo.local` option in the module commands below when building candidates.
+Distribution packaging requires Python 3.9 or newer. Release mode checks required SDK POM/JARs and packaged library versions and bytes, and rejects
+candidate manifests. Add `-Papache-release` for the Apache release profile; see [release packaging](docs/java17-migration.md#release-packaging).
+To build the older locked candidate instead, follow [the bootstrap instructions](docs/java17-migration.md#build-the-locked-candidate) and supply
+`-Dmaven.repo.local="$candidate_dir/m2" -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate` to every module build.
 
 ### Module-Specific Builds
+
+Until the 1.8.0 SDK is available in Maven Central, apply the same `--settings "$release_settings"` and
+`-Dmaven.repo.local="$release_repository"` options from Full Build to each Maven command below.
 
 | Module | Build Command |
 |--------|---------------|
