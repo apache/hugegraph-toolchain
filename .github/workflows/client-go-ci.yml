@@ -3,6 +3,18 @@ name: "go-client-ci"
 on:
   workflow_call:
     inputs:
+      current-artifact-name:
+        type: string
+        required: true
+      current-repository:
+        type: string
+        required: true
+      current-ref:
+        type: string
+        required: true
+      current-commit:
+        type: string
+        required: true
       server-repository:
         type: string
         default: apache/hugegraph
@@ -24,7 +36,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        JAVA_VERSION: ['17']
+        SERVER_BASELINE: ['candidate', 'release-1.7']
 
     steps:
       - name: Fetch Code
@@ -32,30 +44,24 @@ jobs:
         with:
           fetch-depth: 2
 
-      - name: Install released Server JVM
+      - name: Setup Server JVM
         id: server-java
         uses: actions/setup-java@v5
         with:
-          java-version: '11'
+          java-version: ${{ matrix.SERVER_BASELINE == 'candidate' && '17' || '11' }}
           distribution: temurin
           overwrite-settings: false
-
-      - name: Setup Java environment
-        uses: ./.github/actions/setup-java-env
-        with:
-          java-version: ${{ matrix.JAVA_VERSION }}
-          distribution: 'zulu'
 
       - name: Setup HugeGraph server
         uses: ./.github/actions/setup-hugegraph-server
         with:
           travis-dir: ${{ env.TRAVIS_DIR }}
-          commit-id: ${{ inputs.server-commit }}
-          repository: ${{ inputs.server-repository }}
-          fetch-ref: ${{ inputs.server-ref }}
-          artifact-name: ${{ inputs.artifact-name }}
+          commit-id: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-commit || inputs.server-commit }}
+          repository: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-repository || inputs.server-repository }}
+          fetch-ref: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-ref || inputs.server-ref }}
+          artifact-name: ${{ matrix.SERVER_BASELINE == 'candidate' && inputs.current-artifact-name || inputs.artifact-name }}
           mode: start
-          java-version: '11'
+          java-version: ${{ matrix.SERVER_BASELINE == 'candidate' && '17' || '11' }}
           java-home: ${{ steps.server-java.outputs.path }}
 
       - name: Init Go env

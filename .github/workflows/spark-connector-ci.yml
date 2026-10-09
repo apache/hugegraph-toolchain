@@ -22,8 +22,10 @@ jobs:
     env:
       TRAVIS_DIR: hugegraph-spark-connector/assembly/travis
     strategy:
+      fail-fast: false
       matrix:
         JAVA_VERSION: ['17']
+        SERVER_BASELINE: ['candidate', 'release-1.7']
 
     steps:
       - name: Fetch Code
@@ -32,6 +34,7 @@ jobs:
           fetch-depth: 2
 
       - name: Install released Server JVM
+        if: matrix.SERVER_BASELINE == 'release-1.7'
         id: released-java
         uses: actions/setup-java@v5
         with:
@@ -54,6 +57,7 @@ jobs:
           mvn install -pl hugegraph-client,hugegraph-spark-connector -am -Dmaven.javadoc.skip=true -DskipTests -ntp
 
       - name: Setup HugeGraph server
+        if: matrix.SERVER_BASELINE == 'release-1.7'
         uses: ./.github/actions/setup-hugegraph-server
         with:
           travis-dir: ${{ env.TRAVIS_DIR }}
@@ -64,6 +68,12 @@ jobs:
           mode: start
           artifact-name: ${{ inputs.artifact-name }}
           java-version: '11'
+
+      - name: Start candidate Server fixture
+        if: matrix.SERVER_BASELINE == 'candidate'
+        env:
+          CANDIDATE_ARCHIVE: ${{ steps.candidate-sdk.outputs.archive }}
+        run: bash hugegraph-client/assembly/travis/start-hugegraph-servers.sh "$CANDIDATE_ARCHIVE"
 
       - name: Run test
         run: |

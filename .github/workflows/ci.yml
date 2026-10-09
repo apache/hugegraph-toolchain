@@ -41,9 +41,9 @@ jobs:
       server-repository: ${{ steps.baseline.outputs.repository }}
       server-commit: ${{ steps.baseline.outputs.commit_id }}
       server-ref: ${{ steps.baseline.outputs.fetch_ref }}
-      hubble-commit: ${{ steps.hubble-baseline.outputs.commit_id }}
-      hubble-repository: ${{ steps.hubble-baseline.outputs.repository }}
-      hubble-ref: ${{ steps.hubble-baseline.outputs.fetch_ref }}
+      current-commit: ${{ steps.current-baseline.outputs.commit_id }}
+      current-repository: ${{ steps.current-baseline.outputs.repository }}
+      current-ref: ${{ steps.current-baseline.outputs.fetch_ref }}
       client: ${{ steps.select.outputs.client }}
       loader: ${{ steps.select.outputs.loader }}
       tools: ${{ steps.select.outputs.tools }}
@@ -81,7 +81,7 @@ jobs:
           ref: refs/tags/1.7.0
           expected-commit: b12425c2032bf0d21a97b8221f42a18055c2982f
       - name: Resolve locked Java17 candidate baseline
-        id: hubble-baseline
+        id: current-baseline
         if: steps.scope.outputs.needsFixture == 'true'
         uses: ./.github/actions/get-hugegraph-commit
         with:
@@ -91,13 +91,13 @@ jobs:
       - name: Record external test inputs
         env:
           NEEDS_SERVER: ${{ steps.scope.outputs.needsFixture }}
-          NEEDS_HUBBLE: ${{ steps.scope.outputs.hubble }}
+          NEEDS_CURRENT_SERVER: ${{ steps.scope.outputs.hubble == 'true' || steps.scope.outputs.go == 'true' }}
           SERVER_REPOSITORY: ${{ steps.baseline.outputs.repository }}
           SERVER_COMMIT: ${{ steps.baseline.outputs.commit_id }}
           SERVER_REF: ${{ steps.baseline.outputs.fetch_ref }}
-          HUBBLE_REPOSITORY: ${{ steps.hubble-baseline.outputs.repository }}
-          HUBBLE_REF: ${{ steps.hubble-baseline.outputs.fetch_ref }}
-          HUBBLE_COMMIT: ${{ steps.hubble-baseline.outputs.commit_id }}
+          CURRENT_REPOSITORY: ${{ steps.current-baseline.outputs.repository }}
+          CURRENT_REF: ${{ steps.current-baseline.outputs.fetch_ref }}
+          CURRENT_COMMIT: ${{ steps.current-baseline.outputs.commit_id }}
         run: |
           python3 - <<'PYINPUTS'
           import json, os
@@ -107,13 +107,18 @@ jobs:
                   selected = json.load(stream)['selected']
               inputs['toolchainJDK'] = {module: ['17']
                                         for module in selected if module != 'go'}
-              inputs['config'] = 'candidate-release-java17-ci-v3'
+              inputs['config'] = 'candidate-release-java17-ci-v4'
               inputs['server'] = {'repository': os.environ['SERVER_REPOSITORY'],
                                   'commit': os.environ['SERVER_COMMIT'],
                                   'ref': os.environ['SERVER_REF'], 'jdk': '11'}
-          if os.environ['NEEDS_SERVER'] == 'true':
-              inputs['candidateSDK'] = {'repository': os.environ['HUBBLE_REPOSITORY'], 'commit': os.environ['HUBBLE_COMMIT'],
-                                  'ref': os.environ['HUBBLE_REF'], 'jdk': '17'}
+          if os.environ['NEEDS_SERVER'] == 'true' and any(module != 'go' for module in selected):
+              inputs['candidateSDK'] = {'repository': os.environ['CURRENT_REPOSITORY'],
+                                        'commit': os.environ['CURRENT_COMMIT'],
+                                        'ref': os.environ['CURRENT_REF'], 'jdk': '17'}
+          if os.environ['NEEDS_CURRENT_SERVER'] == 'true':
+              inputs['currentServer'] = {'repository': os.environ['CURRENT_REPOSITORY'],
+                                         'commit': os.environ['CURRENT_COMMIT'],
+                                         'ref': os.environ['CURRENT_REF'], 'jdk': '17'}
           with open('inputs.json', 'w') as stream:
               json.dump(inputs, stream, sort_keys=True)
           PYINPUTS
@@ -164,9 +169,9 @@ jobs:
           fetch-ref: ${{ needs.plan.outputs.server-ref }}
           java-version: '11'
 
-  hubble-fixture:
+  current-fixture:
     needs: plan
-    if: needs.plan.outputs.hubble == 'true'
+    if: needs.plan.outputs.hubble == 'true' || needs.plan.outputs.go == 'true'
     runs-on: ubuntu-latest
     outputs:
       artifact: ${{ steps.identity.outputs.artifact }}
@@ -176,7 +181,7 @@ jobs:
           persist-credentials: false
       - name: Name immutable Server artifact
         id: identity
-        run: echo "artifact=hubble-fixture-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
+        run: echo "artifact=current-fixture-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}" >> "$GITHUB_OUTPUT"
       - uses: ./.github/actions/setup-java-env
         with:
           java-version: '17'
@@ -186,9 +191,9 @@ jobs:
         with:
           mode: build
           artifact-name: ${{ steps.identity.outputs.artifact }}
-          repository: ${{ needs.plan.outputs.hubble-repository }}
-          commit-id: ${{ needs.plan.outputs.hubble-commit }}
-          fetch-ref: ${{ needs.plan.outputs.hubble-ref }}
+          repository: ${{ needs.plan.outputs.current-repository }}
+          commit-id: ${{ needs.plan.outputs.current-commit }}
+          fetch-ref: ${{ needs.plan.outputs.current-ref }}
           java-version: '17'
 
   client:
@@ -248,14 +253,14 @@ jobs:
       contents: read
       actions: read
       id-token: write
-    needs: [plan, fixture, hubble-fixture]
+    needs: [plan, fixture, current-fixture]
     if: ${{ needs.plan.outputs.hubble == 'true' }}
     uses: ./.github/workflows/hubble-ci.yml
     with:
-      current-artifact-name: ${{ needs.hubble-fixture.outputs.artifact }}
-      current-commit: ${{ needs.plan.outputs.hubble-commit }}
-      current-repository: ${{ needs.plan.outputs.hubble-repository }}
-      current-ref: ${{ needs.plan.outputs.hubble-ref }}
+      current-artifact-name: ${{ needs.current-fixture.outputs.artifact }}
+      current-commit: ${{ needs.plan.outputs.current-commit }}
+      current-repository: ${{ needs.plan.outputs.current-repository }}
+      current-ref: ${{ needs.plan.outputs.current-ref }}
       artifact-name: ${{ needs.fixture.outputs.artifact }}
       server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}
@@ -263,10 +268,14 @@ jobs:
     secrets: inherit
 
   go:
-    needs: [plan, fixture]
+    needs: [plan, fixture, current-fixture]
     if: ${{ needs.plan.outputs.go == 'true' }}
     uses: ./.github/workflows/client-go-ci.yml
     with:
+      current-artifact-name: ${{ needs.current-fixture.outputs.artifact }}
+      current-commit: ${{ needs.plan.outputs.current-commit }}
+      current-repository: ${{ needs.plan.outputs.current-repository }}
+      current-ref: ${{ needs.plan.outputs.current-ref }}
       artifact-name: ${{ needs.fixture.outputs.artifact }}
       server-repository: ${{ needs.plan.outputs.server-repository }}
       server-commit: ${{ needs.plan.outputs.server-commit }}
@@ -289,7 +298,7 @@ jobs:
 
   affected-module-tests:
     name: affected-module-tests
-    needs: [plan, fixture, hubble-fixture, client, loader, tools, spark, hubble, go, loader_image, hubble_image, dependency-audit]
+    needs: [plan, fixture, current-fixture, client, loader, tools, spark, hubble, go, loader_image, hubble_image, dependency-audit]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     steps:
