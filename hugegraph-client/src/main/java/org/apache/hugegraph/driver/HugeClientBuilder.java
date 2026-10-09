@@ -127,7 +127,8 @@ public class HugeClientBuilder {
 
     public HugeClientBuilder configTimeout(int timeout) {
         if (timeout == 0) {
-            timeout = DEFAULT_TIMEOUT;
+            this.timeout = DEFAULT_TIMEOUT;
+            return this;
         }
         this.timeout = timeout * SECOND;
         return this;

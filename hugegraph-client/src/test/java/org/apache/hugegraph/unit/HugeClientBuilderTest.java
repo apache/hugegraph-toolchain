@@ -24,10 +24,35 @@ import org.junit.Test;
 
 public class HugeClientBuilderTest {
 
+    // Default timeout in milliseconds.
+    private static final int DEFAULT_TIMEOUT = 20 * 1000;
     @Test
     public void testConstructorAcceptsNullUrlAndGraph() {
         HugeClientBuilder builder = new HugeClientBuilder(null, "DEFAULT", null);
         Assert.assertNotNull(builder);
+    }
+
+    /*
+     * Test that the default timeout is used when the constructor is called and it is 20 seconds.
+     */
+    @Test
+    public void testConstructorUsesDefaultTimeoutInMilliseconds() {
+        HugeClientBuilder builder = new HugeClientBuilder(null, "DEFAULT", null);
+        Assert.assertEquals(DEFAULT_TIMEOUT, builder.timeout());
+    }
+
+    /*
+     * Test that configTimeout(0) resets to the default timeout and it is 20 seconds.
+     */
+    @Test
+    public void testConfigTimeoutZeroResetsToDefaultTimeoutInMilliseconds() {
+        HugeClientBuilder builder = new HugeClientBuilder(null, "DEFAULT", null);
+
+        builder.configTimeout(3);
+        Assert.assertEquals(3 * 1000, builder.timeout());
+
+        builder.configTimeout(0);
+        Assert.assertEquals(DEFAULT_TIMEOUT, builder.timeout());
     }
 
     @Test
