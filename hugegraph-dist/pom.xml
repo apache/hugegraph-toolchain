@@ -27,7 +27,7 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <artifactId>hugegraph-dist</artifactId>
+    <artifactId>hugegraph-toolchain-dist</artifactId>
 
     <properties>
         <release.name>${project.parent.artifactId}</release.name>

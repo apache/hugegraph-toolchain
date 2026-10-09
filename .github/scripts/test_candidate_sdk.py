@@ -154,6 +154,28 @@ class CandidateParentModelTest(unittest.TestCase):
             self.assertEqual(0, selected.returncode, selected.stdout + selected.stderr)
             self.assertEqual(str(artifact / "sdk-1.9.0.jar"), (root / "classpath").read_text().strip())
 
+    @unittest.skipUnless(os.environ.get("CANDIDATE_SDK_MAVEN_TEST"),
+                         "Set CANDIDATE_SDK_MAVEN_TEST for the aggregate-coordinate regression")
+    def test_toolchain_dist_coordinate_keeps_the_release_archive_name(self):
+        # Exercise Maven's real reactor selector and interpolation without packaging the full distribution.
+        with tempfile.TemporaryDirectory() as temporary:
+            output = Path(temporary) / "effective-pom.xml"
+            source = Path(__file__).resolve().parents[2]
+            result = subprocess.run([os.environ["CANDIDATE_SDK_MAVEN_TEST"], "-f", str(source / "pom.xml"),
+                                     "-pl", ":hugegraph-toolchain-dist", "-ntp", "-B",
+                                     "org.apache.maven.plugins:maven-help-plugin:3.2.0:effective-pom",
+                                     "-Doutput=" + str(output)], capture_output=True, text=True, timeout=90)
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            model = ET.parse(output).getroot()
+            ns = "{http://maven.apache.org/POM/4.0.0}"
+            self.assertEqual("org.apache.hugegraph", model.findtext(ns + "groupId"))
+            self.assertEqual("hugegraph-toolchain-dist", model.findtext(ns + "artifactId"))
+            self.assertEqual("1.8.0", model.findtext(ns + "version"))
+            properties = model.find(ns + "properties")
+            self.assertEqual("hugegraph-toolchain", properties.findtext(ns + "release.name"))
+            self.assertEqual("apache-hugegraph-toolchain-1.8.0", properties.findtext(ns + "final.name"))
+            self.assertEqual("hugegraph-toolchain-dist-1.8.0", model.findtext(ns + "build/" + ns + "finalName"))
+
 
 class CandidateDistributionTest(unittest.TestCase):
     def setUp(self):
@@ -338,7 +360,7 @@ class CandidateDistributionTest(unittest.TestCase):
             repository, manifest = self.fixture(root)
             outputs = []
             for artifact, extension in (("hugegraph-toolchain", "pom"),
-                                        ("hugegraph-dist", "jar"),
+                                        ("hugegraph-toolchain-dist", "jar"),
                                         ("hugegraph-client", "jar"),
                                         ("hugegraph-loader", "jar"),
                                         ("hubble-be", "jar")):
@@ -348,32 +370,47 @@ class CandidateDistributionTest(unittest.TestCase):
                 manifest["artifacts"].append({"path": str(path.relative_to(repository)),
                                               "sha256": sdk.digest(path), "source_reactor_install": True})
                 outputs.append(path)
-            # Server and Toolchain publish the dist reactor output at the same GAV.
-            # Retain the Server provenance, but never treat that output as a consumer SDK input.
+            # The distinct Server dist coordinate is an immutable source input.
             server_dist = repository / "org/apache/hugegraph/hugegraph-dist/1.8.0/hugegraph-dist-1.8.0.jar"
+            server_dist.parent.mkdir(parents=True, exist_ok=True)
             server_dist.write_bytes(b"locked Server distribution")
-            entry = next(item for item in manifest["artifacts"]
-                         if item["path"] == str(server_dist.relative_to(repository)))
-            entry["sha256"] = sdk.digest(server_dist)
+            manifest["artifacts"].append({"path": str(server_dist.relative_to(repository)),
+                                          "sha256": sdk.digest(server_dist), "source_reactor_install": True})
             self.write_manifest(repository, manifest)
             directory = self.distribution(root, repository, manifest)
-            # The aggregate Toolchain dist JAR is not a module runtime library.
+            # Aggregate dist JARs are not module runtime libraries.
             (directory / "lib/hugegraph-dist-1.8.0.jar").unlink()
+            (directory / "lib/hugegraph-toolchain-dist-1.8.0.jar").unlink()
             before = (repository / "candidate-sdk-manifest.json").read_bytes()
             for path in outputs:
                 # Simulate parent/Client install, then Loader install, then Hubble install.
                 path.write_bytes(b"new reactor output after compile")
-                if path.suffix == ".jar" and path.name != "hugegraph-dist-1.8.0.jar":
+                if path.suffix == ".jar" and path.name != "hugegraph-toolchain-dist-1.8.0.jar":
                     shutil.copyfile(path, directory / "lib" / path.name)
                 for module in ("loader", "tools", "hubble"):
                     sdk.validate_distribution(repository, directory, module)
             self.assertEqual(before, (repository / "candidate-sdk-manifest.json").read_bytes())
+            self.assertEqual(b"locked Server distribution", server_dist.read_bytes())
             server_dist.write_bytes(b"overwritten Server distribution")
-            sdk.validate_sdk(repository)
+            with self.assertRaisesRegex(RuntimeError, "SDK artifact hash mismatch"):
+                sdk.validate_sdk(repository)
+            server_dist.write_bytes(b"locked Server distribution")
             common = repository / "org/apache/hugegraph/hugegraph-common/1.8.0/hugegraph-common-1.8.0.jar"
             common.write_bytes(b"replaced Server SDK input")
             with self.assertRaisesRegex(RuntimeError, "SDK artifact hash mismatch"):
                 sdk.validate_distribution(repository, directory, "hubble")
+
+    def test_legacy_dist_output_at_another_revision_does_not_change_server_inputs(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            repository, manifest = self.fixture(Path(temporary), "1.9.0-SNAPSHOT")
+            legacy = repository / "org/apache/hugegraph/hugegraph-dist/1.8.0/hugegraph-dist-1.8.0.jar"
+            legacy.parent.mkdir(parents=True)
+            legacy.write_bytes(b"legacy Toolchain output")
+            manifest["artifacts"].append({"path": str(legacy.relative_to(repository)),
+                                          "sha256": sdk.digest(legacy), "source_reactor_install": True})
+            self.write_manifest(repository, manifest)
+            legacy.write_bytes(b"updated legacy Toolchain output")
+            sdk.validate_sdk(repository, "1.9.0-SNAPSHOT")
 
     def test_source_context_preserves_full_identity_checks(self):
         with tempfile.TemporaryDirectory() as temporary:

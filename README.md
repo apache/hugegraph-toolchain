@@ -378,6 +378,9 @@ candidate manifests. Add `-Papache-release` for the Apache release profile; see 
 To build the pinned same-source 1.8.0 SDK instead, follow [the bootstrap instructions](docs/java17-migration.md#build-the-locked-candidate) and supply
 `-Dmaven.repo.local="$candidate_dir/m2" -Dhugegraph.version=1.8.0 -Dsdk.validation.mode=candidate` to every module build.
 
+The aggregate Maven module is `org.apache.hugegraph:hugegraph-toolchain-dist:1.8.0`, distinct from Server's `hugegraph-dist` coordinate.
+Its source directory remains `hugegraph-dist`; the release archive remains `apache-hugegraph-toolchain-1.8.0.tar.gz`.
+
 ### Module-Specific Builds
 
 Until the 1.8.0 SDK is available in Maven Central, apply the same `--settings "$release_settings"` and

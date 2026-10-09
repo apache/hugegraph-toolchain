@@ -43,7 +43,8 @@ REQUIRED_MODULES = {
 # Older retained manifests may include them because they described a shared Maven cache.
 TOOLCHAIN_ARTIFACTS = {
     "hugegraph-toolchain", "hugegraph-client", "hugegraph-loader", "hugegraph-tools",
-    "hugegraph-spark-connector", "hugegraph-hubble", "hugegraph-dist", "hubble-be", "hubble-fe", "hubble-dist",
+    "hugegraph-spark-connector", "hugegraph-hubble", "hugegraph-toolchain-dist",
+    "hugegraph-dist", "hubble-be", "hubble-fe", "hubble-dist",
 }
 
 
@@ -113,9 +114,10 @@ def _validate_sdk(repository, expected_revision=None):
         if (Path(relative).is_absolute() or ".." in parts or len(parts) != 6 or
                 parts[:3] != ("org", "apache", "hugegraph")):
             raise RuntimeError(f"Invalid SDK artifact path: {relative}")
-        # Server and Toolchain also share hugegraph-dist at the same 1.8.0 coordinates.
-        # None of these reactor outputs is a required consumer SDK input.
-        if parts[3] in TOOLCHAIN_ARTIFACTS:
+        # Legacy Toolchain manifests used hugegraph-dist at a different revision.
+        # The selected Server revision remains locked even when its dist is not a required SDK module.
+        if parts[3] in TOOLCHAIN_ARTIFACTS and (parts[3] != "hugegraph-dist" or
+                                              parts[4] != manifest["source_revision"]):
             continue
         path = repository / relative
         if not path.is_file() or not path.resolve().is_relative_to(repository.resolve()):
