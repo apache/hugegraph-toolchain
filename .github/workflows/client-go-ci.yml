@@ -77,4 +77,6 @@ jobs:
           sudo sysctl -w vm.swappiness=1
           sudo sysctl -w fs.file-max=262144
           sudo sysctl -w vm.max_map_count=262144
-          cd hugegraph-client-go && make test
+          cd hugegraph-client-go
+          # Each live Server baseline must execute requests rather than replay cached test results.
+          make test GOTEST='GO111MODULE=on go test -race -count=1 -timeout 30s -gcflags="-N -l"'
