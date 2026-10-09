@@ -916,14 +916,52 @@ https://github.com/h2database/h2database/tree/version-2.3.232
         Apache-2.0 terms above
 
 ========================================================================
-Retained published baseline license coverage
+SDK runtime dependency license coverage
 ========================================================================
 
-This version was already present in the original published runtime classpaths.
-Its Apache-2.0 terms are reproduced at the beginning of this LICENSE.
+These versions are selected by the SDK 1.8.0 runtime dependencies.
+Apache-2.0 terms are reproduced at the beginning of this LICENSE; the
+existing gRPC native-code grants and NOTICE remain unchanged.
 
-    (Apache-2.0) io.grpc:grpc-core:1.39.0
+    (Apache-2.0) io.grpc:grpc-api:1.55.3
+    (Apache-2.0) io.grpc:grpc-context:1.55.3
+    (Apache-2.0) io.grpc:grpc-core:1.55.3
+    (Apache-2.0) io.grpc:grpc-netty-shaded:1.55.3
+    (Apache-2.0) io.grpc:grpc-protobuf:1.55.3
+    (Apache-2.0) io.grpc:grpc-protobuf-lite:1.55.3
+    (Apache-2.0) io.grpc:grpc-stub:1.55.3
+    (Apache-2.0) io.perfmark:perfmark-api:0.25.0
+    (Apache-2.0) com.google.api.grpc:proto-google-common-protos:2.9.0
         Apache-2.0 terms above
+
+    (BSD-3-Clause) com.google.protobuf:protobuf-java:3.22.3
+        licenses/LICENSE-spark-java17-third-party.txt
+        Matching upstream grant: https://raw.githubusercontent.com/protocolbuffers/protobuf/v22.3/LICENSE
+
+    (MIT) org.codehaus.mojo:animal-sniffer-annotations:1.21
+        Full copyright notice and grant reproduced below
+
+The MIT License
+
+Copyright (c) 2009 codehaus.org.
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 
 ========================================================================
 Spark Connector runtime dependency updates
@@ -974,11 +1012,11 @@ reproduced in the main distribution NOTICE. JavaParser uses its Apache-2.0
 option; Cucumber components use MIT and ANTLR/TreeLayout use BSD-3-Clause.
 These grants do not replace the terms of other bundled components.
 
-The HugeGraph Common/Core and PD client/common/grpc SDK payloads retain the
-1.7.0 Maven coordinates while originating from the verified same-source
-Java 17 candidate build. Their payload identity is recorded with its source
-revision and SHA256 in the accompanying build/audit metadata; they are not
-represented as byte-identical Maven Central 1.7.0 artifacts.
+The HugeGraph Common/Core and PD client/common/grpc SDK payloads use 1.8.0
+Maven coordinates. Same-source Java 17 builds record their source revision
+and SHA256 in the accompanying build/audit metadata. Release builds verify
+the selected staging artifacts independently; source builds do not establish
+byte identity with a published Maven artifact.
 
     (Apache-2.0) com.github.javaparser:javaparser-core:3.28.0
         Apache-2.0 terms above
