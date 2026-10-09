@@ -19,6 +19,7 @@ package org.apache.hugegraph.loader.executor;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.hugegraph.loader.exception.LoadException;
@@ -63,8 +64,22 @@ public final class LoadContext implements Cloneable {
     private final SchemaCache schemaCache;
     private final ElementParseGroup parseGroup;
 
-    @SneakyThrows
     public LoadContext(LoadOptions options) {
+        this(options, null);
+    }
+
+    /**
+     * Create a file parser context without creating server clients.
+     * Supply a complete schema cache with no server client, such as one parsed from JSON.
+     * Server clients are null and close() does not save loader progress.
+     */
+    public static LoadContext forOffline(LoadOptions options, SchemaCache schemaCache) {
+        return new LoadContext(Objects.requireNonNull(options, "options"),
+                               Objects.requireNonNull(schemaCache, "schemaCache"));
+    }
+
+    @SneakyThrows
+    private LoadContext(LoadOptions options, SchemaCache schemaCache) {
         this.timestamp = DateUtil.now("yyyyMMdd-HHmmss");
         this.closed = false;
         this.stopped = false;
@@ -74,8 +89,8 @@ public final class LoadContext implements Cloneable {
         this.oldProgress = LoadProgress.parse(options);
         this.newProgress = new LoadProgress();
         this.loggers = new ConcurrentHashMap<>();
-        this.client = HugeClientHolder.create(options);
-        if (this.options.direct) {
+        this.client = schemaCache == null ? HugeClientHolder.create(options) : null;
+        if (this.client != null && this.options.direct) {
             // options implements ShallowClone
             LoadOptions indirectOptions = (LoadOptions) options.clone();
             indirectOptions.direct = false;
@@ -83,7 +98,7 @@ public final class LoadContext implements Cloneable {
         } else {
             this.indirectClient = this.client;
         }
-        this.schemaCache = new SchemaCache(this.client);
+        this.schemaCache = schemaCache == null ? new SchemaCache(this.client) : schemaCache;
         this.parseGroup = ElementParseGroup.create(options);
     }
 
@@ -207,12 +222,14 @@ public final class LoadContext implements Cloneable {
 
             this.newProgress.plusVertexLoaded(this.summary.vertexLoaded());
             this.newProgress.plusEdgeLoaded(this.summary.edgeLoaded());
-            try {
-                this.newProgress.write(this);
-            } catch (IOException e) {
-                LOG.error("Failed to write load progress", e);
+            if (this.client != null) {
+                try {
+                    this.newProgress.write(this);
+                } catch (IOException e) {
+                    LOG.error("Failed to write load progress", e);
+                }
+                LOG.info("Write load progress successfully");
             }
-            LOG.info("Write load progress successfully");
         } finally {
             this.closed = true;
         }

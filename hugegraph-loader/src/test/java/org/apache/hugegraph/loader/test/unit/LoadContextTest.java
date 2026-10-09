@@ -20,10 +20,12 @@ package org.apache.hugegraph.loader.test.unit;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.Collections;
 import java.util.HashMap;
 
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.driver.HugeClientBuilder;
+import org.apache.hugegraph.loader.builder.SchemaCache;
 import org.apache.hugegraph.loader.constant.ElemType;
 import org.apache.hugegraph.loader.exception.LoadException;
 import org.apache.hugegraph.loader.executor.LoadContext;
@@ -42,6 +44,26 @@ public class LoadContextTest {
 
     @Rule
     public TemporaryFolder folder = new TemporaryFolder();
+
+    @Test
+    public void testOfflineContextDoesNotCreateClientsOrSaveProgress() throws IOException {
+        LoadOptions options = new LoadOptions();
+        options.host = null;
+        options.direct = true;
+        options.file = this.folder.newFile("offline.json").getAbsolutePath();
+        SchemaCache schemaCache = new SchemaCache(Collections.emptyList(),
+                                                  Collections.emptyList(),
+                                                  Collections.emptyList());
+        LoadContext context = LoadContext.forOffline(options, schemaCache);
+        Assert.assertSame(schemaCache, context.schemaCache());
+        Assert.assertNull(context.client());
+        Assert.assertNull(context.indirectClient());
+        Assert.assertNotNull(context.filterGroup());
+        context.close();
+        context.close();
+        Assert.assertTrue(context.closed());
+        Assert.assertFalse(new File(LoadProgress.format(options, context.timestamp())).exists());
+    }
 
     @Test
     public void testCloseDistinctClientsOnce() throws Exception {
