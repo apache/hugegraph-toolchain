@@ -59,7 +59,7 @@ mvn install:install-file -Dfile=./ojdbc8.jar -DgroupId=com.oracle -DartifactId=o
 For the Java 17 candidate, prepare the locked SDK using the [bootstrap instructions](../docs/java17-migration.md#build-the-locked-candidate), then compile from the Toolchain repository root with the same isolated Maven repository:
 
 ```bash
-mvn -Dmaven.repo.local="$candidate_dir/m2" clean package -pl hugegraph-client,hugegraph-loader -am -DskipTests -ntp
+mvn -Dmaven.repo.local="$candidate_dir/m2" -Dsdk.validation.mode=candidate clean package -pl hugegraph-client,hugegraph-loader -am -DskipTests -ntp
 ```
 
 ### 2.3 Use docker image (Convenient for Test/Dev)

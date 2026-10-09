@@ -36,7 +36,7 @@ RUN mkdir -p /opt/candidate-m2 \
     && if [ ! -f /opt/candidate-m2/candidate-sdk-manifest.json ]; then \
          SERVER_REPOSITORY=apache/hugegraph \
          bash /pkg/hugegraph-client/assembly/travis/install-candidate-sdk.sh \
-           e62c961e00221569d4f955abbadf60faee45b283 /opt/candidate-source /opt/candidate-m2; \
+           68855199031d5801edb4fe41b2bacbacffe8fe68 /opt/candidate-source /opt/candidate-m2; \
        fi \
     && python3 /pkg/.github/scripts/verify_candidate_image_sdk.py /opt/candidate-m2
 
@@ -44,7 +44,7 @@ COPY . /pkg
 
 RUN set -x \
     && mvn clean package $MAVEN_ARGS -Dmaven.repo.local=/opt/candidate-m2 \
-       -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate \
+       -Dhugegraph.version=1.8.0 -Dsdk.validation.mode=candidate \
        -pl hugegraph-client,hugegraph-loader -am \
        -Dmaven.javadoc.skip=true -DskipTests -ntp \
     && python3 /pkg/.github/scripts/verify_candidate_image_sdk.py /opt/candidate-m2

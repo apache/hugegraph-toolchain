@@ -6,9 +6,9 @@ Toolchain builds, tests and applications use Java 17. The released Server 1.7 co
 
 ## Build the locked candidate
 
-The locked Java 17 Server candidate uses TinkerPop 3.8.1 and Maven version `1.7.0`. Its Common, PD, gRPC and Store artifacts must come from the
+The locked Java 17 Server source uses TinkerPop 3.8.1 and SDK version `1.8.0`. Its Common, PD, gRPC and Store artifacts must come from the
 same source commit; Maven Central artifacts with that version are not interchangeable with the candidate. Candidate CI uses the verified
-`apache/hugegraph` baseline (shown as `e62c96` here), storing and fetching its complete immutable commit identity. Update the SDK action, verifier,
+`apache/hugegraph` baseline `68855199031d5801edb4fe41b2bacbacffe8fe68`, storing and fetching its complete immutable commit identity. Update the SDK action, verifier,
 Docker defaults and CI baseline together when advancing that commit; moving master alone must not silently change packaged SDK provenance.
 
 Use an explicit JDK directory and check both Java and Maven. On systems where Java 17 is not registered, a system JDK selector can return another installed version. Checking the generated class version alone does not identify the JVM that built or tested it.
@@ -33,17 +33,23 @@ PY_COMMIT
 
 bash "$toolchain_root/hugegraph-client/assembly/travis/install-candidate-sdk.sh" \
   "$server_commit" "$candidate_dir/server" "$candidate_dir/m2"
-mvn -Dmaven.repo.local="$candidate_dir/m2" -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate clean install \
+mvn -Dmaven.repo.local="$candidate_dir/m2" -Dhugegraph.version=1.8.0 -Dsdk.validation.mode=candidate clean install \
   -DskipTests -Dmaven.javadoc.skip=true -ntp
 ```
 
 The SDK helper installs the locked Server distribution, PD client, Store client and Struct modules together with their Maven dependency closure, without starting a server. Unrelated Server modules are excluded. It requires a new external source directory and a dedicated Maven repository with no existing HugeGraph artifacts. It records source and artifact provenance in `candidate-sdk-manifest.json` inside that repository. Reuse the same explicit `-Dmaven.repo.local` option for subsequent Toolchain validation. The manifest's source and JDK paths describe that build; use your own directories when rebuilding. The package command skips test execution; run the module test suites separately. These source-built packages are candidates, not an ASF release.
 
-Distribution packaging also requires Python 3.9 or newer. Before each module archive is written, the existing SDK verifier checks the locked source, required POM/JAR hashes and local installation origins, then checks the distribution's manifest and actual SDK libraries. The combined archive rechecks all three module directories before moving them. Source checks lock Server SDK artifacts; Toolchain artifacts such as the Client, Loader and Hubble backend are outputs of this reactor and may change during `install`. Older manifests can retain their metadata, but those outputs are excluded from SDK source hashes. The original manifest is still retained unchanged and compared with each packaged copy. A missing manifest, a Central artifact with the same version, or a stale/changed packaged SDK library fails packaging. Ordinary `compile` and `test` do not require the candidate manifest; they may validate published dependencies without establishing candidate package identity.
+Distribution packaging also requires Python 3.9 or newer. Before each module archive is written, the existing SDK verifier checks the locked source, required POM/JAR hashes and local installation origins, then checks the distribution's manifest and actual SDK libraries. The combined archive rechecks all three module directories before moving them. Source checks lock Server SDK artifacts; Toolchain artifacts such as the Client, Loader and Hubble backend are outputs of this reactor and may change during `install`. The shared Server/Toolchain `hugegraph-dist` coordinates are also reactor outputs, not consumer SDK inputs. Their metadata may remain in the manifest, but they are excluded from SDK input hashes; the Server archive is bound separately by SHA256. The original manifest is still retained unchanged and compared with each packaged copy. A missing manifest, a Central artifact with the same version, or a stale/changed packaged SDK library fails packaging. Ordinary `compile` and `test` do not require the candidate manifest; they may validate published dependencies without establishing candidate package identity.
 
-These isolated builds reuse `1.7.0` coordinates only for source validation. The normal SDK dependency version is `1.8.0` and packaging defaults to
-release checks. Candidate CI and Docker builds explicitly select `-Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate`. Always apply both
-options together with the candidate Maven repository.
+Normal Toolchain builds and fixed CI/Docker builds compile against SDK `1.8.0`. Same-source builds select
+`-Dhugegraph.version=1.8.0 -Dsdk.validation.mode=candidate` together with the isolated Maven repository and retain its manifest.
+The compile-time SDK version is independent of the runtime compatibility target: core CI runs the same Client, Loader, Tools and Hubble
+against current Server 1.8 on Java 17 and the official Server 1.7 binary on its supported Java 11. The old Java 17 source SDK using 1.7.0
+coordinates is no longer a test baseline.
+
+The separate `upstream-master` workflow resolves master once, builds that exact source, validates its complete SDK manifest, hashes and local
+source-install origins, then selects the actual source version for every consumer. This also supports a future upstream version such as
+`1.9.0-SNAPSHOT`; it does not change the fixed 1.8.0 compile baseline or establish release/staging provenance.
 
 ## Release packaging
 
@@ -52,6 +58,8 @@ chosen Apache staging repository. The existing `stage` profile selects Apache's 
 settings. Do not preinstall local Server artifacts when validating remote staging dependencies.
 
 ```bash
+release_settings=/absolute/path/to/settings-with-selected-staging.xml
+release_repository=$(mktemp -d /tmp/hugegraph-release-m2.XXXXXX)
 mvn --settings "$release_settings" -Dmaven.repo.local="$release_repository" -Papache-release \
   clean install -DskipTests -Dmaven.javadoc.skip=true -ntp
 ```

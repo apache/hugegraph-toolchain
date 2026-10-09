@@ -63,7 +63,7 @@ jobs:
         uses: ./.github/actions/setup-candidate-sdk
         with:
           repository: apache/hugegraph
-          expected-commit: e62c961e00221569d4f955abbadf60faee45b283
+          expected-commit: 68855199031d5801edb4fe41b2bacbacffe8fe68
       - name: Build same-source dependencies and the real image
         env:
           IMAGE_EVIDENCE: ${{ runner.temp }}/java17-image-${{ matrix.module }}-evidence

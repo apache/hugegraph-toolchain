@@ -5173,7 +5173,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 ========================================================================
-org.apache.hugegraph:hg-pd-client:1.7.0 / META-INF/NOTICE
+org.apache.hugegraph:hg-pd-client:1.8.0 / META-INF/NOTICE
 ========================================================================
 
 
@@ -5187,7 +5187,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 ========================================================================
-org.apache.hugegraph:hg-pd-common:1.7.0 / META-INF/NOTICE
+org.apache.hugegraph:hg-pd-common:1.8.0 / META-INF/NOTICE
 ========================================================================
 
 
@@ -5201,7 +5201,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 ========================================================================
-org.apache.hugegraph:hg-pd-grpc:1.7.0 / META-INF/NOTICE
+org.apache.hugegraph:hg-pd-grpc:1.8.0 / META-INF/NOTICE
 ========================================================================
 
 
@@ -5215,7 +5215,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 ========================================================================
-org.apache.hugegraph:hugegraph-common:1.7.0 / META-INF/NOTICE
+org.apache.hugegraph:hugegraph-common:1.8.0 / META-INF/NOTICE
 ========================================================================
 
 
@@ -5229,7 +5229,7 @@ The Apache Software Foundation (http://www.apache.org/).
 
 
 ========================================================================
-org.apache.hugegraph:hugegraph-core:1.7.0 / META-INF/NOTICE
+org.apache.hugegraph:hugegraph-core:1.8.0 / META-INF/NOTICE
 ========================================================================
 
 

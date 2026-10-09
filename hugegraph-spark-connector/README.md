@@ -29,7 +29,7 @@ Required:
 - Spark 3.5.8 with Scala 2.12 (built with Scala 2.12.18)
 - Maven 3.6.3+
 
-The default Maven commands below use published Common 1.7.0, whose request bodies depend on the JVM default charset. Retain the UTF-8 submission options below when running this build on Java 17. The isolated same-source candidate SDK used by CI supplies a Common implementation that uses the declared request-body charset and defaults to UTF-8.
+The default Maven commands below compile against Common 1.8.0, which uses the declared request-body charset and defaults to UTF-8. Retain the UTF-8 submission options below to keep Spark drivers and executors consistent. The compile-time SDK version is independent of the Server version used by the runtime compatibility tests.
 
 To build without executing tests:
 
@@ -79,7 +79,7 @@ spark-submit --deploy-mode client --driver-class-path "$DRIVER_GUAVA_JAR" \
   /path/to/your-application.jar
 ```
 
-Omit the UTF-8 driver and executor options only when the connector and Java Client were built using the isolated same-source candidate SDK. The default Maven build still requires them.
+The explicit UTF-8 driver and executor options above remain the recommended submission configuration.
 
 For cluster deploy mode, provision Guava on the remote driver and use its readable absolute path in `--driver-class-path`; copying it to executors does not provision the driver.
 

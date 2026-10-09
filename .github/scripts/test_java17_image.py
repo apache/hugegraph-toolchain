@@ -67,8 +67,8 @@ class ImageEvidenceTest(unittest.TestCase):
             packaging = "pom" if (source_pom.count("/") == 1 and artifact != "hugegraph-struct") or source_pom == "pom.xml" else "jar"
             files = []
             for extension in (["pom", "jar"] if packaging == "jar" else ["pom"]):
-                filename = artifact + "-1.7.0." + extension
-                path = repository / "org/apache/hugegraph" / artifact / "1.7.0" / filename
+                filename = artifact + "-1.8.0." + extension
+                path = repository / "org/apache/hugegraph" / artifact / "1.8.0" / filename
                 path.parent.mkdir(parents=True, exist_ok=True)
                 path.write_bytes(filename.encode())
                 with (path.parent / "_remote.repositories").open("a") as origins:
@@ -77,10 +77,10 @@ class ImageEvidenceTest(unittest.TestCase):
                 files.append(relative)
                 artifacts.append({"path": relative, "sha256": sdk.digest(path), "source_reactor_install": True})
             modules.append({"group_id": "org.apache.hugegraph", "artifact_id": artifact,
-                            "version": "1.7.0", "packaging": packaging,
+                            "version": "1.8.0", "packaging": packaging,
                             "source_pom": source_pom, "files": files})
         manifest = {"repository": sdk.REPOSITORY, "commit": self.source_commit,
-                    "source_revision": "1.7.0", "java_version": "17",
+                    "source_revision": "1.8.0", "java_version": "17",
                     "required_sdk_modules": modules, "artifacts": artifacts}
         self.write_manifest(repository, manifest)
         return repository, manifest
@@ -93,7 +93,7 @@ class ImageEvidenceTest(unittest.TestCase):
             repository, manifest = self.fixture(Path(directory))
             _, expected = sdk.validate_sdk(repository)
             self.assertEqual(expected, images.verify_jars("hubble", expected, expected))
-            wrong = repository / "org/apache/hugegraph/hugegraph-common/1.7.0/hugegraph-common-1.7.0.jar"
+            wrong = repository / "org/apache/hugegraph/hugegraph-common/1.8.0/hugegraph-common-1.8.0.jar"
             wrong.write_bytes(b"central artifact with the same version")
             with self.assertRaisesRegex(RuntimeError, "hash mismatch"):
                 sdk.validate_sdk(repository)
@@ -117,7 +117,7 @@ class ImageEvidenceTest(unittest.TestCase):
                 with self.subTest(change=change), self.assertRaises(RuntimeError):
                     sdk.validate_sdk(repository)
             self.write_manifest(repository, manifest)
-            pom = repository / "org/apache/hugegraph/hugegraph/1.7.0/hugegraph-1.7.0.pom"
+            pom = repository / "org/apache/hugegraph/hugegraph/1.8.0/hugegraph-1.8.0.pom"
             (pom.parent / "_remote.repositories").write_text(pom.name + ">central=\n")
             with self.assertRaisesRegex(RuntimeError, "not installed from source"):
                 sdk.validate_sdk(repository)
@@ -143,8 +143,8 @@ class ImageEvidenceTest(unittest.TestCase):
                 images.prepare("loader", self.source_commit, repository, archive, expected, work, evidence)
 
     def test_runtime_hash_and_required_libraries_cannot_be_waived(self):
-        expected = {artifact + "-1.7.0.jar": "candidate" for artifact in (*images.REQUIRED, "hugegraph-core")}
-        for wrong in ({**expected, "hugegraph-common-1.7.0.jar": "central"},
+        expected = {artifact + "-1.8.0.jar": "candidate" for artifact in (*images.REQUIRED, "hugegraph-core")}
+        for wrong in ({**expected, "hugegraph-common-1.8.0.jar": "central"},
                       {key: value for key, value in expected.items() if not key.startswith("hugegraph-core-")},
                       {**expected, "hugegraph-common-1.5.0.jar": "old"},
                       {**expected, "hg-store-client-1.5.0.jar": "old"}):

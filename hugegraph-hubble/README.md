@@ -200,8 +200,8 @@ For the Java 17 candidate, prepare the locked SDK using the [bootstrap instructi
 ```bash
 cd hugegraph-toolchain
 python3 -m pip install -r hugegraph-hubble/hubble-dist/assembly/travis/requirements.txt
-mvn -Dmaven.repo.local="$candidate_dir/m2" install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
-(cd hugegraph-hubble && mvn -Dmaven.repo.local="$candidate_dir/m2" package -Dmaven.javadoc.skip=true -DskipTests -ntp)
+mvn -Dmaven.repo.local="$candidate_dir/m2" -Dsdk.validation.mode=candidate install -pl hugegraph-client,hugegraph-loader -am -Dmaven.javadoc.skip=true -DskipTests -ntp
+(cd hugegraph-hubble && mvn -Dmaven.repo.local="$candidate_dir/m2" -Dsdk.validation.mode=candidate package -Dmaven.javadoc.skip=true -DskipTests -ntp)
 cd hugegraph-hubble/apache-hugegraph-hubble-*
 ```
 

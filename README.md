@@ -122,7 +122,7 @@ graph TB
 |-------------|---------|-------|
 | JDK | 17+ | Build and run the core tools with Java 17 |
 | Maven | 3.6.3+ | For building from source |
-| HugeGraph Server | 1.7.0 or the locked Java 17 candidate | See the migration guide for Server 1.5 scope |
+| HugeGraph Server | Current 1.8 or official 1.7.0 | See the migration guide for Server 1.5 scope |
 
 For the Java 17 candidate SDK, upgrade procedure and compatibility boundary, see [the migration guide](docs/java17-migration.md).
 
@@ -367,14 +367,16 @@ Check [Maven Central](https://mvnrepository.com/artifact/org.apache.hugegraph) f
 Normal builds use the 1.8.0 SDK and release packaging checks. Select the staging repository in Maven settings and use an isolated local repository:
 
 ```bash
+release_settings=/absolute/path/to/settings-with-selected-staging.xml
+release_repository=$(mktemp -d /tmp/hugegraph-release-m2.XXXXXX)
 mvn --settings "$release_settings" -Dmaven.repo.local="$release_repository" clean install \
   -DskipTests -Dmaven.javadoc.skip=true -ntp
 ```
 
 Distribution packaging requires Python 3.9 or newer. Release mode checks required SDK POM/JARs and packaged library versions and bytes, and rejects
 candidate manifests. Add `-Papache-release` for the Apache release profile; see [release packaging](docs/java17-migration.md#release-packaging).
-To build the older locked candidate instead, follow [the bootstrap instructions](docs/java17-migration.md#build-the-locked-candidate) and supply
-`-Dmaven.repo.local="$candidate_dir/m2" -Dhugegraph.version=1.7.0 -Dsdk.validation.mode=candidate` to every module build.
+To build the pinned same-source 1.8.0 SDK instead, follow [the bootstrap instructions](docs/java17-migration.md#build-the-locked-candidate) and supply
+`-Dmaven.repo.local="$candidate_dir/m2" -Dhugegraph.version=1.8.0 -Dsdk.validation.mode=candidate` to every module build.
 
 ### Module-Specific Builds
 

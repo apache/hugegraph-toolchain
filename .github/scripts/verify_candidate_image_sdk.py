@@ -22,11 +22,12 @@ import hashlib
 import json
 import os
 import re
+import shlex
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 REPOSITORY = "apache/hugegraph"
-COMMIT = "e62c961e00221569d4f955abbadf60faee45b283"
+COMMIT = "68855199031d5801edb4fe41b2bacbacffe8fe68"
 REQUIRED_MODULES = {
     "pom.xml", "hugegraph-commons/pom.xml", "hugegraph-server/pom.xml",
     "hugegraph-pd/pom.xml", "hugegraph-store/pom.xml",
@@ -78,7 +79,7 @@ def _validate_sdk(repository, expected_revision=None):
     java_version = manifest["java_version"]
     if not isinstance(java_version, str) or not java_version.isdecimal():
         raise ValueError("Invalid Java version format")
-    revision = expected_revision or os.environ.get("CANDIDATE_SDK_VERSION", "1.7.0")
+    revision = expected_revision or os.environ.get("CANDIDATE_SDK_VERSION", "1.8.0")
     if not isinstance(revision, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9_.+-]*", revision):
         raise ValueError("Invalid candidate SDK version")
     if manifest["source_revision"] != revision or java_version != "17":
@@ -112,9 +113,9 @@ def _validate_sdk(repository, expected_revision=None):
         if (Path(relative).is_absolute() or ".." in parts or len(parts) != 6 or
                 parts[:3] != ("org", "apache", "hugegraph")):
             raise RuntimeError(f"Invalid SDK artifact path: {relative}")
-        # Server and Toolchain share the hugegraph-dist name at different revisions.
-        if parts[3] in TOOLCHAIN_ARTIFACTS and (parts[3] != "hugegraph-dist" or
-                                              parts[4] != manifest["source_revision"]):
+        # Server and Toolchain also share hugegraph-dist at the same 1.8.0 coordinates.
+        # None of these reactor outputs is a required consumer SDK input.
+        if parts[3] in TOOLCHAIN_ARTIFACTS:
             continue
         path = repository / relative
         if not path.is_file() or not path.resolve().is_relative_to(repository.resolve()):
@@ -134,8 +135,8 @@ def _validate_sdk(repository, expected_revision=None):
     return manifest, jars
 
 
-def validate_distribution(repository, directory, module):
-    manifest, expected = validate_sdk(repository)
+def validate_distribution(repository, directory, module, expected_revision=None):
+    manifest, expected = validate_sdk(repository, expected_revision)
     directory = Path(directory)
     try:
         packaged = json.loads((directory / "candidate-sdk-manifest.json").read_text())
@@ -165,11 +166,21 @@ def validate_distribution(repository, directory, module):
 def configure_upstream(repository, environment):
     """Select consumer coordinates only after verifying this run's SDK artifacts."""
     repository = Path(repository)
-    revision = json.loads((repository / "candidate-sdk-manifest.json").read_text())["source_revision"]
+    try:
+        revision = json.loads((repository / "candidate-sdk-manifest.json").read_text())["source_revision"]
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise RuntimeError("Invalid candidate SDK manifest (" + type(error).__name__ + ")") from None
     manifest, jars = validate_sdk(repository, revision)
     with Path(environment).open("a") as stream:
+        stream.write(f"CANDIDATE_SOURCE_COMMIT={manifest['commit']}\n")
         stream.write(f"CANDIDATE_SDK_VERSION={revision}\n")
-        stream.write(f"MAVEN_ARGS={os.environ.get('MAVEN_ARGS', '')} -Dhugegraph.version={revision}\n")
+        for variable in ("MAVEN_OPTS", "MAVEN_ARGS"):
+            arguments = shlex.split(os.environ.get(variable, ""))
+            properties = ("-Dmaven.repo.local=", "-Dhugegraph.version=", "-Dsdk.validation.mode=")
+            arguments = [argument for argument in arguments if not argument.startswith(properties)]
+            arguments.extend((f"-Dmaven.repo.local={repository.absolute()}",
+                              f"-Dhugegraph.version={revision}", "-Dsdk.validation.mode=candidate"))
+            stream.write(f"{variable}={shlex.join(arguments)}\n")
     return manifest, jars
 
 
@@ -201,8 +212,8 @@ def release_artifact(repository, artifact, version):
 def validate_release_sdk(repository, version, directory=None, module=None):
     """Check the explicitly selected SDK version and bytes, without approving a release."""
     repository = Path(repository)
-    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+(?:-SNAPSHOT)?", version):
-        raise RuntimeError("SDK validation requires a concrete release or SNAPSHOT version")
+    if not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", version):
+        raise RuntimeError("Release SDK validation requires a concrete non-SNAPSHOT version")
     if (repository / "candidate-sdk-manifest.json").exists():
         raise RuntimeError("Candidate SDK manifest is not allowed in a release repository")
     required = required_libraries(module)
@@ -263,7 +274,7 @@ if __name__ == "__main__":
             else:
                 manifest, jars = validate_sdk(args.repository, args.version)
             if args.distribution:
-                validate_distribution(args.repository, args.distribution, args.module)
+                validate_distribution(args.repository, args.distribution, args.module, args.version)
             identity = f"{manifest['repository']}@{manifest['commit'][:6]}"
     except RuntimeError as error:
         parser.exit(1, str(error) + "\n")
