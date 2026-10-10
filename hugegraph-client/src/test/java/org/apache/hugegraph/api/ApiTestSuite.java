@@ -26,6 +26,7 @@ import org.apache.hugegraph.api.auth.ProjectApiTest;
 import org.apache.hugegraph.api.auth.TargetApiTest;
 import org.apache.hugegraph.api.auth.TokenApiTest;
 import org.apache.hugegraph.api.auth.UserApiTest;
+import org.apache.hugegraph.api.traverser.AdamicAdarAPITest;
 import org.apache.hugegraph.api.traverser.AllShortestPathsApiTest;
 import org.apache.hugegraph.api.traverser.CommonTraverserApiTest;
 import org.apache.hugegraph.api.traverser.CountApiTest;
@@ -61,6 +62,7 @@ import org.junit.runners.Suite;
         BatchUpdateElementApiTest.class,
 
         GremlinApiTest.class,
+        CypherApiTest.class,
         VariablesApiTest.class,
         TaskApiTest.class,
         JobApiTest.class,
@@ -86,6 +88,7 @@ import org.junit.runners.Suite;
         NeighborRankApiTest.class,
         PersonalRankApiTest.class,
         EdgeExistenceAPITest.class,
+        AdamicAdarAPITest.class,
 
         TargetApiTest.class,
         GroupApiTest.class,

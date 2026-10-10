@@ -41,7 +41,11 @@ import org.junit.runners.Suite;
         RangesTimerTest.class,
         FlinkSinkSerializationTest.class,
         org.apache.hugegraph.loader.flink.HugeGraphSinkTest.class,
-        org.apache.hugegraph.loader.flink.HugeGraphDeserializationTest.class
+        org.apache.hugegraph.loader.flink.HugeGraphDeserializationTest.class,
+        DataTypeUtilTest.class,
+        LineParserTest.class,
+        LoadMappingTest.class,
+        BatchInsertRetryTest.class
 })
 public class UnitTestSuite {
 }

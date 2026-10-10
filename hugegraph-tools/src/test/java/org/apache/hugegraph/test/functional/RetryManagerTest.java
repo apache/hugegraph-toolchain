@@ -22,6 +22,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.hugegraph.base.RetryManager;
@@ -138,5 +139,69 @@ public class RetryManagerTest {
         Assert.assertTrue(failure.get() instanceof ToolsException);
         Assert.assertTrue(failure.get().getCause() instanceof InterruptedException);
         this.manager.awaitTasks();
+    }
+
+    @Test
+    public void testRetrySucceedsAfterTransientFailures() {
+        AtomicInteger attempts = new AtomicInteger();
+        this.manager.retry(2);
+
+        String result = this.manager.retry(() -> {
+            if (attempts.incrementAndGet() < 3) {
+                throw new IllegalStateException("transient failure");
+            }
+            return "done";
+        }, "testing retry");
+
+        Assert.assertEquals("done", result);
+        Assert.assertEquals(3, attempts.get());
+    }
+
+    @Test
+    public void testRetryFailsAfterExhaustingRetries() {
+        AtomicInteger attempts = new AtomicInteger();
+        IllegalStateException failure = new IllegalStateException("permanent failure");
+        this.manager.retry(2);
+
+        try {
+            this.manager.retry(() -> {
+                attempts.incrementAndGet();
+                throw failure;
+            }, "testing retry");
+            Assert.fail("Exhausted retries must fail");
+        } catch (ToolsException e) {
+            Assert.assertSame(failure, e.getCause());
+            Assert.assertTrue(e.getMessage(),
+                              e.getMessage().contains("testing retry(after 2 retries)"));
+        }
+        Assert.assertEquals(3, attempts.get());
+    }
+
+    @Test
+    public void testNoRetryByDefault() {
+        AtomicInteger attempts = new AtomicInteger();
+        Assert.assertEquals(0, this.manager.retry());
+
+        try {
+            this.manager.retry(() -> {
+                attempts.incrementAndGet();
+                throw new IllegalStateException("failure");
+            }, "testing retry");
+            Assert.fail("Failure without retry must fail");
+        } catch (ToolsException e) {
+            Assert.assertTrue(e.getCause() instanceof IllegalStateException);
+        }
+        Assert.assertEquals(1, attempts.get());
+    }
+
+    @Test
+    public void testThreadsNumIgnoresNonPositiveValues() {
+        Assert.assertEquals(1, this.manager.threadsNum());
+        this.manager.threadsNum(0);
+        Assert.assertEquals(1, this.manager.threadsNum());
+        this.manager.threadsNum(-1);
+        Assert.assertEquals(1, this.manager.threadsNum());
+        this.manager.threadsNum(3);
+        Assert.assertEquals(3, this.manager.threadsNum());
     }
 }

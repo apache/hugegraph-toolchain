@@ -20,6 +20,7 @@ package org.apache.hugegraph.spark.connector.utils;
 import java.util.Date;
 import java.util.UUID;
 
+import org.apache.hugegraph.spark.connector.exception.LoadException;
 import org.apache.hugegraph.structure.constant.Cardinality;
 import org.apache.hugegraph.structure.constant.DataType;
 import org.apache.hugegraph.structure.schema.PropertyKey;
@@ -158,5 +159,77 @@ public class DataTypeUtilsTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DataTypeUtils.convert("abc", datePropertyKey);
         });
+    }
+
+    @Test
+    public void testConvertInvalidNumber() {
+        PropertyKey intPropertyKey = propertyKey("age", DataType.INT);
+
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DataTypeUtils.convert("abc", intPropertyKey);
+        }, e -> {
+            Assert.assertContains("to Number", e.getMessage());
+            Assert.assertTrue(e.getCause() instanceof NumberFormatException);
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DataTypeUtils.convert("1.5", intPropertyKey);
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DataTypeUtils.convert("128", propertyKey("flag", DataType.BYTE));
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DataTypeUtils.convert(true, intPropertyKey);
+        });
+    }
+
+    @Test
+    public void testConvertText() {
+        PropertyKey textPropertyKey = propertyKey("name", DataType.TEXT);
+
+        Assert.assertEquals("josh", DataTypeUtils.convert("  josh ", textPropertyKey));
+        Assert.assertEquals("12", DataTypeUtils.convert(12, textPropertyKey));
+        Assert.assertEquals("true", DataTypeUtils.convert(true, textPropertyKey));
+    }
+
+    @Test
+    public void testConvertStringDate() {
+        PropertyKey datePropertyKey = propertyKey("date", DataType.DATE);
+
+        // Strings use the default format "yyyy-MM-dd HH:mm:ss" in GMT+8
+        Assert.assertEquals(new Date(1695233374000L),
+                            DataTypeUtils.convert("2023-09-21 02:09:34", datePropertyKey));
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DataTypeUtils.convert("2023-09-21", datePropertyKey);
+        });
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DataTypeUtils.convert(true, datePropertyKey);
+        });
+    }
+
+    @Test
+    public void testConvertNullValue() {
+        Assert.assertThrows(IllegalArgumentException.class, () -> {
+            DataTypeUtils.convert(null, new PropertyKey("name"));
+        });
+    }
+
+    @Test
+    public void testConvertCollectionIsNotSupported() {
+        for (Cardinality cardinality : new Cardinality[]{Cardinality.LIST, Cardinality.SET}) {
+            PropertyKey.Builder builder = new PropertyKey.BuilderImpl("tags", null);
+            PropertyKey propertyKey = builder.dataType(DataType.TEXT)
+                                             .cardinality(cardinality)
+                                             .build();
+            Assert.assertThrows(LoadException.class, () -> {
+                DataTypeUtils.convert("[a,b]", propertyKey);
+            }, e -> {
+                Assert.assertContains("Not support yet", e.getMessage());
+            });
+        }
+    }
+
+    private static PropertyKey propertyKey(String name, DataType dataType) {
+        PropertyKey.Builder builder = new PropertyKey.BuilderImpl(name, null);
+        return builder.dataType(dataType).cardinality(Cardinality.SINGLE).build();
     }
 }

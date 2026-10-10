@@ -6,7 +6,7 @@
  * "License"); you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -15,24 +15,28 @@
  * under the License.
  */
 
-package org.apache.hugegraph.test.functional;
+import convertStringToJSON from './convertStringToJSON';
 
-import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
+test.each([
+    ['{"name": "marko"}', {name: 'marko'}],
+    ['[1, 2]', [1, 2]],
+    ['{}', {}],
+])('parses json container %p', (text, expected) => {
+    expect(convertStringToJSON(text)).toEqual(expected);
+});
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-    AuthBackupTest.class,
-    AuthRestoreTest.class,
-    CommandTest.class,
-    BackupRestoreTest.class,
-    BackupRestoreSafetyTest.class,
-    RetryManagerTest.class,
-    RestoreFailureTest.class,
-    HdfsDirectoryTest.class,
-    LocalDirectoryTest.class,
-    BackupFailureTest.class,
-    JsonGraphTest.class
-})
-public class FuncTestSuite {
-}
+test.each([
+    ['null'],
+    ['1'],
+    ['"text"'],
+    ['true'],
+    ['{"name": '],
+    [''],
+    ['undefined'],
+])('rejects text %p which is not a json container', text => {
+    expect(convertStringToJSON(text)).toBeNull();
+});
+
+test.each([undefined, null, 1, {}, []])('rejects non-string input %p', value => {
+    expect(convertStringToJSON(value)).toBeNull();
+});
