@@ -59,22 +59,6 @@ const GraphAnalysisHome = props => {
         }
     );
 
-    const renderModule = () => {
-        if (moduleName !== GREMLIN && !vermeerReady) {
-            return vermeerLoading ? <Spin /> : null;
-        }
-        switch (moduleName) {
-            case GREMLIN:
-                return <AnalysisHome />;
-            case ALGORITHMS:
-                return <AlgorithmHome />;
-            case ASYNCTASKS:
-                return <AsyncTaskHome />;
-            default:
-                break;
-        }
-    };
-
     const onOlapModeChange = useCallback(
         async open => {
             const {graphSpace, graph} = context;
@@ -218,9 +202,37 @@ const GraphAnalysisHome = props => {
         getCurrentOlapMode(context.graphSpace, context.graph);
     }, [context.graph, context.graphSpace, getCurrentOlapMode]);
 
+    const topBar = (
+        <TopBar
+            moduleName={moduleName}
+            onGraphInfoChange={onGraphInfoChange}
+            showOlapSwitch={moduleName !== ASYNCTASKS}
+            showNavigationButton={moduleName !== ASYNCTASKS}
+            isOlapModeEnable={currentOlapMode}
+            isOlapModeLoading={isOlapModeLoading}
+            onOlapModeChange={onOlapModeChange}
+        />
+    );
+
+    const renderModule = () => {
+        if (moduleName !== GREMLIN && !vermeerReady) {
+            return vermeerLoading ? <Spin /> : null;
+        }
+        switch (moduleName) {
+            case GREMLIN:
+                return <AnalysisHome toolbarExtra={topBar} />;
+            case ALGORITHMS:
+                return <AlgorithmHome />;
+            case ASYNCTASKS:
+                return <AsyncTaskHome />;
+            default:
+                break;
+        }
+    };
+
     return (
         <GraphAnalysisContext.Provider value={context}>
-            <PageHeader
+            {moduleName !== GREMLIN && <PageHeader
                 className='graphAnalysisHeader'
                 ghost={false}
                 onBack={false}
@@ -228,16 +240,8 @@ const GraphAnalysisHome = props => {
                 subTitle={moduleName === ALGORITHMS
                     ? t('analysis.algorithm.guide')
                     : undefined}
-                extra={<TopBar
-                    moduleName={moduleName}
-                    onGraphInfoChange={onGraphInfoChange}
-                    showOlapSwitch={moduleName !== ASYNCTASKS}
-                    showNavigationButton={moduleName !== ASYNCTASKS}
-                    isOlapModeEnable={currentOlapMode}
-                    isOlapModeLoading={isOlapModeLoading}
-                    onOlapModeChange={onOlapModeChange}
-                />}
-            />
+                extra={topBar}
+            />}
             {vermeerError && (
                 <Alert
                     type='error'

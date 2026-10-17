@@ -33,6 +33,9 @@ public class GremlinQuery {
     @JsonProperty("text")
     private String text;
 
+    @JsonProperty("read_only")
+    private boolean readOnly;
+
     public GremlinQuery() {
         this.text = "";
     }
@@ -45,5 +48,10 @@ public class GremlinQuery {
     public GremlinQuery(String content, String text) {
         this.content = content;
         this.text = text;
+    }
+
+    public GremlinQuery(String content, String text, boolean readOnly) {
+        this(content, text);
+        this.readOnly = readOnly;
     }
 }

@@ -23,6 +23,8 @@ import org.apache.hugegraph.controller.auth.GraphSpaceAuthMutationAuthorizationT
 import org.apache.hugegraph.controller.auth.GraphSpaceAuthOwnershipTest;
 import org.apache.hugegraph.controller.ingest.IngestControllerTest;
 import org.apache.hugegraph.controller.langchain.LangChainControllerSecurityTest;
+import org.apache.hugegraph.controller.query.Text2GqlControllerTest;
+import org.apache.hugegraph.controller.query.Text2GqlStreamTransportTest;
 import org.apache.hugegraph.controller.schema.SchemaControllerSecurityTest;
 import org.apache.hugegraph.controller.space.GraphSpaceControllerTest;
 import org.apache.hugegraph.controller.space.SchemaTemplateControllerSecurityTest;
@@ -40,6 +42,13 @@ import org.apache.hugegraph.service.op.OperationsCapabilityServiceTest;
 import org.apache.hugegraph.service.op.OperationsHttpClientTest;
 import org.apache.hugegraph.service.op.OperationsIdentityContractTest;
 import org.apache.hugegraph.service.op.OperationsPayloadParserTest;
+import org.apache.hugegraph.service.query.Text2GqlServiceTest;
+import org.apache.hugegraph.service.query.Text2GqlStreamTest;
+import org.apache.hugegraph.service.query.Text2GqlHttpClientTest;
+import org.apache.hugegraph.controller.query.Text2GqlSettingsControllerTest;
+import org.apache.hugegraph.service.query.Text2GqlSettingsServiceTest;
+import org.apache.hugegraph.service.query.Text2GqlSecretStoreTest;
+import org.apache.hugegraph.service.query.Text2GqlPersistenceTest;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
@@ -75,6 +84,18 @@ import org.junit.runners.Suite;
     StandaloneAccountPermissionServiceTest.class,
     GraphsControllerCanonicalTest.class,
     GremlinUtilTest.class,
+    ReadOnlyGremlinTest.class,
+    ReadOnlyCypherTest.class,
+    CypherHistoryFailureTest.class,
+    Text2GqlControllerTest.class,
+    Text2GqlStreamTransportTest.class,
+    Text2GqlServiceTest.class,
+    Text2GqlStreamTest.class,
+    Text2GqlHttpClientTest.class,
+    Text2GqlSettingsControllerTest.class,
+    Text2GqlSettingsServiceTest.class,
+    Text2GqlSecretStoreTest.class,
+    Text2GqlPersistenceTest.class,
     GremlinHistoryFailureTest.class,
     HubbleOptionsTest.class,
     IngestControllerTest.class,

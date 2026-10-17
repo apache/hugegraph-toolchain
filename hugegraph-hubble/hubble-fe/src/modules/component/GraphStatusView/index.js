@@ -44,6 +44,7 @@ const GraphStatusView = props => {
     const {
         status,
         message,
+        details,
     } = props;
 
     const copyError = useCallback(async () => {
@@ -72,7 +73,7 @@ const GraphStatusView = props => {
     const loadingContent = message => {
         const displayMessage = message || t('analysis.query_result.loading');
         return (
-            <div className={c.noneGraphStatus}>
+            <div className={`${c.noneGraphStatus} ${details ? c.loadingDetails : ''}`}>
                 <div className={c.loadingContent}>
                     <img
                         className={c.loadingBackImage}
@@ -85,9 +86,10 @@ const GraphStatusView = props => {
                         alt={displayMessage}
                     />
                 </div>
-                <span className={c.loadingDesc}>
+                <span className={c.loadingDesc} role={details ? 'status' : undefined}>
                     {displayMessage}
                 </span>
+                {details}
             </div>
         );
     };

@@ -27,6 +27,10 @@ export const getSidebarMenuKey = (pathname, pdEnabled) => {
         return 'schema';
     }
 
+    if (/^\/settings\/text2gql\/?$/.test(normalizedPath)) {
+        return 'text2gql-settings';
+    }
+
     if (/^\/operations\/overview\/?$/.test(normalizedPath)) {
         return 'overview';
     }

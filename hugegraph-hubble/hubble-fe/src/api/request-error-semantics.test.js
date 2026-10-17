@@ -44,6 +44,7 @@ const loadResponseHandlers = modulePath => {
 
     jest.doMock('axios', () => ({
         create: jest.fn(() => instance),
+        isCancel: error => Boolean(error?.__CANCEL__),
     }));
     jest.doMock('antd', () => ({
         message: {
@@ -64,8 +65,9 @@ const loadResponseHandlers = modulePath => {
         isAuthEnabled,
     }));
 
-    const request = require(modulePath).default;
+    const {default: request, handleRequestAuthStatus} = require(modulePath);
     return {
+        handleRequestAuthStatus,
         resolve: responseHandlers[0].resolve,
         reject: responseHandlers[0].reject,
         messageError,
@@ -126,6 +128,15 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         await expect(reject(error)).rejects.toBe(error);
         expect(messageError).toHaveBeenCalledWith('request.failed');
     });
+
+    it.each([{code: 'ERR_CANCELED'}, {__CANCEL__: true}])(
+        'keeps intentional cancellation rejected without an error toast (%j)', async error => {
+            const {reject, messageError, clearLogin} = loadResponseHandlers(modulePath);
+            await expect(reject(error)).rejects.toBe(error);
+            expect(messageError).not.toHaveBeenCalled();
+            expect(clearLogin).not.toHaveBeenCalled();
+        }
+    );
 
     it('keeps fallback and detailed copy from repeating the failure prefix',
         () => {
@@ -502,5 +513,24 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         expect(instance.delete).toHaveBeenCalledWith(
             '/resource', {params: {name: 'value'}, ...config}
         );
+    });
+});
+
+
+describe('fetch streaming auth handling', () => {
+    it.each([true, false])('only expires a 401 session on authenticated deployments (%s)', enabled => {
+        const {handleRequestAuthStatus, isAuthEnabled, clearLogin} = loadResponseHandlers('./request');
+        isAuthEnabled.mockReturnValue(enabled);
+        handleRequestAuthStatus(401);
+        expect(clearLogin).toHaveBeenCalledTimes(enabled ? 1 : 0);
+    });
+
+    it('revalidates permissions after a forbidden stream', () => {
+        const {handleRequestAuthStatus} = loadResponseHandlers('./request');
+        const revalidate = jest.fn();
+        window.addEventListener('hubble:auth-revalidate', revalidate);
+        handleRequestAuthStatus(403);
+        expect(revalidate).toHaveBeenCalledTimes(1);
+        window.removeEventListener('hubble:auth-revalidate', revalidate);
     });
 });

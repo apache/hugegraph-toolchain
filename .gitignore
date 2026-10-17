@@ -119,6 +119,9 @@ superpowers/
 /hugegraph-hubble/hubble-dist/apache-hugegraph-hubble-*/
 /hugegraph-loader/apache-hugegraph-loader-*/
 
+# Locally generated encryption key for managed Text2GQL credentials
+text2gql-master.key
+
 # Local dependency analysis reports
 /hugegraph-dist/scripts/dependency/current-dependencies.txt
 /hugegraph-dist/scripts/dependency/result.txt

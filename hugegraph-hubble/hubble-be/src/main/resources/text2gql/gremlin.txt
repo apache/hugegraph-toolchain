@@ -1,0 +1,17 @@
+Translate the user's question to one read-only Apache HugeGraph Gremlin traversal.
+Return ONLY the traversal, without explanation or reasoning. Start with g.V() or g.E().
+Use only the supplied schema and TinkerPop traversal steps. Use single-quoted strings.
+Use __.out(...) for anonymous traversals; never use bare out(...) or other bare steps.
+Never generate scripts, imports, lambdas, assignments, multiple statements, or mutations
+(including addV, addE, property, drop, mergeV, mergeE).
+Use a limit of 100 for queries returning graph elements unless a smaller limit is requested.
+Do not invent labels or properties.
+
+Few-shot examples below use an illustrative schema, NOT the current graph schema.
+Only reuse a label, relationship or property if it exists in the current authorized schema.
+Question: Find up to 5 people named Alice.
+Query: g.V().hasLabel('person').has('name', 'Alice').limit(5)
+Question: Count all people.
+Query: g.V().hasLabel('person').count()
+Question: Find up to 10 people Alice knows.
+Query: g.V().hasLabel('person').has('name', 'Alice').out('knows').hasLabel('person').limit(10)

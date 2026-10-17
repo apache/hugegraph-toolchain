@@ -68,3 +68,20 @@ test('moves keyboard focus into the workspace through the skip link', async () =
 
     expect(screen.getByRole('main')).toHaveFocus();
 });
+
+
+test('shows the model settings title for the administrator settings route', () => {
+    render(
+        <MemoryRouter
+            initialEntries={['/settings/text2gql']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Routes>
+                <Route path='*' element={<LayoutAnt />}>
+                    <Route path='*' element={<div>Model settings content</div>} />
+                </Route>
+            </Routes>
+        </MemoryRouter>
+    );
+    expect(screen.getByRole('heading', {level: 1, name: 'Model settings'})).toBeInTheDocument();
+});

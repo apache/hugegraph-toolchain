@@ -44,3 +44,25 @@
     }
 }
 
+
+// Query records stay dense, but use document scrolling for the full table.
+.compact {
+    margin-top: 0;
+
+    :global {
+        .ant-tabs-nav {
+            flex: 0 0 auto;
+            margin-bottom: 0;
+        }
+
+        .ant-tabs-content-holder {
+            min-height: 0;
+            padding: 8px 12px;
+            overflow: visible;
+        }
+
+        .ant-table-pagination.ant-pagination {
+            margin: 8px 0;
+        }
+    }
+}

@@ -50,11 +50,16 @@ public class AuthModeService {
         if (cached != null && now - this.detectedAt < CACHE_NANOS) {
             return cached;
         }
+        return this.refresh();
+    }
+
+    /** Recheck Server state before authorizing operations that only mutate Hubble metadata. */
+    public boolean refresh() {
         try (HugeClient client = this.createUnauthClient()) {
-            return this.update(client.isServerAuthEnabled(), now);
+            return this.update(client.isServerAuthEnabled());
         } catch (RuntimeException ignored) {
             // Fail closed while Server state is unavailable.
-            return this.update(true, now);
+            return this.update(true);
         }
     }
 

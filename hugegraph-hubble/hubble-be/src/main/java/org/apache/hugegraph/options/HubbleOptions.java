@@ -49,6 +49,34 @@ public class HubbleOptions extends OptionHolder {
         return instance;
     }
 
+    public static final ConfigOption<Boolean> TEXT2GQL_SHARED_ENABLED =
+            new ConfigOption<>("text2gql.shared.enabled", "Enable the deployment shared model.", false);
+
+    public static final ConfigOption<String> TEXT2GQL_SHARED_CONNECTION_TYPE =
+            new ConfigOption<>(
+                    "text2gql.shared.connection_type",
+                    "Shared model connection type.",
+                    allowValues("openai", "ollama"),
+                    "openai"
+            );
+
+    public static final ConfigOption<String> TEXT2GQL_SHARED_BASE_URL =
+            new ConfigOption<>("text2gql.shared.base_url", "OpenAI-compatible shared model base URL.", "");
+
+    public static final ConfigOption<String> TEXT2GQL_SHARED_MODEL =
+            new ConfigOption<>("text2gql.shared.model", "Shared model name.", "");
+
+    public static final ConfigOption<String> TEXT2GQL_SHARED_API_KEY_FILE =
+            new ConfigOption<>("text2gql.shared.api_key_file", "File containing the deployment model API key.", "");
+
+    public static final ConfigOption<String> TEXT2GQL_SHARED_MASTER_KEY_FILE =
+            new ConfigOption<>(
+                    "text2gql.shared.master_key_file",
+                    "Base64 AES-256 master key file.",
+                    disallowEmpty(),
+                    "data/text2gql-master.key"
+            );
+
     public static final ConfigOption<String> SERVER_ID =
             new ConfigOption<>(
                     "server.id",

@@ -1,0 +1,149 @@
+/*!
+ *
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership. The ASF
+ * licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ */
+
+.page {
+    width: 100%;
+    max-width: 864px;
+    box-sizing: border-box;
+    margin-inline: auto;
+    padding: 32px clamp(16px, 3vw, 32px) 40px;
+
+    h2 {
+        margin: 0 0 8px;
+        font-size: 22px;
+    }
+
+    header > p, .field p, .enabledRow p, .source {
+        margin: 4px 0 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    header {
+        margin-bottom: 20px;
+    }
+}
+
+.form {
+    display: grid;
+    min-width: 0;
+    gap: 18px;
+    margin-top: 16px;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+}
+
+.titleRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px 16px;
+
+    h2 {
+        margin: 0;
+    }
+}
+
+.promptAction {
+    flex: 0 0 auto;
+    margin-inline-start: auto;
+}
+
+.field {
+    display: grid;
+    min-width: 0;
+    gap: 6px;
+
+    label {
+        color: #262626;
+        font-weight: 500;
+    }
+}
+
+.enabledRow {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #f0f0f0;
+
+    label {
+        font-weight: 600;
+    }
+
+    :global(.ant-switch) {
+        flex-shrink: 0;
+    }
+}
+
+.actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 16px;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+
+    .buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-inline-start: auto;
+    }
+}
+
+.page .field p.required {
+    color: #cf1322;
+}
+
+.requiredLabel::after {
+    color: #cf1322;
+    content: ' *';
+}
+
+@media (max-width: 480px) {
+    .page {
+        padding-top: 24px;
+    }
+
+    .form {
+        gap: 16px;
+        padding: 16px;
+    }
+}
+
+.testStatus {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    color: #667085;
+    font-size: 13px;
+}
+
+.testHint {
+    margin: -6px 0 0;
+    color: #667085;
+    font-size: 13px;
+}

@@ -678,6 +678,14 @@ https://github.com/h2database/h2database/tree/version-2.3.232
         licenses/LICENSE-hubble-java17-third-party.txt
     (Apache-2.0) com.zaxxer:HikariCP:6.3.3
         Apache-2.0 terms above
+    (Apache-2.0) dev.langchain4j:langchain4j-core:1.22.0
+        Apache-2.0 terms above
+    (Apache-2.0) dev.langchain4j:langchain4j-http-client:1.22.0
+        Apache-2.0 terms above
+    (Apache-2.0) dev.langchain4j:langchain4j-open-ai:1.22.0
+        Apache-2.0 terms above
+    (Apache-2.0) dev.langchain4j:langchain4j-reactive-streaming:1.22.0-beta32
+        Apache-2.0 terms above
     (Apache-2.0) io.micrometer:micrometer-commons:1.15.12
         licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
     (Apache-2.0) io.micrometer:micrometer-observation:1.15.12
@@ -744,6 +752,8 @@ https://github.com/h2database/h2database/tree/version-2.3.232
         licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
     (Apache-2.0) io.netty:netty-transport:4.1.135.Final
         licenses/LICENSE-hubble-java17-third-party.txt, licenses/LICENSE-netty-handler.txt, licenses/LICENSE-spring-boot-actuator-autoconfigure.txt
+    (Apache-2.0) io.smallrye.reactive:mutiny-zero:1.3.1
+        Apache-2.0 terms above
     (EDL-1.0) jakarta.activation:jakarta.activation-api:2.1.4
         licenses/LICENSE-jakarta.activation.txt
     (EPL-2.0) jakarta.annotation:jakarta.annotation-api:2.1.1
@@ -857,6 +867,8 @@ https://github.com/h2database/h2database/tree/version-2.3.232
     (Apache-2.0) org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.9.25
         Apache-2.0 terms above
     (Apache-2.0) org.jetbrains.kotlin:kotlin-stdlib:1.9.25
+        Apache-2.0 terms above
+    (Apache-2.0) org.jspecify:jspecify:1.0.0
         Apache-2.0 terms above
     (Apache-2.0) org.mitre.dsmiley.httpproxy:smiley-http-proxy-servlet:2.0
         Apache-2.0 terms above

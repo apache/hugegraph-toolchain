@@ -51,6 +51,7 @@ import org.apache.hugegraph.service.query.QueryService;
 import org.apache.hugegraph.structure.gremlin.ResultSet;
 import org.apache.hugegraph.util.Ex;
 import org.apache.hugegraph.util.HubbleUtil;
+import org.apache.hugegraph.entity.enums.QueryLanguage;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.google.common.collect.ImmutableMap;
 
@@ -226,6 +227,9 @@ public class GremlinQueryController extends GremlinController {
                  "common.param.cannot-be-null-or-empty",
                  "gremlin-query.content");
         checkContentLength(query.getContent());
+        if (query.isReadOnly()) {
+            QueryLanguage.GREMLIN.validate(query.getContent());
+        }
     }
 
     private void checkParamsValid(AdjacentQuery query) {

@@ -47,7 +47,9 @@ jest.mock('react-i18next', () => ({
         },
     }),
 }));
-jest.mock('../GraphResult/Home', () => () => <div>graph canvas</div>);
+jest.mock('../GraphResult/Home', () => ({queryProgress}) => (
+    <div>graph canvas {queryProgress && <span>{queryProgress.phase}</span>}</div>
+));
 jest.mock('../TableView', () => () => <div>table result</div>);
 jest.mock('../JsonView', () => () => <div>json result</div>);
 
@@ -232,4 +234,30 @@ it('does not collapse objects that only mimic a BigNumber constructor name', () 
         toString: mimic.toString,
         value: 7,
     });
+});
+
+
+it('routes Text2GQL progress to the graph result view without affecting ordinary result tabs', () => {
+    const {rerender} = render(<QueryResult queryStatus='standby' isQueryMode />);
+    fireEvent.click(screen.getByRole('tab', {name: 'JSON'}));
+    expect(screen.getByText('json result')).toBeInTheDocument();
+    rerender(<QueryResult queryStatus='standby' isQueryMode queryProgress={{phase: 'waiting'}} />);
+    expect(screen.getByRole('tab', {name: 'Graph'})).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByText('waiting')).toBeInTheDocument();
+    rerender(<QueryResult queryStatus='standby' isQueryMode queryProgress={{phase: 'streaming'}} />);
+    expect(screen.getByText('streaming')).toBeInTheDocument();
+    rerender(<QueryResult queryStatus='standby' isQueryMode />);
+    expect(screen.queryByText('streaming')).not.toBeInTheDocument();
+});
+
+it('keeps the requested result slot height when switching views', () => {
+    const view = render(<QueryResult height={320} />);
+    const result = view.container.firstChild;
+    expect(result.style.height).toBe('320px');
+    expect(result.style.getPropertyValue('--analysis-result-height')).toBe('320px');
+    fireEvent.click(screen.getByRole('tab', {name: 'Table'}));
+    expect(view.container.firstChild).toBe(result);
+    expect(result.style.height).toBe('320px');
+    fireEvent.click(screen.getByRole('tab', {name: 'JSON'}));
+    expect(result.style.height).toBe('320px');
 });

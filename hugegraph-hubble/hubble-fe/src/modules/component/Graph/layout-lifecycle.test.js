@@ -16,10 +16,11 @@
  */
 
 import React from 'react';
-import {render, waitFor} from '@testing-library/react';
+import {act, render, waitFor} from '@testing-library/react';
 import Graph from './index';
 
 const mockGraphInstances = [];
+const mockResizeObservers = [];
 
 const mockCreateGraph = options => {
     const handlers = {};
@@ -92,6 +93,9 @@ jest.mock('react-i18next', () => ({
 jest.mock('resize-observer-polyfill', () => ({
     __esModule: true,
     default: class ResizeObserver {
+        constructor(callback) {
+            mockResizeObservers.push(callback);
+        }
         observe() {}
         disconnect() {}
     },
@@ -107,6 +111,7 @@ const graphData = nodeCount => ({
 
 beforeEach(() => {
     mockGraphInstances.length = 0;
+    mockResizeObservers.length = 0;
 });
 
 test('keeps automatic changeData relayout disabled in the actual G6 layout config', async () => {
@@ -237,4 +242,65 @@ test('restores the changeData guard after a user layout change', async () => {
         relayoutAtChangeData: false,
     }));
     expect(instance.translate).toHaveBeenCalledTimes(1);
+});
+
+test.each([undefined, true, false])('resizes the existing canvas with fitViewOnResize=%s', async option => {
+    const view = render(
+        <Graph
+            data={graphData(10)}
+            layout={{layout: 'force', nodeCount: 10}}
+            layoutRevision={1}
+            fitViewOnResize={option}
+        />
+    );
+    await waitFor(() => expect(mockGraphInstances).toHaveLength(1));
+    const {group, instance} = mockGraphInstances[0];
+    // Initial layout still fits, even when interactive resizes preserve the viewport.
+    expect(group.resetMatrix).toHaveBeenCalled();
+    group.resetMatrix.mockClear();
+    instance.updateLayout.mockClear();
+
+    act(() => mockResizeObservers[0]([{contentRect: {width: 800, height: 420}}]));
+
+    expect(instance.changeSize).toHaveBeenCalledWith(800, 420);
+    expect(group.resetMatrix).toHaveBeenCalledTimes(option === false ? 0 : 1);
+    expect(instance.updateLayout).not.toHaveBeenCalled();
+    expect(mockGraphInstances).toHaveLength(1);
+    group.resetMatrix.mockClear();
+
+    view.rerender(
+        <Graph
+            data={graphData(12)}
+            layout={{layout: 'force', nodeCount: 12}}
+            layoutRevision={2}
+            fitViewOnResize={option}
+        />
+    );
+    await waitFor(() => expect(instance.updateLayout).toHaveBeenCalledTimes(1));
+    expect(group.resetMatrix).toHaveBeenCalledTimes(1);
+});
+
+test('cancels a pending resize when the canvas unmounts', () => {
+    jest.useFakeTimers();
+    try {
+        const view = render(
+            <Graph
+                data={graphData(10)}
+                layout={{layout: 'force', nodeCount: 10}}
+                fitViewOnResize={false}
+            />
+        );
+        const {instance} = mockGraphInstances[0];
+        act(() => {
+            mockResizeObservers[0]([{contentRect: {width: 800, height: 420}}]);
+            mockResizeObservers[0]([{contentRect: {width: 800, height: 500}}]);
+        });
+        expect(instance.changeSize).toHaveBeenCalledTimes(1);
+        view.unmount();
+        act(() => jest.runOnlyPendingTimers());
+        expect(instance.changeSize).toHaveBeenCalledTimes(1);
+    }
+    finally {
+        jest.useRealTimers();
+    }
 });

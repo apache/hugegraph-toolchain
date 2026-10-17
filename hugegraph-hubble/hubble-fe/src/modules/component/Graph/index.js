@@ -60,6 +60,7 @@ const Graph = (props, ref) => {
         onEdgeClick,
         onNodedbClick,
         layoutRevision,
+        fitViewOnResize = true,
     } = props;
 
     useCustomGrid();
@@ -122,11 +123,13 @@ const Graph = (props, ref) => {
             return _.throttle((width, height) => {
                 if (graph.current) {
                     graph.current.changeSize(width, height);
-                    fitView(graph.current);
+                    if (fitViewOnResize) {
+                        fitView(graph.current);
+                    }
                 }
             }, 500);
         },
-        []
+        [fitViewOnResize]
     );
 
     const graphClassName = classnames(
@@ -172,6 +175,7 @@ const Graph = (props, ref) => {
             resizeObserver.observe(container.current);
             return () => {
                 resizeObserver.disconnect();
+                throttledContainerResize.cancel();
             };
         },
         [throttledContainerResize]

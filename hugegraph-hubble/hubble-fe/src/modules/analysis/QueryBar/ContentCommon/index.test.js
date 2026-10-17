@@ -139,3 +139,20 @@ it('keeps favorite submission disabled until the name is backend-compatible', ()
     fireEvent.click(submit);
     expect(api.analysis.addFavoriate).toHaveBeenCalledTimes(1);
 });
+
+
+it('uses the explicit clear callback without treating ordinary editor changes as clear', () => {
+    const onClear = jest.fn();
+    const props = renderContent({onClear});
+    fireEvent.click(screen.getByRole('button', {name: 'common.action.clear'}));
+    expect(onClear).toHaveBeenCalledTimes(1);
+    expect(props.setCodeEditorContent).not.toHaveBeenCalled();
+});
+
+it('hides asynchronous mode and favorite controls for AI-sourced queries', () => {
+    renderContent({allowAsync: false, allowFavorite: false, executeMode: 'task'});
+    expect(screen.getByRole('button', {name: /Run Query/})).toBeEnabled();
+    expect(screen.queryByRole('button', {name: 'Switch to Immediate Query'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'analysis.query.favorite'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'common.action.clear'})).toBeEnabled();
+});

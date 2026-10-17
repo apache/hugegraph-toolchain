@@ -278,7 +278,6 @@ test('offers a second accessible collapse control beside Home', async () => {
     expect(navigation.querySelector('.ant-layout-sider'))
         .toHaveClass('ant-layout-sider-collapsed');
     expect(toggle).toHaveAccessibleName('打开主导航');
-    expect(toggle).toHaveStyle({width: '80px', minWidth: '80px'});
     const toggleSlot = toggle.closest('.workbench-navigation-toggle-slot');
     expect(toggleSlot).toBeInTheDocument();
     expect(toggleSlot.nextElementSibling).toHaveClass('ant-menu');
@@ -446,4 +445,27 @@ test('hides Account from an analyst who can read a space but cannot administer i
     expect(screen.getByText('图导入')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '数据导入'})).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: '账号管理'})).not.toBeInTheDocument();
+});
+
+
+test.each([
+    [true, ['model_settings_manage'], true],
+    [true, ['accounts_manage'], false],
+    [false, ['model_settings_manage'], true],
+    [false, [], false],
+])('shows model settings using its server capability (%s, %j)', async (auth, capabilities, allowed) => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({auth_enabled: auth, pd_enabled: false}));
+    if (!auth) {
+        sessionStorage.removeItem('user_');
+    }
+    useOperationsCapabilities.mockReturnValue({loading: false, capabilities, error: null});
+    await act(async () => render(
+        <MemoryRouter
+            initialEntries={['/settings/text2gql']}
+            future={{v7_startTransition: true, v7_relativeSplatPath: true}}
+        >
+            <Sidebar />
+        </MemoryRouter>
+    ));
+    expect(Boolean(screen.queryByRole('link', {name: '模型设置'}))).toBe(allowed);
 });

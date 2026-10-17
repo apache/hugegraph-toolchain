@@ -42,6 +42,23 @@ public class AuthModeServiceTest {
     }
 
     @Test
+    public void testRefreshBypassesCachedAnonymousModeAndUpdatesItsConsumers() {
+        HugeClient client = Mockito.mock(HugeClient.class);
+        Mockito.when(client.isServerAuthEnabled()).thenReturn(false, true);
+        AuthModeService service = new AuthModeService(null) {
+            @Override
+            protected HugeClient createUnauthClient() {
+                return client;
+            }
+        };
+        Assert.assertTrue(service.anonymous());
+        Assert.assertTrue(service.anonymous());
+        Assert.assertTrue(service.refresh());
+        Assert.assertFalse(service.anonymous());
+        Mockito.verify(client, Mockito.times(2)).isServerAuthEnabled();
+    }
+
+    @Test
     public void testFailsClosedWhenServerCannotBeProbed() {
         AuthModeService service = new AuthModeService(null) {
             @Override

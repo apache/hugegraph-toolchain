@@ -29,7 +29,7 @@ jest.mock('../../api', () => ({
         getVermeer: jest.fn(),
     },
 }));
-jest.mock('../analysis/Home', () => () => <div>analysis module</div>);
+jest.mock('../analysis/Home', () => ({toolbarExtra}) => <div>analysis module{toolbarExtra}</div>);
 jest.mock('../algorithm/Home', () => () => <div>algorithm module</div>);
 jest.mock('../asyncTasks/Home', () => () => <div>async module</div>);
 jest.mock('../component/TopBar', () => props => (
@@ -109,6 +109,8 @@ it('shows the algorithm usage guide beside only the algorithm page title', async
 
     render(<GraphAnalysisHome moduleName='gremlin' />);
     expect(screen.queryByText('analysis.algorithm.guide')).not.toBeInTheDocument();
+    expect(screen.queryByText('analysis.query.name')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'toggle olap'})).toBeInTheDocument();
     await act(async () => Promise.resolve());
 });
 

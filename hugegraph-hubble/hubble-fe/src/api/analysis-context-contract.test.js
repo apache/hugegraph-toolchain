@@ -76,3 +76,42 @@ test('lets the async query page own business error feedback', () => {
         {suppressBusinessErrorToast: true}
     );
 });
+
+test.each([
+    ['getExecutionTask', 'gremlin-query'],
+    ['getCypherTask', 'cypher'],
+])('forwards %s cancellation options separately from the read-only task body', (method, endpoint) => {
+    const config = {signal: new AbortController().signal, timeout: 30000};
+    const body = {content: 'query', text: 'Find people', read_only: true};
+    analysis[method]('DEFAULT', 'g', body, config);
+    expect(request.post).toHaveBeenCalledWith(`/graphspaces/DEFAULT/graphs/g/${endpoint}/async-task`, body,
+        {...config, suppressBusinessErrorToast: true});
+});
+
+
+test('forwards cancellation and generation timeout without changing execution request bodies', () => {
+    const controller = new AbortController();
+    const config = {signal: controller.signal};
+    const modelRequest = {question: 'Find people', model: 'test', api_key: 'private', base_url: 'http://test/v1'};
+    analysis.generateText2Gql('DEFAULT', 'g', modelRequest, config);
+    analysis.getExecutionQuery('DEFAULT', 'g', {content: 'g.V()', text: 'Find people'}, config);
+    expect(request.post).toHaveBeenNthCalledWith(1,
+        '/graphspaces/DEFAULT/graphs/g/text2gql', modelRequest,
+        {...config, timeout: 65000, suppressBusinessErrorToast: true});
+    expect(request.post).toHaveBeenNthCalledWith(2,
+        '/graphspaces/DEFAULT/graphs/g/gremlin-query', {content: 'g.V()', text: 'Find people'},
+        {...config, suppressBusinessErrorToast: true});
+});
+
+
+test.each([
+    ['gremlin', 'gremlin-query', 'g.V().limit(3)'],
+    ['cypher', 'cypher', 'MATCH (n) RETURN n LIMIT 3'],
+])('executes generated %s using POST with the question in its body', (language, endpoint, content) => {
+    const config = {signal: new AbortController().signal};
+    const body = {content, text: 'Find people', read_only: true};
+    analysis.executeText2Gql('DEFAULT', 'g', language, body, config);
+    expect(request.post).toHaveBeenCalledWith(`/graphspaces/DEFAULT/graphs/g/${endpoint}`, body,
+        {...config, suppressBusinessErrorToast: true});
+    expect(request.get).not.toHaveBeenCalled();
+});

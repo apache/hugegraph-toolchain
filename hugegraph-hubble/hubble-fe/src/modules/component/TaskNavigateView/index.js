@@ -22,19 +22,17 @@
 
 import React, {useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
-import FinishedIcon from '../../../assets/ic_done_144.svg';
 import {useNavigate} from 'react-router-dom';
-import c from './index.module.scss';
 import {Button} from 'antd';
+import {ArrowRightOutlined, CheckCircleFilled} from '@ant-design/icons';
+import c from './index.module.scss';
 
 const TaskNavigateView = props => {
     const {t} = useTranslation();
-    const {
-        message,
-        taskId,
-    } = props;
-
-
+    const {message, taskId} = props;
+    const title = t('analysis.canvas.task_navigation.title');
+    const submissionDetail = message && message !== title
+        && message !== t('analysis.canvas.task_navigation.success_alt') ? message : null;
     const navigate = useNavigate();
 
     const onClickDetail = useCallback(
@@ -45,18 +43,29 @@ const TaskNavigateView = props => {
     );
 
     return (
-        <div className={c.graphView}>
-            <img
-                src={FinishedIcon}
-                alt={t('analysis.canvas.task_navigation.success_alt')}
-            />
-            <span>{message}</span>
-            <span>{t('analysis.canvas.task_navigation.task_id')}: {taskId}</span>
-            <span>
-                <Button type='link' onClick={onClickDetail}>
+        <div className={c.taskView}>
+            <section className={c.taskCard}>
+                <div className={c.taskHeader} role='status'>
+                    <span className={c.successIcon} aria-hidden='true'>
+                        <CheckCircleFilled />
+                    </span>
+                    <div>
+                        <h3 className={c.title}>{title}</h3>
+                        <p className={c.description}>
+                            {t('analysis.canvas.task_navigation.description')}
+                        </p>
+                        {submissionDetail && <p className={c.submissionDetail}>{submissionDetail}</p>}
+                    </div>
+                </div>
+                <dl className={c.taskIdentity}>
+                    <dt>{t('analysis.canvas.task_navigation.task_id')}</dt>
+                    <dd>{taskId}</dd>
+                </dl>
+                <Button type='primary' className={c.viewButton} onClick={onClickDetail}>
                     {t('analysis.canvas.task_navigation.view')}
+                    <ArrowRightOutlined aria-hidden='true' />
                 </Button>
-            </span>
+            </section>
         </div>
     );
 };

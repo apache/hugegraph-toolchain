@@ -32,6 +32,7 @@ jest.mock('../../api', () => ({
         fetchFavoriteQueries: jest.fn(),
         getGraphData: jest.fn(),
         getExecutionQuery: jest.fn(),
+        getText2GqlConfig: jest.fn(),
     },
     manage: {
         getGraphList: jest.fn(),
@@ -112,6 +113,7 @@ it.each(['button', 'shortcut'])(
         api.analysis.getGraphData.mockResolvedValue({
             status: 200, data: {vertexcount: 8, edgecount: 6},
         });
+        api.analysis.getText2GqlConfig.mockResolvedValue({status: 200, data: {available: false}});
         api.analysis.getExecutionQuery.mockResolvedValue({status: 200, data: {}});
         api.manage.getMetaEdgeList.mockResolvedValue(records);
         api.manage.getMetaVertexList.mockResolvedValue(records);
@@ -178,6 +180,7 @@ it('executes the ready dropdown graph while the previous graph query is pending'
     api.analysis.getGraphList.mockResolvedValue(graphResponse);
     api.manage.getGraphList.mockResolvedValue({status: 200, data: {records: graphs}});
     api.analysis.getOlapMode.mockResolvedValue({status: 200, data: {status: '1'}});
+    api.analysis.getText2GqlConfig.mockResolvedValue({status: 200, data: {available: false}});
     api.analysis.getExecutionLogs.mockResolvedValue(records);
     api.analysis.fetchFavoriteQueries.mockResolvedValue(records);
     api.analysis.getGraphData.mockResolvedValue({

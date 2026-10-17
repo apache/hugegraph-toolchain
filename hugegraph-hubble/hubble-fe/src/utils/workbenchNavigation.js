@@ -59,6 +59,9 @@ const getWorkbenchPageTitleKey = pathname => {
     if (/^\/(?:profile|my)\/?$/.test(pathname)) {
         return 'workbench.page.profile';
     }
+    if (/^\/settings\/text2gql\/?$/.test(pathname)) {
+        return 'analysis.model_settings.title';
+    }
     if (/^\/operations\/overview\/?$/.test(pathname)) {
         return 'operations.overview';
     }

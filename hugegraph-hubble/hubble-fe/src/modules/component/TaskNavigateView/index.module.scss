@@ -16,14 +16,117 @@
  * under the License.
  */
 
-.graphView {
-    position: relative;
+.taskView {
+    box-sizing: border-box;
     width: 100%;
     height: var(--analysis-result-height, calc(100vh - 40px));
     display: flex;
-    flex-direction: column;
-    justify-content: center;
+    overflow: auto;
+    padding: 24px;
+    background: #F8FAFC;
+}
+
+.taskCard {
+    flex: 0 0 auto;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 480px;
+    margin: auto;
+    padding: 24px;
+    border: 1px solid #E4EAF2;
+    border-radius: 12px;
+    background: #FFF;
+    box-shadow: 0 4px 16px #172B4D08;
+    animation: submission-fade-in 180ms ease-out;
+}
+
+.taskHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    overflow-wrap: anywhere;
+}
+
+.successIcon {
+    display: inline-flex;
+    flex: 0 0 44px;
     align-items: center;
-    word-break: break-all;
-    padding: 0 10%;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #F0F9EB;
+    color: #389E0D;
+    font-size: 24px;
+}
+
+.title {
+    margin: 0 0 6px;
+    color: #262626;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.description,
+.submissionDetail {
+    margin: 0;
+    color: #596579;
+    line-height: 1.6;
+}
+
+.submissionDetail {
+    margin-top: 8px;
+}
+
+.taskIdentity {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 6px 16px;
+    margin: 20px 0;
+    padding: 12px 14px;
+    border: 1px solid #E9EDF4;
+    border-radius: 6px;
+    background: #F7F9FC;
+
+    dt {
+        color: #596579;
+    }
+
+    dd {
+        min-width: 0;
+        margin: 0;
+        color: #263751;
+        font-family: Consolas, Monaco, monospace;
+        font-weight: 600;
+        overflow-wrap: anywhere;
+        user-select: all;
+    }
+}
+
+.viewButton {
+    width: 100%;
+}
+
+@keyframes submission-fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .taskCard {
+        animation: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .taskView,
+    .taskCard {
+        padding: 16px;
+    }
 }

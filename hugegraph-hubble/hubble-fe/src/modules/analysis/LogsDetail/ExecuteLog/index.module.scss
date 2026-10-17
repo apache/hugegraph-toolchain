@@ -21,6 +21,19 @@
     word-break: break-word;
 }
 
+.questionCell {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    &:focus-visible {
+        outline: 2px solid rgb(22 119 255 / 35%);
+        outline-offset: -2px;
+    }
+}
+
 .statementCell {
     width: 100%;
     padding: 4px 6px;

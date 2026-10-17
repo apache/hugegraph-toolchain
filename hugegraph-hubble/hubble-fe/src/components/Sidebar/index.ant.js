@@ -53,6 +53,10 @@ const items = (t, pathname, capabilities = []) => {
         systemList = isAuthEnabled() ? [MY, ACCOUNT] : [];
     }
     const operationsList = [
+        ...(capabilities.includes('model_settings_manage') ? [{
+            label: <Link to='/settings/text2gql'>{t('analysis.model_settings.title')}</Link>,
+            key: 'text2gql-settings',
+        }] : []),
         ...(pdMode && capabilities.includes('operations_health_read') ? [{
             label: <Link to='/operations/overview'>{t('operations.overview')}</Link>,
             key: 'overview',
@@ -275,8 +279,6 @@ const Sidebar = () => {
                         <Tooltip title={toggleLabel} placement="right">
                             <Button
                                 className="workbench-navigation-inline-toggle"
-                                style={renderedCollapsed
-                                    ? {width: 80, minWidth: 80} : undefined}
                                 type="text"
                                 size="small"
                                 icon={collapsed

@@ -57,6 +57,33 @@
     }
 }
 
+
+.loadingDetails {
+    justify-content: flex-start;
+    padding-top: 24px;
+    word-break: normal;
+
+    .loadingContent {
+        flex: 0 0 72px;
+        width: 72px;
+        height: 72px;
+    }
+
+    .loadingBackImage {
+        left: 11px;
+        top: 10px;
+        width: 50px;
+        height: 52px;
+    }
+
+    .loadingFrontIamge {
+        left: 28.5px;
+        top: 26px;
+        width: 21px;
+        height: 20px;
+    }
+}
+
 .failureStatus {
     justify-content: flex-start;
     padding-top: clamp(48px, 10vh, 120px);

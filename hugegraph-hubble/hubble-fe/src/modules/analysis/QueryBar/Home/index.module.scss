@@ -1,5 +1,4 @@
 /*!
- *
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with this
  * work for additional information regarding copyright ownership. The ASF
@@ -17,129 +16,322 @@
  */
 
 .queryBar {
-    margin-top: 10px;
-    background-color: #fff;
+    background: #fff;
 
-    :global {
-        .ant-tabs-nav {
-            background-color: #f0f2f5;
-            margin: 0px !important;
-            padding: 6px 10px;
-        }
-
-        .ant-tabs-card .ant-tabs-nav .ant-tabs-tab {
-            flex: 0 0 auto;
-            width: auto;
-            min-width: 0;
-            padding-right: 14px;
-            padding-left: 14px;
-            background: #f0f2f5;
-            border: 0px;
-        }
-
-        .ant-tabs-card  .ant-tabs-nav .ant-tabs-tab-active {
-            background: #fff;
-        }
-    }
-
-    :global(.ant-tabs-nav-list) {
-        flex: 0 0 auto;
-        width: auto;
-    }
-
-    .hidden {
-        display: none;
+    :global(.ant-btn-loading[disabled]) {
+        color: #595959;
     }
 }
 
-.editorShell {
-    position: relative;
+.toolbar,
+.queryActions,
+.toolbarExtra,
+.modelControls,
+.panelHeading,
+.executeActions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
+    gap: 6px 10px;
+}
 
-    :global(.cm-content) {
-        padding-right: 280px;
+.toolbar {
+    gap: 8px 16px;
+    padding: 8px 12px;
+    background: #f7f8fa;
+    border-bottom: 1px solid #edf0f3;
+}
+
+.toolIdentity {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding-right: 8px;
+    color: #273b5a;
+    font-size: 22px;
+    font-weight: 600;
+    line-height: 28px;
+    letter-spacing: 0.2px;
+
+    > span {
+        font-size: 24px;
     }
 }
 
 .queryActions {
-    display: flex;
-    align-items: center;
+    margin-left: auto;
 }
 
-.editorRegion {
-    position: relative;
-    min-height: 32px;
-
-    .editorToggle {
-        position: absolute;
-        top: 6px;
-        right: 10px;
-        z-index: 3;
-        color: #595959;
-    }
+.toolbarExtra,
+.fieldHint,
+.modelStatus {
+    color: #667085;
+    font-size: 12px;
+    line-height: 1.5;
 }
 
-.editorShortcutHints {
-    position: absolute;
-    top: 8px;
-    right: 112px;
-    z-index: 2;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-    justify-content: flex-end;
-    max-width: calc(100% - 128px);
-    padding: 1px 6px;
-    color: #98a2b3;
-    font-size: 11px;
-    line-height: 16px;
+.modelStatus {
+    overflow: hidden;
+    max-width: 220px;
     white-space: nowrap;
-    background: rgb(255 255 255 / 88%);
-    border-radius: 4px;
-    pointer-events: none;
+    text-overflow: ellipsis;
 }
 
-.text2gqlBadge {
-    margin-left: 6px;
-    padding: 0 5px;
-    color: #7b879c;
-    font-size: 10px;
-    line-height: 16px;
-    background: rgb(123 135 156 / 8%);
-    border-color: rgb(123 135 156 / 18%);
-}
-
-.text2gqlPlaceholder {
+.queryWorkspace {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 16px;
-    padding: 16px;
-
-    p {
-        margin: 0;
-        color: #595959;
-    }
+    padding: 10px 12px 0;
 }
 
-@media (max-width: 1366px) {
-    .queryBar :global(.ant-tabs-nav-list) {
+.querySection {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    gap: 8px;
+}
+
+.panelHeading {
+    min-height: 28px;
+    color: #262626;
+    font-size: 14px;
+    font-weight: 600;
+
+    > label,
+    > span:first-child {
         flex: 0 0 auto;
     }
 
-    .queryBar :global(.ant-tabs-nav-operations) {
-        display: none !important;
+    > .fieldHint {
+        font-weight: 400;
+    }
+}
+
+.modelControls {
+    margin-left: auto;
+    gap: 4px;
+    padding: 1px 6px;
+    border: 1px dashed #b6c9df;
+    border-radius: 4px;
+    background: #f5f8fc;
+    font-weight: 400;
+    transition: border-color 160ms ease, background-color 160ms ease;
+
+    &:hover,
+    &:focus-within {
+        border-color: #82a9d4;
+        background: #eef5ff;
     }
 
-    .editorShortcutHints {
-        right: 96px;
+    .modelStatus {
+        color: #45658a;
+    }
+
+    :global(.ant-btn) {
+        color: #526d95;
+        font-size: 12px;
+    }
+}
+
+.inputFrame {
+    display: flex;
+    flex-direction: column;
+    height: var(--query-input-height, 160px);
+    min-height: 0;
+    overflow: hidden;
+    border: 1px solid #d9dfe8;
+    border-radius: 5px;
+    background: #fff;
+    transition: border-color 160ms ease, box-shadow 160ms ease;
+
+    &:focus-within {
+        border-color: #69a7fa;
+        box-shadow: 0 0 0 2px rgb(24 144 255 / 8%);
+    }
+
+    > textarea {
+        flex: 1 1 auto;
+        width: 100%;
+        min-height: 0;
+        padding: 10px 12px;
+        resize: none;
+        overflow: auto;
+        border: 0;
+        border-radius: 0;
+        font-size: 14px;
+
+        &:focus {
+            box-shadow: none;
+        }
+    }
+}
+
+.inputFooter {
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 6px 10px;
+    min-height: 52px;
+    padding: 8px;
+}
+
+.footerInfo {
+    display: flex;
+    flex: 1 1 140px;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+    overflow-wrap: anywhere;
+
+    > p,
+    > span {
+        margin: 0;
+        font-size: 11px;
+        line-height: 1.5;
+    }
+}
+
+.duration {
+    color: #237804;
+}
+
+.generateButton {
+    flex-shrink: 0;
+    height: 36px;
+}
+
+.executeActions {
+    justify-content: flex-end;
+    margin-left: auto;
+    gap: 6px;
+
+    > div {
+        padding-left: 0;
+    }
+}
+
+.editorShell {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+
+    > div,
+    :global(.cm-editor) {
+        height: 100%;
+        min-height: 0;
+    }
+
+    :global(.cm-scroller) {
+        height: 100%;
+        min-height: 0;
+        overflow: auto;
+    }
+
+    :global(.cm-content) {
+        padding: 10px 12px;
+    }
+}
+
+.resizeHandle {
+    margin: 0 12px;
+}
+
+.modelConfig {
+    display: grid;
+    grid-template-columns: minmax(120px, 0.65fr) minmax(0, 1.6fr) repeat(2, minmax(0, 1fr));
+    gap: 10px;
+
+    :global(.ant-select), :global(.ant-input-affix-wrapper), :global(.ant-input) {
+        width: 100%;
+        min-width: 0;
+    }
+}
+
+.modelField {
+    display: grid;
+    min-width: 0;
+    align-content: start;
+    gap: 4px;
+
+    label {
+        color: #434343;
+        font-size: 12px;
+        line-height: 18px;
+    }
+}
+
+.modelSettings {
+    margin: 0 12px;
+
+    &[open] {
+        padding: 6px 0;
+
+        .modelConfig {
+            animation: reveal-config 160ms ease-out;
+        }
+    }
+
+    > :global(.ant-alert) {
+        margin-top: 8px;
+    }
+}
+
+@keyframes reveal-config {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .modelControls,
+    .inputFrame {
+        transition: none;
+    }
+
+    .modelSettings[open] .modelConfig {
+        animation: none;
+    }
+}
+
+.queryError {
+    margin: 8px 12px 0;
+}
+
+@media (max-width: 1200px) {
+    .modelConfig {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .panelHeading {
+        align-content: flex-start;
+        flex: 1 0 auto;
+    }
+
+    .modelControls {
+        margin-left: 0;
     }
 }
 
 @media (max-width: 900px) {
-    .editorShell :global(.cm-content) {
-        padding-right: 112px;
+    .queryWorkspace,
+    .modelConfig {
+        grid-template-columns: minmax(0, 1fr);
     }
 
-    .editorShortcutHints {
-        visibility: hidden;
-        opacity: 0;
+    .queryActions {
+        margin-left: 0;
+    }
+
+    .modelStatus {
+        max-width: 150px;
     }
 }

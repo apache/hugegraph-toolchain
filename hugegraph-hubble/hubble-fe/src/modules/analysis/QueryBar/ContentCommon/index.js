@@ -50,6 +50,8 @@ const SecondaryActions = props => {
         favoriteCardVisible,
         setFavoriteCardVisible,
         shortcutHint,
+        onClear: clearQuery,
+        allowFavorite = true,
     } = props;
     const context = useContext(GraphAnalysisContext);
     const [favoriteName, setFavoriteName] = useState();
@@ -58,9 +60,15 @@ const SecondaryActions = props => {
 
     const onClear = useCallback(
         () => {
-            setCodeEditorContent('');
+            if (clearQuery) {
+                clearQuery();
+            }
+            else {
+                setCodeEditorContent('');
+            }
+            setFavoriteCardVisible(false);
         },
-        [setCodeEditorContent]
+        [clearQuery, setCodeEditorContent, setFavoriteCardVisible]
     );
 
     const onFavoriteCard = useCallback(
@@ -140,25 +148,27 @@ const SecondaryActions = props => {
             <Button className={c.btn} onClick={onClear} size='small'>
                 {t('common.action.clear')}
             </Button>
-            <Popover
-                placement='bottom'
-                trigger='click'
-                overlayClassName={c.favoriteModel}
-                title={t('analysis.query.favorite_statement')}
-                content={favoriteContent}
-                open={favoriteCardVisible}
-            >
-                <Tooltip placement='bottom' title={isEmptyQuery ? emptyDesc : ''}>
-                    <Button
-                        className={c.btn}
-                        disabled={isEmptyQuery}
-                        onClick={onFavoriteCard}
-                        size='small'
-                    >
-                        {t('analysis.query.favorite')}
-                    </Button>
-                </Tooltip>
-            </Popover>
+            {allowFavorite && (
+                <Popover
+                    placement='bottom'
+                    trigger='click'
+                    overlayClassName={c.favoriteModel}
+                    title={t('analysis.query.favorite_statement')}
+                    content={favoriteContent}
+                    open={favoriteCardVisible}
+                >
+                    <Tooltip placement='bottom' title={isEmptyQuery ? emptyDesc : ''}>
+                        <Button
+                            className={c.btn}
+                            disabled={isEmptyQuery}
+                            onClick={onFavoriteCard}
+                            size='small'
+                        >
+                            {t('analysis.query.favorite')}
+                        </Button>
+                    </Tooltip>
+                </Popover>
+            )}
             {shortcutHint && (
                 <span className={c.shortcutHint}>{shortcutHint}</span>
             )}
@@ -176,9 +186,11 @@ const PrimaryActions = props => {
         isEmptyQuery,
         isExecuting,
         isGraphReady = true,
+        allowAsync = true,
     } = props;
-    const isQueryMode = executeMode === QUERY;
+    const isQueryMode = !allowAsync || executeMode === QUERY;
     const emptyDesc = t('analysis.query.empty_query');
+    const executionHint = t(isQueryMode ? 'analysis.query.execute_shortcut' : 'analysis.query.submit_task_shortcut');
 
     const onSwitchExecuteMode = useCallback(
         () => onExecuteModeChange(isQueryMode ? TASK : QUERY),
@@ -197,39 +209,41 @@ const PrimaryActions = props => {
     return (
         <div className={c.primaryActions}>
             <div className={c.executionControl}>
-                <Tooltip
-                    placement='top'
-                    title={t(isQueryMode
-                        ? 'analysis.query.switch_async_task'
-                        : 'analysis.query.switch_immediate_query')}
-                >
-                    <Button
-                        className={c.modeButton}
-                        icon={isQueryMode
-                            ? <ThunderboltOutlined />
-                            : <ClockCircleOutlined />}
-                        onClick={onSwitchExecuteMode}
-                        aria-label={t(isQueryMode
+                {allowAsync && (
+                    <Tooltip
+                        placement='top'
+                        title={t(isQueryMode
                             ? 'analysis.query.switch_async_task'
                             : 'analysis.query.switch_immediate_query')}
                     >
-                        {t(isQueryMode
-                            ? 'analysis.query.execute_mode_immediate'
-                            : 'analysis.query.execute_mode_async')}
-                    </Button>
-                </Tooltip>
+                        <Button
+                            className={c.modeButton}
+                            icon={isQueryMode
+                                ? <ThunderboltOutlined />
+                                : <ClockCircleOutlined />}
+                            onClick={onSwitchExecuteMode}
+                            aria-label={t(isQueryMode
+                                ? 'analysis.query.switch_async_task'
+                                : 'analysis.query.switch_immediate_query')}
+                        >
+                            {t(isQueryMode
+                                ? 'analysis.query.execute_mode_immediate'
+                                : 'analysis.query.execute_mode_async')}
+                        </Button>
+                    </Tooltip>
+                )}
                 <Tooltip
                     placement='top'
                     title={isEmptyQuery
                         ? emptyDesc
-                        : t('analysis.query.execute_shortcut')}
+                        : executionHint}
                 >
                     <Button
                         className={c.executeButton}
                         type='primary'
                         disabled={!isGraphReady || isEmptyQuery || isExecuting}
                         onClick={onExecution}
-                        title={t('analysis.query.execute_shortcut')}
+                        title={executionHint}
                     >
                         {isQueryMode
                             ? t('analysis.query.execute_query')

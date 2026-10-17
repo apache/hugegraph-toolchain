@@ -58,6 +58,7 @@ public class AuthContextServiceTest {
         Assert.assertEquals("SUPERADMIN", context.get("role"));
         Assert.assertEquals("alice", context.get("username"));
         Assert.assertTrue(capabilities(context).contains("accounts_manage"));
+        Assert.assertTrue(capabilities(context).contains("model_settings_manage"));
         Assert.assertTrue(capabilities(context).contains(
                           "account_permission_presets"));
         Assert.assertTrue(capabilities(context).contains("graphspaces_manage"));
@@ -89,6 +90,7 @@ public class AuthContextServiceTest {
 
         Assert.assertEquals("SPACEADMIN", context.get("role"));
         Assert.assertFalse(capabilities(context).contains("accounts_manage"));
+        Assert.assertFalse(capabilities(context).contains("model_settings_manage"));
         Assert.assertFalse(capabilities(context).contains(
                            "operations_health_read"));
         Assert.assertTrue(capabilities(context).contains(
@@ -265,6 +267,7 @@ public class AuthContextServiceTest {
         Assert.assertEquals("NON_PD", context.get("mode"));
         Assert.assertEquals("SUPERADMIN", context.get("role"));
         Assert.assertTrue(capabilities(context).contains("accounts_manage"));
+        Assert.assertTrue(capabilities(context).contains("model_settings_manage"));
         Assert.assertTrue(capabilities(context).contains(
                           "operations_topology_read"));
         Assert.assertFalse(capabilities(context).contains(
@@ -285,7 +288,9 @@ public class AuthContextServiceTest {
 
         Assert.assertEquals("NON_AUTH", context.get("mode"));
         Assert.assertEquals("ANONYMOUS", context.get("role"));
-        Assert.assertEquals("anonymous-v2-pd",
+        Assert.assertTrue(capabilities(context).contains("model_settings_manage"));
+        Assert.assertFalse(capabilities(context).contains("accounts_manage"));
+        Assert.assertEquals("anonymous-v3-pd",
                             context.get("context_version"));
         Assert.assertTrue(capabilities(context).contains(
                           "operations_health_read"));
@@ -297,6 +302,24 @@ public class AuthContextServiceTest {
                                    "read_metrics"),
                             actions(context, "operations"));
         Mockito.verifyNoInteractions(fixture.users);
+    }
+
+    @Test
+    public void testModelSettingsGuardUsesTrustedModeAndCanonicalAccountCapability() {
+        Fixture fixture = new Fixture(false);
+        Mockito.when(fixture.users.userLevel(fixture.client, "ordinary-name")).thenReturn("ADMIN");
+        fixture.service.requireModelSettingsManager(fixture.client, "ordinary-name");
+        Assert.assertThrows(ForbiddenException.class, () ->
+                fixture.service.requireModelSettingsManager(fixture.client, null));
+        Assert.assertThrows(ForbiddenException.class, () ->
+                fixture.service.requireModelSettingsManager(fixture.client, " "));
+        Mockito.when(fixture.users.userLevel(fixture.client, "admin")).thenReturn("USER");
+        Assert.assertThrows(ForbiddenException.class, () ->
+                fixture.service.requireModelSettingsManager(fixture.client, "admin"));
+        Assert.assertFalse(capabilities(fixture.service.context(fixture.client, "admin"))
+                           .contains("model_settings_manage"));
+        Mockito.when(fixture.authMode.anonymous()).thenReturn(true);
+        fixture.service.requireModelSettingsManager(fixture.client, null);
     }
 
     @Test

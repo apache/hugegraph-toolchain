@@ -36,6 +36,7 @@ const EXECUTE_TYPE_KEY = {
     GREMLIN_ASYNC: 'GREMLIN_ASYNC',
     ALGORITHM: 'ALGORITHM',
     CYPHER: 'CYPHER',
+    CYPHER_ASYNC: 'CYPHER_ASYNC',
 };
 
 const EXECUTE_STATUS_KEY = {
@@ -137,13 +138,19 @@ const ExecuteLog = props => {
         onExecutePageChange,
         onAddCollection,
         onLoadContent,
+        compact = false,
     } = props;
 
     const [favoriteName, setFavoriteName] = useState();
 
     const loadStatements = useCallback(
         (text, rowData, index) => {
-            onLoadContent(rowData.content);
+            if (typeof rowData.text === 'string') {
+                onLoadContent(rowData.content, rowData.text);
+            }
+            else {
+                onLoadContent(rowData.content);
+            }
             const headerTabNode = document.getElementById('queryBar');
             window.scrollTo(0, headerTabNode.offsetTop);
         },
@@ -210,13 +217,25 @@ const ExecuteLog = props => {
             key: 'time',
             title: t('analysis.logs.column.time'),
             dataIndex: 'create_time',
-            width: '20%',
+            width: '17%',
+        },
+        {
+            key: 'text',
+            title: t('analysis.logs.column.text'),
+            dataIndex: 'text',
+            width: '23%',
+            ellipsis: {showTitle: false},
+            render: text => (typeof text === 'string' && text.trim() ? (
+                <Tooltip placement='topLeft' title={text} trigger={['hover', 'focus']}>
+                    <span className={c.questionCell} tabIndex={0}>{text}</span>
+                </Tooltip>
+            ) : '—'),
         },
         {
             key: 'content',
             title: t('analysis.logs.column.content'),
             dataIndex: 'content',
-            width: '30%',
+            width: '25%',
             render: (text, rowData, index) => {
                 return (
                     <Tooltip
@@ -318,27 +337,38 @@ const ExecuteLog = props => {
         [t]
     );
     const displayedColumns = useMemo(
-        () => columnSettings.columns.map((column, index) => {
-            if (index !== columnSettings.columns.length - 1) {
-                return column;
-            }
-            return {
-                ...column,
-                title: (
-                    <div className={c.columnHeaderTools}>
-                        <span>{column.title}</span>
-                        <ColumnSettings
-                            columns={executeLogColumns}
-                            preferences={columnSettings.preferences}
-                            setPreferences={columnSettings.setPreferences}
-                            reset={columnSettings.reset}
-                            requiredKeys={REQUIRED_EXECUTE_COLUMNS}
-                            labels={columnSettingsLabels}
-                        />
-                    </div>
-                ),
-            };
-        }),
+        () => {
+            const flexibleWidth = columnSettings.columns.reduce((total, column) => (
+                column.key === 'action' ? total : total + parseFloat(column.width)
+            ), 0);
+            const actionWidth = flexibleWidth > 0 ? 15 : 100;
+            const widthScale = flexibleWidth > 0 ? (100 - actionWidth) / flexibleWidth : 0;
+            return columnSettings.columns.map((column, index) => {
+                const sizedColumn = {
+                    ...column,
+                    width: `${column.key === 'action' ? actionWidth : parseFloat(column.width) * widthScale}%`,
+                };
+                if (index !== columnSettings.columns.length - 1) {
+                    return sizedColumn;
+                }
+                return {
+                    ...sizedColumn,
+                    title: (
+                        <div className={c.columnHeaderTools}>
+                            <span>{column.title}</span>
+                            <ColumnSettings
+                                columns={executeLogColumns}
+                                preferences={columnSettings.preferences}
+                                setPreferences={columnSettings.setPreferences}
+                                reset={columnSettings.reset}
+                                requiredKeys={REQUIRED_EXECUTE_COLUMNS}
+                                labels={columnSettingsLabels}
+                            />
+                        </div>
+                    ),
+                };
+            });
+        },
         [columnSettings.columns, columnSettings.preferences, columnSettings.reset,
             columnSettings.setPreferences, columnSettingsLabels, executeLogColumns]
     );
@@ -357,7 +387,8 @@ const ExecuteLog = props => {
                 current: pageExecute,
                 pageSize: pageSize,
             }}
-            scroll={{y: 360}}
+            scroll={compact ? undefined : {y: 360}}
+            size={compact ? 'small' : 'default'}
             loading={isLoading}
         />
     );

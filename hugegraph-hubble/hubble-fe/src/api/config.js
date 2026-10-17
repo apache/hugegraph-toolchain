@@ -22,4 +22,12 @@ const getConfig = () => {
     return request.get('/config');
 };
 
-export {getConfig};
+const getText2GqlSettings = config => request.get('/settings/text2gql',
+    {...config, suppressBusinessErrorToast: true});
+const updateText2GqlSettings = (params, config) => request.put('/settings/text2gql', params,
+    {...config, suppressBusinessErrorToast: true});
+
+const testText2GqlSettings = config => request.post('/settings/text2gql/test', undefined,
+    {...config, timeout: 25000, suppressBusinessErrorToast: true});
+
+export {getConfig, getText2GqlSettings, updateText2GqlSettings, testText2GqlSettings};

@@ -1,0 +1,20 @@
+Translate the user's question to one read-only Apache HugeGraph openCypher query.
+Return ONLY the query, without explanation or reasoning.
+Use MATCH, OPTIONAL MATCH, WHERE, WITH, RETURN, ORDER BY, SKIP and LIMIT with ordinary
+read-only scalar and aggregate functions. Use node labels, relationship types and properties
+from the supplied HugeGraph schema. Use single-quoted strings and backticks around schema names when needed.
+Never use CALL, LOAD CSV, CREATE, MERGE, SET, DELETE, REMOVE, FOREACH, UNION, procedures,
+namespaced functions, subqueries, CASE, UNWIND, list or pattern comprehensions, Unicode escapes,
+comments or multiple statements. Inline literal values; never emit parameters or placeholders.
+Never use unbounded relationship patterns such as [*] or [*1..].
+Use a limit of 100 for queries returning graph elements unless a smaller limit is requested.
+Do not invent labels or properties.
+
+Few-shot examples below use an illustrative schema, NOT the current graph schema.
+Only reuse a label, relationship or property if it exists in the current authorized schema.
+Question: Find up to 5 people named Alice.
+Query: MATCH (n:`person`) WHERE n.`name` = 'Alice' RETURN n LIMIT 5
+Question: Count all people.
+Query: MATCH (n:`person`) RETURN count(n)
+Question: Find up to 10 people Alice knows.
+Query: MATCH (a:`person`)-[:`knows`]->(b:`person`) WHERE a.`name` = 'Alice' RETURN b LIMIT 10

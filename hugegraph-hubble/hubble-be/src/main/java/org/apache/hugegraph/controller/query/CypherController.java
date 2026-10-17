@@ -20,9 +20,12 @@ package org.apache.hugegraph.controller.query;
 
 import org.apache.hugegraph.common.Constant;
 import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.entity.enums.AsyncTaskStatus;
 import org.apache.hugegraph.entity.enums.ExecuteStatus;
 import org.apache.hugegraph.entity.enums.ExecuteType;
+import org.apache.hugegraph.entity.enums.QueryLanguage;
 import org.apache.hugegraph.entity.query.ExecuteHistory;
 import org.apache.hugegraph.entity.query.GremlinQuery;
 import org.apache.hugegraph.entity.query.GremlinResult;
@@ -34,6 +37,7 @@ import lombok.extern.log4j.Log4j2;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.time.StopWatch;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -62,38 +66,43 @@ public class CypherController extends GremlinController {
     public GremlinResult execute(@PathVariable("graphspace") String graphSpace,
                                  @PathVariable("graph") String graph,
                                  @RequestParam(name = "cypher") String query) {
-        this.checkParamsValid(query);
+        return this.executeQuery(graphSpace, graph, new GremlinQuery(query));
+    }
 
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
+    public GremlinResult execute(@PathVariable("graphspace") String graphSpace,
+                                 @PathVariable("graph") String graph,
+                                 @RequestBody GremlinQuery query) {
+        return this.executeQuery(graphSpace, graph, query);
+    }
+
+    private GremlinResult executeQuery(String graphSpace, String graph, GremlinQuery query) {
+        this.checkParamsValid(query);
+        HugeClient client = this.authGremlinClient(graphSpace, graph);
+        QueryLanguage.CYPHER.requireSupported(client);
         Date createTime = HubbleUtil.nowDate();
-        // Insert execute history
         ExecuteStatus status = ExecuteStatus.RUNNING;
-        ExecuteHistory history;
-        history = new ExecuteHistory(null, graphSpace, graph, 0L,
-                ExecuteType.CYPHER, query,
-                status, AsyncTaskStatus.UNKNOWN,
-                -1L, createTime);
+        ExecuteHistory history = new ExecuteHistory(null, graphSpace, graph, 0L,
+                ExecuteType.CYPHER, query.getContent(), query.getText() == null ? "" : query.getText(),
+                status, AsyncTaskStatus.UNKNOWN, -1L, createTime);
         this.historyService.save(history);
 
         StopWatch timer = StopWatch.createStarted();
         try {
-            HugeClient client = this.authClient(graphSpace, graph);
-            GremlinResult result =
-                    this.queryService.executeCypherQuery(client, query);
+            GremlinResult result = this.queryService.executeCypherQuery(client, query.getContent());
             status = ExecuteStatus.SUCCESS;
             return result;
         } catch (Throwable e) {
             status = ExecuteStatus.FAILED;
-            history.setFailureReason(
-                    GremlinQueryController.GREMLIN_EXECUTION_FAILED);
+            history.setFailureReason(GremlinQueryController.GREMLIN_EXECUTION_FAILED);
+            this.checkAnonymousAuthenticationFailure(e);
             throw e;
         } finally {
             timer.stop();
-            long duration = timer.getTime(TimeUnit.MILLISECONDS);
             history.setStatus(status);
-            history.setDuration(duration);
+            history.setDuration(timer.getTime(TimeUnit.MILLISECONDS));
             this.historyService.update(history);
         }
-
     }
 
     @PostMapping("async-task")
@@ -101,7 +110,9 @@ public class CypherController extends GremlinController {
             @PathVariable("graphspace") String graphSpace,
             @PathVariable("graph") String graph,
             @RequestBody GremlinQuery query) {
-        this.checkParamsValid(query.getContent());
+        this.checkParamsValid(query);
+        HugeClient client = this.authGremlinClient(graphSpace, graph);
+        QueryLanguage.CYPHER.requireSupported(client);
 
         Date createTime = HubbleUtil.nowDate();
         // Insert execute history
@@ -109,7 +120,7 @@ public class CypherController extends GremlinController {
         ExecuteHistory history;
         history = new ExecuteHistory(null, graphSpace, graph, 0L,
                 ExecuteType.CYPHER_ASYNC,
-                query.getContent(), status,
+                query.getContent(), query.getText() == null ? "" : query.getText(), status,
                 AsyncTaskStatus.UNKNOWN, -1L, createTime);
         this.historyService.save(history);
 
@@ -117,7 +128,6 @@ public class CypherController extends GremlinController {
         long asyncId = 0L;
         Map<String, Object> result = new HashMap<>(3);
         try {
-            HugeClient client = this.authClient(graphSpace, graph);
             asyncId = this.queryService.executeCypherAsyncTask(client, query.getContent());
             status = ExecuteStatus.ASYNC_TASK_SUCCESS;
             result.put("task_id", asyncId);
@@ -125,6 +135,7 @@ public class CypherController extends GremlinController {
             return result;
         } catch (Throwable e) {
             status = ExecuteStatus.ASYNC_TASK_FAILED;
+            this.checkAnonymousAuthenticationFailure(e);
             throw e;
         } finally {
             timer.stop();
@@ -136,10 +147,20 @@ public class CypherController extends GremlinController {
         }
     }
 
-    private void checkParamsValid(String query) {
-        Ex.check(!StringUtils.isEmpty(query),
+    private void checkAnonymousAuthenticationFailure(Throwable failure) {
+        if (this.authMode != null && this.authMode.anonymous() && failure instanceof ExternalException &&
+            failure.getCause() instanceof ServerException server && server.status() == 401) {
+            throw new ExternalException(502, "cypher.server.authentication-required");
+        }
+    }
+
+    private void checkParamsValid(GremlinQuery query) {
+        Ex.check(query != null && !StringUtils.isEmpty(query.getContent()),
                 "common.param.cannot-be-null-or-empty",
                 "gremlin-query.content");
-        checkContentLength(query);
+        checkContentLength(query.getContent());
+        if (query.isReadOnly()) {
+            QueryLanguage.CYPHER.validate(query.getContent());
+        }
     }
 }

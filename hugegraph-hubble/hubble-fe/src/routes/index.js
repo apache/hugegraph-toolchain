@@ -29,6 +29,7 @@ import Meta from '../pages/Meta';
 import GraphDetail from '../pages/GraphDetail';
 import My from '../pages/My';
 import Account from '../pages/Account';
+import Text2GqlSettings from '../pages/Text2GqlSettings';
 import Navigation from '../pages/Navigation';
 import Error404 from '../pages/Error404';
 import Test from '../pages/Test';
@@ -90,6 +91,15 @@ const AccountRoute = () => {
         || hasCapability('graphspace_members_manage')
         ? <Account />
         : <Navigate to='/navigation' replace />;
+};
+
+const Text2GqlSettingsRoute = () => {
+    const {loading, hasCapability} = useAuthContext();
+    if (loading) {
+        return null;
+    }
+    return hasCapability('model_settings_manage')
+        ? <Text2GqlSettings /> : <Navigate to='/navigation' replace />;
 };
 
 const GraphSpaceListRoute = () => {
@@ -206,6 +216,7 @@ const RouteList = ({element}) => {
                     path='/role/graphspace/:graphspace/:role'
                     element={<Navigate to='/navigation' replace />}
                 />
+                <Route path='/settings/text2gql' element={<Text2GqlSettingsRoute />} />
                 <Route
                     path='/operations/overview'
                     element={(

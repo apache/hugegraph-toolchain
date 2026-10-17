@@ -20,30 +20,76 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  max-width: 100%;
   margin-left: 28px;
 }
 
-.graphspace {
-  min-width: 112px;
-  max-width: 240px;
-}
+.context > :global(.ant-space) {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
 
-.graph {
-  min-width: 112px;
-  max-width: 240px;
-}
+  > :global(.ant-space-item) {
+    min-width: 0;
+  }
 
-.separator {
-  color: rgba(255, 255, 255, 0.56);
+  > :global(.ant-space-item:nth-child(2)) {
+    flex: none;
+  }
 }
 
 .graphspace,
 .graph {
+  min-width: 88px;
+  max-width: 100%;
+  color: rgba(255, 255, 255, 0.92);
+
+  :global(.ant-select-selector) {
+    color: inherit !important;
+    background: rgba(255, 255, 255, 0.05) !important;
+    border-color: transparent !important;
+    border-radius: 6px !important;
+    box-shadow: none !important;
+  }
+
   :global(.ant-select-selection-item) {
     overflow: hidden;
+    color: inherit !important;
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+
+  :global(.ant-select-arrow), :global(.ant-select-selection-placeholder) {
+    color: rgba(255, 255, 255, 0.64);
+  }
+
+  &:not(:global(.ant-select-disabled)):hover :global(.ant-select-selector) {
+    background: rgba(255, 255, 255, 0.09) !important;
+    border-color: rgba(255, 255, 255, 0.26) !important;
+  }
+
+  &:focus-within :global(.ant-select-selector) {
+    border-color: #69b1ff !important;
+    box-shadow: 0 0 0 2px rgba(105, 177, 255, 0.28) !important;
+  }
+
+  &:global(.ant-select-disabled) {
+    color: rgba(255, 255, 255, 0.72);
+
+    :global(.ant-select-selector) {
+      background: transparent !important;
+      border-color: transparent !important;
+      cursor: default;
+    }
+
+    :global(.ant-select-arrow) {
+      visibility: hidden;
+    }
+  }
+}
+
+.separator {
+  color: rgba(255, 255, 255, 0.4);
 }
 
 .errorStack {
@@ -71,7 +117,6 @@
   .context {
     flex: 1 1 auto;
     margin-left: 0;
-    overflow: hidden;
 
     :global(.ant-space) {
       display: flex;
@@ -81,7 +126,7 @@
 
   .graphspace,
   .graph {
-    max-width: 30vw;
+    max-width: 100%;
     min-width: 88px;
   }
 
@@ -93,5 +138,48 @@
     right: 8px;
     left: 8px;
     min-width: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .graphspace {
+    min-width: 48px;
+    max-width: 64px;
+  }
+
+  .fixedGraphspace > :global(.ant-space) {
+    > :global(.ant-space-item:first-child),
+    > :global(.ant-space-item:nth-child(2)) {
+      display: none;
+    }
+  }
+
+  .context > :global(.ant-space) > :global(.ant-space-item:last-child) {
+    flex: 1 1 auto;
+    min-width: 88px;
+  }
+}
+
+@media (max-width: 360px) {
+  .context > :global(.ant-space) {
+    gap: 4px !important;
+
+    > :global(.ant-space-item:first-child) {
+      flex: 0 0 44px;
+      min-width: 44px;
+    }
+
+    > :global(.ant-space-item:last-child) {
+      min-width: 64px;
+    }
+  }
+
+  .graphspace {
+    min-width: 44px;
+    max-width: 44px;
+  }
+
+  .graph {
+    min-width: 64px;
   }
 }

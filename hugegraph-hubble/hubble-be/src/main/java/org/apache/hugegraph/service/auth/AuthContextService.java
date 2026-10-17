@@ -53,6 +53,7 @@ public class AuthContextService {
 
     public static final String ACCOUNT_SELF_MANAGE = "account_self_manage";
     public static final String ACCOUNTS_MANAGE = "accounts_manage";
+    public static final String MODEL_SETTINGS_MANAGE = "model_settings_manage";
     public static final String ACCOUNT_PERMISSION_PRESETS =
                                "account_permission_presets";
     public static final String GRAPHSPACES_READ = "graphspaces_read";
@@ -155,6 +156,16 @@ public class AuthContextService {
         return Collections.unmodifiableMap(context);
     }
 
+    public void requireModelSettingsManager(HugeClient client, String username) {
+        if (!this.authMode.anonymous() && (username == null || username.isBlank())) {
+            throw new ForbiddenException("Permission denied: manage model settings");
+        }
+        Set<?> capabilities = (Set<?>) this.context(client, username).get("capabilities");
+        if (!capabilities.contains(MODEL_SETTINGS_MANAGE)) {
+            throw new ForbiddenException("Permission denied: manage model settings");
+        }
+    }
+
     public void requireGraphSpaceWrite(HugeClient client, String username,
                                        String graphSpace) {
         if (this.authMode.anonymous() ||
@@ -180,6 +191,7 @@ public class AuthContextService {
     private static Map<String, Object> anonymousContext(boolean pdEnabled) {
         Set<String> capabilities = new LinkedHashSet<>();
         capabilities.add(GRAPH_RESOURCES_ACCESS);
+        capabilities.add(MODEL_SETTINGS_MANAGE);
         if (pdEnabled) {
             capabilities.add(GRAPHSPACES_READ);
         }
@@ -188,7 +200,7 @@ public class AuthContextService {
         Map<String, Object> context = new LinkedHashMap<>();
         context.put("schema_version", SCHEMA_VERSION);
         context.put("context_version",
-                    pdEnabled ? "anonymous-v2-pd" : "anonymous-v2-non-pd");
+                    pdEnabled ? "anonymous-v3-pd" : "anonymous-v3-non-pd");
         context.put("mode", "NON_AUTH");
         context.put("username", null);
         context.put("role", "ANONYMOUS");
@@ -221,6 +233,7 @@ public class AuthContextService {
         }
         if (SUPERADMIN.equals(role)) {
             capabilities.add(ACCOUNTS_MANAGE);
+            capabilities.add(MODEL_SETTINGS_MANAGE);
             if (pdEnabled) {
                 capabilities.add(GRAPHSPACES_MANAGE);
             }

@@ -243,9 +243,9 @@ export const FAVORITE_TYPE = {
 };
 
 export const EXECUTION_LOGS_TYPE = {
-    Gremlin: '0',
+    Gremlin: '6',
     Algorithms: '1',
-    Cypher: '2',
+    Cypher: '7',
     Async_Cypher: '4',
     Async_Gremlin: '5',
 };

@@ -177,6 +177,15 @@ public abstract class BaseController {
         return client;
     }
 
+    protected void requireModelSettingsManager() {
+        if ((this.authMode == null || this.authMode.refresh()) &&
+            (!StringUtils.hasText(this.getUser()) || !StringUtils.hasText(this.getToken()))) {
+            throw new ForbiddenException("Authentication is required to manage model settings");
+        }
+        HugeClient client = this.authClient(null, null);
+        this.authContextService.requireModelSettingsManager(client, this.getUser());
+    }
+
     protected HugeClient requireGraphSpaceManager(String graphSpace) {
         this.requireAuthenticatedAuthorization();
         HugeClient client = this.authClient(null, null);

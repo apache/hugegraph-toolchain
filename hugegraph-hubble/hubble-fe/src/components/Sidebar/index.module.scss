@@ -17,18 +17,43 @@
  */
 
 .toggleSlot {
+    position: absolute;
+    z-index: 2;
+    top: 4px;
+    right: 8px;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    width: 100%;
-    min-height: 44px;
-    flex: 0 0 44px;
+    width: 28px;
+    height: 40px;
 
     :global(.workbench-navigation-inline-toggle) {
-        position: static;
-        float: none;
-        height: 36px;
-        margin: 4px 0;
-        border-radius: 0;
+        width: 28px;
+        min-width: 28px;
+        height: 32px;
+        color: var(--workbench-color-text-secondary);
+        border-radius: var(--workbench-radius);
+
+        &:hover,
+        &:focus-visible {
+            color: var(--workbench-color-brand-strong);
+            background: #eaf2ff;
+        }
+    }
+
+    // Reserve separate targets for the Home submenu arrow and the sidebar toggle.
+    + :global(.ant-menu) > :global(.ant-menu-submenu:first-child > .ant-menu-submenu-title) {
+        padding-right: 72px;
+
+        :global(.ant-menu-submenu-arrow) {
+            right: 52px;
+        }
+    }
+
+    + :global(.ant-menu-inline-collapsed) > :global(.ant-menu-submenu > .ant-menu-submenu-title) {
+        padding-left: 16px !important;
+    }
+
+    + :global(.ant-menu-inline-collapsed) > :global(.ant-menu-submenu:first-child > .ant-menu-submenu-title) {
+        padding-right: 40px;
     }
 }

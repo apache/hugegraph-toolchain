@@ -163,3 +163,35 @@
         transform: rotate(360deg);
     }
 }
+
+.sized {
+    margin-top: 0;
+
+    .nonGraphPreview {
+        height: var(--analysis-result-height);
+        min-height: 0;
+        overflow: auto;
+    }
+
+    .previewContent {
+        max-height: none;
+        overflow: visible;
+    }
+
+    > :global(.ant-tabs),
+    :global(.ant-tabs-content-holder),
+    :global(.ant-tabs-content),
+    :global(.ant-tabs-tabpane) {
+        height: 100%;
+        min-height: 0;
+    }
+
+    :global(.ant-tabs-tabpane) {
+        overflow: hidden;
+    }
+}
+
+.viewNotice {
+    height: var(--analysis-result-height);
+    overflow: auto;
+}

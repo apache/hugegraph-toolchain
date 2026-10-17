@@ -44,6 +44,7 @@ jest.mock('../pages/Meta', () => () => <div>meta page</div>);
 jest.mock('../pages/GraphDetail', () => () => <div>graph detail page</div>);
 jest.mock('../pages/My', () => () => <div>my page</div>);
 const mockAccountRender = jest.fn();
+jest.mock('../pages/Text2GqlSettings', () => () => <div>model settings page</div>);
 jest.mock('../pages/Account', () => () => {
     mockAccountRender();
     return <div>account page</div>;
@@ -100,6 +101,22 @@ describe('route guard', () => {
         mockCapabilities = new Set();
         isAuthEnabled.mockReturnValue(true);
         isPdEnabled.mockReturnValue(false);
+    });
+
+    it.each([
+        [true, ['model_settings_manage'], true],
+        [true, ['accounts_manage'], false],
+        [false, ['model_settings_manage'], true],
+        [false, [], false],
+    ])('guards model settings using its server capability (%s, %j)', (auth, capabilities, allowed) => {
+        isAuthEnabled.mockReturnValue(auth);
+        if (auth) {
+            sessionStorage.setItem('user_', JSON.stringify({id: 'current-user'}));
+        }
+        mockCapabilities = new Set(capabilities);
+        renderRoutes('/settings/text2gql');
+        expect(Boolean(screen.queryByText('model settings page'))).toBe(allowed);
+        expect(Boolean(screen.queryByText('navigation page'))).toBe(!allowed);
     });
 
     it('redirects unauthenticated business route visits to login with the current URL', () => {
