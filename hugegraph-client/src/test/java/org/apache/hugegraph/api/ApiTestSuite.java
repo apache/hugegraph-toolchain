@@ -40,6 +40,7 @@ import org.apache.hugegraph.api.traverser.PathsApiTest;
 import org.apache.hugegraph.api.traverser.PersonalRankApiTest;
 import org.apache.hugegraph.api.traverser.RingsRaysApiTest;
 import org.apache.hugegraph.api.traverser.SameNeighborsApiTest;
+import org.apache.hugegraph.api.traverser.SameNeighborsBatchApiTest;
 import org.apache.hugegraph.api.traverser.ShortestPathApiTest;
 import org.apache.hugegraph.api.traverser.SingleSourceShortestPathApiTest;
 import org.apache.hugegraph.api.traverser.TemplatePathsApiTest;
@@ -74,6 +75,7 @@ import org.junit.runners.Suite;
         CountApiTest.class,
         RingsRaysApiTest.class,
         SameNeighborsApiTest.class,
+        SameNeighborsBatchApiTest.class,
         JaccardSimilarityApiTest.class,
         ShortestPathApiTest.class,
         AllShortestPathsApiTest.class,
