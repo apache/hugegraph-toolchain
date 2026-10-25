@@ -17,12 +17,14 @@
 
 package org.apache.hugegraph.api.traverser;
 
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.structure.constant.Direction;
 import org.apache.hugegraph.structure.constant.T;
 import org.apache.hugegraph.structure.graph.Vertex;
 import org.apache.hugegraph.structure.traverser.SameNeighborsBatch;
 import org.apache.hugegraph.structure.traverser.SameNeighborsBatchRequest;
 import org.apache.hugegraph.testutil.Assert;
+import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
@@ -71,6 +73,16 @@ public class SameNeighborsBatchApiTest extends TraverserApiTest {
         v8.addEdge("link", v1);
         v2.addEdge("link", v9);
         v10.addEdge("link", v2);
+
+        // Server added /traversers/sameneighborsbatch after 1.7.0, which answers 404, so
+        // skip the class there instead of failing every test
+        try {
+            sameNeighborsBatchAPI.post(SameNeighborsBatchRequest.builder().vertex(1, 2).build());
+        } catch (ServerException e) {
+            Assume.assumeTrue("Server has no /traversers/sameneighborsbatch endpoint",
+                              e.status() != 404);
+            throw e;
+        }
     }
 
     @Test
