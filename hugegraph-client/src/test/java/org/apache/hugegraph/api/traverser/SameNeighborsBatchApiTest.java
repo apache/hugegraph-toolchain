@@ -308,11 +308,11 @@ public class SameNeighborsBatchApiTest extends TraverserApiTest {
         builder.vertex(1, 2);
         builder.vertex(3, 4);
         builder.vertex(4, 6);
-        builder.build();
         builder.direction(Direction.BOTH);
         builder.maxDegree(6);
         builder.label("link");
         builder.limit(2L);
+        request = builder.build();
         neighbors = sameNeighborsBatchAPI.post(request);
         Assert.assertEquals(3, neighbors.sameNeighbors.size());
         Assert.assertEquals(2, neighbors.sameNeighbors.get(0).size());
@@ -326,18 +326,19 @@ public class SameNeighborsBatchApiTest extends TraverserApiTest {
         builder.vertex(1, 2);
         builder.vertex(3, 4);
         builder.vertex(4, 6);
-        builder.build();
         builder.direction(Direction.BOTH);
         builder.maxDegree(6);
         builder.label("link");
         builder.limit(1L);
+        request = builder.build();
         neighbors = sameNeighborsBatchAPI.post(request);
         Assert.assertEquals(3, neighbors.sameNeighbors.size());
-        Assert.assertEquals(2, neighbors.sameNeighbors.get(0).size());
-        Assert.assertEquals(2, neighbors.sameNeighbors.get(1).size());
+        Assert.assertEquals(1, neighbors.sameNeighbors.get(0).size());
+        Assert.assertEquals(1, neighbors.sameNeighbors.get(1).size());
         Assert.assertEquals(0, neighbors.sameNeighbors.get(2).size());
 
-        Assert.assertTrue(neighbors.sameNeighbors.get(0).containsAll(ImmutableList.of(3)));
-        Assert.assertTrue(neighbors.sameNeighbors.get(1).containsAll(ImmutableList.of(1)));
+        // The limit applies to each pair; which neighbor is kept is not specified
+        Assert.assertTrue(ImmutableList.of(3, 4).containsAll(neighbors.sameNeighbors.get(0)));
+        Assert.assertTrue(ImmutableList.of(1, 2).containsAll(neighbors.sameNeighbors.get(1)));
     }
 }
