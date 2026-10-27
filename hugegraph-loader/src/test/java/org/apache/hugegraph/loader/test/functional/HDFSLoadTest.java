@@ -66,6 +66,7 @@ public class HDFSLoadTest extends FileLoadTest {
                 "-g", GRAPH,
                 "-h", SERVER,
                 "--batch-insert-threads", "2",
+                "--parser-threads", "4",
                 "--test-mode", "true"
         ));
         argsList.addAll(Arrays.asList("--username", "admin", "--password", "pa"));
@@ -95,6 +96,7 @@ public class HDFSLoadTest extends FileLoadTest {
                 "-g", GRAPH,
                 "-h", SERVER,
                 "--batch-insert-threads", "2",
+                "--parser-threads", "4",
                 "--test-mode", "true"
         ));
         argsList.addAll(Arrays.asList("--username", "admin", "--password", "pa"));

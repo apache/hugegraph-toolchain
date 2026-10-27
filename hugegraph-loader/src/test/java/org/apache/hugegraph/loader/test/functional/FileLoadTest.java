@@ -1204,8 +1204,7 @@ public class FileLoadTest extends LoadTest {
                 "-g", GRAPH,
                 "-h", SERVER,
                 "--test-mode", "true",
-                // FIXME: Set parser-threads to 1 because values > 1 currently trigger a NullPointerException (NPE).
-                "--parser-threads", "1"
+                "--parser-threads", "4"
         };
         loadWithAuth(args);
 
@@ -1341,8 +1340,7 @@ public class FileLoadTest extends LoadTest {
                 "-g", GRAPH,
                 "-h", SERVER,
                 "--test-mode", "true",
-                // FIXME: Set parser-threads to 1 because values > 1 currently trigger a NullPointerException (NPE).
-                "--parser-threads", "1"
+                "--parser-threads", "4"
         };
         loadWithAuth(args);
 
@@ -1662,8 +1660,7 @@ public class FileLoadTest extends LoadTest {
                 "-g", GRAPH,
                 "-h", SERVER,
                 "--test-mode", "true",
-                // FIXME: Set parser-threads to 1 because values > 1 currently trigger a NullPointerException (NPE).
-                "--parser-threads", "1"
+                "--parser-threads", "4"
         };
         loadWithAuth(args);
 

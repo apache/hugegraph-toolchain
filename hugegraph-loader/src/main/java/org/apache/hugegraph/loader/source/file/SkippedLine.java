@@ -18,7 +18,6 @@
 package org.apache.hugegraph.loader.source.file;
 
 import java.io.Serializable;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.apache.hugegraph.loader.constant.Constants;
@@ -30,11 +29,11 @@ public class SkippedLine implements Serializable {
     @JsonProperty("regex")
     private String regex;
 
-    private transient Matcher matcher;
+    private transient volatile Pattern pattern;
 
     public SkippedLine() {
         this.regex = Constants.SKIPPED_LINE_REGEX;
-        this.matcher = null;
+        this.pattern = null;
     }
 
     public String regex() {
@@ -43,17 +42,20 @@ public class SkippedLine implements Serializable {
 
     public void regex(String regex) {
         this.regex = regex;
+        this.pattern = null;
     }
 
-    private Matcher matcher() {
-        if (this.matcher == null) {
-            this.matcher = Pattern.compile(this.regex)
-                                  .matcher(Constants.EMPTY_STR);
+    private Pattern pattern() {
+        Pattern compiled = this.pattern;
+        if (compiled == null) {
+            compiled = Pattern.compile(this.regex);
+            this.pattern = compiled;
         }
-        return this.matcher;
+        return compiled;
     }
 
     public boolean matches(String line) {
-        return this.matcher().reset(line).matches();
+        // Split file readers share the source, so each match needs its own state.
+        return this.pattern().matcher(line).matches();
     }
 }
