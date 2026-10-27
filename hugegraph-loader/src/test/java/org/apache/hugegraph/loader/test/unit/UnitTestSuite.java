@@ -27,6 +27,7 @@ import org.junit.runners.Suite;
         LineTest.class,
         FileLineFetcherTest.class,
         FileReaderTest.class,
+        HDFSFileReaderTest.class,
         LoadOptionsTest.class,
         LoadContextTest.class,
         TaskManagerTest.class,

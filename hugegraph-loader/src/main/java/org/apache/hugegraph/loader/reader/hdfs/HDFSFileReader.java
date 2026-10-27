@@ -184,11 +184,12 @@ public class HDFSFileReader extends FileReader {
             FileStatus[] statuses = this.hdfs.listStatus(path);
             Path[] subPaths = FileUtil.stat2Paths(statuses);
             for (Path subPath : subPaths) {
-                if (this.hdfs.getFileStatus(subPath).isFile() && this.isReservedFile(subPath)) {
+                FileStatus subStatus = this.hdfs.getFileStatus(subPath);
+                if (subStatus.isFile() && this.isReservedFile(subPath)) {
                     paths.add(new HDFSFile(this.hdfs, subPath,
                                            this.source().path()));
                 }
-                if (status.isDirectory()) {
+                if (subStatus.isDirectory()) {
                     for (Path dirSubPath : this.listDirWithFilter(subPath)) {
                         if (this.isReservedFile(dirSubPath)) {
                             paths.add(new HDFSFile(this.hdfs, dirSubPath,
