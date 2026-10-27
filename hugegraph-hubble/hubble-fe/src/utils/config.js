@@ -31,8 +31,9 @@ const isPdEnabled = () => {
     return getConfig().pd_enabled;
 };
 
-const isAuthEnabled = () => {
-    return getConfig().auth_enabled !== false;
+const isAuthEnabled = (config = getConfig()) => {
+    // A failed probe can leave partially populated fields; do not open anonymous routes.
+    return config.server_capabilities_verified === false || config.auth_enabled !== false;
 };
 
 const isGraphCreateEnabled = () => {

@@ -475,6 +475,29 @@ describe.each(['./request'])('%s error semantics', modulePath => {
         expect(messageError).not.toHaveBeenCalled();
     });
 
+    it.each(['business', 'http'])('keeps silent configuration %s throttling feedback inline', mode => {
+        const {resolve, reject, modalWarning, messageError} = loadResponseHandlers(modulePath);
+        const config = {url: '/config', suppressBusinessErrorToast: true};
+        const response = {status: mode === 'http' ? 429 : 200, config,
+            data: {status: 429, message: 'Retry later'}};
+        const returned = mode === 'http' ? reject({config, response}) : resolve(response);
+        expect(returned).toBe(response);
+        expect(modalWarning).not.toHaveBeenCalled();
+        expect(messageError).not.toHaveBeenCalled();
+    });
+
+    it.each([
+        ['/config', false],
+        ['/auth/login', true],
+        ['/graphspaces/DEFAULT/graphs/g/gremlin-query', true],
+        ['/graphspaces/DEFAULT/graphs/g/text2gql/config', true],
+    ])('preserves throttling warnings for %s (silent business errors=%s)', (url, silent) => {
+        const {resolve, modalWarning} = loadResponseHandlers(modulePath);
+        resolve({status: 200, config: {url, suppressBusinessErrorToast: silent},
+            data: {status: 429, message: 'Retry later'}});
+        expect(modalWarning).toHaveBeenCalledWith(expect.objectContaining({content: 'Retry later'}));
+    });
+
     it('lets an inline error owner suppress the duplicate business-error toast', () => {
         const {resolve, messageError} = loadResponseHandlers(modulePath);
         const response = {

@@ -1595,6 +1595,14 @@
     "brand_label": "HugeGraph Hubble 产品介绍",
     "subtitle": "面向图技术爱好者的一站式分析平台",
     "form_hint": "用 HugeGraph 账号探索图可视化",
+    "connection": {
+      "unverified_title": "尚未确认 Server 连接",
+      "unverified_description": "Hubble 暂时无法确认 Server 的服务能力。请检查到 Server 的连接；启用 PD 时也请检查服务发现。你仍可尝试使用 HugeGraph 账号登录",
+      "unavailable_title": "暂时无法读取 Hubble 连接配置",
+      "unavailable_description": "无法加载连接配置。请检查 Hubble 服务是否可用后重试",
+      "retry": "重试连接",
+      "auto_retry": "Hubble 会自动重试连接检查"
+    },
     "language": "语言"
   }
 }

@@ -18,8 +18,8 @@
 
 import request from './request';
 
-const getConfig = () => {
-    return request.get('/config');
+const getConfig = config => {
+    return request.get('/config', config);
 };
 
 const getText2GqlSettings = config => request.get('/settings/text2gql',

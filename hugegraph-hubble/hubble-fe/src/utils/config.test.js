@@ -19,6 +19,7 @@
 import {
     isCypherEnabled,
     isGraphCreateEnabled,
+    isAuthEnabled,
     setConfig,
 } from './config';
 
@@ -39,4 +40,13 @@ test('uses explicit server capability flags', () => {
 
     expect(isGraphCreateEnabled()).toBe(true);
     expect(isCypherEnabled()).toBe(false);
+});
+
+test('keeps unverified partial configuration authenticated until Server confirms anonymous mode', () => {
+    setConfig({auth_enabled: false, server_capabilities_verified: false});
+    expect(isAuthEnabled()).toBe(true);
+    setConfig({auth_enabled: false, server_capabilities_verified: true});
+    expect(isAuthEnabled()).toBe(false);
+    setConfig({auth_enabled: false});
+    expect(isAuthEnabled()).toBe(false);
 });

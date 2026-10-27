@@ -21,6 +21,10 @@ import {message} from 'antd';
 import TopBar from './index';
 import GraphAnalysisContext from '../../Context';
 import * as api from '../../../api';
+import enAnalysis from '../../../i18n/resources/en-US/modules/analysis.json';
+import zhAnalysis from '../../../i18n/resources/zh-CN/modules/analysis.json';
+
+const mockTranslate = jest.fn(key => key);
 
 const mockNavigate = jest.fn();
 const mockParams = {graphSpace: undefined, graph: undefined, taskId: undefined};
@@ -38,7 +42,7 @@ jest.mock('../../../api', () => ({
     manage: {getGraph: jest.fn(), getGraphList: jest.fn()},
 }));
 jest.mock('react-i18next', () => ({
-    useTranslation: () => ({t: key => key}),
+    useTranslation: () => ({t: mockTranslate}),
 }));
 
 const renderTopBar = (
@@ -60,6 +64,7 @@ const renderTopBar = (
 
 beforeEach(() => {
     jest.clearAllMocks();
+    mockTranslate.mockImplementation(key => key);
     Object.assign(mockParams, {
         graphSpace: undefined,
         graph: undefined,
@@ -190,7 +195,7 @@ it('makes a failed Vermeer load an explicit accessible entry to its tasks', asyn
     renderTopBar({isVermeer: true});
 
     const failure = await screen.findByRole('button', {
-        name: 'analysis.topbar.load_failure_task_label',
+        name: /analysis.topbar.load_failed.*analysis.async_task.action.check_reason/,
     });
     expect(failure).toHaveTextContent('analysis.topbar.load_failed');
     expect(failure).toHaveTextContent('analysis.async_task.action.check_reason');
@@ -198,6 +203,26 @@ it('makes a failed Vermeer load an explicit accessible entry to its tasks', asyn
     expect(mockNavigate).toHaveBeenCalledTimes(1);
     expect(mockNavigate).toHaveBeenCalledWith('/asyncTasks');
 });
+
+it.each([['en-US', enAnalysis], ['zh-CN', zhAnalysis]])(
+    'includes the visible failure action in its accessible name in %s', async (_, translations) => {
+        mockTranslate.mockImplementation(key => key.split('.').reduce((value, part) => value?.[part], translations)
+            ?? key);
+        Object.assign(mockParams, {graphSpace: 'A', graph: 'graph-a'});
+        api.manage.getGraphList.mockResolvedValue({
+            status: 200, data: {records: [{name: 'graph-a'}]},
+        });
+        api.manage.getGraph.mockResolvedValue({status: 200, data: {status: 'error'}});
+        renderTopBar({isVermeer: true});
+
+        const action = translations.analysis.async_task.action.check_reason;
+        const button = await screen.findByRole('button', {name: new RegExp(action)});
+        expect(button).toHaveTextContent(action);
+        expect(button).toHaveAccessibleName(new RegExp(action));
+        fireEvent.click(button);
+        expect(mockNavigate).toHaveBeenCalledWith('/asyncTasks');
+    }
+);
 
 it.each(['created', 'loading', 'loaded'])('does not offer failure details for status %s', async status => {
     Object.assign(mockParams, {graphSpace: 'A', graph: 'graph-a'});
@@ -210,8 +235,6 @@ it.each(['created', 'loading', 'loaded'])('does not offer failure details for st
 
     await screen.findByRole('button', {name: status === 'loaded'
         ? 'analysis.topbar.reload_to_vermeer' : 'analysis.topbar.load_to_vermeer'});
-    expect(screen.queryByRole('button', {name: 'analysis.topbar.load_failure_task_label'}))
-        .not.toBeInTheDocument();
     expect(screen.queryByText('analysis.async_task.action.check_reason')).not.toBeInTheDocument();
     if (status === 'created') {
         expect(screen.getByRole('button', {name: 'analysis.topbar.not_loaded'})).toBeDisabled();

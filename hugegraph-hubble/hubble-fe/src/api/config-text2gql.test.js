@@ -17,10 +17,15 @@
  */
 
 import request from './request';
-import {getText2GqlSettings, updateText2GqlSettings, testText2GqlSettings} from './config';
+import {getConfig, getText2GqlSettings, updateText2GqlSettings, testText2GqlSettings} from './config';
 import {getText2GqlConfig} from './analysis';
 
 jest.mock('./request', () => ({get: jest.fn(), put: jest.fn(), post: jest.fn()}));
+
+test('allows configuration revalidation to own its inline failure feedback', () => {
+    getConfig({suppressBusinessErrorToast: true});
+    expect(request.get).toHaveBeenCalledWith('/config', {suppressBusinessErrorToast: true});
+});
 
 test('uses separate safe metadata and administrator settings endpoints with abort signals', () => {
     const controller = new AbortController();

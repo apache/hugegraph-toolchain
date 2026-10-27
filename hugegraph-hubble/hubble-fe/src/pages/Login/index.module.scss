@@ -119,6 +119,35 @@ form.loginForm {
     color: #68758a;
 }
 
+.connectionStatus {
+    margin: -12px 0 24px;
+    padding: 16px;
+    border: 1px solid #d8e0ec;
+    border-radius: 8px;
+    background: #f7f9fc;
+    color: #475569;
+
+    h2 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    p {
+        margin: 0 0 12px;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+
+    small {
+        display: block;
+        margin-top: 8px;
+        color: #68758a;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+}
+
 .submitItem {
     margin-top: 28px;
     margin-bottom: 0;

@@ -1079,7 +1079,6 @@
       "loaded": "Loaded",
       "loading": "Loading",
       "load_failed": "Load Failed",
-      "load_failure_task_label": "Load failed: view load tasks and failure details",
       "not_loaded": "Not Loaded",
       "recent_load_time": "Last Load Time:",
       "load_to_vermeer": "Load to Vermeer",

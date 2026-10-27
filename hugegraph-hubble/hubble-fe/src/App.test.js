@@ -33,17 +33,35 @@ jest.mock('./api', () => ({
     },
 }));
 
-jest.mock('./routes', () => ({element}) => (
+jest.mock('./routes', () => ({element}) => {
+    const {status, retrying, retry} = jest.requireActual('./utils/ConfigConnectionContext')
+        .useConfigConnection();
+    return (
     <div
         data-testid="app-route"
+        data-connection-status={status}
+        data-retrying={String(retrying)}
         data-auth-enabled={String(
             jest.requireActual('./utils/config').isAuthEnabled()
         )}
     >
         {element}
         <input aria-label="unsaved draft" />
+        <button type='button' onClick={retry}>Retry connection</button>
     </div>
-));
+    );
+});
+
+jest.mock('react-i18next', () => ({useTranslation: () => ({t: key => key,
+    i18n: {changeLanguage: jest.fn()}})}));
+
+beforeEach(() => {
+    api.config.getConfig.mockReset();
+    sessionStorage.clear();
+    window.matchMedia = jest.fn(() => ({matches: false,
+        addListener: jest.fn(), removeListener: jest.fn()}));
+});
+afterEach(() => jest.useRealTimers());
 
 jest.mock('./layout.ant', () => () => <div>Hubble layout</div>);
 jest.mock('./auth/AuthContext', () => ({
@@ -79,10 +97,11 @@ test('shows a retry surface when configuration bootstrap fails', async () => {
         </MemoryRouter>
     );
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-        'Unable to load Hubble configuration.'
+    expect(await screen.findByRole('status')).toHaveTextContent(
+        'login.connection.unavailable_title'
     );
-    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'login.connection.retry'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'login.submit'})).toBeDisabled();
 });
 
 test('revalidates fail-closed server capabilities until verified', async () => {
@@ -258,4 +277,53 @@ test('preserves route state when periodic configuration is unchanged', async () 
     expect(screen.getByRole('textbox', {name: 'unsaved draft'}))
         .toHaveValue('keep me');
     jest.useRealTimers();
+});
+
+test.each(['manual', 'poll'])('manual verification deduplicates %s requests and preserves route drafts', async trigger => {
+    jest.useFakeTimers();
+    const config = {auth_enabled: true, server_capabilities_verified: false};
+    let completeRetry;
+    api.config.getConfig.mockResolvedValueOnce({status: 200, data: config})
+        .mockImplementationOnce(() => new Promise(resolve => { completeRetry = resolve; }))
+        .mockResolvedValue({status: 200, data: {...config, server_capabilities_verified: true}});
+    render(<MemoryRouter><App /></MemoryRouter>);
+    const route = await screen.findByTestId('app-route');
+    const draft = screen.getByRole('textbox', {name: 'unsaved draft'});
+    fireEvent.change(draft, {target: {value: 'keep my input'}});
+    expect(route).toHaveAttribute('data-connection-status', 'unverified');
+    if (trigger === 'poll') await act(async () => { jest.advanceTimersByTime(2000); });
+    fireEvent.click(screen.getByRole('button', {name: 'Retry connection'}));
+    fireEvent.click(screen.getByRole('button', {name: 'Retry connection'}));
+    expect(api.config.getConfig).toHaveBeenCalledTimes(2);
+    expect(route).toHaveAttribute('data-retrying', 'true');
+    await act(async () => { jest.advanceTimersByTime(2000); });
+    expect(api.config.getConfig).toHaveBeenCalledTimes(2);
+    await act(async () => { completeRetry({status: 200,
+        data: {...config, server_capabilities_verified: true}}); });
+    expect(route).toHaveAttribute('data-connection-status', 'verified');
+    expect(screen.getByRole('textbox', {name: 'unsaved draft'})).toHaveValue('keep my input');
+    await act(async () => { jest.advanceTimersByTime(29_999); });
+    expect(api.config.getConfig).toHaveBeenCalledTimes(2);
+    await act(async () => { jest.advanceTimersByTime(1); });
+    expect(api.config.getConfig).toHaveBeenCalledTimes(3);
+});
+
+test('initial pending configuration does not flash cached anonymous routes or a connection warning', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({auth_enabled: false}));
+    let complete;
+    api.config.getConfig.mockImplementation(() => new Promise(resolve => { complete = resolve; }));
+    const {unmount} = render(<MemoryRouter><App /></MemoryRouter>);
+    expect(screen.queryByTestId('app-route')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    unmount();
+    await act(async () => { complete({status: 200,
+        data: {auth_enabled: true, server_capabilities_verified: true}}); });
+    expect(JSON.parse(sessionStorage.getItem('hubble_config_'))).toEqual({auth_enabled: false});
+});
+
+test('partial anonymous configuration stays fail closed until verification completes', async () => {
+    api.config.getConfig.mockResolvedValue({status: 200,
+        data: {auth_enabled: false, server_capabilities_verified: false}});
+    render(<MemoryRouter><App /></MemoryRouter>);
+    expect(await screen.findByTestId('app-route')).toHaveAttribute('data-auth-enabled', 'true');
 });

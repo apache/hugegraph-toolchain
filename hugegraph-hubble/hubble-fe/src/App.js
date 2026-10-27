@@ -23,14 +23,16 @@ import './styles/workbench.scss';
 import Layout from './layout.ant';
 import {AuthContextProvider} from './auth/AuthContext';
 import * as api from './api';
-import {setConfig} from './utils/config';
+import {isAuthEnabled, setConfig} from './utils/config';
+import {ConfigConnectionContext} from './utils/ConfigConnectionContext';
 import {clearLogin} from './utils/user';
-import {useEffect, useState} from 'react';
+import Login from './pages/Login';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 const CONFIG_RETRY_DELAY_MS = 2000;
 const CONFIG_REVALIDATE_DELAY_MS = 30_000;
 const routeConfigSignature = config => JSON.stringify([
-    config.auth_enabled !== false,
+    isAuthEnabled(config),
     config.pd_enabled === true,
     config.graph_create_enabled === true,
     config.cypher_enabled === true,
@@ -38,25 +40,34 @@ const routeConfigSignature = config => JSON.stringify([
 
 function App() {
     const [configReady, setConfigReady] = useState(false);
-    const [configError, setConfigError] = useState(false);
+    const [connectionStatus, setConnectionStatus] = useState('loading');
+    const [retrying, setRetrying] = useState(false);
     const [configRevision, setConfigRevision] = useState(0);
+    const retryRef = useRef(() => {});
+    const retry = useCallback(() => retryRef.current(), []);
+    const connection = useMemo(() => ({status: connectionStatus, retrying, retry}),
+        [connectionStatus, retrying, retry]);
 
     useEffect(() => {
         let active = true;
-        let hasSafeConfig = false;
         let mountedConfigSignature;
         let mountedAuthEnabled;
         let retryTimer;
-        const loadConfig = () => {
-            api.config.getConfig().then(response => {
+        let inFlight = false;
+        const loadConfig = (manual = false) => {
+            if (!active) return;
+            if (manual) setRetrying(true);
+            if (inFlight) return;
+            window.clearTimeout(retryTimer);
+            inFlight = true;
+            let nextDelay = CONFIG_RETRY_DELAY_MS;
+            return api.config.getConfig({suppressBusinessErrorToast: true}).then(response => {
                 if (response?.status !== 200 || !response.data) {
                     throw new Error('invalid_hubble_config');
                 }
                 if (active) {
-                    hasSafeConfig = true;
                     const nextSignature = routeConfigSignature(response.data);
-                    const nextAuthEnabled
-                            = response.data.auth_enabled !== false;
+                    const nextAuthEnabled = isAuthEnabled(response.data);
                     const verified
                             = response.data.server_capabilities_verified !== false;
                     if (verified && mountedAuthEnabled !== false
@@ -72,26 +83,24 @@ function App() {
                         setConfigRevision(value => value + 1);
                     }
                     setConfigReady(true);
-                    setConfigError(false);
                     const unverified = response.data
                         .server_capabilities_verified === false;
-                    const delay = unverified
+                    setConnectionStatus(unverified ? 'unverified' : 'verified');
+                    nextDelay = unverified
                         ? CONFIG_RETRY_DELAY_MS : CONFIG_REVALIDATE_DELAY_MS;
-                    retryTimer = window.setTimeout(loadConfig, delay);
                 }
             }).catch(() => {
                 if (active) {
-                    if (hasSafeConfig) {
-                        retryTimer = window.setTimeout(
-                            loadConfig, CONFIG_RETRY_DELAY_MS
-                        );
-                    }
-                    else {
-                        setConfigError(true);
-                    }
+                    setConnectionStatus('unavailable');
                 }
+            }).finally(() => {
+                inFlight = false;
+                if (!active) return;
+                setRetrying(false);
+                retryTimer = window.setTimeout(() => loadConfig(), nextDelay);
             });
         };
+        retryRef.current = () => loadConfig(true);
         loadConfig();
         return () => {
             active = false;
@@ -99,25 +108,17 @@ function App() {
         };
     }, []);
 
-    if (configError) {
-        return (
-            <div role='alert'>
-                Unable to load Hubble configuration.
-                <button type='button' onClick={() => window.location.reload()}>
-                    Retry
-                </button>
-            </div>
-        );
-    }
-    if (!configReady) {
+    if (!configReady && connectionStatus === 'loading') {
         return null;
     }
     return (
-        <div>
-            <AuthContextProvider key={configRevision}>
-                <Route element={<Layout />} />
-            </AuthContextProvider>
-        </div>
+        <ConfigConnectionContext.Provider value={connection}>
+            {configReady
+                ? <AuthContextProvider key={configRevision}>
+                    <Route element={<Layout />} />
+                </AuthContextProvider>
+                : <Login />}
+        </ConfigConnectionContext.Provider>
     );
 };
 

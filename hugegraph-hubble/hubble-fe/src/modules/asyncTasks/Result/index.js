@@ -31,6 +31,10 @@ import {isCypherEnabled} from '../../../utils/config';
 import {supportsQueryLanguage} from '../../../utils/text2gql';
 import c from './index.module.scss';
 
+const isUnavailableVermeerResult = (status, type, result) => status === 'success'
+    && type === 'vermeer-task:compute'
+    && (result === null || (typeof result === 'string' && result.trim() === 'null'));
+
 export const AsyncTaskResultContent = ({
     graphspace,
     graph,
@@ -66,6 +70,20 @@ export const AsyncTaskResultContent = ({
                     return;
                 }
                 if (response?.status !== 200) {
+                    if (cursor > 0 && taskId < 0 && response?.status === 400) {
+                        // Confirm unavailable values through the existing task contract,
+                        // rather than inferring retention from an error-message string.
+                        const task = await api.analysis.fetchAsyncTaskResult(graphspace, graph, taskId);
+                        if (requestRef.current !== request) return;
+                        if (task?.status === 200 && isUnavailableVermeerResult(
+                            task.data?.task_status, task.data?.task_type, task.data?.task_result
+                        )) {
+                            setAsyncTaskResultJson(task.data.task_result);
+                            setTaskStatus(task.data.task_status);
+                            setTaskType(task.data.task_type);
+                            return;
+                        }
+                    }
                     throw new Error('task result unavailable');
                 }
                 setAsyncTaskResultJson(cursor === 0
@@ -105,10 +123,7 @@ export const AsyncTaskResultContent = ({
         && ['vermeer-task:load', 'vermeer-task:compute'].includes(taskType)
         && typeof asyncTaskResultJson === 'string'
         && /\brpc error:\s*code\s*=\s*Unknown\s+desc\s*=\s*$/i.test(asyncTaskResultJson);
-    const unavailableVermeerResult = taskStatus === 'success'
-        && taskType === 'vermeer-task:compute'
-        && (asyncTaskResultJson === null
-            || (typeof asyncTaskResultJson === 'string' && asyncTaskResultJson.trim() === 'null'));
+    const unavailableVermeerResult = isUnavailableVermeerResult(taskStatus, taskType, asyncTaskResultJson);
     const resultSizeLimit = failed && typeof asyncTaskResultJson === 'string'
         ? asyncTaskResultJson.match(/Task result size (\d+) exceeded limit (\d+) bytes/)
         : null;

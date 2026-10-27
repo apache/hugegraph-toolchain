@@ -1079,7 +1079,6 @@
       "loaded": "已加载",
       "loading": "加载中",
       "load_failed": "加载失败",
-      "load_failure_task_label": "加载失败，查看加载任务及失败原因",
       "not_loaded": "未加载",
       "recent_load_time": "最近加载时间:",
       "load_to_vermeer": "加载到Vermeer",

@@ -91,6 +91,9 @@ const isUnauthorizedError = error => {
 };
 
 const isLoginRequest = config => config?.url?.endsWith('/auth/login');
+// Bootstrap retries own inline feedback; other requests retain rate-limit warnings.
+const isSilentConfigRequest = config => config?.url === '/config'
+    && config?.suppressBusinessErrorToast === true;
 
 const showLoginAuthError = response => {
     const errorMessage = response?.data?.message;
@@ -173,7 +176,9 @@ instance.interceptors.response.use(
             return Promise.reject(response);
         }
         else if (response.data?.status === 429) {
-            showThrottleWarning(response.data.message);
+            if (!isSilentConfigRequest(response.config)) {
+                showThrottleWarning(response.data.message);
+            }
         }
         else if (response.status === 403 || response.data?.status === 403) {
             if (isLoginRequest(response.config)) {
@@ -212,7 +217,9 @@ instance.interceptors.response.use(
         }
         if (error.response?.status === 429
             || error.response?.data?.status === 429) {
-            showThrottleWarning(error.response?.data?.message);
+            if (!isSilentConfigRequest(error.config)) {
+                showThrottleWarning(error.response?.data?.message);
+            }
             return error.response;
         }
         if (error.response?.status === 403

@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {MemoryRouter} from 'react-router-dom';
 import AsyncTaskResult, {AsyncTaskResultContent} from './index';
@@ -277,5 +277,131 @@ it.each([
     else {
         expect(await screen.findByText('No task result is available.')).toBeInTheDocument();
     }
+    expect(screen.queryByText('Task succeeded, but its values are unavailable')).not.toBeInTheDocument();
+});
+
+
+const firstComputePage = {status: 200, data: {
+    task_status: 'success', task_type: 'vermeer-task:compute',
+    task_result: JSON.stringify({vertices: [{ID: 'first'}], cursor: 1000, has_more: true}),
+}};
+const unavailableTask = result => ({status: 200, data: {
+    task_status: 'success', task_type: 'vermeer-task:compute', task_result: result,
+}});
+
+it.each([null, 'null', ' \nnull\t'])(
+    'confirms unavailable paged values with task metadata before replacing Retry: %s', async result => {
+        api.analysis.fetchAsyncTaskResult.mockReset()
+            .mockResolvedValueOnce(firstComputePage).mockResolvedValueOnce(unavailableTask(result));
+        api.analysis.fetchVermeerTaskValues.mockReset().mockResolvedValue({status: 400, message: 'opaque'});
+        render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+        fireEvent.click(await screen.findByRole('button', {name: 'analysis.async_task.result_next'}));
+
+        expect(await screen.findByText('Task succeeded, but its values are unavailable')).toBeInTheDocument();
+        expect(api.analysis.fetchAsyncTaskResult).toHaveBeenCalledTimes(2);
+        expect(api.analysis.fetchAsyncTaskResult).toHaveBeenLastCalledWith('DEFAULT', 'one', -9);
+        expect(api.analysis.fetchVermeerTaskValues).toHaveBeenCalledTimes(1);
+        expect(screen.queryByRole('button', {name: 'Retry result'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        expect(screen.getByRole('link', {name: 'Open graph algorithms'}))
+            .toHaveAttribute('href', '/algorithms/DEFAULT/one');
+    }
+);
+
+it.each([
+    unavailableTask(undefined), unavailableTask('[]'),
+    unavailableTask('{"vertices":[],"has_more":false}'),
+    {status: 200, data: {task_status: 'failed', task_type: 'vermeer-task:compute', task_result: null}},
+    {status: 200, data: {task_status: 'running', task_type: 'vermeer-task:compute', task_result: null}},
+    {status: 200, data: {task_status: 'success', task_type: 'vermeer-task:load', task_result: null}},
+    {status: 200, data: {task_status: 'success', task_type: 'gremlin', task_result: null}},
+    {status: 400}, {status: 403}, {status: 503},
+])('retains generic recovery when metadata does not confirm unavailable compute values: %j', async metadata => {
+    api.analysis.fetchAsyncTaskResult.mockReset()
+        .mockResolvedValueOnce(firstComputePage).mockResolvedValueOnce(metadata);
+    api.analysis.fetchVermeerTaskValues.mockReset().mockResolvedValueOnce({status: 400});
+    render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+    fireEvent.click(await screen.findByRole('button', {name: 'analysis.async_task.result_next'}));
+
+    expect(await screen.findByRole('button', {name: 'Retry result'})).toBeInTheDocument();
+    expect(screen.queryByText('Task succeeded, but its values are unavailable')).not.toBeInTheDocument();
+    api.analysis.fetchVermeerTaskValues.mockResolvedValueOnce({status: 200, data: {
+        vertices: [{ID: 'recovered'}], cursor: 1001, has_more: false,
+    }});
+    fireEvent.click(screen.getByRole('button', {name: 'Retry result'}));
+    expect(await screen.findByText('"recovered"')).toBeInTheDocument();
+    expect(api.analysis.fetchVermeerTaskValues).toHaveBeenLastCalledWith('DEFAULT', 'one', -9, 1000);
+});
+
+it('does not relabel a metadata network failure as unavailable values', async () => {
+    api.analysis.fetchAsyncTaskResult.mockReset()
+        .mockResolvedValueOnce(firstComputePage).mockRejectedValueOnce(new Error('offline'));
+    api.analysis.fetchVermeerTaskValues.mockReset().mockResolvedValueOnce({status: 400});
+    render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+    fireEvent.click(await screen.findByRole('button', {name: 'analysis.async_task.result_next'}));
+    expect(await screen.findByRole('button', {name: 'Retry result'})).toBeInTheDocument();
+    expect(screen.queryByText('Task succeeded, but its values are unavailable')).not.toBeInTheDocument();
+});
+
+it.each([401, 403, 429, 503])('does not recheck task metadata for a paged status %s', async status => {
+    api.analysis.fetchAsyncTaskResult.mockReset().mockResolvedValueOnce(firstComputePage);
+    api.analysis.fetchVermeerTaskValues.mockReset().mockResolvedValueOnce({status});
+    render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+    fireEvent.click(await screen.findByRole('button', {name: 'analysis.async_task.result_next'}));
+    expect(await screen.findByRole('button', {name: 'Retry result'})).toBeInTheDocument();
+    expect(api.analysis.fetchAsyncTaskResult).toHaveBeenCalledTimes(1);
+});
+
+it('does not recheck task metadata for a paged network failure', async () => {
+    api.analysis.fetchAsyncTaskResult.mockReset().mockResolvedValueOnce(firstComputePage);
+    api.analysis.fetchVermeerTaskValues.mockReset().mockRejectedValueOnce(new Error('offline'));
+    render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+    fireEvent.click(await screen.findByRole('button', {name: 'analysis.async_task.result_next'}));
+    expect(await screen.findByRole('button', {name: 'Retry result'})).toBeInTheDocument();
+    expect(api.analysis.fetchAsyncTaskResult).toHaveBeenCalledTimes(1);
+});
+
+it('does not recheck task metadata for a first-page business error', async () => {
+    api.analysis.fetchAsyncTaskResult.mockReset().mockResolvedValueOnce({status: 400});
+    api.analysis.fetchVermeerTaskValues.mockReset();
+    render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+    expect(await screen.findByRole('button', {name: 'Retry result'})).toBeInTheDocument();
+    expect(api.analysis.fetchAsyncTaskResult).toHaveBeenCalledTimes(1);
+    expect(api.analysis.fetchVermeerTaskValues).not.toHaveBeenCalled();
+});
+
+const pendingResponse = () => {
+    let resolve;
+    const promise = new Promise(done => { resolve = done; });
+    return {promise, resolve};
+};
+
+it('ignores a previous graph page failure before requesting confirmation', async () => {
+    const pending = pendingResponse();
+    api.analysis.fetchAsyncTaskResult.mockReset().mockResolvedValueOnce(firstComputePage)
+        .mockResolvedValueOnce({status: 200, data: {task_result: '{"graph":"new"}'}});
+    api.analysis.fetchVermeerTaskValues.mockReset().mockReturnValueOnce(pending.promise);
+    const view = render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+    fireEvent.click(await screen.findByRole('button', {name: 'analysis.async_task.result_next'}));
+    view.rerender(<AsyncTaskResultContent graphspace='DEFAULT' graph='two' taskId={-9} />);
+    expect(await screen.findByText('"new"')).toBeInTheDocument();
+    await act(async () => { pending.resolve({status: 400}); });
+    expect(screen.getByText('"new"')).toBeInTheDocument();
+    expect(api.analysis.fetchAsyncTaskResult).toHaveBeenCalledTimes(2);
+});
+
+it('ignores an unavailable-values confirmation after switching tasks', async () => {
+    const pending = pendingResponse();
+    api.analysis.fetchAsyncTaskResult.mockReset().mockResolvedValueOnce(firstComputePage)
+        .mockReturnValueOnce(pending.promise)
+        .mockResolvedValueOnce({status: 200, data: {task_result: '{"task":"new"}'}});
+    api.analysis.fetchVermeerTaskValues.mockReset().mockResolvedValueOnce({status: 400});
+    const view = render(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-9} />);
+    fireEvent.click(await screen.findByRole('button', {name: 'analysis.async_task.result_next'}));
+    await waitFor(() => expect(api.analysis.fetchAsyncTaskResult).toHaveBeenCalledTimes(2));
+    view.rerender(<AsyncTaskResultContent graphspace='DEFAULT' graph='one' taskId={-10} />);
+    expect(await screen.findByText('"new"')).toBeInTheDocument();
+    await act(async () => { pending.resolve(unavailableTask(null)); });
+    expect(screen.getByText('"new"')).toBeInTheDocument();
     expect(screen.queryByText('Task succeeded, but its values are unavailable')).not.toBeInTheDocument();
 });

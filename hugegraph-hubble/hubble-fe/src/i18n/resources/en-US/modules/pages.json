@@ -1595,6 +1595,14 @@
     "brand_label": "About HugeGraph Hubble",
     "subtitle": "A one-stop analysis platform for graph technology enthusiasts",
     "form_hint": "Use your HugeGraph account to explore graph visualization",
+    "connection": {
+      "unverified_title": "Server connection not yet confirmed",
+      "unverified_description": "Hubble could not verify Server capabilities. Check the Server connection and PD service discovery if enabled. You can still try signing in with your HugeGraph account",
+      "unavailable_title": "Hubble connection settings unavailable",
+      "unavailable_description": "Connection settings could not be loaded. Check that the Hubble service is available, then retry",
+      "retry": "Retry connection",
+      "auto_retry": "Hubble retries this connection check automatically"
+    },
     "language": "Language"
   }
 }

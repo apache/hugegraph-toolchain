@@ -26,6 +26,7 @@ import * as api from '../../api';
 import {useLocation} from 'react-router-dom';
 import * as user from '../../utils/user';
 import * as configUtil from '../../utils/config';
+import {useConfigConnection} from '../../utils/ConfigConnectionContext';
 import {useCallback, useEffect} from 'react';
 import {useTranslation} from 'react-i18next';
 
@@ -57,6 +58,9 @@ const Login = () => {
     const [form] = Form.useForm();
     const location = useLocation();
     const {t} = useTranslation();
+    const {status, retrying, retry} = useConfigConnection();
+    const showConnectionStatus = status === 'unverified' || status === 'unavailable';
+    const connectionBlocked = status === 'unavailable';
 
     useEffect(() => {
         const searchParams = new URLSearchParams(location.search);
@@ -90,6 +94,7 @@ const Login = () => {
     }, [location.search]);
 
     const onFinish = useCallback(async value => {
+        if (connectionBlocked) return;
         let res;
         try {
             res = await api.auth.login(value);
@@ -115,7 +120,7 @@ const Login = () => {
         finally {
             navigateAfterLogin();
         }
-    }, [navigateAfterLogin]);
+    }, [connectionBlocked, navigateAfterLogin]);
 
     return (
         <div className={`${style.loginContainer} workbench-login`}>
@@ -144,11 +149,21 @@ const Login = () => {
                         <h1 className={style.title}>{t('login.title')}</h1>
                         <p>{t('login.form_hint')}</p>
                     </header>
+                    {showConnectionStatus && <section className={style.connectionStatus}
+                        role='status' aria-live='polite' aria-atomic='true'>
+                        <h2>{t(`login.connection.${status}_title`)}</h2>
+                        <p>{t(`login.connection.${status}_description`)}</p>
+                        <Button htmlType='button' loading={retrying} onClick={retry}>
+                            {t('login.connection.retry')}
+                        </Button>
+                        <small>{t('login.connection.auto_retry')}</small>
+                    </section>}
                     <Form.Item
                         name="user_name"
                         rules={[{required: true, message: t('login.username_required')}]}
                     >
                         <Input
+                            disabled={connectionBlocked}
                             prefix={<UserOutlined className="site-form-item-icon" />}
                             aria-label={t('login.username')}
                             placeholder={t('login.username')}
@@ -159,6 +174,7 @@ const Login = () => {
                         rules={[{required: true, message: t('login.password_required')}]}
                     >
                         <Input
+                            disabled={connectionBlocked}
                             prefix={<LockOutlined className="site-form-item-icon" />}
                             aria-label={t('login.password')}
                             type="password"
@@ -167,7 +183,8 @@ const Login = () => {
                     </Form.Item>
 
                     <Form.Item className={style.submitItem}>
-                        <Button type="primary" htmlType="submit" block size='large'>
+                        <Button type="primary" htmlType="submit" block size='large'
+                            disabled={connectionBlocked}>
                             {t('login.submit')}
                         </Button>
                     </Form.Item>

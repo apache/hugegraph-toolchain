@@ -141,3 +141,11 @@ test('discovers submitted tasks through metadata-only IDs lookup with inline err
         params: {ids: '80001'}, suppressBusinessErrorToast: true,
     });
 });
+
+
+test('lets paged Vermeer result errors use the inline recovery state', () => {
+    analysis.fetchVermeerTaskValues('DEFAULT', 'g', -9, 1000);
+    expect(request.get).toHaveBeenCalledWith('/graphspaces/DEFAULT/graphs/g/async-tasks/-9/values', {
+        params: {cursor: 1000, limit: 1000}, suppressBusinessErrorToast: true,
+    });
+});

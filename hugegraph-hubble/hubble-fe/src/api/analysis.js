@@ -228,6 +228,7 @@ const fetchAsyncTaskResult = (graphspace, graph, taskId) => {
 const fetchVermeerTaskValues = (graphspace, graph, taskId, cursor) => {
     return request.get(`/graphspaces/${graphspace}/graphs/${graph}/async-tasks/${taskId}/values`, {
         params: {cursor, limit: 1000},
+        suppressBusinessErrorToast: true,
     });
 };
 
