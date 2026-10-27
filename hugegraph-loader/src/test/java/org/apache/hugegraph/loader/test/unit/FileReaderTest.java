@@ -37,6 +37,7 @@ import org.apache.hugegraph.loader.executor.LoadOptions;
 import org.apache.hugegraph.loader.mapping.InputStruct;
 import org.apache.hugegraph.loader.reader.InputReader;
 import org.apache.hugegraph.loader.reader.file.LocalFileReader;
+import org.apache.hugegraph.loader.source.InputSource;
 import org.apache.hugegraph.loader.source.file.FileSource;
 import org.apache.hugegraph.loader.util.JsonUtil;
 import org.apache.hugegraph.testutil.Assert;
@@ -101,7 +102,7 @@ public class FileReaderTest {
         Assert.assertTrue(source.skippedLine().matches("#keep"));
         source.skippedLine().regex("ignored.*");
         Assert.assertFalse(source.skippedLine().matches("#keep"));
-        FileSource restored = JsonUtil.fromJson(JsonUtil.toJson(source), FileSource.class);
+        FileSource restored = (FileSource) JsonUtil.fromJson(JsonUtil.toJson(source), InputSource.class);
         this.assertConcurrentRows(restored, new HashSet<>(Arrays.asList("#keep", "marko")), 1);
     }
 
