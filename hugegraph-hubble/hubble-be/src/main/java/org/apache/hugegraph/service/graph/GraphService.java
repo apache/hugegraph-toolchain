@@ -96,7 +96,7 @@ public class GraphService {
     public Vertex updateVertex(HugeClient client, String vertexId, VertexEntity entity) {
         this.checkParamsValid(client, entity, false);
         GraphManager graph = client.graph();
-        Vertex vertex = this.buildVertex(client, entity);
+        Vertex vertex = this.buildVertex(client, entity, true);
         if (vertex.id() != null) {
             // The schema-resolved ID must retain its number/string type in the SDK path.
             return graph.appendVertexProperty(vertex);
@@ -109,12 +109,24 @@ public class GraphService {
     }
 
     private Vertex buildVertex(HugeClient client, VertexEntity entity) {
+        return this.buildVertex(client, entity, false);
+    }
+
+    private Vertex buildVertex(HugeClient client, VertexEntity entity, boolean updating) {
         Vertex vertex = new Vertex(entity.getLabel());
         VertexLabelEntity vl = this.vlService.get(entity.getLabel(), client);
         // Allowed front-end always pass id
         if (vl.getIdStrategy().isCustomize()) {
             Object vid = this.convertVertexId(vl.getIdStrategy(), entity.getId());
             vertex.id(vid);
+        } else if (updating && vl.getIdStrategy() == IdStrategy.AUTOMATIC) {
+            // The query response records the actual ID type, including snowflake.force_string.
+            String idType = entity.getIdType();
+            Ex.check(idType == null || "NUMBER".equals(idType),
+                     "common.param.should-belong-to", "id_type", "NUMBER");
+            if ("NUMBER".equals(idType)) {
+                vertex.id(Long.parseLong(entity.getId()));
+            }
         }
         this.fillProperties(client, vl, vertex, entity.getProperties());
         return vertex;

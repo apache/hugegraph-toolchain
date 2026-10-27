@@ -37,6 +37,9 @@ public class VertexEntity implements Identifiable {
     @JsonProperty("id")
     private String id;
 
+    @JsonProperty("id_type")
+    private String idType;
+
     @JsonProperty("label")
     private String label;
 

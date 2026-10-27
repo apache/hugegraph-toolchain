@@ -67,6 +67,27 @@ test('saves using raw ID and reports only one raw patch with preserved primary p
     expect(cancel).toHaveBeenCalledTimes(1);
 });
 
+test.each([['NUMBER', {id_type: 'NUMBER'}], [undefined, {}]])(
+    'forwards only the explicit numeric ID type marker (%s) without coercing the ID', async (idType, extra) => {
+        const value = fixture();
+        const id = '9223372036854775807';
+        const onChange = jest.fn().mockResolvedValue({status: 'applied'});
+        render(content(value, {onChange,
+            drawerInfo: {...initial, id, raw: {id, id_type: idType}}}));
+        edit();
+        const input = await screen.findByRole('textbox', {name: 'name'});
+        fireEvent.change(input, {target: {value: 'Updated'}});
+        save();
+        await waitFor(() => expect(api.analysis.updateVertexProperties).toHaveBeenCalledWith('DEFAULT', 'g', {
+            id, label: 'person', properties: {name: 'Updated'}, ...extra,
+        }));
+        expect(onChange).toHaveBeenCalledWith('nodes', initial.renderingId, {
+            id, label: 'person', properties: {name: 'Updated', code: 'K1', count: 3}, ...extra,
+        });
+        expect(value.report).not.toHaveBeenCalled();
+    }
+);
+
 test('ignores late metadata response after changing graph or element', async () => {
     const value = fixture();
     let resolve;

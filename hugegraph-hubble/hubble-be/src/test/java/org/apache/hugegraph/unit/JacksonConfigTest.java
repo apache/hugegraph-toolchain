@@ -58,7 +58,7 @@ public class JacksonConfigTest {
                                         .message("Success").build();
 
             Assert.assertEquals(mapper.readTree("""
-                    {"status":200,"data":{"id":"9007199254740993","label":"person",
+                    {"status":200,"data":{"id":"9007199254740993","id_type":"NUMBER","label":"person",
                      "properties":{"balance":"9007199254740993","age":42}},
                      "message":"Success","cause":null}
                     """), mapper.readTree(mapper.writeValueAsString(response)));

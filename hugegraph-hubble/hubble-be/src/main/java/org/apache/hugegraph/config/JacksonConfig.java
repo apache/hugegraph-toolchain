@@ -59,6 +59,10 @@ public class JacksonConfig {
                               SerializerProvider provider) throws IOException {
             generator.writeStartObject();
             writeIdField("id", vertex.id(), generator);
+            if (vertex.id() instanceof Number) {
+                // Keep the legacy string ID while retaining its type for property updates.
+                generator.writeStringField("id_type", "NUMBER");
+            }
             generator.writeStringField("label", vertex.label());
             writePropertiesField(vertex.properties(), generator, provider);
             if (vertex instanceof VertexQueryEntity) {

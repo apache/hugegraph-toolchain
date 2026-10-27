@@ -98,6 +98,7 @@ const EditElement = ({show, cancel, drawerInfo, edgeMeta = [], onChange}) => {
         setPending(true);
         try {
             const params = {id, label: itemType, properties: values,
+                ...(!isEdge && drawerInfo.raw?.id_type === 'NUMBER' ? {id_type: 'NUMBER'} : {}),
                 ...(isEdge ? {source: drawerInfo.source, target: drawerInfo.target} : {})};
             const update = isEdge ? api.analysis.updateEdgeProperties : api.analysis.updateVertexProperties;
             const response = await update(graphSpace, graph, params);
