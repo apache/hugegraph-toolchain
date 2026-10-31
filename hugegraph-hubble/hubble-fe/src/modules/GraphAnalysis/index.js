@@ -38,11 +38,11 @@ const pageHeaderNameKeys = {
 };
 
 const GraphAnalysisHome = props => {
-    const {moduleName} = props;
+    const {moduleName, initialAlgorithmEngine = 'oltp'} = props;
     const {t} = useTranslation();
 
     const [currentOlapMode, setCurrentOlapMode] = useState(false);
-    const [algorithmEngine, setAlgorithmEngine] = useState('oltp');
+    const [algorithmEngine, setAlgorithmEngine] = useState(initialAlgorithmEngine);
     const [isOlapModeLoading, setOlapModeLoading] = useState(false);
     const [olapError, setOlapError] = useState(false);
     const [vermeerReady, setVermeerReady] = useState(false);

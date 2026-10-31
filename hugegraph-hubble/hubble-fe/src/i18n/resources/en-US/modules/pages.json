@@ -368,7 +368,9 @@
       "vermeer_statistics": "Graph compute statistics (loaded snapshot)",
       "statistics_source": "Choose count statistics source",
       "vermeer_statistics_snapshot": "Source: loaded Vermeer graph snapshot ({{time}}). This is not a live Server count. Reload from OLAP to refresh the data.",
-      "vermeer_snapshot_label": "Compute snapshot"
+      "vermeer_snapshot_label": "Compute snapshot",
+      "vermeer_load_first": "Load this graph into Vermeer before collecting compute statistics",
+      "open_graph_compute": "Open graph compute"
     },
     "empty": {
       "description": "This GraphSpace is ready but has no graphs yet. Create the first graph to model, import, and query data",

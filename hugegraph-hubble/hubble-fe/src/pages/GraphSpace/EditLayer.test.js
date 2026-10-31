@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
+import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {message} from 'antd';
 import {EditLayer} from './EditLayer';
 import * as api from '../../api';
@@ -112,14 +112,21 @@ test('submits once while keeping the resource form mounted and retryable after f
     const advanced = document.querySelector('details');
     const quota = document.querySelector('#control-hooks_storage_limit');
     fireEvent.change(quota, {target: {value: '25'}});
-    const create = screen.getByRole('button', {name: 'common.action.create'});
+    // Resolve the known label within this dialog without computing accessible
+    // names for every help control in the large Ant Design form.
+    const dialog = screen.getByRole('dialog');
+    const create = within(dialog).getByText('common.action.create').closest('button');
+    expect(create).toHaveAccessibleName('common.action.create');
+    expect(create).toBeEnabled();
     fireEvent.click(create);
     fireEvent.click(create);
     await waitFor(() => expect(api.manage.addGraphSpace).toHaveBeenCalledTimes(1));
     expect(quota).toBeInTheDocument();
     expect(quota).toBeDisabled();
     expect(advanced).toHaveAttribute('open');
-    expect(screen.getByRole('button', {name: /Cancel|common.action.cancel/})).toBeDisabled();
+    const cancel = within(dialog).getByText(/^(Cancel|common\.action\.cancel)$/).closest('button');
+    expect(cancel).toHaveAccessibleName(/^(Cancel|common\.action\.cancel)$/);
+    expect(cancel).toBeDisabled();
     await act(async () => finish({status: 503}));
     expect(quota).toBeInTheDocument();
     expect(quota).toBeEnabled();

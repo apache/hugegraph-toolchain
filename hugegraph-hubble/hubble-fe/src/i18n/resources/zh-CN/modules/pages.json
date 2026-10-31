@@ -368,7 +368,9 @@
       "vermeer_statistics": "图计算统计（已加载快照）",
       "statistics_source": "选择点边统计来源",
       "vermeer_statistics_snapshot": "来源：Vermeer 已加载图快照（{{time}}）。不代表 Server 的实时点边数；刷新数据请到 OLAP 重新加载。",
-      "vermeer_snapshot_label": "图计算快照"
+      "vermeer_snapshot_label": "图计算快照",
+      "vermeer_load_first": "请先将此图加载到 Vermeer，再采集图计算统计",
+      "open_graph_compute": "前往图计算"
     },
     "empty": {
       "description": "这个 GraphSpace 已可用，但还没有图。创建第一张图后即可配置 Schema、导入和查询数据",

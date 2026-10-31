@@ -481,7 +481,8 @@ public final class GremlinUtil {
             throw new ExternalException("gremlin.preview.collection_requires_async");
         }
         int position = syntax.limitPosition();
-        if (position < 0 || !preview && (syntax.explicitLimit() || syntax.collection())) {
+        if (position < 0 || preview && syntax.terminalZeroLimit() ||
+            !preview && (syntax.explicitLimit() || syntax.collection())) {
             return statement;
         }
         return statement.substring(0, position) + ".limit(" + limit + ")" +
