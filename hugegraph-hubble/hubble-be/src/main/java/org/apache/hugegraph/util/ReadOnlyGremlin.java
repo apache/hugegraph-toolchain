@@ -89,11 +89,13 @@ public final class ReadOnlyGremlin {
         }
         int insertion = parser.consumerFollowed ? -1 :
                         parser.consumerPosition >= 0 ? parser.consumerPosition : query.length();
-        return new Syntax(parser.explicitLimit, parser.collection, insertion);
+        return new Syntax(parser.explicitLimit, parser.collection, insertion,
+                          parser.terminalZeroLimit);
     }
 
     // Syntactic facts only: no output, cardinality or collection-shape inference.
-    record Syntax(boolean explicitLimit, boolean collection, int limitPosition) {
+    record Syntax(boolean explicitLimit, boolean collection, int limitPosition,
+                  boolean terminalZeroLimit) {
     }
 
     private static ExternalException invalid() {
@@ -108,6 +110,7 @@ public final class ReadOnlyGremlin {
         private boolean collection;
         private int consumerPosition = -1;
         private boolean consumerFollowed;
+        private boolean terminalZeroLimit;
 
         private Parser(String text) {
             this.text = text;
@@ -134,8 +137,28 @@ public final class ReadOnlyGremlin {
                         }
                     }
                 }
+                int argumentsStart = this.position;
                 this.arguments(depth);
+                if (methods == STEPS && depth == 0 && !CONSUMERS.contains(name)) {
+                    // A terminal global limit(0) already bounds the result to zero.
+                    // Do not infer cardinality through later traversal steps.
+                    this.terminalZeroLimit = "limit".equals(name) &&
+                                             this.isLiteralZeroLimit(argumentsStart);
+                }
             }
+        }
+
+        private boolean isLiteralZeroLimit(int argumentsStart) {
+            String arguments = this.text.substring(argumentsStart, this.position).trim();
+            if (!arguments.startsWith("(") || !arguments.endsWith(")")) {
+                return false;
+            }
+            String value = arguments.substring(1, arguments.length() - 1).trim();
+            // Limit matching to simple integral literals. Dynamic expressions,
+            // local scope and other spellings retain the normal preview cap.
+            return "0".equals(value) || "+0".equals(value) || "-0".equals(value) ||
+                   "0L".equals(value) || "+0L".equals(value) || "-0L".equals(value) ||
+                   "0l".equals(value) || "+0l".equals(value) || "-0l".equals(value);
         }
 
         private void arguments(int depth) {
