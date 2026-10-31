@@ -1124,6 +1124,14 @@ OLAP offers a backend only after discovery is confirmed. Load a graph for Vermee
 from the OLAP tab, then inspect progress and results in async tasks.
 Changing the UI language retains graph results and submitted task IDs.
 
+The catalog's search and reset controls share a row, and long algorithm names
+remain aligned with their icons. These two screenshots use anonymous-mode local
+API fixtures in Chromium; they do not demonstrate a live computation.
+
+![OLTP catalog with a wrapped algorithm name](docs/assets/analytics/oltp-catalog-layout.png)
+
+![OLAP catalog and community group](docs/assets/analytics/olap-catalog-layout.png)
+
 ![OLTP query result and compact algorithm help](docs/assets/analytics/oltp-query-result.png)
 
 ![OLAP loading guidance](docs/assets/analytics/olap-load-guide.png)
