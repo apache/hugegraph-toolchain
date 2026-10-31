@@ -551,6 +551,28 @@ async function main() {
         await check('mobile operations preserves readable main tiers and Store-row compute access', async () => {
             state.operationsOverview = mobileOverviewFixture();
             state.extraCapabilities = ['operations_metrics_read'];
+            for (const width of [1440, 375]) {
+                await page.setViewportSize({width, height: 900});
+                await page.goto(base + '/operations/overview?view=nodes');
+                const section = page.getByRole('region', {name: 'Vermeer 计算集群'});
+                const entry = section.getByRole('button', {name: '查看计算集群', exact: true});
+                await entry.waitFor();
+                const layout = await section.evaluate(element => {
+                    const sectionBox = element.getBoundingClientRect();
+                    const buttonBox = element.querySelector('button').getBoundingClientRect();
+                    return {sectionWidth: sectionBox.width, buttonWidth: buttonBox.width,
+                        sectionLeft: sectionBox.left, buttonLeft: buttonBox.left};
+                });
+                assert(Math.abs(layout.sectionWidth - layout.buttonWidth) <= 1
+                    && Math.abs(layout.sectionLeft - layout.buttonLeft) <= 1,
+                'List-mode compute entry must fill its separate section instead of floating right');
+                await assertNoHorizontalOverflow(page);
+                await assertUsableControl(entry);
+                await entry.click();
+                await page.locator('.operations-vermeer-workbench').waitFor();
+                await page.getByRole('button', {name: '返回主集群', exact: true}).click();
+                await section.waitFor();
+            }
             for (const width of [320, 375]) {
                 await page.setViewportSize({width, height: 900});
                 await page.goto(base + '/operations/overview');

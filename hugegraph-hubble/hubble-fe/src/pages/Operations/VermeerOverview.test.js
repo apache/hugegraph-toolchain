@@ -100,7 +100,11 @@ test('keeps Vermeer collapsed until opened, then uses Master and Worker tiers', 
 
 test('preserves the main view and query across service navigation and browser back', async () => {
     renderOverview('/operations/overview?view=nodes&source=attention');
-    await userEvent.click(await screen.findByRole('button', {name: 'View compute cluster'}));
+    const entry = await screen.findByRole('button', {name: 'View compute cluster'});
+    const compute = screen.getByRole('region', {name: 'Vermeer Compute Cluster'});
+    expect(within(compute).getByRole('button', {name: 'View compute cluster'})).toBe(entry);
+    expect(screen.getByRole('table', {name: 'Cluster nodes'})).not.toContainElement(entry);
+    await userEvent.click(entry);
     expect(screen.getByLabelText('Current URL')).toHaveTextContent(
         '/operations/overview?view=nodes&source=attention&service=vermeer'
     );
@@ -111,6 +115,15 @@ test('preserves the main view and query across service navigation and browser ba
     await userEvent.click(screen.getByRole('button', {name: 'History back'}));
     expect(await screen.findByRole('heading', {level: 2, name: 'Vermeer Compute Cluster'}))
         .toBeInTheDocument();
+});
+
+test('does not show a compute section when Vermeer is disabled', async () => {
+    const data = snapshot();
+    data.vermeer = {configured: false};
+    getOverview.mockResolvedValue(data);
+    renderOverview('/operations/overview?view=nodes');
+    await screen.findByRole('table', {name: 'Cluster nodes'});
+    expect(screen.queryByRole('region', {name: 'Vermeer Compute Cluster'})).not.toBeInTheDocument();
 });
 
 test('changing the compute view does not alter the main-cluster view on return', async () => {
