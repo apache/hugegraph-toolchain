@@ -39,6 +39,15 @@ const graphsBySpace = {
     DEFAULT: [graph('DEFAULT', 'hugegraph', '记忆图'), graph('DEFAULT', 'default_only', '默认空间专属图')],
     soc_graph: [graph('soc_graph', 'hugegraph', '记忆图'), graph('soc_graph', 'second', '测试图')],
 };
+// Dense schema fixture exercises the card's readable, navigable summary.
+graphsBySpace.DEFAULT[1].schemaview = {
+    vertices: ['person', 'city', 'company', 'project'].map(name => ({id: name, label: name})),
+    edges: [
+        {id: 'lives', label: 'lives_in', source: 'person', target: 'city'},
+        {id: 'works', label: 'works_at', source: 'person', target: 'company'},
+        {id: 'owns', label: 'owns', source: 'company', target: 'project'},
+    ],
+};
 const hasFixtureScope = scope => Object.entries(graphsBySpace).some(([space, graphs]) => (
     graphs.some(item => scope === `${space}/graphs/${item.name}`)
 ));
@@ -380,6 +389,21 @@ async function main() {
                     await card().locator('.ant-card-head').click({ position: { x: 12, y: 12 } });
                 await page.waitForURL('**/graphspace/soc_graph');
             }
+        });
+        await check('dense schema card keeps type names readable and opens the full schema', async () => {
+            await page.goto(base + '/graphspace');
+            const space = page.locator('.ant-card').filter({has: page.getByText('默认图空间', {exact: true})}).first();
+            await space.getByText('GraphSpace 名称：DEFAULT', {exact: true}).waitFor();
+            await space.getByRole('link', {name: '进入图空间'}).click();
+            await page.waitForURL('**/graphspace/DEFAULT');
+            const card = page.locator('.ant-card').filter({hasText: '默认空间专属图'}).first();
+            await card.getByText('类型较多，点击查看完整关系图', {exact: true}).waitFor();
+            for (const name of ['person', 'city', 'company', 'project', 'lives_in', 'works_at', 'owns']) {
+                assert(await card.getByText(name, {exact: true}).isVisible(), `${name} is not visible`);
+            }
+            await screenshot(page, 'dense-schema-card');
+            await card.getByRole('button', {name: '查看 默认空间专属图 的 Schema'}).click();
+            await page.waitForURL('**/graphspace/DEFAULT/graph/default_only/meta');
         });
         await check('GraphSpace menu edit does not navigate and current quota is editable', async () => {
             await page.goto(base + '/graphspace');

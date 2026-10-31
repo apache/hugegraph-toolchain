@@ -66,6 +66,13 @@ public class VertexLabelStyleDefaultsTest {
     }
 
     @Test
+    public void testBenchPersonUsesMutedDefaultRatherThanOlive() {
+        String color = new VertexLabelService().get("bench_person", client(label("bench_person")))
+                                               .getStyle().getColor();
+        Assert.assertEquals("#967572", color);
+    }
+
+    @Test
     public void testSavedBluePreservesEveryCustomField() {
         VertexLabel person = label("Person");
         VertexLabelStyle saved = new VertexLabelStyle(

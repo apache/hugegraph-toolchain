@@ -212,6 +212,25 @@ test('opens Schema from the graph preview and keeps Gremlin as the footer action
     );
 });
 
+test('summarizes a dense schema without shrinking its labels and opens the full schema', () => {
+    const vertices = ['person', 'city', 'company', 'project'].map(name => ({id: name, label: name}));
+    const edges = [
+        {id: 'lives', label: 'lives_in', source: 'person', target: 'city'},
+        {id: 'works', label: 'works_at', source: 'person', target: 'company'},
+        {id: 'owns', label: 'owns', source: 'company', target: 'project'},
+    ];
+    render(<MemoryRouter><GraphCard item={{name: 'g', graphspace: 'space',
+        schemaview: {vertices, edges}}} menus={[]} /><LocationProbe /></MemoryRouter>);
+
+    expect(screen.queryByTestId('preview-contract')).not.toBeInTheDocument();
+    expect(screen.getByText('graph.card.schema_summary_hint')).toBeInTheDocument();
+    for (const name of ['person', 'city', 'company', 'project', 'lives_in', 'works_at', 'owns']) {
+        expect(screen.getByText(name)).toBeInTheDocument();
+    }
+    fireEvent.click(screen.getByRole('button', {name: 'graph.card.view_schema:g'}));
+    expect(screen.getByTestId('location')).toHaveTextContent('/graphspace/space/graph/g/meta');
+});
+
 test.each(['Enter', ' '])(
     'opens Schema from the named graph preview with the %p key',
     key => {
