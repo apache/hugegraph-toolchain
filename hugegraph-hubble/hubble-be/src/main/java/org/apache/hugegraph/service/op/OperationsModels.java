@@ -45,6 +45,7 @@ public final class OperationsModels {
         private final Map<String, Object> metrics;
         private final Map<String, MetricStatus> metricStatuses;
         private final Readiness readiness;
+        private final Lifecycle processLifecycle;
 
         public Node(String id, String type, String name, String role,
                     String version, String status, Long observedAt,
@@ -58,14 +59,14 @@ public final class OperationsModels {
                     Map<String, Object> metrics,
                     Map<String, MetricStatus> metricStatuses) {
             this(id, type, name, role, version, status, observedAt, metrics,
-                 metricStatuses, null);
+                 metricStatuses, null, null);
         }
 
         private Node(String id, String type, String name, String role,
                      String version, String status, Long observedAt,
                      Map<String, Object> metrics,
                      Map<String, MetricStatus> metricStatuses,
-                     Readiness readiness) {
+                     Readiness readiness, Lifecycle processLifecycle) {
             this.id = id;
             this.type = type;
             this.name = name;
@@ -76,6 +77,7 @@ public final class OperationsModels {
             this.metrics = immutableMap(metrics);
             this.metricStatuses = immutableMap(metricStatuses);
             this.readiness = readiness;
+            this.processLifecycle = processLifecycle;
         }
 
         public String getId() {
@@ -121,7 +123,53 @@ public final class OperationsModels {
         public Node withReadiness(Readiness value) {
             return new Node(this.id, this.type, this.name, this.role,
                             this.version, this.status, this.observedAt,
-                            this.metrics, this.metricStatuses, value);
+                            this.metrics, this.metricStatuses, value, this.processLifecycle);
+        }
+
+        public Lifecycle getProcessLifecycle() {
+            return this.processLifecycle;
+        }
+
+        public Node withProcessLifecycle(Lifecycle value) {
+            return new Node(this.id, this.type, this.name, this.role,
+                            this.version, this.status, this.observedAt,
+                            this.metrics, this.metricStatuses, this.readiness, value);
+        }
+    }
+
+    // Process lifecycle is independent of partition and read/write readiness.
+    @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
+    public static final class Lifecycle {
+        private final String state;
+        private final Long observedAt;
+        private final String reason;
+        private final boolean stale;
+
+        public Lifecycle(String state, Long observedAt, String reason, boolean stale) {
+            this.state = state;
+            this.observedAt = observedAt;
+            this.reason = reason;
+            this.stale = stale;
+        }
+
+        public String getState() {
+            return this.state;
+        }
+
+        public Long getObservedAt() {
+            return this.observedAt;
+        }
+
+        public String getReason() {
+            return this.reason;
+        }
+
+        public boolean isStale() {
+            return this.stale;
+        }
+
+        public Lifecycle asStale() {
+            return new Lifecycle(this.state, this.observedAt, this.reason, true);
         }
     }
 
@@ -480,7 +528,9 @@ public final class OperationsModels {
                                node.getRole(), node.getVersion(), node.getStatus(),
                                node.getObservedAt(), node.getMetrics(), statuses)
                                .withReadiness(node.getReadiness() == null ? null :
-                                              node.getReadiness().asStale()));
+                                              node.getReadiness().asStale())
+                               .withProcessLifecycle(node.getProcessLifecycle() == null ? null :
+                                                     node.getProcessLifecycle().asStale()));
             }
             return new Snapshot("DEGRADED", this.observedAt, true, staleReason,
                                 staleSources, staleNodes, this.facts);
