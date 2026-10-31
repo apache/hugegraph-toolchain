@@ -476,15 +476,14 @@ validates this range and requires the existing username/token session; anonymous
 personal center or session settings.
 
 Administrators configure `hubble.session.max-idle-seconds` in the backend Spring
-configuration (or `HUBBLE_SESSION_MAX_IDLE_SECONDS` in the environment). `0`, the
-default, inherits the original `server.servlet.session.timeout` as the personal
-ceiling. A positive value explicitly authorizes that ceiling in seconds, including
-values above seven days. Personal changes never alter this ceiling. The initial
+configuration (or `HUBBLE_SESSION_MAX_IDLE_SECONDS` in the environment). The
+default ceiling is 30 days (2592000 seconds); set `0` to inherit the original
+`server.servlet.session.timeout`, or set a positive ceiling in seconds. Personal changes never alter this ceiling. The initial
 timeout and subsequent sign-ins are also capped by it. For example, a 48-hour
 servlet default with a 2-hour ceiling starts at 2 hours and offers 1–2 hours in the UI.
-Personal edits use whole hours, starting at 1 hour; the API still uses seconds.
-Non-whole-hour deployment values remain unchanged and display as “Deployment value”
-until the user explicitly selects an allowed hour value. A ceiling below one hour
+Personal edits use whole hours or whole days, selectable in the panel; the API
+still uses seconds. Values that are not whole in the selected unit remain unchanged
+and display as “Deployment value” until the user selects an allowed value. A ceiling below one hour
 leaves no editable whole-hour choice. The compact panel keeps its brief help and
 allowed range in a tooltip.
 A positive deployment default below 15 minutes, or a ceiling below 15 minutes,

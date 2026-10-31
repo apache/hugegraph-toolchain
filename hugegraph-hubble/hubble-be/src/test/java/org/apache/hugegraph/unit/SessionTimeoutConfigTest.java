@@ -46,6 +46,8 @@ public class SessionTimeoutConfigTest {
             }
             Assert.assertEquals("48h", properties.getProperty(
                     "server.servlet.session.timeout"));
+            Assert.assertEquals("2592000", properties.getProperty(
+                    "hubble.session.max-idle-seconds"));
             return;
         }
         Assert.fail("Hubble application.properties was not found");

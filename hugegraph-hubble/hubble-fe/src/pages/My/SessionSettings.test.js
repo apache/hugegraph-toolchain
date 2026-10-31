@@ -164,3 +164,37 @@ test('shows the brief explanation and range only on the help tooltip', async () 
     expect(tooltip).toHaveTextContent('my.session.description');
     expect(tooltip).toHaveTextContent('my.session.range');
 });
+
+test('switches units without changing the pending timeout and saves 30 days', async () => {
+    const data = {idle_timeout_seconds: 25 * 3600, min_idle_seconds: 900, max_idle_seconds: 30 * 86400};
+    api.auth.getSessionSettings.mockResolvedValue({status: 200, data});
+    api.auth.updateSessionSettings.mockResolvedValue({status: 200, data: {
+        ...data, idle_timeout_seconds: 30 * 86400,
+    }});
+    render(<SessionSettings />);
+    await waitFor(() => expect(screen.getByRole('spinbutton')).toHaveValue('25'));
+    await userEvent.click(screen.getByText('my.session.unitDays'));
+    expect(screen.getByRole('spinbutton')).toHaveValue('');
+    expect(screen.getByRole('button', {name: 'common.action.save'})).toBeDisabled();
+    await userEvent.click(screen.getByText('my.session.unitHours'));
+    expect(screen.getByRole('spinbutton')).toHaveValue('25');
+    await userEvent.click(screen.getByText('my.session.unitDays'));
+    const input = screen.getByRole('spinbutton');
+    expect(input).toHaveAttribute('aria-valuemax', '30');
+    await userEvent.type(input, '30');
+    await userEvent.click(screen.getByRole('button', {name: 'common.action.save'}));
+    expect(api.auth.updateSessionSettings).toHaveBeenCalledWith(30 * 86400);
+    await waitFor(() => expect(input).toHaveValue('30'));
+});
+
+test('respects an administrator ceiling when selecting days', async () => {
+    api.auth.getSessionSettings.mockResolvedValue(settings(3600));
+    render(<SessionSettings />);
+    await waitFor(() => expect(screen.getByRole('spinbutton')).toHaveValue('1'));
+    await userEvent.click(screen.getByText('my.session.unitDays'));
+    const input = screen.getByRole('spinbutton');
+    expect(input).toHaveAttribute('aria-valuemax', '2');
+    await userEvent.type(input, '3');
+    expect(screen.getByRole('button', {name: 'common.action.save'})).toBeDisabled();
+    expect(api.auth.updateSessionSettings).not.toHaveBeenCalled();
+});

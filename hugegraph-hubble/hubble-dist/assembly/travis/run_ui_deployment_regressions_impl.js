@@ -111,7 +111,7 @@ async function setup(browser, auth) {
     await context.addInitScript(() => localStorage.setItem('languageType', 'zh-CN'));
     const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, graphGate: null, taskLookups: 0, taskSubmitted: false,
         statisticsScenario: false,
-        operationsOverview: null, extraCapabilities: [] };
+        operationsOverview: null, extraCapabilities: [], sessionSeconds: 172800, sessionUpdates: [] };
     const capabilities = ['graphspaces_read', 'operations_health_read', 'operations_topology_read', ...(auth ? ['accounts_manage', 'model_settings_manage'] : [])];
     await context.route('**/api/v*/**', async (route) => {
         const req = route.request();
@@ -160,12 +160,29 @@ async function setup(browser, auth) {
         }
         else if (p === '/auth/context') {
             const admin = auth && state.loggedIn;
-            data = { mode: auth ? 'AUTH' : 'NON_AUTH', role: admin ? 'SUPERADMIN' : 'ANONYMOUS', capabilities: auth && !admin ? [] : [...capabilities, ...state.extraCapabilities], actions: { graphspaces: admin ? ['create', 'read', 'update', 'delete'] : auth ? [] : ['read'] }, scopes: { all_graphspaces: admin } };
+            data = { mode: auth ? 'AUTH' : 'NON_AUTH', role: admin ? 'SUPERADMIN' : 'ANONYMOUS', capabilities: auth && !admin ? [] : [...capabilities, ...state.extraCapabilities], actions: { graphspaces: admin ? ['create', 'read', 'update', 'delete'] : auth ? [] : ['read'], account: admin ? ['read', 'update'] : [] }, scopes: { all_graphspaces: admin } };
         }
         else if (p === '/auth/status')
             data = {};
+        else if (p === '/auth/users/getpersonal')
+            data = {user_name: 'smoke_admin', user_nickname: '测试管理员', user_description: 'None'};
         else if (p === '/auth/session') {
-            const response = sessionFixture(state, method);
+            let response = sessionFixture(state, 'GET');
+            if (response.status === 200 && method === 'PUT') {
+                const seconds = req.postDataJSON()?.idle_timeout_seconds;
+                if (!Number.isInteger(seconds) || seconds < 900 || seconds > 30 * 86400) {
+                    response = {status: 400, message: 'Invalid timeout'};
+                } else {
+                    state.sessionSeconds = seconds;
+                    state.sessionUpdates.push(seconds);
+                }
+            } else if (method !== 'GET') {
+                response = {status: 405};
+            }
+            if (response.status === 200) {
+                response.data.idle_timeout_seconds = state.sessionSeconds;
+                response.data.max_idle_seconds = 30 * 86400;
+            }
             if (response.status !== 200) unexpected.add(`${method} ${p}`);
             await route.fulfill({status: response.status, contentType: 'application/json',
                 body: JSON.stringify(response)});
@@ -330,6 +347,22 @@ async function main() {
             await page.getByTestId('graphspace-page-title').waitFor();
             assert(await page.locator('a[href="/account"]').isVisible());
             await screenshot(page, 'graphspace-authenticated');
+        });
+        await check('profile displays stored remarks and saves a 30-day session', async () => {
+            await page.goto(base + '/profile');
+            await page.getByTestId('profile-surface').waitFor();
+            await page.getByText('None', {exact: true}).waitFor();
+            await page.locator('label.ant-radio-button-wrapper').filter({hasText: /^天$/}).click();
+            const input = page.getByRole('spinbutton', {name: '闲置退出（天）'});
+            await input.fill('30');
+            const updated = page.waitForResponse(response => response.url().endsWith('/auth/session')
+                && response.request().method() === 'PUT');
+            await page.getByRole('button', {name: /保\s*存/}).click();
+            assert.equal((await updated).status(), 200);
+            assert.deepEqual(state.sessionUpdates, [30 * 86400]);
+            await page.locator('label.ant-radio-button-wrapper').filter({hasText: /^小时$/}).click();
+            assert.equal(await page.getByRole('spinbutton', {name: '闲置退出（小时）'}).inputValue(), '720');
+            await screenshot(page, 'profile-session-units');
         });
         await check('GraphSpace title date and header whitespace navigate exactly to selected space', async () => {
             const card = () => page.locator('.ant-card').filter({ has: page.getByText('记忆库', { exact: true }) }).first();

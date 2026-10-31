@@ -24,6 +24,7 @@ const {spawnSync} = require('child_process');
 
 const REQUIRED_CHECKS = Object.freeze([
     'authenticated login and GraphSpace/account visibility',
+    'profile displays stored remarks and saves a 30-day session',
     'GraphSpace title date and header whitespace navigate exactly to selected space',
     'GraphSpace menu edit does not navigate and current quota is editable',
     'late GraphSpace details cannot overwrite a newly opened editor',

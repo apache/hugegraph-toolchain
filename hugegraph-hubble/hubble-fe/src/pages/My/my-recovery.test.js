@@ -158,7 +158,7 @@ test('renders localized placeholders for empty profile fields', async () => {
         data: {
             user_name: 'admin',
             user_nickname: 'Administrator',
-            user_description: 'None',
+            user_description: null,
             adminSpaces: [],
             user_create: null,
         },
@@ -171,7 +171,7 @@ test('renders localized placeholders for empty profile fields', async () => {
     expect(screen.getByText('my.level.ADMIN')).toBeInTheDocument();
 });
 
-test('keeps sentinel-like identity names visible while normalizing an optional remark', async () => {
+test('keeps sentinel-like identity names and literal remarks visible', async () => {
     api.auth.getPersonal.mockResolvedValue({
         status: 200,
         data: {
@@ -185,7 +185,7 @@ test('keeps sentinel-like identity names visible while normalizing an optional r
 
     expect(await screen.findByRole('heading', {name: 'None'})).toBeInTheDocument();
     expect(screen.getAllByText('None').length).toBeGreaterThan(1);
-    expect(screen.getByText('my.empty_value')).toBeInTheDocument();
+    expect(screen.queryByText('my.empty_value')).not.toBeInTheDocument();
 });
 
 test('shows the authoritative capability level instead of an empty role placeholder', async () => {

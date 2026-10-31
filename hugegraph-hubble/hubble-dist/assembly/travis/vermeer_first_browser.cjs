@@ -109,10 +109,10 @@ async function check(name,fn){try{await fn();checks.push({name,status:'passed'})
   assert.equal(state.capabilityCalls,0);
   assert.equal(await page.locator('.ant-collapse-item:visible').count(),9);
   assert.equal(await page.getByText('Computer 兼容入口（按需展开）',{exact:true}).count(),0);
-  assert.equal(await page.getByRole('link',{name:'Vermeer 图计算指南',exact:true}).getAttribute('href'),'https://github.com/apache/hugegraph-computer/tree/master/vermeer');
+  assert.equal(await page.getByRole('link',{name:'Vermeer 图计算指南',exact:true}).getAttribute('href'),'https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-vermeer/');
   await searchFor('PageRank');
   await pagerank().waitFor();
-  assert.equal(await pagerank().getByRole('link').getAttribute('href'),'https://github.com/apache/hugegraph-computer/tree/master/vermeer');
+  assert.equal(await pagerank().getByRole('link').getAttribute('href'),'https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-vermeer/');
   const run=pagerank().locator('.ant-collapse-header button.ant-btn-primary');
   assert.equal(await run.isDisabled(),false);
   await pagerank().scrollIntoViewIfNeeded(); await screenshot(page,'02-vermeer-ready');
