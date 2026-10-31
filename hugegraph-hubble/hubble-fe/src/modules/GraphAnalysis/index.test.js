@@ -100,6 +100,14 @@ it('recovers an optional Vermeer capability request without blocking the route',
     )).not.toBeInTheDocument());
 });
 
+it('opens the OLAP loading entry when the navigation requests graph compute', async () => {
+    render(<GraphAnalysisHome moduleName='algorithms' initialAlgorithmEngine='olap' />);
+    expect(screen.getByText('graph load entry')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', {name: 'choose OLTP'}));
+    expect(screen.queryByText('graph load entry')).not.toBeInTheDocument();
+    await act(async () => Promise.resolve());
+});
+
 it('keeps the algorithm page mounted while Vermeer is pending, unavailable and recovering', async () => {
     const pending = deferred();
     const retry = deferred();

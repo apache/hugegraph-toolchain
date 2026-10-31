@@ -110,6 +110,7 @@ async function setup(browser, auth) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'Asia/Taipei' });
     await context.addInitScript(() => localStorage.setItem('languageType', 'zh-CN'));
     const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, graphGate: null, taskLookups: 0, taskSubmitted: false,
+        statisticsScenario: false,
         operationsOverview: null, extraCapabilities: [] };
     const capabilities = ['graphspaces_read', 'operations_health_read', 'operations_topology_read', ...(auth ? ['accounts_manage', 'model_settings_manage'] : [])];
     await context.route('**/api/v*/**', async (route) => {
@@ -197,16 +198,24 @@ async function setup(browser, auth) {
             if (state.graphGate) {
                 await state.graphGate;
             }
-            data = pageResult(graphsBySpace[graphSpace], url.searchParams.get('selected'));
+            data = pageResult(graphsBySpace[graphSpace].map(item => ({...item, graphspace: graphSpace})),
+                url.searchParams.get('selected'));
         }
         else if (p.endsWith('/graph_read_mode'))
             data = { status: '1' };
         else if (p === '/vermeer')
-            data = { enable: Boolean(state.operationsOverview?.vermeer?.configured) };
+            data = { enable: Boolean(state.statisticsScenario || state.operationsOverview?.vermeer?.configured),
+                statistics_available: state.statisticsScenario };
         else if (p === '/dashboard')
             data = { configured: false, available: false };
         else if (p.endsWith('/text2gql/config'))
             data = { available: false, custom_available: true, reason: 'not_configured' };
+        else if (state.statisticsScenario && p === '/graphspaces/soc_graph/graphs/second/statistics/vermeer'
+                 && method === 'GET') {
+            await route.fulfill({status: 400, contentType: 'application/json', body: JSON.stringify({status: 400,
+                message: 'Load this graph from OLAP graph compute before collecting Vermeer statistics'})});
+            return;
+        }
         else if (p.endsWith('/schema/graphview')) {
             const response = graphViewFixture(method, p);
             if (response.status !== 200) unexpected.add(`${method} ${p}`);
@@ -248,7 +257,7 @@ async function setup(browser, auth) {
         else if (p.endsWith('/is_auth'))
             data = { auth: false };
         else if (p.endsWith('/get'))
-            data = { name: p.split('/')[4], nickname: '记忆图' };
+            data = { name: p.split('/')[4], nickname: '记忆图', ...(state.statisticsScenario ? {status: 'created'} : {}) };
         else {
             unexpected.add(`${method} ${p}`);
             data = {};
@@ -490,6 +499,26 @@ async function main() {
                 release();
                 await page.unroute('**/api/v*/**/import', handler);
             }
+        });
+        await check('unloaded Vermeer statistics gives a scoped graph compute entry', async () => {
+            state.statisticsScenario = true;
+            await page.goto(base + '/graphspace/soc_graph');
+            const card = page.locator('.ant-card').filter({has: page.getByTitle('soc_graph-测试图', {exact: true})});
+            await card.waitFor();
+            const select = card.getByRole('button', {name: '选择点边统计来源'});
+            await assertUsableControl(select);
+            await select.click();
+            await page.getByRole('menuitem', {name: '图计算统计（已加载快照）'}).click();
+            const guidance = card.getByRole('status');
+            await guidance.getByText('请先将此图加载到 Vermeer，再采集图计算统计', {exact: true}).waitFor();
+            const open = guidance.getByRole('link', {name: '前往图计算', exact: true});
+            await assertUsableControl(open);
+            await screenshot(page, 'vermeer-statistics-load-guidance');
+            await open.click();
+            await page.waitForURL('**/algorithms/soc_graph/second?engine=olap');
+            await page.getByRole('button', {name: '加载到图计算', exact: true}).waitFor();
+            assert.equal(await page.getByRole('tab', {name: 'OLAP 全图计算'}).getAttribute('aria-selected'), 'true');
+            state.statisticsScenario = false;
         });
         await check('core query actions are usable at desktop and compact widths', async () => {
             for (const width of [1440, 1024]) {

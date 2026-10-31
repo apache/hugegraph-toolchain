@@ -20,6 +20,10 @@ package org.apache.hugegraph.unit;
 
 import org.junit.Test;
 
+import org.apache.tinkerpop.gremlin.process.traversal.Traversal;
+import org.apache.tinkerpop.gremlin.process.traversal.step.filter.DiscardStep;
+import org.apache.tinkerpop.gremlin.tinkergraph.structure.TinkerFactory;
+
 import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.GremlinUtil;
@@ -40,6 +44,50 @@ public class GremlinUtilTest {
         String explicit = "g.V().limit(10000).hasLabel('person')";
         Assert.assertEquals(explicit, GremlinUtil.optimizeLimit(explicit, 300));
         Assert.assertEquals(explicit + ".limit(1001)", GremlinUtil.optimizePreviewLimit(explicit, 1001));
+    }
+
+    @Test
+    public void testPreviewDoesNotAppendASecondLimitAfterTerminalZero() {
+        String[] queries = {"g.V().limit(0)", "g.E().limit(0L)",
+                            "g.V().limit( +0 )", "g.V().limit(-0l)",
+                            "g.V().limit(/* comment */ 0)",
+                            "g.V().has('note', 'limit(0)').limit(0)",
+                            "g.V().limit(0).toList()", "g.V().limit(0).next()",
+                            "g.V().limit(0);", "g.V().limit(0) // zero\n"};
+        for (String query : queries) {
+            Assert.assertEquals(query, GremlinUtil.optimizeLimit(query, 300));
+            Assert.assertEquals(query, GremlinUtil.optimizePreviewLimit(query, 1001));
+        }
+        Assert.assertEquals("g.V().limit(0); g.E().limit(1001)",
+                            GremlinUtil.optimizePreviewLimit("g.V().limit(0); g.E()", 1001));
+    }
+
+    @Test
+    public void testPreviewDoesNotInferZeroThroughOtherStepsOrArguments() {
+        String[] queries = {"g.V().limit(0).count()", "g.V().limit(0).out()",
+                            "g.V().limit(local, 0)", "g.V().has('limit', '0')",
+                            "g.V().where(__.limit(0))", "g.V().limit(1)",
+                            "g.V().limit(10000)"};
+        for (String query : queries) {
+            Assert.assertEquals(query + ".limit(1001)",
+                                GremlinUtil.optimizePreviewLimit(query, 1001));
+        }
+        // Unknown Groovy expressions retain the ordinary execution path.
+        String dynamic = "g.V().limit(x)";
+        Assert.assertEquals(dynamic, GremlinUtil.optimizePreviewLimit(dynamic, 1001));
+    }
+
+    @Test
+    public void testTinkerPopDoubleLimitCreatesDiscardStep() throws Exception {
+        try (var graph = TinkerFactory.createModern(); var traversal = graph.traversal()) {
+            Traversal.Admin<?, ?> doubleLimit = traversal.V().limit(0).limit(1001).asAdmin();
+            doubleLimit.applyStrategies();
+            Assert.assertTrue(doubleLimit.getSteps().stream().anyMatch(step -> step instanceof DiscardStep));
+
+            Traversal.Admin<?, ?> singleLimit = traversal.V().limit(0).asAdmin();
+            singleLimit.applyStrategies();
+            Assert.assertFalse(singleLimit.getSteps().stream().anyMatch(step -> step instanceof DiscardStep));
+        }
     }
 
     @Test

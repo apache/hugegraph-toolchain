@@ -28,6 +28,7 @@ const REQUIRED_CHECKS = Object.freeze([
     'GraphSpace menu edit does not navigate and current quota is editable',
     'late GraphSpace details cannot overwrite a newly opened editor',
     'Graph context switches via actual header selectors',
+    'unloaded Vermeer statistics gives a scoped graph compute entry',
     'core query actions are usable at desktop and compact widths',
     'canvas JSON upload targets the selected graph import endpoint',
     'late canvas upload cannot replace the newly selected graph result',
@@ -67,6 +68,7 @@ function validateReport(report) {
 
 const screenshotNames = new Set([
     'graphspace-authenticated', 'graphspace-edit', 'graph-context-switch',
+    'vermeer-statistics-load-guidance',
     'query-routine-limit', 'query-truncated', 'query-preview-details',
     'query-core-1440', 'query-core-1024',
     'query-core-1440', 'query-core-1024',
