@@ -189,7 +189,7 @@ test.each(['UNAVAILABLE', 'UNSUPPORTED'])(
             system: {availability, reason: 'pd_metrics_unmapped'},
         }}))} />);
 
-        expect(screen.getByText('PD nodes are online; system metrics could not be attributed'))
+        expect(screen.getByText('PD members are registered online; system metrics could not be attributed'))
             .toBeInTheDocument();
         expect(screen.getByText(/PD topology was discovered.*restUrl in the PD member list/)).not.toBeVisible();
         fireEvent.click(screen.getByText('Check addresses and how to fix'));
@@ -211,7 +211,7 @@ test('localizes PD endpoint identity guidance without claiming a discovery failu
         system: {availability: 'UNAVAILABLE', reason: 'pd_metrics_unmapped'},
     }}]} />);
 
-    expect(screen.getByText('PD 节点在线，系统指标尚未匹配到节点')).toBeVisible();
+    expect(screen.getByText('PD 成员注册在线，系统指标尚未匹配到节点')).toBeVisible();
     fireEvent.click(screen.getByText('检查地址与修复方法'));
     expect(screen.getByText(/已发现 PD 拓扑.*restUrl/)).toBeInTheDocument();
     expect(screen.getByText('最近拓扑采集成功')).toBeInTheDocument();
@@ -258,7 +258,7 @@ test('does not call PD nodes online when topology is degraded', () => {
         status: 'DEGRADED', availability: 'PARTIAL', reason: 'pd_metrics_unmapped',
     }}} />);
     expect(screen.getByText('PD system metrics could not be attributed to a node')).toBeVisible();
-    expect(screen.queryByText('PD nodes are online; system metrics could not be attributed'))
+    expect(screen.queryByText('PD members are registered online; system metrics could not be attributed'))
         .not.toBeInTheDocument();
 });
 
@@ -396,4 +396,34 @@ test('does not suggest an older Raft payload remedy for an unrelated oversized r
     expect(screen.queryByText(/older \/metrics\/raft endpoint/)).not.toBeInTheDocument();
     expect(screen.getByText(/Inspect the full response size from the same endpoint/)).toBeVisible();
     expect(screen.queryByText(/For an older Store|partition count/)).not.toBeInTheDocument();
+});
+
+
+test('preserves both the PD mapping failure and a higher-priority source reason', () => {
+    render(<SourceDiagnostics sourceName='pd' sources={{pd: {
+        status: 'UP', availability: 'PARTIAL', reason: 'data_fault',
+        cluster_state: 'Cluster_Not_Ready', data_state: 'PState_Fault',
+        diagnostics: {pd_metric_mapping: {
+            configured_origin: 'http://pd-service:8620', status: 'no_match',
+            matched_nodes: 0, discovered_nodes: 3, members: [],
+        }},
+    }}} />);
+
+    expect(screen.getByText('PD members are registered online; system metrics could not be attributed'))
+        .toBeVisible();
+    expect(screen.getByText(/No matching node · 0 of 3 discovered nodes/)).toBeVisible();
+    expect(screen.getByText(i18n.t('operations.reason_data_fault'))).toBeVisible();
+    expect(screen.getByText('Cluster readiness: PD still reports Cluster_Not_Ready')).toBeVisible();
+});
+
+test('does not infer an unmapped endpoint from a matched PD diagnostic', () => {
+    render(<SourceDiagnostics sourceName='pd' sources={{pd: {
+        status: 'UP', availability: 'PARTIAL', reason: 'data_fault',
+        diagnostics: {pd_metric_mapping: {status: 'matched', matched_nodes: 1}},
+    }}} />);
+
+    expect(screen.getByText(i18n.t('operations.reason_data_fault'))).toBeVisible();
+    expect(screen.queryByText('PD members are registered online; system metrics could not be attributed'))
+        .not.toBeInTheDocument();
+    expect(screen.queryByText('Check addresses and how to fix')).not.toBeInTheDocument();
 });

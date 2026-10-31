@@ -187,9 +187,10 @@ const SourceDiagnostics = ({sources = {}, sourceName, nodes = [], focus = false,
                                     || ['DOWN', 'DEGRADED'].includes(source.status))
                     )).map(([group, status]) => ({node, group, status}))
                 ));
-                const unmappedPd = type === 'PD' && (source.reason === 'pd_metrics_unmapped'
-                    || failures.some(({status}) => status.reason === 'pd_metrics_unmapped'));
                 const mapping = source.diagnostics?.pd_metric_mapping;
+                const unmappedPd = type === 'PD' && (source.reason === 'pd_metrics_unmapped'
+                    || ['no_match', 'ambiguous', 'invalid_endpoint'].includes(mapping?.status)
+                    || failures.some(({status}) => status.reason === 'pd_metrics_unmapped'));
                 const largeResponse = source.reason?.includes('response_too_large')
                     || failures.some(({status}) => status.reason?.includes('response_too_large'));
                 const raftTooLarge = failures.some(({group, status}) => group === 'raft'
@@ -226,6 +227,11 @@ const SourceDiagnostics = ({sources = {}, sourceName, nodes = [], focus = false,
                             owner={requestOwner ? `${requestOwner.node.name} · ${t(
                                 `operations.metric_${requestOwner.group}`, {defaultValue: requestOwner.group}
                             )}` : undefined} />}
+                        {unmappedPd && source.reason && source.reason !== 'pd_metrics_unmapped' && (
+                            <p className='operations-readiness-note'>
+                                {formatReason(source.reason, t)}
+                            </p>
+                        )}
                         {source.cluster_state === 'Cluster_Not_Ready' && <p className='operations-readiness-note'>
                             {t('operations.diagnostic_pd_not_ready')}
                         </p>}

@@ -1382,7 +1382,7 @@
     "diagnostic_topology_last_success": "最近拓扑采集成功",
     "diagnostic_metrics_not_collected": "尚未采集节点系统指标",
     "diagnostic_pd_address_comparison": "PD 地址核对",
-    "diagnostic_pd_online_unmapped": "PD 节点在线，系统指标尚未匹配到节点",
+    "diagnostic_pd_online_unmapped": "PD 成员注册在线，系统指标尚未匹配到节点",
     "diagnostic_pd_unmapped": "PD 系统指标尚未匹配到节点",
     "diagnostic_pd_mapping_summary": "{{result}} · 已发现 {{discovered}} 个节点，其中 {{matched}} 个匹配配置地址",
     "diagnostic_pd_check_addresses": "检查地址与修复方法",

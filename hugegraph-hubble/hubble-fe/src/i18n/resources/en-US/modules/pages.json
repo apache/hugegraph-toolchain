@@ -1382,7 +1382,7 @@
     "diagnostic_topology_last_success": "Last topology success",
     "diagnostic_metrics_not_collected": "Node system metrics not collected",
     "diagnostic_pd_address_comparison": "PD address comparison",
-    "diagnostic_pd_online_unmapped": "PD nodes are online; system metrics could not be attributed",
+    "diagnostic_pd_online_unmapped": "PD members are registered online; system metrics could not be attributed",
     "diagnostic_pd_unmapped": "PD system metrics could not be attributed to a node",
     "diagnostic_pd_mapping_summary": "{{result}} · {{matched}} of {{discovered}} discovered nodes match the configured address",
     "diagnostic_pd_check_addresses": "Check addresses and how to fix",
