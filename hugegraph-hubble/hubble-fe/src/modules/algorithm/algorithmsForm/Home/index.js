@@ -68,7 +68,7 @@ const AlgorithmFormHome = props => {
                     {key: 'olap', label: t('analysis.algorithm.olap_tab')},
                 ]}
             />
-            <AlgorithmSearch onSearch={handleSearch} />
+            <AlgorithmSearch onSearch={handleSearch} disabled={!graphSpace || !graph} />
             <Space className={c.docs} wrap size={12}>
                 <Button type='link' size='small' onClick={resetParameters}>
                     {t('analysis.algorithm.reset_parameters')}

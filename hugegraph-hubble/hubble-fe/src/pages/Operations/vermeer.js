@@ -64,9 +64,20 @@ const vermeerSelectedNode = (nodes, selectedId) => {
     return previousMatches.length === 1 ? previousMatches[0] : null;
 };
 
+// JSON responses use json-bigint, which returns BigNumber for fractional
+// values that cannot round-trip through a JavaScript number. These process
+// metrics are approximate display values, not identifiers or counters.
+const metricNumber = value => {
+    const bigNumber = value !== null && typeof value === 'object'
+        && typeof value.constructor?.isBigNumber === 'function'
+        && value.constructor.isBigNumber(value) && typeof value.toNumber === 'function';
+    const number = bigNumber ? value.toNumber() : value;
+    return typeof number === 'number' && Number.isFinite(number) && number >= 0 ? number : null;
+};
+
 const processMetric = (value, locale) => (
     typeof value === 'number' && Number.isFinite(value) && value >= 0
-        ? new Intl.NumberFormat(locale, {maximumFractionDigits: 2}).format(value) : null
+        ? new Intl.NumberFormat(locale, {maximumFractionDigits: 4}).format(value) : null
 );
 
 const vermeerResourceValues = (node, cluster) => {
@@ -74,8 +85,7 @@ const vermeerResourceValues = (node, cluster) => {
         || node.metric_status?.fresh === false);
     const available = vermeerAvailable(cluster)
         && ['AVAILABLE', 'PARTIAL'].includes(node.metric_status?.availability) && !stale;
-    const metric = value => available && typeof value === 'number'
-        && Number.isFinite(value) && value >= 0 ? value : null;
+    const metric = value => available ? metricNumber(value) : null;
     return {cpu: metric(node.metrics?.cpu_cores), rss: metric(node.metrics?.rss_bytes), stale};
 };
 
@@ -106,6 +116,7 @@ const formatProcessBytes = (bytes, locale) => {
 
 export {
     formatProcessBytes,
+    metricNumber,
     processMetric,
     vermeerAvailable,
     vermeerHealth,

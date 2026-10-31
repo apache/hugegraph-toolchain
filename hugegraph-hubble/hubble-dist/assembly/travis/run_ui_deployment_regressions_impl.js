@@ -33,15 +33,26 @@ const spaces = [
     { name: 'DEFAULT', nickname: '默认图空间', create_time: '2026-10-13', auth: false, max_graph_number: 100, cpu_limit: 64, memory_limit: 128, compute_cpu_limit: 64, compute_memory_limit: 128, storage_limit: 100, storage_used_kb: 10752 },
     { name: 'soc_graph', nickname: '记忆库', create_time: '2026-10-15', auth: false, max_graph_number: 100, cpu_limit: 64, memory_limit: 128, compute_cpu_limit: 64, compute_memory_limit: 128, storage_limit: 10, storage_used_kb: 252590 },
 ];
-const graph = (name, nickname) => ({ name, nickname, status: 'CREATED' });
+const graph = (graphspace, name, nickname) => ({ graphspace, name, nickname, status: 'CREATED' });
 // The destination graph must not exist in DEFAULT: stale selector data cannot pass.
 const graphsBySpace = {
-    DEFAULT: [graph('hugegraph', '记忆图'), graph('default_only', '默认空间专属图')],
-    soc_graph: [graph('hugegraph', '记忆图'), graph('second', '测试图')],
+    DEFAULT: [graph('DEFAULT', 'hugegraph', '记忆图'), graph('DEFAULT', 'default_only', '默认空间专属图')],
+    soc_graph: [graph('soc_graph', 'hugegraph', '记忆图'), graph('soc_graph', 'second', '测试图')],
 };
+const hasFixtureScope = scope => Object.entries(graphsBySpace).some(([space, graphs]) => (
+    graphs.some(item => scope === `${space}/graphs/${item.name}`)
+));
+function graphViewFixture(method, pathname) {
+    const prefix = '/graphspaces/', suffix = '/schema/graphview';
+    const scope = pathname.startsWith(prefix) && pathname.endsWith(suffix)
+        ? pathname.slice(prefix.length, -suffix.length) : '';
+    if (!hasFixtureScope(scope)) return {status: 404};
+    if (method !== 'GET') return {status: 405};
+    return {status: 200, data: {vertices: [], edges: []}};
+}
 const now = 1792757451000;
 const node = (n) => ({ id: `pd-${n}`, name: `PD ${n}`, type: 'PD', role: n === 1 ? 'LEADER' : 'FOLLOWER', status: 'UP', observed_at: now, metrics: {}, metric_statuses: { system: { availability: 'UNSUPPORTED', reason: 'metrics_not_collected', observed_at: now, fresh: false, stale: false } } });
-const source = { status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', observed_at: now, last_success_at: now, fresh: false, stale: false, diagnostics: { affected_node_count: 1, failed_metric_groups: ['system'], pd_metric_mapping: { configured_origin: 'http://pd-service:8620', status: 'no_match', matched_nodes: 0, discovered_nodes: 3, omitted_members: 0, members: [1, 2, 3].map(n => ({ node_id: 'pd-' + n, origin: 'http://pd-' + n + ':8620', endpoint_valid: true, origin_matches: false, base_path_matches: true })) } }, cluster_state: 'Cluster_Not_Ready', data_state: 'PState_Normal' };
+const source = { status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', observed_at: now, last_success_at: now, fresh: false, stale: false, diagnostics: { affected_node_count: 1, failed_metric_groups: ['system'], pd_endpoint_metrics: { metrics: { process_cpu_usage: 0.125, heap_used_bytes: 1048576 }, metric_status: { availability: 'AVAILABLE', observed_at: now, fresh: true, stale: false } }, pd_metric_mapping: { configured_origin: 'http://pd-service:8620', status: 'no_match', matched_nodes: 0, discovered_nodes: 3, omitted_members: 0, members: [1, 2, 3].map(n => ({ node_id: 'pd-' + n, origin: 'http://pd-' + n + ':8620', endpoint_valid: true, origin_matches: false, base_path_matches: true })) } }, cluster_state: 'Cluster_Not_Ready', data_state: 'PState_Normal' };
 function mobileOverviewFixture() {
     const observed = {availability: 'AVAILABLE', observed_at: now, last_success_at: now, fresh: true, stale: false};
     const mainNode = (type, index) => ({id: `${type.toLowerCase()}-mobile-${index}`, type,
@@ -50,12 +61,14 @@ function mobileOverviewFixture() {
         status: type === 'SERVER' ? 'UP' : 'UNKNOWN', observed_at: now,
         metrics: type === 'STORE' ? {backend: {leaders: index}} : {},
         metric_statuses: {system: type === 'SERVER' ? observed
-            : {...observed, availability: 'UNAVAILABLE', reason: 'metric_unavailable'}}});
+            : {...observed, availability: 'UNAVAILABLE', reason: 'metric_unavailable'}},
+        ...(type === 'STORE' ? {readiness: {status: 'NOT_READY', state: 'STARTING', stale: false},
+            process_lifecycle: {state: 'STARTED', observed_at: now, stale: false}} : {})});
     const computeNode = role => ({id: role.toLowerCase(), name: `${role.toLowerCase()}-mobile`, role,
         status: 'UP', ready: true, group: 'default', version: '1.8.0', observed_at: now,
         checks: {registered: true, connection_ready: true, load_stream_ready: true,
             compute_stream_ready: true, superstep_stream_ready: true},
-        metrics: {cpu_cores: role === 'MASTER' ? 0.12 : 0.42, rss_bytes: 1288490189},
+        metrics: {cpu_cores: role === 'MASTER' ? 0.12000000000000001 : 0.42, rss_bytes: 1288490189},
         metric_status: observed});
     return {status: 'DEGRADED', main_cluster_status: 'DEGRADED', reason: 'cluster_not_ready',
         observed_at: now, stale: false,
@@ -81,7 +94,7 @@ function queryFixture(method, pathname, body, truncated = false) {
     const scope = pathname.startsWith(prefix) && pathname.endsWith(suffix)
         ? pathname.slice(prefix.length, -suffix.length) : '';
     const queries = {'DEFAULT/graphs/hugegraph': 'g.V()', 'soc_graph/graphs/second': 'g.V().limit(2)'};
-    if (!Object.hasOwn(queries, scope) && scope !== 'soc_graph/graphs/hugegraph') return {status: 404};
+    if (!hasFixtureScope(scope)) return {status: 404};
     if (method === 'GET') return {status: 200, data: {vertexcount: null, edgecount: null}};
     if (method !== 'POST') return {status: 405};
     if (!queries[scope] || body?.content !== queries[scope] || body?.preview !== true) return {status: 400};
@@ -96,7 +109,7 @@ function queryFixture(method, pathname, body, truncated = false) {
 async function setup(browser, auth) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'Asia/Taipei' });
     await context.addInitScript(() => localStorage.setItem('languageType', 'zh-CN'));
-    const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, taskLookups: 0, taskSubmitted: false,
+    const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, graphGate: null, taskLookups: 0, taskSubmitted: false,
         operationsOverview: null, extraCapabilities: [] };
     const capabilities = ['graphspaces_read', 'operations_health_read', 'operations_topology_read', ...(auth ? ['accounts_manage', 'model_settings_manage'] : [])];
     await context.route('**/api/v*/**', async (route) => {
@@ -181,6 +194,9 @@ async function setup(browser, auth) {
         else if (p.endsWith('/graphs')) {
             const graphSpace = p.split('/')[2];
             assert(graphsBySpace[graphSpace], `Unexpected graph-list scope: ${graphSpace}`);
+            if (state.graphGate) {
+                await state.graphGate;
+            }
             data = pageResult(graphsBySpace[graphSpace], url.searchParams.get('selected'));
         }
         else if (p.endsWith('/graph_read_mode'))
@@ -191,6 +207,12 @@ async function setup(browser, auth) {
             data = { configured: false, available: false };
         else if (p.endsWith('/text2gql/config'))
             data = { available: false, custom_available: true, reason: 'not_configured' };
+        else if (p.endsWith('/schema/graphview')) {
+            const response = graphViewFixture(method, p);
+            if (response.status !== 200) unexpected.add(`${method} ${p}`);
+            await route.fulfill({status: response.status, contentType: 'application/json', body: JSON.stringify(response)});
+            return;
+        }
         else if (p.endsWith('/schema/edgelabels') || p.endsWith('/schema/propertykeys'))
             data = { records: [] };
         else if (p.endsWith('/schema/vertexlabels'))
@@ -454,6 +476,9 @@ async function main() {
             await page.goto(base + '/operations/nodes?type=PD&source=pd#operations-source-diagnostics');
             await page.locator('summary').filter({hasText: '检查地址与修复方法'}).click();
             await page.getByText('最近拓扑采集成功', { exact: false }).waitFor();
+            await page.getByText('配置的 PD 端点样本', {exact: true}).waitFor();
+            await page.getByText(/不代表某个节点或整个集群的总量/).waitFor();
+            await page.getByText('12.5%', {exact: true}).waitFor();
             const repair = await page.locator('details.operations-diagnostic-details').filter({
                 has: page.locator('summary').filter({hasText: '检查地址与修复方法'}),
             }).innerText();
@@ -461,10 +486,10 @@ async function main() {
                 assert(repair.includes(detail), `Missing actionable PD repair detail: ${detail}`);
             }
             assert(/重启[^。]*Hubble|Hubble[^。]*重启/.test(repair), 'Missing Hubble restart guidance');
-            await page.getByText('尚未采集系统指标', { exact: false }).first().waitFor();
+            await page.getByText('尚未采集节点系统指标', { exact: false }).first().waitFor();
             assert.equal(await page.getByText(/来源可能在发现节点前/).count(), 0);
             await page.getByText('http://pd-service:8620', { exact: true }).waitFor();
-            await page.getByText(/受影响的 PD 采集端点:\s*1/).waitFor();
+            await page.getByText(/未归属节点的 PD 采集端点:\s*1/).waitFor();
             await page.getByText(/Hubble 只采集一个匹配的 PD 成员的系统指标/).waitFor();
             await page.getByText('没有匹配节点', { exact: true }).waitFor();
             await page.getByText('0 / 3', { exact: true }).waitFor();
@@ -516,11 +541,22 @@ async function main() {
                 await page.getByRole('heading', {name: state.operationsOverview.nodes[0].name, exact: true}).waitFor();
                 await page.locator('.operations-node-detail .operations-page-header button').first().click();
                 await topology.waitFor();
+                if (width === 375) {
+                    const store = topology.locator('.tier-store .operations-topology-node').first();
+                    await store.click();
+                    const process = page.getByRole('region', {name: 'Store 进程生命周期'});
+                    await process.getByText('已启动', {exact: true}).waitFor();
+                    await process.getByText(/不能证明 PD 成员状态、分区健康或读写已就绪/).waitFor();
+                    await page.getByRole('region', {name: '服务就绪状态'}).getByText('未就绪', {exact: true}).waitFor();
+                    await page.locator('.operations-node-detail .operations-page-header button').first().click();
+                    await topology.waitFor();
+                }
                 const summary = page.getByRole('button', {name: '查看计算集群', exact: true});
                 await assertUsableControl(summary);
                 await summary.click();
                 await page.locator('.operations-vermeer-workbench').waitFor();
                 assert.equal(await page.locator('.operations-vermeer-node').count(), 2);
+                assert.equal(await page.getByText('已采集 2 / 2 个节点', {exact: true}).count(), 2);
                 assert.deepEqual(await page.locator('.operations-vermeer-resource-fact strong').allTextContents(),
                     ['0.54 核', '2.4 GiB']);
                 await assertNoHorizontalOverflow(page);
@@ -553,6 +589,26 @@ async function main() {
             await anonymous.page.getByText('图模式', { exact: true }).click();
             await screenshot(anonymous.page, 'graphspace-anonymous');
         });
+        await check('algorithm search waits for selected graph in authenticated and anonymous modes', async () => {
+            for (const item of [{page, state}, anonymous]) {
+                let release;
+                item.state.graphGate = new Promise(resolve => { release = resolve; });
+                try {
+                    await item.page.goto(base + '/algorithms/DEFAULT/hugegraph');
+                    const search = item.page.getByPlaceholder('算法查询', {exact: true});
+                    await search.waitFor({state: 'visible'});
+                    assert(await search.isDisabled(), 'Search must be disabled while graph options are pending');
+                    release();
+                    const unrelated = item.page.getByText('查找所有路径（GET，基础版）', {exact: true}).first();
+                    await unrelated.waitFor({state: 'visible'});
+                    await search.fill('查找最短路径');
+                    await item.page.getByText('查找最短路径', {exact: true}).first().waitFor({state: 'visible'});
+                    await unrelated.waitFor({state: 'hidden'});
+                    assert.equal(await search.inputValue(), '查找最短路径');
+                }
+                finally { release(); item.state.graphGate = null; }
+            }
+        });
     }
     catch (e) {
         failure = e.message;
@@ -574,4 +630,4 @@ async function main() {
 if (require.main === module) {
     main().catch(error => { console.error(error.stack); process.exitCode = 1; });
 }
-module.exports = {sessionFixture, queryFixture};
+module.exports = {sessionFixture, queryFixture, graphViewFixture, graphsBySpace};

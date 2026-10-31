@@ -50,7 +50,9 @@ jest.mock('../OlapHome', () => props => (
         </button>
     </div>
 ));
-jest.mock('../../AlgorithmSearch', () => () => <div>algorithm search</div>);
+jest.mock('../../AlgorithmSearch', () => ({disabled}) => (
+    <input aria-label='algorithm search' disabled={disabled} />
+));
 jest.mock('react-router-dom', () => ({
     Link: ({to, children}) => <a href={to}>{children}</a>,
 }));
@@ -60,6 +62,23 @@ jest.mock('react-i18next', () => ({
 
 beforeEach(() => {
     mockFinishOltp = undefined;
+});
+
+test('enables catalog search only after both graph scope components resolve', () => {
+    const view = render(<AlgorithmFormHome graphSpace={null} graph={null} />);
+    expect(screen.getByRole('textbox', {name: 'algorithm search'})).toBeDisabled();
+
+    view.rerender(<AlgorithmFormHome graphSpace='DEFAULT' graph={undefined} />);
+    expect(screen.getByRole('textbox', {name: 'algorithm search'})).toBeDisabled();
+
+    view.rerender(<AlgorithmFormHome graphSpace='DEFAULT' graph='hugegraph' />);
+    expect(screen.getByRole('textbox', {name: 'algorithm search'})).toBeEnabled();
+
+    view.rerender(<AlgorithmFormHome graphSpace='DEFAULT' graph={undefined} />);
+    expect(screen.getByRole('textbox', {name: 'algorithm search'})).toBeDisabled();
+
+    view.rerender(<AlgorithmFormHome graphSpace='DEFAULT' graph='another' />);
+    expect(screen.getByRole('textbox', {name: 'algorithm search'})).toBeEnabled();
 });
 
 const renderForm = graphNums => render(

@@ -21,7 +21,7 @@ const os = require('node:os');
 const path = require('node:path');
 const {spawnSync} = require('node:child_process');
 const {REQUIRED_CHECKS, validateReport, main} = require('./run_ui_deployment_regressions');
-const {sessionFixture, queryFixture} = require('./run_ui_deployment_regressions_impl');
+const {sessionFixture, queryFixture, graphViewFixture, graphsBySpace} = require('./run_ui_deployment_regressions_impl');
 
 function passing() {
     return {status: 'passed', checks: REQUIRED_CHECKS.map(name => ({name, status: 'passed'})),
@@ -181,5 +181,23 @@ test('synchronous query fixture rejects a wrong method, scope or query instead o
         const response = queryFixture(method, endpoint, content);
         assert.equal(response.status, status);
         assert.equal(response.data, undefined);
+    }
+});
+
+test('graph card fixtures accept only existing graphs in their own GraphSpace', () => {
+    for (const [space, graphs] of Object.entries(graphsBySpace)) {
+        for (const graph of graphs) assert.equal(graph.graphspace, space);
+    }
+    for (const scope of ['DEFAULT/graphs/hugegraph', 'DEFAULT/graphs/default_only',
+        'soc_graph/graphs/hugegraph', 'soc_graph/graphs/second']) {
+        const base = `/graphspaces/${scope}`;
+        assert.equal(graphViewFixture('GET', `${base}/schema/graphview`).status, 200);
+        assert.equal(queryFixture('GET', `${base}/gremlin-query`).status, 200);
+        assert.equal(graphViewFixture('POST', `${base}/schema/graphview`).status, 405);
+    }
+    for (const path of ['/graphspaces/DEFAULT/graphs/second',
+        '/graphspaces/soc_graph/graphs/default_only', '/graphspaces/missing/graphs/hugegraph']) {
+        assert.equal(graphViewFixture('GET', `${path}/schema/graphview`).status, 404);
+        assert.equal(queryFixture('GET', `${path}/gremlin-query`).status, 404);
     }
 });

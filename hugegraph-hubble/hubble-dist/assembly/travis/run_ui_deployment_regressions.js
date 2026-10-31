@@ -35,6 +35,7 @@ const REQUIRED_CHECKS = Object.freeze([
     'PD unmapped metrics have localized three-node source diagnostics',
     'mobile operations preserves readable main tiers and Store-row compute access',
     'anonymous GraphSpaces visible with account and mutation actions hidden',
+    'algorithm search waits for selected graph in authenticated and anonymous modes',
 ]);
 
 function validateReport(report) {

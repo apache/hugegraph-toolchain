@@ -28,7 +28,7 @@ import {useTranslation} from 'react-i18next';
 
 const AlgorithmSearch = props => {
     const {t} = useTranslation();
-    const {onSearch} = props;
+    const {onSearch, disabled = false} = props;
 
     const debounceOnChange = useMemo(
         () => {
@@ -45,6 +45,7 @@ const AlgorithmSearch = props => {
             <Input
                 placeholder={t('analysis.algorithm.placeholder')}
                 onChange={debounceOnChange}
+                disabled={disabled}
                 allowClear
             />
         </div>
