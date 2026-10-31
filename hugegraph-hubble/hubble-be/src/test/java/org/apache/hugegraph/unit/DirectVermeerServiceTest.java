@@ -179,6 +179,26 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
+    public void testPersonalPageRankUsesVermeerParameters() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
+               .thenReturn(Map.of("task", Map.of("id", 12)));
+        DirectVermeerService service = service(backend);
+        Map<String, Object> result = service.compute(graphClient(),
+                Map.of("compute.algorithm", "ppr", "ppr.source", "marko",
+                       "ppr.damping", 0.85, "ppr.diff_threshold", 0.00001));
+        Assert.assertEquals(-12, result.get("task_id"));
+        ArgumentCaptor<Map> body = ArgumentCaptor.forClass(Map.class);
+        Mockito.verify(backend).request(Mockito.eq("POST"), Mockito.eq("tasks/create"), body.capture());
+        Map<?, ?> params = (Map<?, ?>) body.getValue().get("params");
+        Assert.assertEquals("ppr", params.get("compute.algorithm"));
+        Assert.assertEquals("marko", params.get("ppr.source"));
+        Assert.assertEquals("0.85", params.get("ppr.damping"));
+        Assert.assertEquals("1.0E-5", params.get("ppr.diff_threshold"));
+        Assert.assertEquals("1", params.get("output.need_query"));
+    }
+
+    @Test
     public void testComputeReusesSafeOutputFilesPerGraph() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))

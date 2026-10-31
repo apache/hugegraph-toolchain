@@ -83,9 +83,10 @@ test.each([false, true])('does not expose either OLAP engine before confirmation
         .not.toBeInTheDocument();
     expect(screen.queryByTestId('olap-item')).not.toBeInTheDocument();
     view.rerender(home({isVermeer: true}));
-    expect(screen.getAllByTestId('olap-item')).toHaveLength(9);
+    expect(screen.getAllByTestId('olap-item')).toHaveLength(10);
     expect(screen.queryByText('Louvain')).not.toBeInTheDocument();
     expect(screen.getByText('SSSP')).toBeVisible();
+    expect(screen.getByText('PersonalPageRank')).toBeVisible();
     expect(api.analysis.getOlapCapability).not.toHaveBeenCalled();
 });
 

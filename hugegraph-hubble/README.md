@@ -1139,6 +1139,11 @@ OLAP offers a backend only after discovery is confirmed. Load a graph for Vermee
 from the OLAP tab, then inspect progress and results in async tasks.
 Changing the UI language retains graph results and submitted task IDs.
 
+PersonalPageRank is also available with a loaded Vermeer graph. This Chromium
+capture uses anonymous-mode local API fixtures and does not establish live results.
+
+![PersonalPageRank parameters in Vermeer](docs/assets/analytics/vermeer-personal-pagerank.png)
+
 The catalog's search and reset controls share a row, and long algorithm names
 remain aligned with their icons. These two screenshots use anonymous-mode local
 API fixtures in Chromium; they do not demonstrate a live computation.
