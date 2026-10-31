@@ -18,12 +18,13 @@
 
 .panelHeader {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     min-width: 0;
 
     .panelHeaderIcon {
         margin-left: -4px;
         flex-shrink: 0;
+        line-height: 1.35;
     }
 
     .panelHeaderIconHighlight{

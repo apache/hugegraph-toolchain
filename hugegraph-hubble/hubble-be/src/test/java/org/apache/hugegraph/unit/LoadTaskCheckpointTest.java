@@ -108,12 +108,16 @@ public class LoadTaskCheckpointTest {
             HugeGraphLoader first = task.getLoader();
             task.run();
             Assert.assertEquals(LoadStatus.FAILED, task.getStatus());
+            Assert.assertEquals(Long.valueOf(9L), task.getConfirmedVertexWrites());
+            Assert.assertEquals(Long.valueOf(0L), task.getConfirmedEdgeWrites());
             Assert.assertEquals(9, server.rows.size());
             Assert.assertFalse(server.rows.contains("person2"));
             Assert.assertTrue(first.context().closed());
             server.rejectName = null;
             this.resume(task);
             Assert.assertEquals(LoadStatus.SUCCEED, task.getStatus());
+            // This is the resumed attempt, not the previous attempt plus retry.
+            Assert.assertEquals(Long.valueOf(10L), task.getConfirmedVertexWrites());
             Assert.assertEquals("The failed row must be read and inserted on resume", 10, server.rows.size());
             Assert.assertTrue(server.rows.contains("person2"));
             this.assertNoCheckpoint(task, first);

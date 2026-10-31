@@ -877,3 +877,32 @@ test.each(['replace', 'patch'] as const)('%s detaches writable engine records fo
         expect(controller.getSnapshot().data.edges[0].data.raw).not.toHaveProperty('~hubble_properties_preview');
     } finally { await controller.dispose(); }
 });
+
+test.each(['replace', 'patch'] as const)('%s keeps lossless numbers opaque to real G6 history', async operation => {
+    const runtime = new G6Runtime(document.createElement('div'));
+    const controller = new GraphController(runtime);
+    const JSONbig = jest.requireActual('json-bigint') as (options: {alwaysParseAsBig: boolean}) => {
+        parse(text: string): Record<string, unknown>; stringify(value: unknown): string;
+    };
+    const json = JSONbig({alwaysParseAsBig: true});
+    const graph = data(1);
+    graph.nodes[0].data.raw = json.parse('{"score":9223372036854775807}');
+    try {
+        await controller.replaceData(graph, {layout: false, fit: false});
+        const previous = {...mockData.nodes[0]};
+        const changed = data(1);
+        changed.nodes[0].data.raw = json.parse('{"score":9223372036854775807,"changed":true}');
+        const align = jest.fn(() => {
+            parseCommand([{type: 'NodeUpdated', original: previous, value: mockData.nodes[0]}]);
+        });
+        mockEngine.draw.mockImplementationOnce(async () => {
+            align();
+        });
+        if (operation === 'replace') await controller.replaceData(changed, {layout: false, fit: false});
+        else await controller.updateElements(changed);
+        expect(align).toHaveBeenCalledTimes(1);
+        expect(controller.getSnapshot().status).toBe('ready');
+        expect(json.stringify(controller.getSnapshot().data.nodes[0].data.raw))
+            .toBe('{"score":9223372036854775807,"changed":true}');
+    } finally { await controller.dispose(); }
+});

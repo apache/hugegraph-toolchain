@@ -27,7 +27,6 @@ import {useTranslation} from 'react-i18next';
 import {
     ALGORITHM_NAME,
     isAlgorithmNameMatched,
-    useTranslatedConstants,
 } from '../../../../utils/constants';
 import OltpItem from '../Oltp/OltpItem';
 import c from './index.module.scss';
@@ -92,8 +91,6 @@ const OltpFormHome = props => {
         updateCurrentAlgorithm,
     } =  props;
     const {t} = useTranslation();
-    const {ALGORITHM_MODE} = useTranslatedConstants();
-    const {OLTP} = ALGORITHM_MODE;
     const getSearchedList = (arr, value) => {
         return arr.filter(item => isAlgorithmNameMatched(item, value, t));
     };
@@ -107,7 +104,6 @@ const OltpFormHome = props => {
     return (
         <div>
             {isEmptyBasicOltp && <Empty description={t('query_result.empty')} />}
-            {!isEmptyBasicOltp && (<div className={c.algorithmCatagery}>{OLTP}</div>)}
             {visibleGroups.map(group => (
                 <div key={group.key}>
                     <div className={c.algorithmGoal}>

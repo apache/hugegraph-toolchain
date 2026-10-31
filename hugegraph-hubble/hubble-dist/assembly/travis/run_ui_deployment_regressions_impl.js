@@ -110,6 +110,7 @@ async function setup(browser, auth) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'Asia/Taipei' });
     await context.addInitScript(() => localStorage.setItem('languageType', 'zh-CN'));
     const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, graphGate: null, taskLookups: 0, taskSubmitted: false,
+        statisticsScenario: false,
         operationsOverview: null, extraCapabilities: [] };
     const capabilities = ['graphspaces_read', 'operations_health_read', 'operations_topology_read', ...(auth ? ['accounts_manage', 'model_settings_manage'] : [])];
     await context.route('**/api/v*/**', async (route) => {
@@ -197,16 +198,24 @@ async function setup(browser, auth) {
             if (state.graphGate) {
                 await state.graphGate;
             }
-            data = pageResult(graphsBySpace[graphSpace], url.searchParams.get('selected'));
+            data = pageResult(graphsBySpace[graphSpace].map(item => ({...item, graphspace: graphSpace})),
+                url.searchParams.get('selected'));
         }
         else if (p.endsWith('/graph_read_mode'))
             data = { status: '1' };
         else if (p === '/vermeer')
-            data = { enable: Boolean(state.operationsOverview?.vermeer?.configured) };
+            data = { enable: Boolean(state.statisticsScenario || state.operationsOverview?.vermeer?.configured),
+                statistics_available: state.statisticsScenario };
         else if (p === '/dashboard')
             data = { configured: false, available: false };
         else if (p.endsWith('/text2gql/config'))
             data = { available: false, custom_available: true, reason: 'not_configured' };
+        else if (state.statisticsScenario && p === '/graphspaces/soc_graph/graphs/second/statistics/vermeer'
+                 && method === 'GET') {
+            await route.fulfill({status: 400, contentType: 'application/json', body: JSON.stringify({status: 400,
+                message: 'Load this graph from OLAP graph compute before collecting Vermeer statistics'})});
+            return;
+        }
         else if (p.endsWith('/schema/graphview')) {
             const response = graphViewFixture(method, p);
             if (response.status !== 200) unexpected.add(`${method} ${p}`);
@@ -235,6 +244,13 @@ async function setup(browser, auth) {
             data = taskResult;
         else if (p.endsWith('/async-tasks'))
             data = pageResult([]); // The scheduler metadata must discover this task before the list does.
+        else if (p === '/ingest/jobs/list' && method === 'GET' && url.searchParams.get('taskid') === '42')
+            data = pageResult([{job_id: 7, job_status: 'SUCCEED', job_metrics: {total_count: 2,
+                confirmed_vertex_writes: 1, confirmed_edge_writes: 0, avg_rate: 1, total_time: 2000}},
+                {job_id: 8, job_status: 'SUCCEED', job_metrics: {total_count: 2, avg_rate: 1, total_time: 2000}}]);
+        else if (p === '/ingest/datasources/list' && method === 'GET')
+            data = pageResult([{datasource_id: 1, datasource_name: 'fixture-source', datasource_config: {type: 'FILE'},
+                creator: auth ? 'smoke_admin' : '', create_time: '2026-10-31'}]);
         else if (p === '/operations/nodes')
             data = state.operationsOverview
                 ? {items: state.operationsOverview.nodes, total: state.operationsOverview.nodes.length,
@@ -248,7 +264,7 @@ async function setup(browser, auth) {
         else if (p.endsWith('/is_auth'))
             data = { auth: false };
         else if (p.endsWith('/get'))
-            data = { name: p.split('/')[4], nickname: '记忆图' };
+            data = { name: p.split('/')[4], nickname: '记忆图', ...(state.statisticsScenario ? {status: 'created'} : {}) };
         else {
             unexpected.add(`${method} ${p}`);
             data = {};
@@ -400,6 +416,26 @@ async function main() {
             await page.getByRole('group', {name: '节点：当前结果 2；全图总数未获取', exact: true}).waitFor();
             await screenshot(page, 'graph-context-switch');
         });
+        await check('unloaded Vermeer statistics gives a scoped graph compute entry', async () => {
+            state.statisticsScenario = true;
+            await page.goto(base + '/graphspace/soc_graph');
+            const card = page.locator('.ant-card').filter({has: page.getByTitle('soc_graph-测试图', {exact: true})});
+            await card.waitFor();
+            const select = card.getByRole('button', {name: '选择点边统计来源'});
+            await assertUsableControl(select);
+            await select.click();
+            await page.getByRole('menuitem', {name: '图计算统计（已加载快照）'}).click();
+            const guidance = card.getByRole('status');
+            await guidance.getByText('请先将此图加载到 Vermeer，再采集图计算统计', {exact: true}).waitFor();
+            const open = guidance.getByRole('link', {name: '前往图计算', exact: true});
+            await assertUsableControl(open);
+            await screenshot(page, 'vermeer-statistics-load-guidance');
+            await open.click();
+            await page.waitForURL('**/algorithms/soc_graph/second?engine=olap');
+            await page.getByRole('button', {name: '加载到图计算', exact: true}).waitFor();
+            assert.equal(await page.getByRole('tab', {name: 'OLAP 全图计算'}).getAttribute('aria-selected'), 'true');
+            state.statisticsScenario = false;
+        });
         await check('core query actions are usable at desktop and compact widths', async () => {
             for (const width of [1440, 1024]) {
                 await page.setViewportSize({width, height: 1000});
@@ -499,10 +535,51 @@ async function main() {
             await page.setViewportSize({width: 1440, height: 1600});
             await screenshot(page, 'pd-unmapped-diagnostics');
             await page.setViewportSize({width: 1440, height: 1000});
+            const filters = page.locator('.operations-filters');
+            const search = filters.getByRole('textbox', {name: '搜索节点名称'});
+            const submit = filters.getByRole('button', {name: '搜索', exact: true});
+            await search.fill('pd-2');
+            await Promise.all([
+                page.waitForRequest(req => {
+                    const url = new URL(req.url());
+                    return url.pathname.endsWith('/operations/nodes') &&
+                        url.searchParams.get('query') === 'pd-2';
+                }),
+                submit.click(),
+            ]);
+            assert.equal(new URL(page.url()).searchParams.get('query'), 'pd-2');
+            await page.setViewportSize({width: 375, height: 1000});
+            await submit.scrollIntoViewIfNeeded();
+            const bounds = await submit.boundingBox();
+            assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= 375,
+                'Node search button must remain visible on a narrow screen');
+            await page.setViewportSize({width: 1440, height: 1000});
         });
         await check('mobile operations preserves readable main tiers and Store-row compute access', async () => {
             state.operationsOverview = mobileOverviewFixture();
             state.extraCapabilities = ['operations_metrics_read'];
+            for (const width of [1440, 375]) {
+                await page.setViewportSize({width, height: 900});
+                await page.goto(base + '/operations/overview?view=nodes');
+                const section = page.getByRole('region', {name: 'Vermeer 计算集群'});
+                const entry = section.getByRole('button', {name: '查看计算集群', exact: true});
+                await entry.waitFor();
+                const layout = await section.evaluate(element => {
+                    const sectionBox = element.getBoundingClientRect();
+                    const buttonBox = element.querySelector('button').getBoundingClientRect();
+                    return {sectionWidth: sectionBox.width, buttonWidth: buttonBox.width,
+                        sectionLeft: sectionBox.left, buttonLeft: buttonBox.left};
+                });
+                assert(Math.abs(layout.sectionWidth - layout.buttonWidth) <= 1
+                    && Math.abs(layout.sectionLeft - layout.buttonLeft) <= 1,
+                'List-mode compute entry must fill its separate section instead of floating right');
+                await assertNoHorizontalOverflow(page);
+                await assertUsableControl(entry);
+                await entry.click();
+                await page.locator('.operations-vermeer-workbench').waitFor();
+                await page.getByRole('button', {name: '返回主集群', exact: true}).click();
+                await section.waitFor();
+            }
             for (const width of [320, 375]) {
                 await page.setViewportSize({width, height: 900});
                 await page.goto(base + '/operations/overview');
@@ -607,6 +684,28 @@ async function main() {
                     assert.equal(await search.inputValue(), '查找最短路径');
                 }
                 finally { release(); item.state.graphGate = null; }
+            }
+        });
+        await check('import write counts and datasource creator distinguish recorded and unknown values', async () => {
+            for (const item of [{page, state}, anonymous]) {
+                await item.page.goto(base + '/task/detail/42');
+                const row = item.page.locator('tbody tr').filter({hasText: '7'}).first();
+                await row.waitFor({state: 'visible'});
+                const cells = row.locator('td');
+                assert.equal((await cells.nth(2).innerText()).trim(), '2');
+                assert.equal((await cells.nth(3).innerText()).trim(), '1');
+                assert.equal((await cells.nth(4).innerText()).trim(), '0');
+                const legacyCells = item.page.locator('tbody tr').filter({hasText: '8'}).first().locator('td');
+                assert.equal((await legacyCells.nth(3).innerText()).trim(), '-');
+                assert.equal((await legacyCells.nth(4).innerText()).trim(), '-');
+                assert(await item.page.locator('thead').getByText('已确认写入顶点数', {exact: true}).isVisible());
+                assert(await item.page.locator('thead').getByText('已确认写入边数', {exact: true}).isVisible());
+                if (item.state.auth) await screenshot(item.page, 'import-write-metrics');
+                await item.page.goto(base + '/source');
+                const sourceRow = item.page.locator('tbody tr').filter({hasText: 'fixture-source'}).first();
+                await sourceRow.waitFor({state: 'visible'});
+                assert(await sourceRow.getByText(item.state.auth ? 'smoke_admin' : '未记录', {exact: true}).isVisible());
+                if (item.state.auth) await screenshot(item.page, 'datasource-creator');
             }
         });
     }

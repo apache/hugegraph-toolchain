@@ -21,7 +21,7 @@
  */
 
 import {useCallback, useState} from 'react';
-import {Button, Space, Tabs} from 'antd';
+import {Button, Tabs} from 'antd';
 import OlapFormHome from '../OlapHome';
 import OltpFormHome from '../OltpHome';
 import AlgorithmSearch from '../../AlgorithmSearch';
@@ -68,12 +68,12 @@ const AlgorithmFormHome = props => {
                     {key: 'olap', label: t('analysis.algorithm.olap_tab')},
                 ]}
             />
-            <AlgorithmSearch onSearch={handleSearch} disabled={!graphSpace || !graph} />
-            <Space className={c.docs} wrap size={12}>
-                <Button type='link' size='small' onClick={resetParameters}>
+            <div className={c.searchBar}>
+                <AlgorithmSearch onSearch={handleSearch} disabled={!graphSpace || !graph} />
+                <Button type='link' onClick={resetParameters}>
                     {t('analysis.algorithm.reset_parameters')}
                 </Button>
-            </Space>
+            </div>
             <div hidden={engine !== 'oltp'}>
                 <OltpFormHome
                     key={`oltp-${formVersion}`}

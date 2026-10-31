@@ -28,6 +28,7 @@ const REQUIRED_CHECKS = Object.freeze([
     'GraphSpace menu edit does not navigate and current quota is editable',
     'late GraphSpace details cannot overwrite a newly opened editor',
     'Graph context switches via actual header selectors',
+    'unloaded Vermeer statistics gives a scoped graph compute entry',
     'core query actions are usable at desktop and compact widths',
     'routine query limit is quiet canvas note without unknown totals',
     'truncation is compact with details on demand',
@@ -36,6 +37,7 @@ const REQUIRED_CHECKS = Object.freeze([
     'mobile operations preserves readable main tiers and Store-row compute access',
     'anonymous GraphSpaces visible with account and mutation actions hidden',
     'algorithm search waits for selected graph in authenticated and anonymous modes',
+    'import write counts and datasource creator distinguish recorded and unknown values',
 ]);
 
 function validateReport(report) {
@@ -65,13 +67,14 @@ function validateReport(report) {
 
 const screenshotNames = new Set([
     'graphspace-authenticated', 'graphspace-edit', 'graph-context-switch',
+    'vermeer-statistics-load-guidance',
     'query-routine-limit', 'query-truncated', 'query-preview-details',
     'query-core-1440', 'query-core-1024',
     'query-core-1440', 'query-core-1024',
     'async-task-submitted', 'async-task-result-limit', 'pd-unmapped-diagnostics',
     'operations-mobile-320', 'operations-mobile-375',
     'operations-mobile-compute-320', 'operations-mobile-compute-375',
-    'graphspace-anonymous', 'failure',
+    'graphspace-anonymous', 'import-write-metrics', 'datasource-creator', 'failure',
 ].map(name => `${name}.png`));
 function main({outputDir, env = process.env, argv = process.argv.slice(2), spawn = spawnSync,
     log = console.error} = {}) {

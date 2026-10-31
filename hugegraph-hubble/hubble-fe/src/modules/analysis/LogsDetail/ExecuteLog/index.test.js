@@ -270,6 +270,23 @@ test('reports clipboard failures from the history statement', async () => {
     });
 });
 
+test('copies a history statement when the Clipboard API is unavailable', async () => {
+    Object.defineProperty(navigator, 'clipboard', {configurable: true, value: undefined});
+    const copy = jest.fn(() => {
+        expect(document.activeElement.value).toBe('g.V()');
+        return true;
+    });
+    document.execCommand = copy;
+    const {copyStatement} = require('./index');
+    try {
+        await copyStatement('g.V()', key => key);
+        expect(copy).toHaveBeenCalledWith('copy');
+        expect(message.success).toHaveBeenCalledWith('analysis.logs.copy_success');
+        expect(document.querySelector('textarea')).toBeNull();
+    }
+    finally { delete document.execCommand; }
+});
+
 test.each(['Original question', undefined])('loads a history statement and optional question (%s)', text => {
     const queryBar = document.createElement('div');
     queryBar.id = 'queryBar';
