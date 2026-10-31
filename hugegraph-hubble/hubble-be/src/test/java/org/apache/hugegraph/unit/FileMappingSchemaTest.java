@@ -36,6 +36,33 @@ import org.apache.hugegraph.testutil.Assert;
 public class FileMappingSchemaTest {
 
     @Test
+    public void testWriteMetricsMigrationLeavesOldCountsUnknown() throws Exception {
+        try (Connection conn = DriverManager.getConnection("jdbc:h2:mem:legacy_load_metrics")) {
+            ScriptUtils.executeSqlScript(conn, new FileSystemResource(this.mainSchemaPath()));
+            try (Statement statement = conn.createStatement()) {
+                statement.execute("ALTER TABLE load_task DROP COLUMN confirmed_vertex_writes");
+                statement.execute("ALTER TABLE load_task DROP COLUMN confirmed_edge_writes");
+                statement.execute("INSERT INTO load_task " +
+                                  "(id, graphspace, graph, file_id, file_name, options, vertices, edges, " +
+                                  "file_total_lines, load_status, file_read_lines, last_duration, " +
+                                  "curr_duration, create_time) VALUES " +
+                                  "(1, 'DEFAULT', 'graph', 1, 'file', '{}', '[]', '[]', " +
+                                  "1, 0, 1, 0, 0, CURRENT_TIMESTAMP)");
+            }
+            ScriptUtils.executeSqlScript(conn, new FileSystemResource(this.mainSchemaPath()));
+            // Startup migration can run again without inventing values for old records.
+            ScriptUtils.executeSqlScript(conn, new FileSystemResource(this.mainSchemaPath()));
+            try (Statement statement = conn.createStatement();
+                 ResultSet result = statement.executeQuery(
+                         "SELECT confirmed_vertex_writes, confirmed_edge_writes FROM load_task WHERE id = 1")) {
+                Assert.assertTrue(result.next());
+                Assert.assertNull(result.getObject(1));
+                Assert.assertNull(result.getObject(2));
+            }
+        }
+    }
+
+    @Test
     public void testFileMappingStoresDeepUploadPath() throws Exception {
         String url = "jdbc:h2:mem:file_mapping_deep_path;DB_CLOSE_DELAY=-1";
         try (Connection conn = DriverManager.getConnection(url)) {

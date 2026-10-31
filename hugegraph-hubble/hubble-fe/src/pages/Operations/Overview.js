@@ -533,9 +533,15 @@ const Overview = () => {
                                                 size='small'
                                             />
                                         )}
-                                {(view === 'nodes' || nodes.length === 0) && (
-                                    <VermeerSummary cluster={data.vermeer}
-                                        onOpen={() => changeService('vermeer')} />
+                                {(view === 'nodes' || nodes.length === 0) && data.vermeer?.configured && (
+                                    <section className='operations-list-compute'
+                                        aria-labelledby='operations-list-compute-heading'>
+                                        <h3 id='operations-list-compute-heading'>
+                                            {t('operations.vermeer_cluster')}
+                                        </h3>
+                                        <VermeerSummary cluster={data.vermeer}
+                                            onOpen={() => changeService('vermeer')} />
+                                    </section>
                                 )}
                             </section>
                             <aside className='operations-facts'>

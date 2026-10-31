@@ -1,8 +1,8 @@
 # Vermeer as the default OLAP entry
 
 The algorithm sidebar explicitly identifies Vermeer as the default OLAP engine.
-An available, loaded Vermeer graph exposes the existing nine supported algorithms:
-PageRank, WCC, LPA, Degree Centrality, Closeness Centrality, Betweenness Centrality,
+An available, loaded Vermeer graph exposes ten supported algorithms:
+PageRank, PersonalPageRank, WCC, LPA, Degree Centrality, Closeness Centrality, Betweenness Centrality,
 Triangle Count, K-Core and SSSP. This matches `DirectVermeerService` and does not
 claim every native Vermeer algorithm is supported by Hubble. In particular,
 Louvain is not added to the Vermeer interface.

@@ -127,6 +127,8 @@ CREATE TABLE IF NOT EXISTS `load_task` (
     `file_total_lines` BIGINT NOT NULL,
     `load_status` TINYINT NOT NULL,
     `file_read_lines` BIGINT NOT NULL,
+    `confirmed_vertex_writes` BIGINT,
+    `confirmed_edge_writes` BIGINT,
     `last_duration` BIGINT NOT NULL,
     `curr_duration` BIGINT NOT NULL,
     `create_time` DATETIME(6) NOT NULL,
@@ -195,6 +197,8 @@ CREATE TABLE IF NOT EXISTS `text2gql_config` (
 -- Idempotent additions also upgrade existing model settings without rewriting credentials.
 ALTER TABLE `text2gql_config` ADD COLUMN IF NOT EXISTS `gremlin_prompt` CLOB;
 ALTER TABLE `text2gql_config` ADD COLUMN IF NOT EXISTS `cypher_prompt` CLOB;
+ALTER TABLE `load_task` ADD COLUMN IF NOT EXISTS `confirmed_vertex_writes` BIGINT;
+ALTER TABLE `load_task` ADD COLUMN IF NOT EXISTS `confirmed_edge_writes` BIGINT;
 
 -- Written only after the complete new schema has initialized successfully.
 CREATE TABLE IF NOT EXISTS "PUBLIC"."HUBBLE_SCHEMA_VERSION" (

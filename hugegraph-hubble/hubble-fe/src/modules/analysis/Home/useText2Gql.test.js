@@ -54,6 +54,36 @@ const configure = async result => {
     });
 };
 
+test('fills an editable example from the current graph label without replacing user input', async () => {
+    const translate = (_key, values) => `Show up to 10 vertices with label ${values.label}`;
+    const initial = {...props, t: translate};
+    const {result, rerender} = renderHook(value => useText2Gql(value), {initialProps: initial});
+    await waitFor(() => expect(result.current.sharedConfig.loading).toBe(false));
+    expect(result.current.question).toBe('');
+    rerender({...initial, vertexLabels: [{name: 'person'}]});
+    expect(result.current.question).toBe('Show up to 10 vertices with label "person"');
+    act(() => result.current.setQuestion(''));
+    rerender({...initial, vertexLabels: [{name: 'company'}]});
+    expect(result.current.question).toBe('');
+    act(() => result.current.setQuestion('My question'));
+    rerender({...initial, vertexLabels: [{name: 'other'}]});
+    expect(result.current.question).toBe('My question');
+});
+
+test('uses new graph schema only after a graph switch and ignores unusable labels', async () => {
+    const translate = (_key, values) => `label ${values.label}`;
+    const initial = {...props, t: translate, vertexLabels: [{name: 'person'}]};
+    const {result, rerender} = renderHook(value => useText2Gql(value), {initialProps: initial});
+    await waitFor(() => expect(result.current.sharedConfig.loading).toBe(false));
+    expect(result.current.question).toBe('label "person"');
+    const switched = {...initial, scope: {...initial.scope, graph: 'two', routeGraph: 'two'}, vertexLabels: undefined};
+    rerender(switched);
+    await waitFor(() => expect(result.current.sharedConfig.loading).toBe(false));
+    expect(result.current.question).toBe('');
+    rerender({...switched, vertexLabels: [{name: 'bad\nlabel'}, {name: 'company'}]});
+    expect(result.current.question).toBe('label "company"');
+});
+
 test('automatically executes the returned Gremlin and keeps its original question when rerunning edits', async () => {
     api.analysis.streamText2Gql.mockResolvedValue({status: 200,
         data: {valid: true, language: 'gremlin', query: 'g.V().limit(2)'}});

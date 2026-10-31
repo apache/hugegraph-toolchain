@@ -117,6 +117,7 @@ const Datasource = () => {
             dataIndex: 'creator',
             align: 'center',
             width: 200,
+            render: value => value || t('datasource.creator_not_recorded'),
         },
         {
             title: t('datasource.col.create_time'),

@@ -25,18 +25,21 @@ import {PinBridge, registerExtensions} from './extensions';
 import {adaptiveLayoutDefaults} from './layoutDefaults';
 import type {ControllerOptions, GraphLayout, GraphRuntime, RuntimeEvent} from './types';
 
-// Native history recursively aligns fields on previous raw records even for
-// draws excluded from history. Give the engine writable copies; controller
-// snapshots retain separate immutable ownership.
+// G6 history walks object prototypes recursively, even for excluded draws.
+// Keep the opaque business record in an array, which G6 treats atomically;
+// json-bigint values otherwise lead its history alignment into prototype cycles.
+// Engine records are detached from the controller's immutable snapshots.
+const toEngineElementData = ({raw, ...data}: NodeData) => ({...mutableCopy(data), raw: [mutableCopy(raw)]});
 const toEngineData = (data: Partial<GraphData>): EngineData => ({
-    ...(data.nodes ? {nodes: data.nodes.map(node => ({...node, data: {...mutableCopy(node.data)}, style: mutableCopy(node.style)}))} : {}),
-    ...(data.edges ? {edges: data.edges.map(edge => ({...edge, data: {...mutableCopy(edge.data)}, style: mutableCopy(edge.style)}))} : {}),
+    ...(data.nodes ? {nodes: data.nodes.map(node => ({...node, data: toEngineElementData(node.data), style: mutableCopy(node.style)}))} : {}),
+    ...(data.edges ? {edges: data.edges.map(edge => ({...edge, data: toEngineElementData(edge.data), style: mutableCopy(edge.style)}))} : {}),
 });
 const readNodeData = (data: Record<string, unknown> | undefined): NodeData => {
-    if (!data?.raw || typeof data.raw !== 'object' || Array.isArray(data.raw)) {
+    const raw = Array.isArray(data?.raw) && data.raw.length === 1 ? data.raw[0] : undefined;
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
         throw new Error('Engine element lost its original data record');
     }
-    return {...data, raw: data.raw as Record<string, unknown>};
+    return {...data, raw: raw as Record<string, unknown>};
 };
 const hasChanges = (command: Command): boolean => Object.values(command.current)
     .some((data: EngineData) => [data.nodes, data.edges, data.combos].some(items => Boolean(items?.length)));

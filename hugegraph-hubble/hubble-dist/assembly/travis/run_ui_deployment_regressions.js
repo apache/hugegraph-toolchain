@@ -31,6 +31,8 @@ const REQUIRED_CHECKS = Object.freeze([
     'partial import failure shows acknowledged writes and recovery guidance',
     'unloaded Vermeer statistics gives a scoped graph compute entry',
     'core query actions are usable at desktop and compact widths',
+    'canvas JSON upload targets the selected graph import endpoint',
+    'late canvas upload cannot replace the newly selected graph result',
     'routine query limit is quiet canvas note without unknown totals',
     'truncation is compact with details on demand',
     'async task ID remains visible in the selected graph and failure is actionable',
@@ -38,6 +40,7 @@ const REQUIRED_CHECKS = Object.freeze([
     'mobile operations preserves readable main tiers and Store-row compute access',
     'anonymous GraphSpaces visible with account and mutation actions hidden',
     'algorithm search waits for selected graph in authenticated and anonymous modes',
+    'import write counts and datasource creator distinguish recorded and unknown values',
 ]);
 
 function validateReport(report) {
@@ -74,7 +77,7 @@ const screenshotNames = new Set([
     'async-task-submitted', 'async-task-result-limit', 'pd-unmapped-diagnostics',
     'operations-mobile-320', 'operations-mobile-375',
     'operations-mobile-compute-320', 'operations-mobile-compute-375',
-    'graphspace-anonymous', 'failure',
+    'graphspace-anonymous', 'import-write-metrics', 'datasource-creator', 'failure',
 ].map(name => `${name}.png`));
 function main({outputDir, env = process.env, argv = process.argv.slice(2), spawn = spawnSync,
     log = console.error} = {}) {

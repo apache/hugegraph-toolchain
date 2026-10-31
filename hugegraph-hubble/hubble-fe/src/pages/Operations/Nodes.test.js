@@ -321,6 +321,15 @@ test('keeps the search input synchronized with URL history and clear actions', a
     await waitFor(() => expect(screen.getByLabelText('current query'))
         .toHaveTextContent('query=third'));
 
+    fireEvent.change(search, {target: {value: 'fourth'}});
+    expect(screen.getByLabelText('current query')).toHaveTextContent('query=third');
+    fireEvent.click(screen.getByRole('button', {name: 'Search', exact: true}));
+    await waitFor(() => expect(screen.getByLabelText('current query'))
+        .toHaveTextContent('query=fourth'));
+    await waitFor(() => expect(getNodes).toHaveBeenLastCalledWith(
+        expect.objectContaining({query: 'fourth', page: 1})
+    ));
+
     fireEvent.change(search, {target: {value: ''}});
     await waitFor(() => expect(screen.getByLabelText('current query'))
         .not.toHaveTextContent('query='));

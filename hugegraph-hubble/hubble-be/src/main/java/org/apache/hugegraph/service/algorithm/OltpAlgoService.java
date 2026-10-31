@@ -41,6 +41,7 @@ import org.apache.hugegraph.entity.query.EgonetView;
 import org.apache.hugegraph.entity.query.FusiformsimilarityView;
 import org.apache.hugegraph.entity.query.JaccardsimilarityView;
 import org.apache.hugegraph.entity.query.RanksView;
+import org.apache.hugegraph.exception.ExternalException;
 import org.apache.hugegraph.structure.traverser.CrosspointsRequest;
 import org.apache.hugegraph.structure.traverser.CustomizedCrosspoints;
 import org.apache.hugegraph.structure.traverser.CustomizedPathsRequest;
@@ -63,6 +64,7 @@ import org.apache.hugegraph.entity.query.GraphView;
 import org.apache.hugegraph.entity.query.GremlinResult;
 import org.apache.hugegraph.options.HubbleOptions;
 import org.apache.hugegraph.service.query.ExecuteHistoryService;
+import org.apache.hugegraph.structure.constant.Traverser;
 import org.apache.hugegraph.structure.graph.Edge;
 import org.apache.hugegraph.structure.graph.Path;
 import org.apache.hugegraph.structure.graph.Vertex;
@@ -507,10 +509,12 @@ public class OltpAlgoService {
             Steps.StepEntity stepEntity = new Steps.StepEntity(body.getLabel());
             builder.source(body.getSource()).maxDepth(body.getMaxDepth()).
                     nearest(body.isNearest()).capacity(body.getCapacity()).limit(body.getLimit()).
-                    withPath(false).withVertex(true).withEdge(true).
+                    withPath(true).withVertex(true).withEdge(true).
                     steps().direction(body.getDirection()).degree(body.getMaxDegree())
                    .skipDegree(body.getMaxDegree()).edgeSteps(stepEntity);
-            Kout result = traverser.kout(builder.build());
+            KoutRequest request = builder.build();
+            request.traverseMode = koutTraverseMode(body.getAlgorithm());
+            Kout result = traverser.kout(request);
             Map<String, Edge> edges = new HashMap<>();
             for (Iterator<Edge> iter = result.edges().iterator(); iter.hasNext();) {
                 Edge edge = iter.next();
@@ -550,7 +554,9 @@ public class OltpAlgoService {
         StopWatch timer = StopWatch.createStarted();
         try {
             TraverserManager traverser = client.traverser();
+            body.traverseMode = koutTraverseMode(body.traverseMode);
             body.withVertex = true;
+            body.withPath = true;
             body.withEdge = true;
             body.countOnly = false;
             Kout result = traverser.kout(body);
@@ -577,6 +583,19 @@ public class OltpAlgoService {
             history.setDuration(duration);
             this.historyService.update(history);
         }
+    }
+
+    private static String koutTraverseMode(String algorithm) {
+        if (algorithm == null || algorithm.isEmpty() ||
+            "breadth_first".equalsIgnoreCase(algorithm) ||
+            Traverser.TRAVERSE_MODE_BFS.equalsIgnoreCase(algorithm)) {
+            return Traverser.TRAVERSE_MODE_BFS;
+        }
+        if ("deep_first".equalsIgnoreCase(algorithm) ||
+            Traverser.TRAVERSE_MODE_DFS.equalsIgnoreCase(algorithm)) {
+            return Traverser.TRAVERSE_MODE_DFS;
+        }
+        throw new ExternalException("Unsupported K-out traversal mode");
     }
 
     public GremlinResult kneighbor(HugeClient client, KneighborEntity body) {

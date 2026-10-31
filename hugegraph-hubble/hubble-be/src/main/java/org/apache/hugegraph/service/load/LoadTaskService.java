@@ -1189,6 +1189,7 @@ public class LoadTaskService {
                         readLines = context.oldProgress().totalInputRead();
                     }
                     task.setFileReadLines(readLines);
+                    task.refreshConfirmedWrites();
                     task.setCurrDuration(context.summary().totalTime());
                     this.update(task);
                 }
