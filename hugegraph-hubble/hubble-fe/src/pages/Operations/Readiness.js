@@ -24,8 +24,37 @@ const readinessKey = readiness => readiness.stale ? 'stale'
     : readiness.reason === 'readiness_not_probed' ? 'not_probed'
         : readiness.status?.toLowerCase() ?? 'unknown';
 
-const markNodeReadinessStale = node => node?.readiness
-    ? {...node, readiness: {...node.readiness, stale: true}} : node;
+const markNodeReadinessStale = node => node ? {
+    ...node,
+    ...(node.readiness ? {readiness: {...node.readiness, stale: true}} : {}),
+    ...(node.process_lifecycle ? {process_lifecycle: {...node.process_lifecycle, stale: true}} : {}),
+} : node;
+
+const markNodeStale = node => node ? {
+    ...markNodeReadinessStale(node),
+    ...(node.metric_statuses ? {metric_statuses: Object.fromEntries(
+        Object.entries(node.metric_statuses).map(([name, status]) => [name,
+            status && {...status, fresh: false, stale: true}])
+    )} : {}),
+} : node;
+
+const ProcessLifecyclePanel = ({lifecycle}) => {
+    const {t, i18n} = useTranslation();
+    if (!lifecycle) return null;
+    const state = lifecycle.stale ? 'STALE' : lifecycle.state;
+    const label = !lifecycle.stale && lifecycle.reason === 'unsupported_version' ? t('operations.lifecycle_unsupported')
+        : t(`operations.lifecycle_${state?.toLowerCase() ?? 'unknown'}`,
+            {defaultValue: t('operations.lifecycle_unknown')});
+    return <section className='operations-surface operations-readiness'
+        aria-label={t('operations.lifecycle_title')}>
+        <header><h3>{t('operations.lifecycle_title')}</h3><Tag>{label}</Tag></header>
+        <p>{t('operations.lifecycle_independent')}</p>
+        {lifecycle.observed_at && <Descriptions size='small' column={1} items={[
+            {key: 'observed', label: t('operations.last_observed'),
+                children: formatObservedAt(lifecycle.observed_at, i18n.language, '—')},
+        ]} />}
+    </section>;
+};
 
 const readinessLabel = (readiness, t) => readiness ? t(
     `operations.readiness_${readinessKey(readiness)}`,
@@ -89,4 +118,4 @@ const ReadinessPanel = ({readiness}) => {
     );
 };
 
-export {ReadinessStatus, ReadinessPanel, readinessLabel, markNodeReadinessStale};
+export {ReadinessStatus, ReadinessPanel, ProcessLifecyclePanel, readinessLabel, markNodeReadinessStale, markNodeStale};

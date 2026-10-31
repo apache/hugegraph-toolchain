@@ -411,7 +411,9 @@ public class DefaultOperationsDataService implements OperationsDataService {
             statuses.put(group, staleStatus);
         });
         return copyNode(node, node.getMetrics(), statuses).withReadiness(
-                node.getReadiness() == null ? null : node.getReadiness().asStale());
+                node.getReadiness() == null ? null : node.getReadiness().asStale())
+                .withProcessLifecycle(node.getProcessLifecycle() == null ? null :
+                                      node.getProcessLifecycle().asStale());
     }
 
     private static Node copyNode(Node node, Map<String, Object> metrics,
@@ -419,7 +421,8 @@ public class DefaultOperationsDataService implements OperationsDataService {
         return new Node(node.getId(), node.getType(), node.getName(),
                         node.getRole(), node.getVersion(), node.getStatus(),
                         node.getObservedAt(), metrics, statuses)
-                        .withReadiness(node.getReadiness());
+                        .withReadiness(node.getReadiness())
+                        .withProcessLifecycle(node.getProcessLifecycle());
     }
 
     private static boolean failed(SourceStatus source) {

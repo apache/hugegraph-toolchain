@@ -55,6 +55,7 @@ import org.apache.hugegraph.service.op.OperationsModels.Readiness;
 import org.apache.hugegraph.service.op.OperationsModels.MetricStatus;
 import org.apache.hugegraph.service.op.OperationsModels.Snapshot;
 import org.apache.hugegraph.service.op.OperationsModels.SourceStatus;
+import org.apache.hugegraph.service.op.OperationsModels.Lifecycle;
 import org.apache.hugegraph.service.op.OperationsModels.Topology;
 
 @Service
@@ -80,6 +81,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private final Clock clock;
     private final ExecutorService storeExecutor;
     private final ExecutorService readinessExecutor;
+    private final ExecutorService lifecycleExecutor;
     private final int storeDeadlineMillis;
     private final Set<String> storeAllowedTargets;
     private final ServerClientProvider serverClients;
@@ -180,6 +182,14 @@ public class LiveOperationsCollector implements OperationsCollector {
                     thread.setDaemon(true);
                     return thread;
                 });
+        // Lifecycle is optional and must not consume readiness workers.
+        this.lifecycleExecutor = Executors.newFixedThreadPool(
+                storeThreads, runnable -> {
+                    Thread thread = new Thread(
+                            runnable, "hubble-store-lifecycle-" + THREAD_SEQUENCE.incrementAndGet());
+                    thread.setDaemon(true);
+                    return thread;
+                });
         this.storeExecutor = Executors.newFixedThreadPool(
                 storeThreads, runnable -> {
                     Thread thread = new Thread(
@@ -194,9 +204,11 @@ public class LiveOperationsCollector implements OperationsCollector {
     public void close() {
         this.storeExecutor.shutdownNow();
         this.readinessExecutor.shutdownNow();
+        this.lifecycleExecutor.shutdownNow();
         try {
             this.storeExecutor.awaitTermination(1L, TimeUnit.SECONDS);
             this.readinessExecutor.awaitTermination(1L, TimeUnit.SECONDS);
+            this.lifecycleExecutor.awaitTermination(1L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
@@ -651,6 +663,22 @@ public class LiveOperationsCollector implements OperationsCollector {
             details.put("affected_node_count", 1);
             details.put("failed_metric_groups", List.of("system"));
             details.put("pd_metric_mapping", this.parser.pdMetricMappingDiagnostics(cluster, this.pdBase));
+            // A Service or proxy may route to a different member on each
+            // request. Preserve its bounded response as an endpoint sample,
+            // never as a member metric or a cluster aggregate.
+            Map<String, Object> endpoint = new LinkedHashMap<>();
+            try {
+                endpoint.put("metrics", this.parser.parsePdPrometheusMetrics(
+                        this.http.get(URI.create(this.pdBase + "/actuator/prometheus"),
+                                      this.pdUsername, this.pdPassword,
+                                      Collections.emptySet(), "text/plain")));
+                endpoint.put("metric_status", availableMetric(now));
+            } catch (RuntimeException e) {
+                Map<String, Object> failure = new LinkedHashMap<>(diagnostics(e));
+                failure.putIfAbsent("request_path", "/actuator/prometheus");
+                endpoint.put("metric_status", metricStatus(e, now, true).withDiagnostics(failure));
+            }
+            details.put("pd_endpoint_metrics", endpoint);
             return new SourceStatus("PARTIAL", status.getStatus(), now,
                                     status.getLastSuccessAt(), false, false,
                                     preferredReason(status,
@@ -725,6 +753,7 @@ public class LiveOperationsCollector implements OperationsCollector {
                                              SourceStatus status,
                                              List<Node> nodes) {
         List<Future<Readiness>> readiness = new ArrayList<>();
+        List<Future<Lifecycle>> lifecycles = new ArrayList<>();
         try {
             Map<String, String> restAddresses;
             try {
@@ -796,6 +825,8 @@ public class LiveOperationsCollector implements OperationsCollector {
                 readiness.add(this.readinessExecutor.submit(() -> this.probeReadiness(
                         "STORE", job.getTarget().resolve("/-/state"),
                         this.storeUsername, this.storePassword, allowedTargets, now)));
+                lifecycles.add(this.lifecycleExecutor.submit(() -> this.probeLifecycle(
+                        job.getTarget().resolve("/-/lifecycle"), allowedTargets, now)));
             }
             List<Future<StoreMetricResult>> futures = this.storeExecutor.invokeAll(
                     jobs.stream().map(job -> (java.util.concurrent.Callable<
@@ -830,6 +861,11 @@ public class LiveOperationsCollector implements OperationsCollector {
                         readiness.get(i), job, now, readinessDeadline);
                 nodes.set(job.getNodeIndex(), nodes.get(job.getNodeIndex()).withReadiness(observation));
             }
+            for (int i = 0; i < jobs.size(); i++) {
+                StoreMetricJob job = jobs.get(i);
+                Lifecycle observation = this.lifecycleResult(lifecycles.get(i), now, readinessDeadline);
+                nodes.set(job.getNodeIndex(), nodes.get(job.getNodeIndex()).withProcessLifecycle(observation));
+            }
             if (partial) {
                 return metricFailureStatus(status, now, successfulGroups, failureReason)
                        .withDiagnostics(storeFailureSummary(nodes));
@@ -847,6 +883,28 @@ public class LiveOperationsCollector implements OperationsCollector {
                    .withDiagnostics(diagnostics(e));
         } finally {
             readiness.forEach(future -> future.cancel(true));
+            lifecycles.forEach(future -> future.cancel(true));
+        }
+    }
+
+    private Lifecycle probeLifecycle(URI target, Set<String> allowedTargets, long now) {
+        try {
+            OperationsHttpClient.ProbeResponse response = this.http.probe(
+                    target, this.storeUsername, this.storePassword, allowedTargets);
+            return this.parser.parseStoreLifecycle(response.getBody(), response.getStatus(), now);
+        } catch (RuntimeException e) {
+            return new Lifecycle("UNKNOWN", now, metricReason(e), false);
+        }
+    }
+
+    private Lifecycle lifecycleResult(Future<Lifecycle> future, long now, long deadline)
+                                      throws InterruptedException {
+        try {
+            return future.get(Math.max(0L, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+        } catch (CancellationException | TimeoutException e) {
+            return new Lifecycle("UNKNOWN", now, "upstream_deadline", false);
+        } catch (ExecutionException e) {
+            return new Lifecycle("UNKNOWN", now, "upstream_unavailable", false);
         }
     }
 
@@ -1064,7 +1122,8 @@ public class LiveOperationsCollector implements OperationsCollector {
         return new Node(node.getId(), node.getType(), node.getName(),
                         node.getRole(), node.getVersion(), node.getStatus(),
                         node.getObservedAt(), metrics, statuses)
-                        .withReadiness(node.getReadiness());
+                        .withReadiness(node.getReadiness())
+                        .withProcessLifecycle(node.getProcessLifecycle());
     }
 
     private static SourceStatus withStatus(SourceStatus source,

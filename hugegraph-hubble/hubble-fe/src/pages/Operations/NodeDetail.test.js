@@ -254,22 +254,126 @@ test('keeps the snapshot visible and reports a refresh failure', async () => {
 
 test('keeps old readiness stale through a retry until a successful node response arrives', async () => {
     const ready = {...response, stale: false,
-        node: {...response.node, readiness: {status: 'READY', stale: false, observed_at: 1000}}};
+        node: {...response.node, readiness: {status: 'READY', stale: false, observed_at: 1000},
+            process_lifecycle: {state: 'STARTED', stale: false, observed_at: 1000}}};
     let finishRetry;
     getNode.mockResolvedValueOnce(ready).mockRejectedValueOnce(new Error('offline'))
         .mockReturnValueOnce(new Promise(resolve => {finishRetry = resolve;}));
     renderDetail();
     const panel = await screen.findByRole('region', {name: 'Service readiness'});
+    const lifecycle = screen.getByRole('region', {name: 'Store process lifecycle'});
     expect(within(panel).getByText('Ready', {exact: true})).toBeVisible();
+    expect(within(lifecycle).getByText('Started', {exact: true})).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', {name: /Refresh/}));
     await waitFor(() => expect(within(panel).getByText('Refresh needed')).toBeVisible());
+    expect(within(lifecycle).getByText('Stale', {exact: true})).toBeVisible();
     expect(within(panel).queryByText('Ready', {exact: true})).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: /Refresh/}));
     expect(within(panel).getByText('Refresh needed')).toBeVisible();
 
     await act(async () => finishRetry(ready));
     expect(within(panel).getByText('Ready', {exact: true})).toBeVisible();
+});
+
+test.each([
+    ['explicit metric status', {system: {availability: 'AVAILABLE', fresh: true, stale: false}}, 'AVAILABLE', true],
+    ['partial source fallback', undefined, 'PARTIAL', true],
+    ['available source fallback', undefined, 'AVAILABLE', false],
+])('keeps %s stale through refresh failure and pending retry', async (_, statuses, availability, initiallyFresh) => {
+    getNode.mockReset();
+    const snapshot = {...response, stale: false,
+        node: {...response.node, id: 'pd-safe', name: 'PD A', type: 'PD',
+            metrics: {system: {uptime_seconds: 12}}, metric_statuses: statuses},
+        sources: {pd: {status: 'UP', availability, fresh: true, stale: false, observed_at: 1000}}};
+    let finishRetry;
+    getNode.mockResolvedValueOnce(snapshot).mockRejectedValueOnce(new Error('offline'))
+        .mockReturnValueOnce(new Promise(resolve => {finishRetry = resolve;}));
+    renderDetail();
+    await screen.findByRole('heading', {name: 'PD A'});
+    const system = screen.getByRole('heading', {name: 'System'}).closest('section');
+    expect(Boolean(within(system).queryByRole('img', {name: 'Fresh'}))).toBe(initiallyFresh);
+
+    fireEvent.click(screen.getByRole('button', {name: 'Refresh'}));
+    await waitFor(() => expect(within(system).getByText('Stale')).toBeVisible());
+    expect(within(system).queryByRole('img', {name: 'Fresh'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'Refresh'}));
+    expect(within(system).getByText('Stale')).toBeVisible();
+    expect(within(system).queryByRole('img', {name: 'Fresh'})).not.toBeInTheDocument();
+
+    await act(async () => finishRetry(snapshot));
+    expect(within(system).queryByText('Stale')).not.toBeInTheDocument();
+    expect(Boolean(within(system).queryByRole('img', {name: 'Fresh'}))).toBe(initiallyFresh);
+});
+
+test('does not display a fresh icon when a metric response is also stale', async () => {
+    getNode.mockReset();
+    getNode.mockResolvedValue({...response, node: {...response.node,
+        metric_statuses: {system: {availability: 'AVAILABLE', fresh: true, stale: true}}}});
+    renderDetail();
+    await screen.findByRole('heading', {name: 'Store A'});
+    const system = screen.getByRole('heading', {name: 'System'}).closest('section');
+    expect(within(system).getByText('Stale')).toBeVisible();
+    expect(within(system).queryByRole('img', {name: 'Fresh'})).not.toBeInTheDocument();
+});
+
+test('keeps a retained PD endpoint sample stale through a failed refresh and pending retry', async () => {
+    const pd = {...response, stale: false, node: {...response.node,
+        id: 'pd-safe', name: 'PD A', type: 'PD', metrics: {}, metric_statuses: {}},
+    sources: {pd: {status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', stale: false,
+        diagnostics: {pd_endpoint_metrics: {metrics: {process_cpu_usage: 0.125, heap_used_bytes: 1048576},
+            metric_status: {availability: 'AVAILABLE', fresh: true, stale: false, observed_at: 1000}}}}}};
+    let finishRetry;
+    getNode.mockResolvedValueOnce(pd).mockRejectedValueOnce(new Error('offline'))
+        .mockReturnValueOnce(new Promise(resolve => {finishRetry = resolve;}));
+    renderDetail();
+    await screen.findByRole('heading', {name: 'PD A'});
+    fireEvent.click(screen.getByText('Check addresses and how to fix'));
+    const sample = screen.getByText('Configured PD endpoint sample').parentElement;
+    expect(within(sample).getByText('12.5%')).toBeVisible();
+    expect(within(sample).getByText('1 MB')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', {name: /Refresh/}));
+    await waitFor(() => expect(within(sample).getAllByText('Stale').length).toBeGreaterThan(0));
+    expect(within(sample).queryByText('12.5%')).not.toBeInTheDocument();
+    expect(within(sample).queryByText('1 MB')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: /Refresh/}));
+    expect(within(sample).getAllByText('Stale').length).toBeGreaterThan(0);
+    expect(within(sample).queryByText('12.5%')).not.toBeInTheDocument();
+
+    await act(async () => finishRetry(pd));
+    expect(within(sample).getByText('12.5%')).toBeVisible();
+    expect(within(sample).getByText('1 MB')).toBeVisible();
+    expect(within(sample).queryByText('Stale')).not.toBeInTheDocument();
+});
+
+test('shows Store process lifecycle independently of readiness', async () => {
+    getNode.mockResolvedValue({...response, stale: false, node: {...response.node,
+        readiness: {status: 'NOT_READY', state: 'STARTING', stale: false},
+        process_lifecycle: {state: 'STARTED', stale: false, observed_at: 1000}}});
+    renderDetail();
+    const lifecycle = await screen.findByRole('region', {name: 'Store process lifecycle'});
+    expect(within(lifecycle).getByText('Started', {exact: true})).toBeVisible();
+    expect(within(lifecycle).getByText(/does not establish PD membership, partition health or read\/write readiness/))
+        .toBeVisible();
+    expect(within(screen.getByRole('region', {name: 'Service readiness'})).getByText('Not ready', {exact: true}))
+        .toBeVisible();
+});
+
+test('old Store lifecycle endpoint degrades safely', async () => {
+    getNode.mockResolvedValue({...response, stale: false, node: {...response.node,
+        process_lifecycle: {state: 'UNKNOWN', reason: 'unsupported_version', stale: false}}});
+    renderDetail();
+    const lifecycle = await screen.findByRole('region', {name: 'Store process lifecycle'});
+    expect(within(lifecycle).getByText('Not supported by this Store version')).toBeVisible();
+    expect(within(lifecycle).queryByText('Started')).not.toBeInTheDocument();
+});
+
+test('older Hubble responses without lifecycle do not invent a state', async () => {
+    getNode.mockResolvedValue(response);
+    renderDetail();
+    await screen.findByRole('heading', {name: 'Store A'});
+    expect(screen.queryByRole('region', {name: 'Store process lifecycle'})).not.toBeInTheDocument();
 });
 
 test('recovers an initial node failure and keeps a canonical node-list action', async () => {
@@ -286,10 +390,10 @@ test('recovers an initial node failure and keeps a canonical node-list action', 
     expect(getNode).toHaveBeenCalledTimes(2);
 });
 
-test('removes an earlier privileged node detail when refresh is forbidden', async () => {
+test.each([401, 403])('removes an earlier privileged node detail when refresh returns %s', async status => {
     getNode
         .mockResolvedValueOnce(response)
-        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status: 403}));
+        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status}));
 
     renderDetail();
     expect(await screen.findByRole('heading', {name: 'Store A'})).toBeInTheDocument();

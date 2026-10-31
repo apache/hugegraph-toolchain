@@ -22,6 +22,7 @@ import {useTranslation} from 'react-i18next';
 import {displayNodeType, formatReason, HealthStatus} from './components';
 import {formatBytes, formatObservedAt, selectAttentionSources} from './topology';
 import {sourceHealthStatus} from './sourceHealth';
+import {metricNumber} from './vermeer';
 
 const SOURCE_TYPES = {server: 'SERVER', pd: 'PD', stores: 'STORE'};
 const DIAGNOSTICS_ID = 'operations-source-diagnostics';
@@ -98,6 +99,45 @@ const PdMetricMapping = ({mapping, nodes}) => {
             })}</p>}
         </div>
     );
+};
+
+// These are one configured endpoint's response, not a discovered PD node
+// and not an aggregation: a Service may route consecutive scrapes elsewhere.
+const PdEndpointMetrics = ({sample, sourceStale}) => {
+    const {t, i18n} = useTranslation();
+    if (!sample) return null;
+    const status = sample.metric_status ?? {};
+    const fresh = !sourceStale && !status.stale && status.fresh === true
+        && status.availability === 'AVAILABLE';
+    const metrics = fresh ? sample.metrics ?? {} : {};
+    const format = key => {
+        const value = metricNumber(metrics[key]);
+        if (value === null) return t('operations.unavailable');
+        if (key.endsWith('_bytes')) return formatBytes(value) ?? t('operations.unavailable');
+        if (key.endsWith('_cpu_usage')) {
+            return new Intl.NumberFormat(i18n.language, {style: 'percent', maximumFractionDigits: 2}).format(value);
+        }
+        return new Intl.NumberFormat(i18n.language, {maximumFractionDigits: 2}).format(value);
+    };
+    const keys = ['process_cpu_usage', 'system_cpu_usage', 'cpu_count', 'heap_used_bytes',
+        'nonheap_used_bytes', 'threads_live', 'uptime_seconds'];
+    return <div className='operations-pd-endpoint-metrics'>
+        <h4>{t('operations.diagnostic_pd_endpoint_sample')}</h4>
+        <p>{t('operations.diagnostic_pd_endpoint_sample_help')}</p>
+        <Descriptions size='small' column={{xs: 1, sm: 2, lg: 3}} items={[
+            {key: 'status', label: t('operations.source_collection_status'),
+                children: sourceStale || status.stale ? t('operations.stale')
+                    : t(`operations.availability_${(status.availability ?? 'UNKNOWN').toLowerCase()}`,
+                        {defaultValue: t('operations.unavailable')})},
+            {key: 'observed', label: t('operations.last_observed'),
+                children: formatObservedAt(status.observed_at, i18n.language, t('operations.unavailable'))},
+            ...keys.filter(key => metrics[key] !== undefined && metrics[key] !== null)
+                .map(key => ({key, label: t(`operations.metric_labels.${key}`), children: format(key)})),
+        ]} />
+        {!fresh && <p>{sourceStale || status.stale ? t('operations.stale')
+            : formatReason(status.reason, t) || t('operations.unavailable')}</p>}
+        <DiagnosticRequest diagnostics={status.diagnostics} />
+    </div>;
 };
 
 const RecoverySteps = ({unmappedPd, largeResponse, raftTooLarge}) => {
@@ -201,6 +241,8 @@ const SourceDiagnostics = ({sources = {}, sourceName, nodes = [], focus = false,
                         {!recovered && <RecoverySteps unmappedPd={unmappedPd}
                             largeResponse={largeResponse} raftTooLarge={raftTooLarge} />}
                         {source.diagnostics !== requestDetails && <DiagnosticRequest diagnostics={source.diagnostics} />}
+                        {type === 'PD' && <PdEndpointMetrics sample={source.diagnostics?.pd_endpoint_metrics}
+                            sourceStale={source.stale} />}
                         {unmappedPd && <PdMetricMapping mapping={mapping} nodes={nodes} />}
                         {source.cluster_state === 'Cluster_Not_Ready' && <p>
                             {t('operations.reason_cluster_not_ready')}
@@ -208,7 +250,8 @@ const SourceDiagnostics = ({sources = {}, sourceName, nodes = [], focus = false,
                         {source.diagnostics?.affected_node_count > 0 && (
                             <p>{t(unmappedPd ? 'operations.diagnostic_pd_affected_endpoint'
                                 : 'operations.diagnostic_affected_nodes')}: {source.diagnostics.affected_node_count}
-                                {' · '}{t('operations.diagnostic_failed_groups')}: {
+                                {' · '}{t(unmappedPd ? 'operations.diagnostic_unattributed_groups'
+                                    : 'operations.diagnostic_failed_groups')}: {
                                     source.diagnostics.failed_metric_groups?.map(group => t(`operations.metric_${group}`,
                                         {defaultValue: group})).join(', ')
                                         || t('operations.unavailable')}

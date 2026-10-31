@@ -231,7 +231,7 @@ test('shows stale observation metadata and exposes real detail links', async () 
     );
     const table = within(screen.getByRole('table'));
     const refresh = screen.getByLabelText('Refresh');
-    expect(screen.getByText(/Stale/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Stale/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Observed/i).length).toBeGreaterThan(0);
     const type = screen.getByLabelText(/node type/i);
     expect(type).toHaveRole('combobox');
@@ -348,15 +348,18 @@ test('renders a bounded empty table for a valid zero-node response', async () =>
         .not.toBeInTheDocument();
 });
 
-test('clears an earlier privileged snapshot when a refresh is forbidden', async () => {
+test.each([401, 403])('clears an earlier privileged snapshot when refresh returns %s', async status => {
     getNodes
         .mockResolvedValueOnce({
             items: [{id: 'admin-node', name: 'Admin node', type: 'SERVER', status: 'UP'}],
             total: 1,
             observed_at: 1000,
             stale: false,
+            sources: {pd: {status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped',
+                diagnostics: {pd_endpoint_metrics: {metrics: {process_cpu_usage: 0.125},
+                    metric_status: {availability: 'AVAILABLE', fresh: true}}}}},
         })
-        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status: 403}));
+        .mockRejectedValueOnce(Object.assign(new Error('forbidden'), {status}));
 
     render(
         <MemoryRouter future={{v7_startTransition: true, v7_relativeSplatPath: true}}>
@@ -364,6 +367,7 @@ test('clears an earlier privileged snapshot when a refresh is forbidden', async 
         </MemoryRouter>
     );
     expect(await screen.findByRole('link', {name: /Admin node/})).toBeInTheDocument();
+    expect(screen.getByText('Configured PD endpoint sample')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('button', {name: /Refresh/}))
         .not.toHaveClass('ant-btn-loading'));
 
@@ -371,7 +375,47 @@ test('clears an earlier privileged snapshot when a refresh is forbidden', async 
 
     await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
     expect(screen.queryByRole('link', {name: /Admin node/})).not.toBeInTheDocument();
+    expect(screen.queryByText('Configured PD endpoint sample')).not.toBeInTheDocument();
     expect(screen.getByText('0 nodes')).toBeInTheDocument();
+});
+
+test('marks retained PD samples and node readiness stale until a retry succeeds', async () => {
+    i18n.changeLanguage('en-US');
+    const pdNode = {id: 'pd-safe', name: 'PD A', type: 'PD', status: 'UP',
+        readiness: {status: 'READY', stale: false},
+        metric_statuses: {system: {availability: 'AVAILABLE', stale: false}}};
+    const snapshot = {items: [pdNode], diagnostic_nodes: [pdNode], total: 1, observed_at: 1000, stale: false,
+        sources: {pd: {status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', stale: false,
+            diagnostics: {pd_endpoint_metrics: {metrics: {process_cpu_usage: 0.125, heap_used_bytes: 1048576},
+                metric_status: {availability: 'AVAILABLE', fresh: true, stale: false, observed_at: 1000}}}}}};
+    let finishRetry;
+    getNodes.mockResolvedValueOnce(snapshot).mockRejectedValueOnce(new Error('offline'))
+        .mockReturnValueOnce(new Promise(resolve => {finishRetry = resolve;}));
+    render(<MemoryRouter initialEntries={['/operations/nodes?source=pd']}><Nodes /></MemoryRouter>);
+    await screen.findByRole('link', {name: /PD A/});
+    fireEvent.click(screen.getByText('Check addresses and how to fix'));
+    const sample = screen.getByText('Configured PD endpoint sample').parentElement;
+    const row = screen.getByRole('link', {name: /PD A/}).closest('tr');
+    expect(within(sample).getByText('12.5%')).toBeVisible();
+    expect(within(sample).getByText('1 MB')).toBeVisible();
+    expect(within(row).getByLabelText('Service: Ready')).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', {name: 'Refresh'}));
+    await waitFor(() => expect(within(sample).getAllByText('Stale').length).toBeGreaterThan(0));
+    expect(within(sample).queryByText('12.5%')).not.toBeInTheDocument();
+    expect(within(sample).queryByText('1 MB')).not.toBeInTheDocument();
+    expect(within(row).getByLabelText('Service: Refresh needed')).toBeVisible();
+    expect(within(row).getByText('Stale')).toBeVisible();
+    fireEvent.click(screen.getByRole('button', {name: 'Refresh'}));
+    expect(within(sample).getAllByText('Stale').length).toBeGreaterThan(0);
+    expect(within(sample).queryByText('12.5%')).not.toBeInTheDocument();
+    expect(within(row).getByLabelText('Service: Refresh needed')).toBeVisible();
+
+    await act(async () => finishRetry(snapshot));
+    expect(within(sample).getByText('12.5%')).toBeVisible();
+    expect(within(sample).getByText('1 MB')).toBeVisible();
+    expect(within(row).getByLabelText('Service: Ready')).toBeVisible();
+    expect(within(row).queryByText('Stale')).not.toBeInTheDocument();
 });
 
 test('does not restore an older node list after a newer request is forbidden', async () => {

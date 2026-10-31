@@ -23,6 +23,9 @@ const STATUS_PRIORITY = {
     UP: 3,
 };
 
+const markSourcesStale = sources => sources && Object.fromEntries(Object.entries(sources)
+    .map(([name, source]) => [name, source && {...source, fresh: false, stale: true}]));
+
 const hasStaleMetrics = node => Object.values(node?.metric_statuses ?? {})
     .some(status => status?.stale === true);
 
@@ -192,6 +195,7 @@ const formatObservedAge = (value, locale, unavailable, now = Date.now()) => {
 };
 
 export {
+    markSourcesStale,
     selectTierNodes,
     selectAttentionNodes,
     selectAttentionSources,
