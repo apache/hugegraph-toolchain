@@ -52,7 +52,7 @@ function graphViewFixture(method, pathname) {
 }
 const now = 1792757451000;
 const node = (n) => ({ id: `pd-${n}`, name: `PD ${n}`, type: 'PD', role: n === 1 ? 'LEADER' : 'FOLLOWER', status: 'UP', observed_at: now, metrics: {}, metric_statuses: { system: { availability: 'UNSUPPORTED', reason: 'metrics_not_collected', observed_at: now, fresh: false, stale: false } } });
-const source = { status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', observed_at: now, last_success_at: now, fresh: false, stale: false, diagnostics: { affected_node_count: 1, failed_metric_groups: ['system'], pd_metric_mapping: { configured_origin: 'http://pd-service:8620', status: 'no_match', matched_nodes: 0, discovered_nodes: 3, omitted_members: 0, members: [1, 2, 3].map(n => ({ node_id: 'pd-' + n, origin: 'http://pd-' + n + ':8620', endpoint_valid: true, origin_matches: false, base_path_matches: true })) } }, cluster_state: 'Cluster_Not_Ready', data_state: 'PState_Normal' };
+const source = { status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', observed_at: now, last_success_at: now, fresh: false, stale: false, diagnostics: { affected_node_count: 1, failed_metric_groups: ['system'], pd_endpoint_metrics: { metrics: { process_cpu_usage: 0.125, heap_used_bytes: 1048576 }, metric_status: { availability: 'AVAILABLE', observed_at: now, fresh: true, stale: false } }, pd_metric_mapping: { configured_origin: 'http://pd-service:8620', status: 'no_match', matched_nodes: 0, discovered_nodes: 3, omitted_members: 0, members: [1, 2, 3].map(n => ({ node_id: 'pd-' + n, origin: 'http://pd-' + n + ':8620', endpoint_valid: true, origin_matches: false, base_path_matches: true })) } }, cluster_state: 'Cluster_Not_Ready', data_state: 'PState_Normal' };
 function mobileOverviewFixture() {
     const observed = {availability: 'AVAILABLE', observed_at: now, last_success_at: now, fresh: true, stale: false};
     const mainNode = (type, index) => ({id: `${type.toLowerCase()}-mobile-${index}`, type,
@@ -61,12 +61,14 @@ function mobileOverviewFixture() {
         status: type === 'SERVER' ? 'UP' : 'UNKNOWN', observed_at: now,
         metrics: type === 'STORE' ? {backend: {leaders: index}} : {},
         metric_statuses: {system: type === 'SERVER' ? observed
-            : {...observed, availability: 'UNAVAILABLE', reason: 'metric_unavailable'}}});
+            : {...observed, availability: 'UNAVAILABLE', reason: 'metric_unavailable'}},
+        ...(type === 'STORE' ? {readiness: {status: 'NOT_READY', state: 'STARTING', stale: false},
+            process_lifecycle: {state: 'STARTED', observed_at: now, stale: false}} : {})});
     const computeNode = role => ({id: role.toLowerCase(), name: `${role.toLowerCase()}-mobile`, role,
         status: 'UP', ready: true, group: 'default', version: '1.8.0', observed_at: now,
         checks: {registered: true, connection_ready: true, load_stream_ready: true,
             compute_stream_ready: true, superstep_stream_ready: true},
-        metrics: {cpu_cores: role === 'MASTER' ? 0.12 : 0.42, rss_bytes: 1288490189},
+        metrics: {cpu_cores: role === 'MASTER' ? 0.12000000000000001 : 0.42, rss_bytes: 1288490189},
         metric_status: observed});
     return {status: 'DEGRADED', main_cluster_status: 'DEGRADED', reason: 'cluster_not_ready',
         observed_at: now, stale: false,
@@ -501,6 +503,9 @@ async function main() {
             await page.goto(base + '/operations/nodes?type=PD&source=pd#operations-source-diagnostics');
             await page.locator('summary').filter({hasText: '检查地址与修复方法'}).click();
             await page.getByText('最近拓扑采集成功', { exact: false }).waitFor();
+            await page.getByText('配置的 PD 端点样本', {exact: true}).waitFor();
+            await page.getByText(/不代表某个节点或整个集群的总量/).waitFor();
+            await page.getByText('12.5%', {exact: true}).waitFor();
             const repair = await page.locator('details.operations-diagnostic-details').filter({
                 has: page.locator('summary').filter({hasText: '检查地址与修复方法'}),
             }).innerText();
@@ -508,10 +513,10 @@ async function main() {
                 assert(repair.includes(detail), `Missing actionable PD repair detail: ${detail}`);
             }
             assert(/重启[^。]*Hubble|Hubble[^。]*重启/.test(repair), 'Missing Hubble restart guidance');
-            await page.getByText('尚未采集系统指标', { exact: false }).first().waitFor();
+            await page.getByText('尚未采集节点系统指标', { exact: false }).first().waitFor();
             assert.equal(await page.getByText(/来源可能在发现节点前/).count(), 0);
             await page.getByText('http://pd-service:8620', { exact: true }).waitFor();
-            await page.getByText(/受影响的 PD 采集端点:\s*1/).waitFor();
+            await page.getByText(/未归属节点的 PD 采集端点:\s*1/).waitFor();
             await page.getByText(/Hubble 只采集一个匹配的 PD 成员的系统指标/).waitFor();
             await page.getByText('没有匹配节点', { exact: true }).waitFor();
             await page.getByText('0 / 3', { exact: true }).waitFor();
@@ -563,11 +568,22 @@ async function main() {
                 await page.getByRole('heading', {name: state.operationsOverview.nodes[0].name, exact: true}).waitFor();
                 await page.locator('.operations-node-detail .operations-page-header button').first().click();
                 await topology.waitFor();
+                if (width === 375) {
+                    const store = topology.locator('.tier-store .operations-topology-node').first();
+                    await store.click();
+                    const process = page.getByRole('region', {name: 'Store 进程生命周期'});
+                    await process.getByText('已启动', {exact: true}).waitFor();
+                    await process.getByText(/不能证明 PD 成员状态、分区健康或读写已就绪/).waitFor();
+                    await page.getByRole('region', {name: '服务就绪状态'}).getByText('未就绪', {exact: true}).waitFor();
+                    await page.locator('.operations-node-detail .operations-page-header button').first().click();
+                    await topology.waitFor();
+                }
                 const summary = page.getByRole('button', {name: '查看计算集群', exact: true});
                 await assertUsableControl(summary);
                 await summary.click();
                 await page.locator('.operations-vermeer-workbench').waitFor();
                 assert.equal(await page.locator('.operations-vermeer-node').count(), 2);
+                assert.equal(await page.getByText('已采集 2 / 2 个节点', {exact: true}).count(), 2);
                 assert.deepEqual(await page.locator('.operations-vermeer-resource-fact strong').allTextContents(),
                     ['0.54 核', '2.4 GiB']);
                 await assertNoHorizontalOverflow(page);
@@ -610,8 +626,11 @@ async function main() {
                     await search.waitFor({state: 'visible'});
                     assert(await search.isDisabled(), 'Search must be disabled while graph options are pending');
                     release();
+                    const unrelated = item.page.getByText('查找所有路径（GET，基础版）', {exact: true}).first();
+                    await unrelated.waitFor({state: 'visible'});
                     await search.fill('查找最短路径');
                     await item.page.getByText('查找最短路径', {exact: true}).first().waitFor({state: 'visible'});
+                    await unrelated.waitFor({state: 'hidden'});
                     assert.equal(await search.inputValue(), '查找最短路径');
                 }
                 finally { release(); item.state.graphGate = null; }
