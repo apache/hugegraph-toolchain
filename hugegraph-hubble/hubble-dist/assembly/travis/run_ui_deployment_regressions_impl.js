@@ -528,6 +528,25 @@ async function main() {
             await page.setViewportSize({width: 1440, height: 1600});
             await screenshot(page, 'pd-unmapped-diagnostics');
             await page.setViewportSize({width: 1440, height: 1000});
+            const filters = page.locator('.operations-filters');
+            const search = filters.getByRole('textbox', {name: '搜索节点名称'});
+            const submit = filters.getByRole('button', {name: '搜索', exact: true});
+            await search.fill('pd-2');
+            await Promise.all([
+                page.waitForRequest(req => {
+                    const url = new URL(req.url());
+                    return url.pathname.endsWith('/operations/nodes') &&
+                        url.searchParams.get('query') === 'pd-2';
+                }),
+                submit.click(),
+            ]);
+            assert.equal(new URL(page.url()).searchParams.get('query'), 'pd-2');
+            await page.setViewportSize({width: 375, height: 1000});
+            await submit.scrollIntoViewIfNeeded();
+            const bounds = await submit.boundingBox();
+            assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= 375,
+                'Node search button must remain visible on a narrow screen');
+            await page.setViewportSize({width: 1440, height: 1000});
         });
         await check('mobile operations preserves readable main tiers and Store-row compute access', async () => {
             state.operationsOverview = mobileOverviewFixture();
