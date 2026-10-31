@@ -17,14 +17,14 @@
  */
 
 import GraphAnalysisHome from '../../modules/GraphAnalysis';
-// import {useParams, useLocation, use} from 'react-router-dom';
+import {useSearchParams} from 'react-router-dom';
 
 const GraphAnalysis = ({moduleName}) => {
-
-    // const {moduleName} = useParams();
+    const [searchParams] = useSearchParams();
+    const initialAlgorithmEngine = searchParams.get('engine') === 'olap' ? 'olap' : 'oltp';
 
     return (
-        <GraphAnalysisHome moduleName={moduleName} />
+        <GraphAnalysisHome moduleName={moduleName} initialAlgorithmEngine={initialAlgorithmEngine} />
     );
 };
 
