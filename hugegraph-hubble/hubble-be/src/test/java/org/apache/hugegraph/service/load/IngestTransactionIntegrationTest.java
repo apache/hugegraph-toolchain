@@ -153,6 +153,20 @@ public class IngestTransactionIntegrationTest {
     }
 
     @Test
+    public void testConfirmedWriteMetricsPersistAcrossReads() {
+        this.jobService.createIngestTask(this.job(), this.mapping(),
+                                         this.connection(), this.client());
+        LoadTask task = this.taskService.createdTask();
+        task.setConfirmedVertexWrites(3L);
+        task.setConfirmedEdgeWrites(1L);
+        this.taskService.update(task);
+
+        LoadTask persisted = this.taskService.get(task.getId());
+        Assert.assertEquals(Long.valueOf(3L), persisted.getConfirmedVertexWrites());
+        Assert.assertEquals(Long.valueOf(1L), persisted.getConfirmedEdgeWrites());
+    }
+
+    @Test
     public void testMappingInsertFailureRollsBackAllRowsAndDoesNotDispatch() {
         FileMapping mapping = this.mapping();
         mapping.setGraphSpace(null);

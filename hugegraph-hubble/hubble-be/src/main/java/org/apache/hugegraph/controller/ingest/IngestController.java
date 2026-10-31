@@ -123,6 +123,9 @@ public class IngestController extends BaseController {
 
     @PostMapping("/datasources")
     public Response datasourceCreate(@RequestBody Datasource entity) {
+        String creator = this.authMode != null && this.authMode.anonymous() ?
+                         "" : this.getUser();
+        entity.setCreator(creator == null ? "" : creator);
         datasourceService.save(entity);
         return Response.builder().status(Constant.STATUS_OK)
                        .data(Map.of("datasource_id", entity.getId())).build();
@@ -430,6 +433,8 @@ public class IngestController extends BaseController {
 
             JobMetricsVO metrics = new JobMetricsVO();
             metrics.totalCount = t.getFileReadLines() != null ? t.getFileReadLines() : 0L;
+            metrics.confirmedVertexWrites = t.getConfirmedVertexWrites();
+            metrics.confirmedEdgeWrites = t.getConfirmedEdgeWrites();
             long durationMs = t.getDuration() != null ? t.getDuration() : 0L;
             long durationSec = durationMs > 0 ?
                                Math.max(1L, durationMs / 1000L) : 1L;
@@ -850,6 +855,8 @@ public class IngestController extends BaseController {
     @Data
     static class JobMetricsVO {
         @JsonProperty("total_count") long totalCount;
+        @JsonProperty("confirmed_vertex_writes") Long confirmedVertexWrites;
+        @JsonProperty("confirmed_edge_writes") Long confirmedEdgeWrites;
         @JsonProperty("avg_rate") float avgRate;
         @JsonProperty("cur_rate") float curRate;
         @JsonProperty("total_time") long totalTime;

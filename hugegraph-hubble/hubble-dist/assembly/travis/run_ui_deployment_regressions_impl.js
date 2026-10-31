@@ -244,6 +244,13 @@ async function setup(browser, auth) {
             data = taskResult;
         else if (p.endsWith('/async-tasks'))
             data = pageResult([]); // The scheduler metadata must discover this task before the list does.
+        else if (p === '/ingest/jobs/list' && method === 'GET' && url.searchParams.get('taskid') === '42')
+            data = pageResult([{job_id: 7, job_status: 'SUCCEED', job_metrics: {total_count: 2,
+                confirmed_vertex_writes: 1, confirmed_edge_writes: 0, avg_rate: 1, total_time: 2000}},
+                {job_id: 8, job_status: 'SUCCEED', job_metrics: {total_count: 2, avg_rate: 1, total_time: 2000}}]);
+        else if (p === '/ingest/datasources/list' && method === 'GET')
+            data = pageResult([{datasource_id: 1, datasource_name: 'fixture-source', datasource_config: {type: 'FILE'},
+                creator: auth ? 'smoke_admin' : '', create_time: '2026-10-31'}]);
         else if (p === '/operations/nodes')
             data = state.operationsOverview
                 ? {items: state.operationsOverview.nodes, total: state.operationsOverview.nodes.length,
@@ -677,6 +684,28 @@ async function main() {
                     assert.equal(await search.inputValue(), '查找最短路径');
                 }
                 finally { release(); item.state.graphGate = null; }
+            }
+        });
+        await check('import write counts and datasource creator distinguish recorded and unknown values', async () => {
+            for (const item of [{page, state}, anonymous]) {
+                await item.page.goto(base + '/task/detail/42');
+                const row = item.page.locator('tbody tr').filter({hasText: '7'}).first();
+                await row.waitFor({state: 'visible'});
+                const cells = row.locator('td');
+                assert.equal((await cells.nth(2).innerText()).trim(), '2');
+                assert.equal((await cells.nth(3).innerText()).trim(), '1');
+                assert.equal((await cells.nth(4).innerText()).trim(), '0');
+                const legacyCells = item.page.locator('tbody tr').filter({hasText: '8'}).first().locator('td');
+                assert.equal((await legacyCells.nth(3).innerText()).trim(), '-');
+                assert.equal((await legacyCells.nth(4).innerText()).trim(), '-');
+                assert(await item.page.locator('thead').getByText('已确认写入顶点数', {exact: true}).isVisible());
+                assert(await item.page.locator('thead').getByText('已确认写入边数', {exact: true}).isVisible());
+                if (item.state.auth) await screenshot(item.page, 'import-write-metrics');
+                await item.page.goto(base + '/source');
+                const sourceRow = item.page.locator('tbody tr').filter({hasText: 'fixture-source'}).first();
+                await sourceRow.waitFor({state: 'visible'});
+                assert(await sourceRow.getByText(item.state.auth ? 'smoke_admin' : '未记录', {exact: true}).isVisible());
+                if (item.state.auth) await screenshot(item.page, 'datasource-creator');
             }
         });
     }

@@ -398,6 +398,21 @@ uses controlled API responses with an empty Server template list, not a live clu
 Schema deletion keeps the selected graph and targets visible, and leaves failed requests
 open for retry or cancellation. See the [schema deletion recovery guide](docs/schema-delete-recovery-20261023.md).
 
+### Data imports
+
+Task history distinguishes input records read from client-confirmed vertex and edge
+write operations. The input count can include headers and skipped or failed rows.
+Write counts sum the submitted elements of successful responses in the current or
+most recent Loader attempt; a successful batch is counted by request size rather
+than independently verified per element. Resume and retry start new counts.
+Updates to existing IDs are operations too, and a timed-out request or
+process interruption can leave writes uncounted. These are not counts of newly
+created elements or successful source rows. Historical tasks created before these
+metrics were recorded show an unknown value.
+
+New authenticated data sources record the signed-in creator. Sources created in
+anonymous mode and older records without a creator display “Not recorded”.
+
 ### Asynchronous Tasks
 
 Track asynchronous queries and algorithms, then expand compact results inline.
@@ -1142,3 +1157,16 @@ These screenshots come from a Chromium run with explicitly intercepted APIs in
 authenticated administrator mode. The corresponding anonymous PD flow, loading
 submission scope and GraphSpace switching were also checked. They demonstrate UI
 navigation and feedback; it does not establish live loading or algorithm results.
+
+### Import task guidance and input progress
+
+Demo actions appear below the target-graph guidance and wrap at compact widths.
+The task history shows input progress, which can include a CSV header and skipped
+or failed rows. It does not represent successfully written graph elements.
+
+![Demo guidance at desktop width](docs/assets/ingest/import-guidance-desktop.png)
+
+![Demo guidance at compact width](docs/assets/ingest/import-guidance-compact.png)
+
+These Chromium screenshots use intercepted API responses. They check layout with
+an empty selection; they do not verify a live import or the number of graph writes.
