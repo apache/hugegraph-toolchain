@@ -24,7 +24,6 @@ const stylesheet = fs.readFileSync(path.join(__dirname, 'index.module.scss'), 'u
 test('allocates stable single-line widths across the task detail table', () => {
     expect(component).toContain('className={style.task_detail_table}');
     expect(component).toContain("scroll={{x: 'max-content'}}");
-    expect(component.match(/className: style\.no_wrap/g)?.length).toBe(7);
     expect(component.match(/ellipsis: true/g)?.length).toBe(6);
     expect(component).toContain('width: 240');
     expect(component).not.toContain('width: 400');

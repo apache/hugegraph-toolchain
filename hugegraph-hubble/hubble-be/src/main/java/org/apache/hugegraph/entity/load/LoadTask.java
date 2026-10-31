@@ -142,6 +142,16 @@ public class LoadTask implements Runnable {
     @JsonProperty("file_read_lines")
     private Long fileReadLines;
 
+    // Last persisted client-confirmed write operations in the current attempt.
+    // Nullable for tasks created before these metrics were recorded.
+    @TableField("confirmed_vertex_writes")
+    @JsonProperty("confirmed_vertex_writes")
+    private Long confirmedVertexWrites;
+
+    @TableField("confirmed_edge_writes")
+    @JsonProperty("confirmed_edge_writes")
+    private Long confirmedEdgeWrites;
+
     @TableField("last_duration")
     @MergeProperty
     @JsonProperty("last_duration")
@@ -174,6 +184,8 @@ public class LoadTask implements Runnable {
         this.fileTotalLines = mapping.getTotalLines();
         this.status = LoadStatus.RUNNING;
         this.fileReadLines = 0L;
+        this.confirmedVertexWrites = 0L;
+        this.confirmedEdgeWrites = 0L;
         this.lastDuration = 0L;
         this.currDuration = 0L;
         this.createTime = HubbleUtil.nowDate();
@@ -253,6 +265,7 @@ public class LoadTask implements Runnable {
                 readLines = this.context().oldProgress().totalInputRead();
             }
             this.fileReadLines = readLines;
+            this.refreshConfirmedWrites();
             this.lastDuration += this.context().summary().totalTime();
             this.currDuration = 0L;
         } finally {
@@ -320,6 +333,10 @@ public class LoadTask implements Runnable {
             runtimeOptions.pdToken = null;
             runtimeOptions.trustStoreToken = null;
             this.loader = new HugeGraphLoader(runtimeOptions, false);
+            // Resume and retry each start a new Loader summary. Keeping the
+            // previous snapshot would incorrectly present it as this attempt.
+            this.confirmedVertexWrites = 0L;
+            this.confirmedEdgeWrites = 0L;
             this.finished = false;
         } catch (CloneNotSupportedException e) {
             throw new InternalException("Failed to prepare load task options",
@@ -330,6 +347,11 @@ public class LoadTask implements Runnable {
     public LoadContext context() {
         Ex.check(this.loader != null, "loader shouldn't be null");
         return this.loader.context();
+    }
+
+    public void refreshConfirmedWrites() {
+        this.confirmedVertexWrites = this.context().summary().vertexLoaded();
+        this.confirmedEdgeWrites = this.context().summary().edgeLoaded();
     }
 
     @JsonProperty("load_progress")

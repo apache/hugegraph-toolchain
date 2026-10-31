@@ -500,35 +500,37 @@ const BaseForm = ({cancel, visible, loading}) => {
                     showIcon
                     type='info'
                     title={t('task.edit.demo_title')}
-                    description={selectedGraph
-                        ? t('task.edit.demo_target', {
-                            graphspace: selectedGraphspace,
-                            graph: selectedGraph,
-                        })
-                        : t('task.edit.demo_choose_graph')}
-                    action={(
-                        <Space wrap>
-                            <Button
-                                loading={demoLoading === 'hlm'}
-                                disabled={!selectedGraph || Boolean(demoLoading)}
-                                onClick={loadHlmDemo}
-                            >
-                                {t('graph.menu.load_hlm_sample')}
-                            </Button>
-                            <Button
-                                loading={demoLoading === 'loader'}
-                                disabled={!selectedGraph || Boolean(demoLoading)}
-                                onClick={loadLoaderDemo}
-                            >
-                                {t('graph.menu.load_loader_sample')}
-                            </Button>
-                            <Button
-                                loading={demoLoading === 'rank'}
-                                disabled={!selectedGraph || Boolean(demoLoading)}
-                                onClick={loadRankDemo}
-                            >
-                                {t('graph.menu.load_rank_sample')}
-                            </Button>
+                    description={(
+                        <Space orientation='vertical' size='small' style={{width: '100%'}}>
+                            <div>{selectedGraph
+                                ? t('task.edit.demo_target', {
+                                    graphspace: selectedGraphspace,
+                                    graph: selectedGraph,
+                                })
+                                : t('task.edit.demo_choose_graph')}</div>
+                            <Space wrap>
+                                <Button
+                                    loading={demoLoading === 'hlm'}
+                                    disabled={!selectedGraph || Boolean(demoLoading)}
+                                    onClick={loadHlmDemo}
+                                >
+                                    {t('graph.menu.load_hlm_sample')}
+                                </Button>
+                                <Button
+                                    loading={demoLoading === 'loader'}
+                                    disabled={!selectedGraph || Boolean(demoLoading)}
+                                    onClick={loadLoaderDemo}
+                                >
+                                    {t('graph.menu.load_loader_sample')}
+                                </Button>
+                                <Button
+                                    loading={demoLoading === 'rank'}
+                                    disabled={!selectedGraph || Boolean(demoLoading)}
+                                    onClick={loadRankDemo}
+                                >
+                                    {t('graph.menu.load_rank_sample')}
+                                </Button>
+                            </Space>
                         </Space>
                     )}
                 />

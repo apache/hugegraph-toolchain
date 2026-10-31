@@ -21,6 +21,7 @@ import org.apache.hugegraph.api.traverser.TraversersAPI;
 import org.apache.hugegraph.structure.constant.Traverser;
 import org.apache.hugegraph.util.E;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class KoutRequest {
@@ -46,6 +47,7 @@ public class KoutRequest {
     @JsonProperty("with_edge")
     public boolean withEdge = false;
     @JsonProperty("traverse_mode")
+    @JsonAlias("algorithm")
     public String traverseMode;
 
     private KoutRequest() {

@@ -224,6 +224,12 @@
     min-width: 0;
 }
 
+.operations-topology-surface {
+    min-width: 0;
+
+    .ant-table-content { overflow-x: auto; }
+}
+
 .operations-surface {
     min-width: 0;
     padding: 20px;
@@ -937,6 +943,17 @@ section.operations-metric-group .ant-descriptions-item-content > div + div {
     flex-direction: column;
     gap: 6px;
     margin-top: 12px;
+}
+
+.operations-list-compute {
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--workbench-color-border);
+
+    h3 { margin-bottom: 0; }
+    .operations-compute-entry { align-items: stretch; }
+    .operations-vermeer-summary { width: 100%; }
+    .operations-vermeer-entry-hint { display: none; }
 }
 
 .operations-vermeer-summary {

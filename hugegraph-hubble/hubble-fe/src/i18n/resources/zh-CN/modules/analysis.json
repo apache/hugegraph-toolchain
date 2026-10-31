@@ -593,7 +593,7 @@
         "paths": "查找路径与连接",
         "similarity": "比较与排名",
         "importance": "衡量重要性",
-        "communities": "发现社区",
+        "communities": "社区发现",
         "structure": "分析图结构"
       },
       "placeholder": "算法查询",
@@ -710,7 +710,7 @@
           "use_endpoint": "是否计算最后一个点"
         },
         "closeness_centrality": {
-          "desc": "计算一个节点到所有其他可达节点的最短距离的倒数，进行累积后归一化的值。用于计算图中每个节点的度中心性值，支持无向图和有向图",
+          "desc": "计算节点到其他可达节点的距离，用于衡量每个节点的紧密中心性，支持无向图和有向图",
           "weight_property": "权重属性名",
           "sample_rate": "边的采样率",
           "wf_improved": "是否使用 Wasserman and Faust 紧密中心性公式"
@@ -731,7 +731,7 @@
           "query_graph_config": "查询图配置，json数组字符串"
         },
         "k_core": {
-          "desc": "K-Core算法，标记所有度数为K的顶点",
+          "desc": "K-Core 算法按最小度数 K 筛选图中的顶点和子图",
           "k": "K-Core算法的k值，非必需，有默认值",
           "degree_k": "最小度数阈值"
         },
@@ -796,7 +796,7 @@
           "RESOURCE_ALLOCATION": "Resource Allocation",
           "SAME_NEIGHBORS_BATCH": "Same Neighbors Batch",
           "EGONET": "Egonet",
-          "SSSP": "SSSP（单元最短路径）"
+          "SSSP": "SSSP（单源最短路径）"
         },
         "legacy_item_alias": {
           "KOUT_POST": "K-out API(POST, 高级版)"
@@ -820,7 +820,7 @@
           "desc": "环路检测算法（Rings Detection），用于检测图中的环路，环路的路径由环路中最小id的顶点来记录"
         },
         "SSSPVermeer": {
-          "desc": "单元最短路径算法，求一个点到其他所有点的最短距离"
+          "desc": "单源最短路径算法，求一个点到其他所有点的最短距离"
         },
         "triangle_count": {
           "desc": "三角形计数算法，用于计算通过每个顶点的三角形个数",

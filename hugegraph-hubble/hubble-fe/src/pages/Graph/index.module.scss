@@ -73,6 +73,23 @@ div.add_card {
     }
 }
 
+.statistics_guidance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    padding: 8px 16px;
+    color: #344054;
+    background: #f0f7ff;
+    font-size: 12px;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+
+    a:focus-visible {
+        outline: 2px solid #1677ff;
+        outline-offset: 2px;
+    }
+}
+
 .element_counts {
     display: inline-block;
     max-width: 100%;

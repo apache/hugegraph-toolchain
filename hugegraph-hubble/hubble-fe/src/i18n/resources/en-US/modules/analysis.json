@@ -710,7 +710,7 @@
           "use_endpoint": "Include the last vertex in computation"
         },
         "closeness_centrality": {
-          "desc": "Computes the reciprocal of the shortest distance from a node to all other reachable nodes, accumulates the values, and normalizes the result. It is used to calculate closeness centrality for each node and supports directed and undirected graphs",
+          "desc": "Measures each node's closeness centrality using its distances to other reachable nodes. Supports directed and undirected graphs",
           "weight_property": "Weight Property Name",
           "sample_rate": "Edge Sample Rate",
           "wf_improved": "Use the Wasserman and Faust closeness centrality formula"
@@ -731,7 +731,7 @@
           "query_graph_config": "Query graph configuration as a JSON array string"
         },
         "k_core": {
-          "desc": "K-Core marks all vertices whose degree is K",
+          "desc": "K-Core identifies vertices and subgraphs using a minimum degree K",
           "k": "K value for the K-Core algorithm. Optional, with a default value",
           "degree_k": "Minimum degree threshold"
         },

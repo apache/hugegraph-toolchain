@@ -77,12 +77,43 @@ function getRowKey(item) {
 
 export async function copyStatement(content, t) {
     try {
+        if (!navigator.clipboard?.writeText) {
+            throw new Error('Clipboard API unavailable');
+        }
         await navigator.clipboard.writeText(content);
         message.success(t('analysis.logs.copy_success'));
+        return;
     }
     catch {
-        message.error(t('analysis.logs.copy_failed'));
+        // Clipboard API can be unavailable on HTTP or rejected by the browser.
+        // The legacy command is synchronous and can still work in those contexts.
     }
+    const previousFocus = document.activeElement;
+    const selection = window.getSelection();
+    const ranges = selection ? Array.from({length: selection.rangeCount}, (_, i) => selection.getRangeAt(i)) : [];
+    const input = document.createElement('textarea');
+    input.value = content;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    let copied;
+    try {
+        input.focus();
+        input.select();
+        copied = Boolean(document.execCommand?.('copy'));
+    }
+    catch {
+        copied = false;
+    }
+    finally {
+        input.remove();
+        previousFocus?.focus?.();
+        selection?.removeAllRanges();
+        ranges.forEach(range => selection?.addRange(range));
+    }
+    if (copied) message.success(t('analysis.logs.copy_success'));
+    else message.error(t('analysis.logs.copy_failed'));
 }
 
 const ExecuteLogActions = props => {

@@ -145,6 +145,19 @@ public class QueryServiceTest {
     }
 
     @Test
+    public void testPreviewPreservesTerminalZeroLimit() throws Exception {
+        GremlinManager gremlin = this.mockGremlin();
+        GremlinQuery query = new GremlinQuery("g.V().limit(0)");
+        query.setPreview(true);
+        GremlinResult result = this.serviceWithConfig().executeGremlinQuery(this.mockClient(gremlin), query);
+
+        Mockito.verify(gremlin).gremlin("g.V().limit(0)");
+        Assert.assertFalse(result.isDefaultLimitApplied());
+        Assert.assertEquals(GremlinResult.Type.EMPTY, result.getType());
+        Assert.assertFalse(result.isResultTruncated());
+    }
+
+    @Test
     public void testConfiguredGremlinDefaultReportsEffectivePreviewLimit() throws Exception {
         for (int configured : new int[]{300, 5000}) {
             QueryService service = this.serviceWithConfig(configured);
