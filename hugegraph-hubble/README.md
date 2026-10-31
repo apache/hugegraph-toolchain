@@ -154,6 +154,20 @@ are received by the SDK before projection; this includes collections returned by
 expressions such as Cypher split. These previews are not an upstream byte or
 execution budget.
 
+Importing canvas JSON writes vertices and edges to the selected graph. A Server
+write may replace an existing element, and an interrupted or failed import can
+leave some changes applied even if a response is lost. Hubble does not attempt
+to delete those IDs on failure: it cannot distinguish new elements from existing
+ones or safely undo concurrent updates. Inspect the graph before retrying; this
+operation is not transactional and cannot restore previous values.
+When a write fails, Hubble reports the number of vertex and edge write requests
+that returned successfully. These are acknowledged operations, not new-element
+counts or a complete list of changes. The failed request may also have succeeded
+before its response was lost. Do not retry or delete reported elements blindly:
+compare the affected graph with a backup, account for concurrent writers, and
+restore only after deciding which changes should be preserved. Hubble cannot
+automatically reverse overwritten values or guarantee that a retry is safe.
+
 <details>
 <summary>Current query preview controls — native browser screenshots</summary>
 

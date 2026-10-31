@@ -797,6 +797,25 @@ class PolicyTest(unittest.TestCase):
                 with self.assertRaises(policy.StaleInputError):
                     policy.gate(plan, results, fetch)
                 ref["object"]["sha"] = canonical
+                # The runner checked out a GitHub event merge, then another PR
+                # advanced the target before planning. Record the actual base.
+                later = git('commit-tree', git('rev-parse', canonical + '^{tree}'),
+                            '-p', canonical, '-m', 'advance target again')
+                ref['object']['sha'] = later
+                live['merge_commit_sha'] = old_merge
+                def snapshot_fetch(path):
+                    if '/compare/' in path:
+                        self.assertEqual(f'repos/apache/t/compare/{canonical}...{later}', path)
+                        return {'status': 'ahead'}
+                    return fetch(path)
+                with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'pull_request', 'GITHUB_SHA': merge}):
+                    snapshot = policy.create_plan('toolchain', event, 'apache/t', snapshot_fetch)
+                    self.assertEqual(canonical, snapshot['base'])
+                    self.assertEqual(merge, snapshot['testedMergeSHA'])
+                    self.assertEqual('target', snapshot['snapshotBaseBranch'])
+                    self.assertEqual('target', policy.gate(snapshot, results, snapshot_fetch)['snapshotBaseBranch'])
+                ref['object']['sha'] = canonical
+                live['merge_commit_sha'] = merge
                 # A rerun of an old checkout cannot claim the fresh merge.
                 git("checkout", "--detach", "-q", old_merge)
                 with self.assertRaises(policy.StaleInputError):
@@ -807,6 +826,56 @@ class PolicyTest(unittest.TestCase):
                     policy.create_plan("toolchain", stale_event, "apache/t", fetch)
             finally:
                 os.chdir(old)
+
+    def test_event_merge_snapshot_survives_target_advancement(self):
+        live = self.live_pr()
+        live['base']['ref'] = 'master'
+        live['merge_commit_sha'] = 'newer-merge'
+        event = {'base': {'ref': 'master'}}
+        plan = self.plan()
+        plan['base'] = 'event-base'
+        ref = {'object': {'type': 'commit', 'sha': 'current-base'}}
+        comparison = {'status': 'ahead'}
+
+        def fetch(path):
+            if '/compare/' in path:
+                return comparison
+            return ref if '/git/ref/' in path else live
+
+        def git(*args):
+            if args == ('merge-base', 'event-base', 'tested-base'):
+                return 'event-base'
+            raise AssertionError(args)
+
+        with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'pull_request',
+                                     'GITHUB_SHA': 'merge'}), patch.object(policy, 'git', side_effect=git):
+            policy.record_current_merge(plan, event, ['tested-base', 'new'], fetch)
+            self.assertEqual('tested-base', plan['base'])
+            self.assertEqual('master', plan['snapshotBaseBranch'])
+            changed = dict(live, head=dict(live['head'], sha='different'))
+            with self.assertRaises(policy.StaleInputError):
+                policy.require_current_pr(plan, lambda _: changed)
+            changed = dict(live, base=dict(live['base'], ref='other'))
+            with self.assertRaises(policy.StaleInputError):
+                policy.require_current_pr(plan, lambda _: changed)
+            comparison['status'] = 'diverged'
+            with self.assertRaises(policy.StaleInputError):
+                policy.record_current_merge(dict(self.plan(), base='event-base'), event,
+                                            ['tested-base', 'new'], fetch)
+
+    def test_untrusted_merge_sha_cannot_use_snapshot_recovery(self):
+        live = self.live_pr()
+        live['base']['ref'] = 'master'
+        live['merge_commit_sha'] = 'different'
+        plan = self.plan()
+        event = {'base': {'ref': 'master'}}
+        ref = {'object': {'type': 'commit', 'sha': 'current-base'}}
+        def fetch(path):
+            return ref if '/git/ref/' in path else live
+        with patch.dict(os.environ, {'GITHUB_EVENT_NAME': 'pull_request',
+                                     'GITHUB_SHA': 'not-the-checkout'}):
+            with self.assertRaises(policy.StaleInputError):
+                policy.record_current_merge(plan, event, ['base', 'new'], fetch)
 
     def test_native_stack_canonical_base_and_gate_freshness(self):
         # Reproduce GitHub native stacks: REST base.sha can remain at the old
