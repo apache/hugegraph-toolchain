@@ -236,7 +236,7 @@
       "load_loader_sample": "人物与软件 Demo 图",
       "sample_data": "示例数据与资源",
       "load_rank_sample": "迷你电影 Rank Demo",
-      "clone": "克隆图"
+      "clone": "克隆 Schema"
     },
     "sample": {
       "hlm_title": "构建红楼梦 Demo 图？",
@@ -294,8 +294,10 @@
     },
     "clone": {
       "unavailable": "当前连接的 Server 未提供兼容的克隆 API，因此暂不可用。",
-      "title": "克隆图",
-      "success": "克隆成功",
+      "title": "克隆图 Schema",
+      "success": "Schema 已克隆",
+      "schema_only": "仅复制当前图空间内不含边标签的 Schema，不复制顶点或边数据。含边标签的源图暂不支持，需要兼容的 Server。",
+      "failed": "Schema 克隆失败，请检查 Server 版本和权限。目标图可能已创建，重试前请检查。",
       "name": "克隆图名称",
       "name_duplicate": "在目标 GraphSpace 内不能与已有图名称重复",
       "nickname_label": "克隆图显示名称",

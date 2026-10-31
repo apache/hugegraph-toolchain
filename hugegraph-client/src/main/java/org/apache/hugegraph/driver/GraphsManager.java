@@ -53,10 +53,12 @@ public class GraphsManager {
         return this.graphsAPI.create(name, null, config);
     }
 
+    /** Create a graph using the source configuration; Schema and data are not copied. */
     public Map<String, String> cloneGraph(String name, String cloneGraphName) {
         return this.graphsAPI.create(name, cloneGraphName, null);
     }
 
+    /** Create a graph using source configuration and overrides; Schema and data are not copied. */
     public Map<String, String> cloneGraph(String name, String cloneGraphName,
                                           String configText) {
         return this.graphsAPI.create(name, cloneGraphName, configText);
@@ -145,6 +147,13 @@ public class GraphsManager {
         return this.graphsAPI.readMode(graph);
     }
 
+    /** Clone schema without edge labels in the same GraphSpace; no graph data is copied. */
+    public Map<String, Object> cloneSchema(String target, String source, String nickname) {
+        return this.graphsAPI.cloneSchema(target, source, nickname);
+    }
+
+    /** @deprecated This asynchronous endpoint is an extension, not an upstream Server API. */
+    @Deprecated
     public String clone(String graph, Map<String, Object> body) {
         return this.graphsAPI.clone(graph, body);
     }

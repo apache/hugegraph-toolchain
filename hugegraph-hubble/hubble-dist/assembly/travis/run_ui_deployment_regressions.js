@@ -24,6 +24,7 @@ const {spawnSync} = require('child_process');
 
 const REQUIRED_CHECKS = Object.freeze([
     'authenticated login and GraphSpace/account visibility',
+    'clone graph schema without graph data',
     'profile displays stored remarks and saves a 30-day session',
     'GraphSpace title date and header whitespace navigate exactly to selected space',
     'dense schema card keeps type names readable and opens the full schema',
@@ -73,6 +74,7 @@ function validateReport(report) {
 const screenshotNames = new Set([
     'graphspace-authenticated', 'graphspace-edit', 'graph-context-switch',
     'import-failure-progress', 'dense-schema-card',
+    'graph-schema-clone-dialog', 'graph-schema-cloned', 'profile-session-units',
     'vermeer-statistics-load-guidance',
     'query-routine-limit', 'query-truncated', 'query-preview-details',
     'query-core-1440', 'query-core-1024',

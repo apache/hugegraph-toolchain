@@ -31,6 +31,7 @@ public final class ServerCompatibility {
     private static final String GRAPHSPACE_MIN_VERSION = "1.7.0";
     private static final String GRAPH_CREATE_MIN_API_VERSION = "0.67";
     private static final String DEFAULT_ROLE_MIN_API_VERSION = "0.72";
+    private static final String SCHEMA_CLONE_MIN_API_VERSION = "0.73";
 
     private ServerCompatibility() {
     }
@@ -80,6 +81,10 @@ public final class ServerCompatibility {
 
     public static boolean supportsGraphCreate(String apiVersion) {
         return supportsApi(apiVersion, GRAPH_CREATE_MIN_API_VERSION);
+    }
+
+    public static boolean supportsSchemaClone(String apiVersion) {
+        return supportsApi(apiVersion, SCHEMA_CLONE_MIN_API_VERSION);
     }
 
     public static boolean supportsDefaultRole(String coreVersion,

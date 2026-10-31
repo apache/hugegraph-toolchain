@@ -44,6 +44,9 @@ jest.mock('./routes', () => ({element}) => {
         data-auth-enabled={String(
             jest.requireActual('./utils/config').isAuthEnabled()
         )}
+        data-clone-enabled={String(
+            jest.requireActual('./utils/config').isSchemaCloneEnabled()
+        )}
     >
         {element}
         <input aria-label="unsaved draft" />
@@ -277,6 +280,18 @@ test('preserves route state when periodic configuration is unchanged', async () 
     expect(screen.getByRole('textbox', {name: 'unsaved draft'}))
         .toHaveValue('keep me');
     jest.useRealTimers();
+});
+
+test('refreshes routes when verified schema clone capability changes', async () => {
+    jest.useFakeTimers();
+    const config = {pd_enabled: true, auth_enabled: true, server_capabilities_verified: true};
+    api.config.getConfig
+        .mockResolvedValueOnce({status: 200, data: {...config, schema_clone_enabled: false}})
+        .mockResolvedValueOnce({status: 200, data: {...config, schema_clone_enabled: true}});
+    render(<MemoryRouter><App /></MemoryRouter>);
+    expect(await screen.findByTestId('app-route')).toHaveAttribute('data-clone-enabled', 'false');
+    await act(async () => { jest.advanceTimersByTime(30_000); });
+    await waitFor(() => expect(screen.getByTestId('app-route')).toHaveAttribute('data-clone-enabled', 'true'));
 });
 
 test.each(['manual', 'poll'])('manual verification deduplicates %s requests and preserves route drafts', async trigger => {

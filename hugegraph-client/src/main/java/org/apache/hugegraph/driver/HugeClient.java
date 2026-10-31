@@ -279,6 +279,11 @@ public class HugeClient implements Closeable {
                this.version.getApiVersion());
     }
 
+    public boolean supportsSchemaClone() {
+        return ServerCompatibility.supportsSchemaClone(
+               this.version.getApiVersion());
+    }
+
     public boolean supportsCypher() {
         return this.compatibility.supportsCypher();
     }

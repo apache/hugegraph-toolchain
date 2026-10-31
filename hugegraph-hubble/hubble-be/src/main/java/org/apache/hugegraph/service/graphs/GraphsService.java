@@ -21,7 +21,6 @@ package org.apache.hugegraph.service.graphs;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import lombok.extern.log4j.Log4j2;
@@ -458,10 +457,9 @@ public class GraphsService {
                 "common.read_mode.invalid", mode);
     }
 
-    public Object clone(HugeClient client, Map<String, Object> params) {
-        return ImmutableMap.of("task_id",
-                               client.graphs().clone(client.getGraphName(),
-                                                     params));
+    public Map<String, Object> cloneSchema(HugeClient client, String target, String source,
+                                           String nickname) {
+        return client.graphs().cloneSchema(target, source, nickname);
     }
 
     public static long getStorage(RestClient pdClient,

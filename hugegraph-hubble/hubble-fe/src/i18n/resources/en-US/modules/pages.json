@@ -236,7 +236,7 @@
       "load_loader_sample": "People & Software Demo Graph",
       "sample_data": "Sample data and resources",
       "load_rank_sample": "Tiny Movie Rank Demo",
-      "clone": "Clone Graph"
+      "clone": "Clone Schema"
     },
     "sample": {
       "hlm_title": "Build the Red Chamber demo graph?",
@@ -294,8 +294,10 @@
     },
     "clone": {
       "unavailable": "Clone is unavailable because the connected Server does not expose a compatible clone API.",
-      "title": "Clone Graph",
-      "success": "Graph cloned",
+      "title": "Clone Graph Schema",
+      "success": "Schema cloned",
+      "schema_only": "Copies Schema without edge labels within this GraphSpace only. Sources with edge labels are not yet supported. Vertices and edges are not copied. A compatible Server is required.",
+      "failed": "Schema cloning failed. Check the Server version and permissions. The target may have been created; inspect it before retrying.",
       "name": "Cloned Graph Name",
       "name_duplicate": "Use a graph name not already present in the destination GraphSpace",
       "nickname_label": "Cloned Graph Display Name",

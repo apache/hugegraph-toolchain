@@ -28,6 +28,7 @@ import org.apache.hugegraph.entity.graphs.GraphCloneEntity;
 import org.apache.hugegraph.entity.graphs.GraphCreateEntity;
 import org.apache.hugegraph.entity.graphs.GraphUpdateEntity;
 import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ParameterizedException;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.entity.graphs.GraphStatisticsEntity;
 import org.apache.hugegraph.exception.ServerException;
@@ -356,13 +357,22 @@ public class GraphsController extends BaseController {
     public Object clone(@PathVariable("graphspace") String graphspace,
                         @PathVariable("graph") String graph,
                         @RequestBody GraphCloneEntity graphCloneEntity) {
-        HugeClient client = this.authClient(graphspace, graph);
+        if (graphCloneEntity.getLoadData() != 0) {
+            throw new ParameterizedException("Graph data cloning is not supported");
+        }
         String targetGraphSpace = graphCloneEntity.getGraphSpace() == null ?
-                                  graphspace :
-                                  graphCloneEntity.getGraphSpace();
-        this.requireGraphSpaceWrite(client, targetGraphSpace);
-        return this.graphsService.clone(
-                client, graphCloneEntity.convertMap(graphspace, graph));
+                                  graphspace : graphCloneEntity.getGraphSpace();
+        if (!graphspace.equals(targetGraphSpace)) {
+            throw new ParameterizedException("Schema cloning across GraphSpaces is not supported");
+        }
+        if (StringUtils.isBlank(graphCloneEntity.getName()) ||
+            graph.equals(graphCloneEntity.getName())) {
+            throw new ParameterizedException("A different target graph name is required");
+        }
+        HugeClient client = this.authClient(graphspace, graph);
+        this.requireGraphSpaceWrite(client, graphspace);
+        return this.graphsService.cloneSchema(client, graphCloneEntity.getName(), graph,
+                                              graphCloneEntity.getNickname());
     }
     //
     //@Data

@@ -352,22 +352,31 @@ public class GraphsControllerCanonicalTest {
     }
 
     @Test
-    public void testCloneValidatesBodyTargetGraphSpace() throws Exception {
+    public void testCloneOnlyAllowsSchemaInCurrentGraphSpace() throws Exception {
         ScopeCapturingController controller = new ScopeCapturingController();
         controller.client = this.client;
         this.setField(controller, "graphsService", this.graphsService);
         GraphCloneEntity clone = GraphCloneEntity.builder()
-                                                 .graphSpace("target")
+                                                 .graphSpace("source")
                                                  .name("copy")
+                                                 .nickname("Copy")
                                                  .build();
-
         controller.clone("source", "original", clone);
+        Assert.assertEquals("source", controller.checkedGraphSpace);
+        Mockito.verify(this.graphsService).cloneSchema(this.client, "copy", "original", "Copy");
 
-        Assert.assertEquals("target", controller.checkedGraphSpace);
-        Mockito.verify(this.graphsService).clone(
-                Mockito.eq(this.client),
-                Mockito.argThat(params -> "target".equals(
-                        params.get("graphspace"))));
+        clone.setGraphSpace("other");
+        Assert.assertThrows(org.apache.hugegraph.exception.ParameterizedException.class,
+                            () -> controller.clone("source", "original", clone));
+        clone.setGraphSpace("source");
+        clone.setLoadData(1);
+        Assert.assertThrows(org.apache.hugegraph.exception.ParameterizedException.class,
+                            () -> controller.clone("source", "original", clone));
+        clone.setLoadData(0);
+        clone.setName("original");
+        Assert.assertThrows(org.apache.hugegraph.exception.ParameterizedException.class,
+                            () -> controller.clone("source", "original", clone));
+        Mockito.verifyNoMoreInteractions(this.graphsService);
     }
 
     private void setField(Object object, String name, Object value)

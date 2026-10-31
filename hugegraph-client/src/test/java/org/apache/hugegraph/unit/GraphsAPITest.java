@@ -126,6 +126,118 @@ public class GraphsAPITest extends BaseUnitTest {
     }
 
     @Test
+    public void testSchemaCloneUsesExplicitEndpointAndDoesNotClaimDataClone() {
+        RestResult result = Mockito.mock(RestResult.class);
+        Mockito.when(result.readObject(Map.class)).thenReturn(ImmutableMap.of("name", "copy"));
+        Mockito.when(this.mockClient.post(Mockito.eq("graphspaces/DEFAULT/graphs/copy/schema-clone"),
+                                          Mockito.any(), Mockito.any(), Mockito.any()))
+               .thenReturn(result);
+        Map<String, Object> cloned = this.graphsAPI.cloneSchema("copy", "original", "Copy");
+        Assert.assertEquals("copy", cloned.get("name"));
+        Mockito.verify(this.mockClient).post(
+                Mockito.eq("graphspaces/DEFAULT/graphs/copy/schema-clone"),
+                Mockito.eq(ImmutableMap.of("nickname", "Copy")),
+                Mockito.any(RestHeaders.class), Mockito.eq(ImmutableMap.of("source", "original")));
+    }
+
+    @Test
+    public void testSchemaCloneManagerOmitsBlankNicknameAndRejectsMissingNames() {
+        RestResult result = Mockito.mock(RestResult.class);
+        Mockito.when(result.readObject(Map.class)).thenReturn(ImmutableMap.of("name", "copy"));
+        Mockito.when(this.mockClient.post(Mockito.eq("graphspaces/DEFAULT/graphs/copy/schema-clone"),
+                                          Mockito.any(), Mockito.any(), Mockito.any()))
+               .thenReturn(result);
+        GraphsManager manager = new GraphsManager(this.mockClient, "DEFAULT");
+        Assert.assertEquals("copy", manager.cloneSchema("copy", "original", " ").get("name"));
+        Mockito.verify(this.mockClient).post(
+                Mockito.eq("graphspaces/DEFAULT/graphs/copy/schema-clone"),
+                Mockito.eq(ImmutableMap.of()), Mockito.any(RestHeaders.class),
+                Mockito.eq(ImmutableMap.of("source", "original")));
+        Assert.assertThrows(IllegalArgumentException.class,
+                            () -> manager.cloneSchema("", "original", null));
+        Assert.assertThrows(IllegalArgumentException.class,
+                            () -> manager.cloneSchema("copy", " ", null));
+        Mockito.verify(result).readObject(Map.class);
+    }
+
+    @Test
+    @SuppressWarnings("deprecation")
+    public void testLegacyCloneExtensionRemainsAvailableThroughManager() {
+        RestResult result = Mockito.mock(RestResult.class);
+        Mockito.when(result.readObject(Map.class)).thenReturn(ImmutableMap.of("task_id", "42"));
+        Map<String, Object> request = ImmutableMap.of("name", "copy");
+        Mockito.when(this.mockClient.post("graphspaces/DEFAULT/graphs/original/clone", request))
+               .thenReturn(result);
+        Assert.assertEquals("42", new GraphsManager(this.mockClient, "DEFAULT")
+                                  .clone("original", request));
+    }
+
+    @Test
+    public void testSchemaCloneSendsExplicitRequestOverHttp() throws Exception {
+        AtomicReference<String> path = new AtomicReference<>();
+        AtomicReference<String> query = new AtomicReference<>();
+        AtomicReference<String> body = new AtomicReference<>();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/graphspaces/DEFAULT/graphs/copy/schema-clone", exchange -> {
+            path.set(exchange.getRequestURI().getPath());
+            query.set(exchange.getRequestURI().getQuery());
+            try (InputStream input = exchange.getRequestBody()) {
+                body.set(IOUtils.toString(input, StandardCharsets.UTF_8));
+            }
+            byte[] response = "{\"name\":\"copy\"}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(201, response.length);
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(response);
+            }
+        });
+        server.start();
+        RestClient client = new RestClient(
+                "http://127.0.0.1:" + server.getAddress().getPort(), "", "", 1);
+        try (AutoCloseable closeClient = client::close) {
+            client.setSupportGs(true);
+            Map<String, Object> result = new GraphsAPI(client, "DEFAULT")
+                    .cloneSchema("copy", "original", "Copy");
+            Assert.assertEquals("copy", result.get("name"));
+            Assert.assertEquals("/graphspaces/DEFAULT/graphs/copy/schema-clone", path.get());
+            Assert.assertEquals("source=original", query.get());
+            Assert.assertEquals("Copy", JsonUtil.fromJson(body.get(), Map.class).get("nickname"));
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testUnsupportedServerDoesNotFallBackToCreatingEmptyGraph() throws Exception {
+        AtomicReference<String> path = new AtomicReference<>();
+        java.util.concurrent.atomic.AtomicInteger requests = new java.util.concurrent.atomic.AtomicInteger();
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/", exchange -> {
+            requests.incrementAndGet();
+            path.set(exchange.getRequestURI().getPath());
+            byte[] response = "{}".getBytes(StandardCharsets.UTF_8);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(404, response.length);
+            try (OutputStream output = exchange.getResponseBody()) {
+                output.write(response);
+            }
+        });
+        server.start();
+        RestClient client = new RestClient(
+                "http://127.0.0.1:" + server.getAddress().getPort(), "", "", 1);
+        try (AutoCloseable closeClient = client::close) {
+            client.setSupportGs(true);
+            Assert.assertThrows(org.apache.hugegraph.exception.ServerException.class,
+                                () -> new GraphsAPI(client, "DEFAULT")
+                                      .cloneSchema("copy", "original", null));
+            Assert.assertEquals(1, requests.get());
+            Assert.assertEquals("/graphspaces/DEFAULT/graphs/copy/schema-clone", path.get());
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
     public void testLegacyCreateConvertsJsonToProperties() throws Exception {
         Mockito.when(this.mockClient.isSupportGs()).thenReturn(false);
         RestResult result = Mockito.mock(RestResult.class);

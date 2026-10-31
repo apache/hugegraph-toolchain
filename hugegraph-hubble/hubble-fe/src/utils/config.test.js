@@ -19,6 +19,7 @@
 import {
     isCypherEnabled,
     isGraphCreateEnabled,
+    isSchemaCloneEnabled,
     isAuthEnabled,
     setConfig,
 } from './config';
@@ -29,16 +30,19 @@ beforeEach(() => {
 
 test('keeps unknown server capabilities disabled', () => {
     expect(isGraphCreateEnabled()).toBe(false);
+    expect(isSchemaCloneEnabled()).toBe(false);
     expect(isCypherEnabled()).toBe(false);
 });
 
 test('uses explicit server capability flags', () => {
     setConfig({
         graph_create_enabled: true,
+        schema_clone_enabled: true,
         cypher_enabled: false,
     });
 
     expect(isGraphCreateEnabled()).toBe(true);
+    expect(isSchemaCloneEnabled()).toBe(true);
     expect(isCypherEnabled()).toBe(false);
 });
 
@@ -49,4 +53,9 @@ test('keeps unverified partial configuration authenticated until Server confirms
     expect(isAuthEnabled()).toBe(false);
     setConfig({auth_enabled: false});
     expect(isAuthEnabled()).toBe(false);
+});
+
+test('keeps schema clone disabled when the capability probe is unverified', () => {
+    setConfig({schema_clone_enabled: true, server_capabilities_verified: false});
+    expect(isSchemaCloneEnabled()).toBe(false);
 });

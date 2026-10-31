@@ -33,6 +33,11 @@ public class ServerCompatibilityTest {
         Assert.assertFalse(ServerCompatibility.supportsCypher("not-a-version"));
         Assert.assertFalse(ServerCompatibility.supportsGraphCreate("not-a-version"));
         Assert.assertFalse(ServerCompatibility.supportsGraphCreate("0.66"));
+        Assert.assertFalse(ServerCompatibility.supportsSchemaClone(null));
+        Assert.assertFalse(ServerCompatibility.supportsSchemaClone("not-a-version"));
+        Assert.assertFalse(ServerCompatibility.supportsSchemaClone("0.72"));
+        Assert.assertTrue(ServerCompatibility.supportsSchemaClone("0.73"));
+        Assert.assertTrue(ServerCompatibility.supportsSchemaClone("0.74.0.0"));
     }
 
     @Test

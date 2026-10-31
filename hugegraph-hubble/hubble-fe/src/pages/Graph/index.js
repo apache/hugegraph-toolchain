@@ -37,12 +37,12 @@ import {
 } from 'antd';
 import {useState, useEffect, useCallback} from 'react';
 import {useTranslation} from 'react-i18next';
-import {EditLayer, ViewLayer} from './EditLayer';
+import {CloneLayer, EditLayer, ViewLayer} from './EditLayer';
 import {PlusOutlined} from '@ant-design/icons';
 import {Link, useParams, useNavigate} from 'react-router-dom';
 import style from './index.module.scss';
 import * as api from '../../api';
-import {isGraphCreateEnabled, isPdEnabled} from '../../utils/config';
+import {isGraphCreateEnabled, isPdEnabled, isSchemaCloneEnabled} from '../../utils/config';
 import {
     DEFAULT_GRAPHSPACE,
     isGraphDefaultMutationEnabled,
@@ -96,6 +96,7 @@ const Graph = () => {
     const [searchText, setSearchText] = useState('');
     const [editLayer, setEditLayer] = useState(false);
     const [viewLayer, setViewLayer] = useState(false);
+    const [cloneLayer, setCloneLayer] = useState(false);
     const [selectGraph, setSelectGraph] = useState('');
     const [listType, setListType] = useState('image');
     const [refresh, setRefresh] = useState(false);
@@ -109,9 +110,9 @@ const Graph = () => {
     const navigate = useNavigate();
     const pdMode = isPdEnabled();
     const graphCreateEnabled = isGraphCreateEnabled();
+    const schemaCloneEnabled = isSchemaCloneEnabled();
     const graphCreateUnavailableHint = t('graph.server_upgrade_hint');
-    const cloneUnavailableHint = graphCreateEnabled
-        ? t('graph.clone.unavailable') : graphCreateUnavailableHint;
+    const cloneUnavailableHint = t('graph.clone.unavailable');
     const graphDefaultMutationEnabled = isGraphDefaultMutationEnabled(pdMode);
     const {canManage, canWrite} = useGraphspaceAccess(graphspace);
     const {context: authContext, identityEpoch} = useAuthContext();
@@ -167,6 +168,11 @@ const Graph = () => {
     const editGraph = useCallback(graph => {
         setSelectGraph(graph);
         setEditLayer(true);
+    }, []);
+
+    const showClone = useCallback(graph => {
+        setSelectGraph(graph);
+        setCloneLayer(true);
     }, []);
 
     const clearGraph = useCallback(graph => {
@@ -454,17 +460,13 @@ const Graph = () => {
                                     </GraphRowAction>
                                 )
                         )}
-                        <Tooltip title={cloneUnavailableHint}>
-                            <span
-                                className={style.disable}
-                                role='button'
-                                aria-disabled='true'
-                                aria-label={`${t('graph.menu.clone')}: ${cloneUnavailableHint}`}
-                                tabIndex={0}
-                            >
+                        {canManage && schemaCloneEnabled
+                            ? <GraphRowAction onAction={showClone} graph={row.name}>
                                 {t('graph.menu.clone')}
-                            </span>
-                        </Tooltip>
+                            </GraphRowAction>
+                            : <Tooltip title={!schemaCloneEnabled ? cloneUnavailableHint : undefined}>
+                                <span className={style.disable}>{t('graph.menu.clone')}</span>
+                            </Tooltip>}
                     </Space>
                 );
             },
@@ -537,16 +539,11 @@ const Graph = () => {
             },
             {
                 key: 'clone',
-                disabled: true,
-                label: (
-                    <Tooltip title={cloneUnavailableHint}>
-                        <span
-                            aria-label={`${t('graph.menu.clone')}: ${cloneUnavailableHint}`}
-                        >
-                            {t('graph.menu.clone')}
-                        </span>
-                    </Tooltip>
-                ),
+                disabled: !canManage || !schemaCloneEnabled,
+                label: !schemaCloneEnabled
+                    ? <Tooltip title={cloneUnavailableHint}>{t('graph.menu.clone')}</Tooltip>
+                    : t('graph.menu.clone'),
+                onClick: canManage && schemaCloneEnabled ? () => showClone(item.name) : undefined,
             },
         ].filter(Boolean);
     };
@@ -722,6 +719,8 @@ const Graph = () => {
                     graph={selectGraph}
                     graphspace={graphspace}
                 />
+                <CloneLayer open={cloneLayer} onCancel={() => setCloneLayer(false)}
+                    refresh={handleRefresh} graphspace={graphspace} graph={selectGraph} />
                 <ClearGraphConfirmModal
                     open={Boolean(clearSelection)}
                     graphspace={graphspace}

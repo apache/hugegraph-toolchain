@@ -149,8 +149,8 @@ const updateGraphStatistic = (graphspace, graph) => {
     return request.post(`/graphspaces/${graphspace}/graphs/${graph}/statistics`);
 };
 
-const cloneGraph = (graphspace, graph, params) => {
-    return request.post(`/graphspaces/${graphspace}/graphs/${graph}/clone`, params);
+const cloneGraph = (graphspace, graph, params, config) => {
+    return request.post(`/graphspaces/${graphspace}/graphs/${graph}/clone`, params, config);
 };
 
 export {getGraphList, getGraph, addGraph, updateGraph, delGraph, getDefaultGraph,

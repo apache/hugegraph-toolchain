@@ -46,7 +46,7 @@ jest.mock('../../api', () => ({
     },
 }));
 
-jest.mock('./EditLayer', () => ({EditLayer: () => null, ViewLayer: () => null}));
+jest.mock('./EditLayer', () => ({CloneLayer: () => null, EditLayer: () => null, ViewLayer: () => null}));
 jest.mock('./Card', () => () => <div>graph card</div>);
 jest.mock('./ClearGraphConfirmModal', () => () => null);
 

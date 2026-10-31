@@ -24,7 +24,7 @@ import Layout from './layout.ant';
 import {useSessionIdleTimeout} from './auth/useSessionIdleTimeout';
 import {AuthContextProvider} from './auth/AuthContext';
 import * as api from './api';
-import {isAuthEnabled, setConfig} from './utils/config';
+import {isAuthEnabled, isSchemaCloneEnabled, setConfig} from './utils/config';
 import {ConfigConnectionContext} from './utils/ConfigConnectionContext';
 import {clearLogin} from './utils/user';
 import Login from './pages/Login';
@@ -36,6 +36,7 @@ const routeConfigSignature = config => JSON.stringify([
     isAuthEnabled(config),
     config.pd_enabled === true,
     config.graph_create_enabled === true,
+    isSchemaCloneEnabled(config),
     config.cypher_enabled === true,
 ]);
 

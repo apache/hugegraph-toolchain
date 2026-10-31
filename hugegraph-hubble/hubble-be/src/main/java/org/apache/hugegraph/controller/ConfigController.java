@@ -62,6 +62,7 @@ public class ConfigController {
             capabilities.put("server_capabilities_verified", false);
             capabilities.put("auth_enabled", true);
             capabilities.put("graph_create_enabled", false);
+            capabilities.put("schema_clone_enabled", false);
             capabilities.put("cypher_enabled", false);
             if (hugeClientPoolService == null) {
                 return capabilities;
@@ -72,6 +73,8 @@ public class ConfigController {
                                  client.isServerAuthEnabled()));
                 capabilities.put("graph_create_enabled",
                                  client.supportsGraphCreate());
+                capabilities.put("schema_clone_enabled",
+                                 client.supportsSchemaClone());
                 capabilities.put("cypher_enabled", client.supportsCypher());
                 capabilities.put("server_capabilities_verified", true);
                 return capabilities;
@@ -83,6 +86,7 @@ public class ConfigController {
         capabilities.put("server_capabilities_verified", false);
         capabilities.put("auth_enabled", true);
         capabilities.put("graph_create_enabled", false);
+        capabilities.put("schema_clone_enabled", false);
         capabilities.put("cypher_enabled", false);
         if (hugeClientPoolService == null) {
             return capabilities;
@@ -94,6 +98,8 @@ public class ConfigController {
                              client.isServerAuthEnabled()));
             capabilities.put("graph_create_enabled",
                              client.supportsGraphCreate());
+            capabilities.put("schema_clone_enabled",
+                             client.supportsSchemaClone());
             capabilities.put("cypher_enabled", client.supportsCypher());
             capabilities.put("server_capabilities_verified", true);
             return capabilities;

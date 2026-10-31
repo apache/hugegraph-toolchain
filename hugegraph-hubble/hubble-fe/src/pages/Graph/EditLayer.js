@@ -21,11 +21,9 @@ import {useState, useEffect, useCallback, useMemo, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../api/index';
 import * as rules from '../../utils/rules';
-import {byteConvert, timeConvert} from '../../utils/format';
-import style from './index.module.scss';
 import {BUILTIN_SCHEMA_TEMPLATES} from '../Schema/builtinSchemaTemplates';
 import {toGraphSchemaGroovy} from '../Schema/schemaGroovy';
-import {getResourceAlias, getResourceDisplayName} from '../../utils/displayName';
+import {getResourceAlias} from '../../utils/displayName';
 import {isPdEnabled} from '../../utils/config';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
@@ -530,140 +528,75 @@ const ViewLayer = ({visible, onCancel, graphspace, graph}) => {
 
 const CloneLayer = ({open, onCancel, refresh, graphspace, graph}) => {
     const [form] = Form.useForm();
-    const [graphspaceList, setGraphspaceList] = useState([]);
-    const [detail, setDetail] = useState({});
     const [loading, setLoading] = useState(false);
+    const generation = useRef(0);
     const {t} = useTranslation();
 
-    const notEq = (str, msg) => ({
-        validator(_, value) {
-            if (value !== str) {
-                return Promise.resolve();
-            }
-
-            return Promise.reject(new Error(msg));
-        },
-    });
-
-    const handleClone = useCallback(() => {
-        form.validateFields().then(res => {
-            setLoading(true);
-            api.manage.cloneGraph(graphspace, graph, {
-                graphspace: res.graphspace,
-                nickname: res.nickname,
-                name: res.name,
-                load_data: res.load_data,
-            }).then(res => {
-                setLoading(false);
-                if (res.status === 200) {
-                    message.success(t('graph.clone.success'));
-                    onCancel();
-                    refresh();
-                    return;
-                }
-
-                message.error(res.message);
-            });
-        });
-    }, [form, graphspace, graph, onCancel, refresh, t]);
-
     useEffect(() => {
-        if (!open) {
-            return;
-        }
-
+        generation.current += 1;
+        setLoading(false);
+        if (!open) return;
+        form.resetFields();
+        let active = true;
         api.manage.getGraph(graphspace, graph).then(res => {
-            if (res.status === 200) {
-                setDetail(res.data);
+            if (active && res.status === 200) {
                 form.setFieldsValue({
-                    name: res.data.name,
-                    nickname: t('graph.clone.nickname', {nickname: res.data.nickname}),
+                    nickname: t('graph.clone.nickname', {nickname: res.data.nickname || graph}),
                 });
             }
-        });
-
-        api.manage.getGraphSpaceList({page_size: -1}).then(res => {
-            if (res.status === 200) {
-                setGraphspaceList(res.data.records);
-                return;
-            }
-            message.error(res.message);
-        });
+        }).catch(() => {});
+        return () => { active = false; generation.current += 1; };
     }, [open, graphspace, graph, form, t]);
 
+    const handleClone = async () => {
+        const requestGeneration = generation.current;
+        let values;
+        try {
+            values = await form.validateFields();
+        }
+        catch {
+            return;
+        }
+        if (requestGeneration !== generation.current) return;
+        setLoading(true);
+        try {
+            const res = await api.manage.cloneGraph(graphspace, graph, {
+                graphspace, name: values.name, nickname: values.nickname, load_data: 0,
+            }, {suppressBusinessErrorToast: true});
+            if (requestGeneration !== generation.current) return;
+            if (res.status !== 200) {
+                message.error(res.message || t('graph.clone.failed'));
+                return;
+            }
+            message.success(t('graph.clone.success'));
+            onCancel();
+            refresh();
+        }
+        catch (error) {
+            if (requestGeneration === generation.current) {
+                message.error(error?.response?.data?.message || t('graph.clone.failed'));
+            }
+        }
+        finally {
+            if (requestGeneration === generation.current) setLoading(false);
+        }
+    };
+
     return (
-        <Modal
-            open={open}
-            onCancel={onCancel}
-            title={t('graph.clone.title')}
-            width={600}
-            onOk={handleClone}
-            mask={{closable: false}}
-            confirmLoading={loading}
-            destroyOnHidden
-        >
-            <Form
-                form={form}
-                labelCol={{span: 6}}
-                preserve={false}
-                initialValues={{
-                    graphspace,
-                    load_data: 0,
-                }}
-            >
-                <Form.Item
-                    label={t('graph.clone.name')}
-                    rules={[
-                        rules.required(),
-                        rules.isName,
-                        {type: 'string', max: 48},
-                        notEq(graph, t('graph.clone.name_duplicate')),
-                    ]}
-                    name='name'
-                >
+        <Modal open={open} onCancel={onCancel} title={t('graph.clone.title')}
+            width={600} onOk={handleClone} confirmLoading={loading} destroyOnHidden>
+            <Alert type='info' showIcon title={t('graph.clone.schema_only')} />
+            <Form form={form} labelCol={{span: 6}} preserve={false}>
+                <Form.Item label={t('graph.clone.name')} name='name'
+                    rules={[rules.required(), rules.isName, {type: 'string', max: 48}, {
+                        validator: (_, value) => value !== graph ? Promise.resolve()
+                            : Promise.reject(new Error(t('graph.clone.name_duplicate'))),
+                    }]}>
                     <Input placeholder={t('graph.clone.name_duplicate')} />
                 </Form.Item>
-                <Form.Item
-                    label={t('graph.clone.nickname_label')}
-                    rules={[
-                        rules.required(),
-                        rules.isPropertyName,
-                        {type: 'string', max: 48},
-                        notEq(detail.nickname, t('graph.clone.nickname_duplicate')),
-                    ]}
-                    name='nickname'
-                >
-                    <Input placeholder={t('graph.clone.nickname_duplicate')} />
-                </Form.Item>
-                <Form.Item
-                    label={t('graph.clone.graphspace')}
-                    rules={[rules.required()]}
-                    name='graphspace'
-                >
-                    <Select
-                        options={graphspaceList.map(item => ({
-                            label: getResourceDisplayName(item.name, item.nickname),
-                            value: item.name,
-                        }))}
-                    />
-                </Form.Item>
-                <Form.Item
-                    label={t('graph.clone.content')}
-                    name='load_data'
-                    required
-                >
-                    <Select
-                        options={[
-                            {label: t('graph.clone.schema'), value: 0},
-                            {label: t('graph.clone.schema_data'), value: 1},
-                        ]}
-                    />
-                </Form.Item>
-                <Form.Item label={t('graph.clone.required_disk')} className={style.form_item}>
-                    {byteConvert(detail.storage)}
-                </Form.Item>
-                <Form.Item label={t('graph.clone.estimated_time')} className={style.form_item}>
-                    {timeConvert(detail.storage * 3600 / (4 * 1024 * 1024))}
+                <Form.Item label={t('graph.clone.nickname_label')} name='nickname'
+                    rules={[rules.required(), rules.isPropertyName, {type: 'string', max: 48}]}>
+                    <Input />
                 </Form.Item>
             </Form>
         </Modal>

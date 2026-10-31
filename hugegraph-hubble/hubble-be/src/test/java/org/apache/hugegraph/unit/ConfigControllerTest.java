@@ -42,6 +42,7 @@ public class ConfigControllerTest {
         AuthModeService authMode = Mockito.mock(AuthModeService.class);
         Mockito.when(client.isServerAuthEnabled()).thenReturn(false);
         Mockito.when(client.supportsGraphCreate()).thenReturn(false);
+        Mockito.when(client.supportsSchemaClone()).thenReturn(true);
         Mockito.when(client.supportsCypher()).thenReturn(true);
         Mockito.when(authMode.update(false)).thenReturn(false);
 
@@ -62,6 +63,7 @@ public class ConfigControllerTest {
                                    "server_capabilities_verified", true,
                                    "auth_enabled", false,
                                    "graph_create_enabled", false,
+                                   "schema_clone_enabled", true,
                                    "cypher_enabled", true), result);
         Mockito.verify(client).close();
     }
@@ -88,6 +90,7 @@ public class ConfigControllerTest {
                                    "server_capabilities_verified", false,
                                    "auth_enabled", true,
                                    "graph_create_enabled", false,
+                                   "schema_clone_enabled", false,
                                    "cypher_enabled", false), result);
     }
 
@@ -117,6 +120,7 @@ public class ConfigControllerTest {
                                    "server_capabilities_verified", true,
                                    "auth_enabled", false,
                                    "graph_create_enabled", false,
+                                   "schema_clone_enabled", false,
                                    "cypher_enabled", false), result);
         Mockito.verify(config, Mockito.never()).get(HubbleOptions.SERVER_URL);
         Mockito.verify(client).close();
@@ -131,6 +135,7 @@ public class ConfigControllerTest {
         Mockito.when(client.isServerAuthEnabled()).thenReturn(true);
         Mockito.when(authMode.update(true)).thenReturn(true);
         Mockito.when(client.supportsGraphCreate()).thenReturn(true);
+        Mockito.when(client.supportsSchemaClone()).thenReturn(true);
         Mockito.when(client.supportsCypher()).thenReturn(false);
 
         ConfigController controller = new ConfigController() {
@@ -150,6 +155,7 @@ public class ConfigControllerTest {
                                    "server_capabilities_verified", true,
                                    "auth_enabled", true,
                                    "graph_create_enabled", true,
+                                   "schema_clone_enabled", true,
                                    "cypher_enabled", false), result);
         Mockito.verify(client).close();
     }
@@ -176,6 +182,7 @@ public class ConfigControllerTest {
                                    "server_capabilities_verified", false,
                                    "auth_enabled", true,
                                    "graph_create_enabled", false,
+                                   "schema_clone_enabled", false,
                                    "cypher_enabled", false), result);
     }
 }

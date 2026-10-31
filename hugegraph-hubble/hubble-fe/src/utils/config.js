@@ -40,6 +40,10 @@ const isGraphCreateEnabled = () => {
     return getConfig().graph_create_enabled === true;
 };
 
+const isSchemaCloneEnabled = (config = getConfig()) => {
+    return config.server_capabilities_verified !== false && config.schema_clone_enabled === true;
+};
+
 const isCypherEnabled = () => {
     return getConfig().cypher_enabled === true;
 };
@@ -50,5 +54,6 @@ export {
     isPdEnabled,
     isAuthEnabled,
     isGraphCreateEnabled,
+    isSchemaCloneEnabled,
     isCypherEnabled,
 };
