@@ -171,6 +171,9 @@
       "render_mode": "渲染方式",
       "mode_3d_experimental": "3D（实验性）",
       "import_success": "导入成功",
+      "import_confirm_title": "确认导入图数据",
+      "import_confirm_warning": "导入会向 {{graphSpace}} / {{graph}} 写入点和边，可能修改已有数据；失败时回滚也可能影响已有数据。请确认已备份并选择正确的图",
+      "import_scope_changed": "图或登录状态已变更，请重新选择文件",
       "number_card": {
         "paths": "路径",
         "nodes": "节点",

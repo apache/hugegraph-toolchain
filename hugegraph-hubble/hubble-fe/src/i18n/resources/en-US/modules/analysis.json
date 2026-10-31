@@ -171,6 +171,9 @@
       "render_mode": "Rendering mode",
       "mode_3d_experimental": "3D (experimental)",
       "import_success": "Imported successfully",
+      "import_confirm_title": "Confirm graph data import",
+      "import_confirm_warning": "Import writes vertices and edges to {{graphSpace}} / {{graph}} and may modify existing data; rollback after a failure may also affect existing data. Confirm you have a backup and selected the correct graph",
+      "import_scope_changed": "The graph or signed-in account changed; select the file again",
       "number_card": {
         "paths": "Paths",
         "nodes": "Nodes",

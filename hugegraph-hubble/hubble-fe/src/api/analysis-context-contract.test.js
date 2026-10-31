@@ -27,6 +27,13 @@ jest.mock('./request', () => ({
 
 beforeEach(() => jest.clearAllMocks());
 
+test('targets the canonical graph-scoped multipart import endpoint', () => {
+    expect(analysis.getUploadList('DEFAULT', 'hugegraph'))
+        .toBe('/api/v1.3/graphspaces/DEFAULT/graphs/hugegraph/import');
+    expect(analysis.getUploadList('another_space', 'another_graph'))
+        .toBe('/api/v1.3/graphspaces/another_space/graphs/another_graph/import');
+});
+
 test('forwards inline error ownership for graph context reads', () => {
     const config = {suppressBusinessErrorToast: true};
 

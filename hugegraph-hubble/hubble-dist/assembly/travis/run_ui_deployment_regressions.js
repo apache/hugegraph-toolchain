@@ -30,6 +30,8 @@ const REQUIRED_CHECKS = Object.freeze([
     'Graph context switches via actual header selectors',
     'unloaded Vermeer statistics gives a scoped graph compute entry',
     'core query actions are usable at desktop and compact widths',
+    'canvas JSON upload targets the selected graph import endpoint',
+    'late canvas upload cannot replace the newly selected graph result',
     'routine query limit is quiet canvas note without unknown totals',
     'truncation is compact with details on demand',
     'async task ID remains visible in the selected graph and failure is actionable',

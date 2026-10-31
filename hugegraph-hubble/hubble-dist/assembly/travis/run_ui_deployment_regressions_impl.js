@@ -416,6 +416,97 @@ async function main() {
             await page.getByRole('group', {name: '节点：当前结果 2；全图总数未获取', exact: true}).waitFor();
             await screenshot(page, 'graph-context-switch');
         });
+        await check('canvas JSON upload targets the selected graph import endpoint', async () => {
+            const expectedPath = '/api/v1.3/graphspaces/DEFAULT/graphs/hugegraph/import';
+            const payload = JSON.stringify({vertices: [{id: '1', label: 'Memory', properties: {name: '1'}}], edges: []});
+            let uploads = 0;
+            const handler = async route => {
+                const request = route.request();
+                assert.equal(new URL(request.url()).pathname, expectedPath);
+                assert.equal(request.method(), 'POST');
+                assert.match(request.headers()['content-type'], /^multipart\/form-data; boundary=/);
+                assert(request.postData().includes(payload), 'Multipart request must contain the exported JSON');
+                uploads++;
+                await route.fulfill({status: 200, contentType: 'application/json',
+                    body: JSON.stringify({status: 200, data: JSON.parse(payload)})});
+            };
+            await page.route('**/api/v*/**/import', handler);
+            try {
+                await page.goto(base + '/gremlin/DEFAULT/hugegraph');
+                await page.getByText('尚未执行图查询，点击执行查询查看结果', {exact: true}).waitFor();
+                const upload = page.locator('input[type=file]').first();
+                await upload.setInputFiles({name: 'canvas.json', mimeType: 'application/json', buffer: Buffer.from(payload)});
+                const dialog = page.getByRole('dialog', {name: '确认导入图数据'});
+                await dialog.getByText(/导入会向 DEFAULT \/ hugegraph 写入点和边/).waitFor();
+                await dialog.getByRole('button', {name: /取\s*消/}).click();
+                assert.equal(uploads, 0, 'Cancelling must not upload or write graph data');
+                await dialog.waitFor({state: 'hidden'});
+                await upload.setInputFiles({name: 'canvas.json', mimeType: 'application/json', buffer: Buffer.from(payload)});
+                await dialog.getByRole('button', {name: /确\s*认/}).click();
+                await page.getByText('导入成功', {exact: true}).first().waitFor();
+                assert.equal(uploads, 1);
+            }
+            finally {
+                await page.unroute('**/api/v*/**/import', handler);
+            }
+        });
+        await check('late canvas upload cannot replace the newly selected graph result', async () => {
+            let release;
+            let received;
+            const requestReceived = new Promise(resolve => { received = resolve; });
+            const gate = new Promise(resolve => { release = resolve; });
+            const payload = {vertices: [{id: 'late-A', label: 'Memory', properties: {name: 'A'}}], edges: []};
+            const handler = async route => {
+                assert.equal(new URL(route.request().url()).pathname,
+                    '/api/v1.3/graphspaces/DEFAULT/graphs/hugegraph/import');
+                received();
+                await gate;
+                await route.fulfill({status: 200, contentType: 'application/json',
+                    body: JSON.stringify({status: 200, data: payload})});
+            };
+            await page.route('**/api/v*/**/import', handler);
+            try {
+                await page.goto(base + '/gremlin/DEFAULT/hugegraph');
+                await page.getByText('尚未执行图查询，点击执行查询查看结果', {exact: true}).waitFor();
+                await page.locator('input[type=file]').first().setInputFiles({
+                    name: 'canvas.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload)),
+                });
+                const dialog = page.getByRole('dialog', {name: '确认导入图数据'});
+                await dialog.getByRole('button', {name: /确\s*认/}).click();
+                await requestReceived;
+
+                const spaceSelector = page.getByRole('combobox', {name: '当前 GraphSpace', exact: true});
+                await spaceSelector.click();
+                await page.getByRole('option', {name: /记忆库/}).waitFor({state: 'attached'});
+                await spaceSelector.press('ArrowDown');
+                await spaceSelector.press('Enter');
+                const graphSelector = page.getByRole('combobox', {name: '当前图', exact: true});
+                await graphSelector.click();
+                await page.getByRole('option', {name: /测试图/}).waitFor({state: 'attached'});
+                await graphSelector.press('ArrowDown');
+                const ready = page.waitForResponse(response => response.request().method() === 'GET'
+                    && new URL(response.url()).pathname === '/api/v1.3/graphspaces/soc_graph/graphs/second/schema/propertykeys');
+                await graphSelector.press('Enter');
+                await page.waitForURL('**/gremlin/soc_graph/second');
+                await (await ready).finished();
+                const execute = page.getByRole('button', {name: '执行查询', exact: true});
+                await execute.click({trial: true});
+                await page.locator('.cm-content').fill('g.V().limit(2)');
+                await execute.click();
+                const result = page.getByRole('group', {name: '节点：当前结果 2；全图总数未获取', exact: true});
+                await result.waitFor();
+                const response = page.waitForResponse(r => new URL(r.url()).pathname.endsWith('/import'));
+                release();
+                await (await response).finished();
+                await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+                assert(await result.isVisible(), 'The current graph result must survive the old upload response');
+                assert.equal(await page.getByText('导入成功', {exact: true}).count(), 0);
+            }
+            finally {
+                release();
+                await page.unroute('**/api/v*/**/import', handler);
+            }
+        });
         await check('unloaded Vermeer statistics gives a scoped graph compute entry', async () => {
             state.statisticsScenario = true;
             await page.goto(base + '/graphspace/soc_graph');
