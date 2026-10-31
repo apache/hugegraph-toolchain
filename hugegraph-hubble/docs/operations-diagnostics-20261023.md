@@ -95,9 +95,34 @@ uniquely identify the node serving CPU/JVM metrics. Hubble keeps the discovered
 PD topology and refuses to attach one member's system metrics to another member.
 The diagnostics panel compares the configured `pd.server` with advertised member
 REST addresses and separates that mapping issue from node health and readiness.
+When the endpoint cannot be uniquely matched, Hubble also requests its bounded
+`/actuator/prometheus` response once per metrics collection and shows the
+allowlisted CPU, memory and process values as a **configured endpoint sample**.
+This sample is not a sum and is never attached to a discovered member. A Service
+may route subsequent requests to different members, so changes between samples
+cannot be interpreted as one member's history. Failed or stale samples show their
+collection status instead of presenting old values as current. A topology-only
+request does not collect the sample.
 If member-specific system metrics are needed, review the intended routing before
 changing `pd.server` to a reachable member address (or correcting its `restUrl`),
 then restart Hubble. A scheme-less address uses `server.protocol`.
+
+Vermeer process CPU is an approximate display measurement. JSON responses are
+parsed with lossless numbers, so Hubble converts a finite nonnegative BigNumber
+to a JavaScript number at the resource display boundary. It does not convert
+graph identifiers or other precision-sensitive values. Missing, invalid and
+stale samples remain unavailable; zero is a valid CPU measurement. A low CPU
+sample can round to zero in the summary without becoming unavailable.
+
+Store node details also show process lifecycle when the Store supports
+`GET /-/lifecycle`. STARTING, STARTED, STOPPING and UNAVAILABLE describe the
+Store process and its gRPC server, not PD membership, partition health or
+read/write readiness. Hubble collects this separately from its existing
+readiness check, with bounded concurrency and the same collection deadline.
+An older Store returning HTTP 404 is shown as unsupported; a failed or stale
+observation is not presented as a current process state. The endpoint is
+introduced by [Store lifecycle support](https://github.com/hugegraph/hugegraph/pull/362)
+and requires a Store version containing that change.
 
 For Store Raft counters, Hubble first requests `/metrics/raft/summary`, whose
 response is `{"groups":32,"enabled_groups":32}`. The enabled count means JRaft
