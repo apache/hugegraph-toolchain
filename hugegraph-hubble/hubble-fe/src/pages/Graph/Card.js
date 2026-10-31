@@ -38,6 +38,16 @@ const EMPTY_SCHEMA = {vertices: [], edges: []};
 const CARD_LAYOUT = {type: 'dagre', options: {rankdir: 'LR', nodesep: 30, ranksep: 60}};
 // A small card cannot show a dense graph at a useful label size.
 const MAX_THUMBNAIL_ELEMENTS = 6;
+// This exact response is emitted only when the requested graph has no loaded
+// Vermeer snapshot. Other 400, authorization and transport errors stay errors.
+const VERMEER_LOAD_REQUIRED = 'Load this graph from OLAP graph compute before collecting Vermeer statistics';
+
+const isVermeerLoadRequired = (source, error) => {
+    const response = error?.response;
+    const body = response?.data && typeof response.data === 'object' ? response.data : response;
+    return source === 'vermeer' && Number(body?.status ?? response?.status) === 400
+        && (body?.message ?? response?.message) === VERMEER_LOAD_REQUIRED;
+};
 
 const formatSnapshotTime = value => {
     if (value == null || value === '') return '--';
@@ -97,6 +107,7 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
     const collectionRequest = useRef(null);
     const [collecting, setCollecting] = useState(false);
     const [collectionError, setCollectionError] = useState('');
+    const [vermeerLoadRequired, setVermeerLoadRequired] = useState(false);
     const [collectionSource, setCollectionSource] = useState('server');
     const [schema, setSchema] = useState(null);
     const [snapshot, setSnapshot] = useState(null);
@@ -108,6 +119,7 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
         collectionRequest.current = null;
         setCollecting(false);
         setCollectionError('');
+        setVermeerLoadRequired(false);
         setCollectionSource('server');
         return () => { collectionRequest.current = null; };
     }, [key]);
@@ -118,6 +130,7 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
         collectionRequest.current = request;
         setCollecting(true);
         setCollectionError('');
+        setVermeerLoadRequired(false);
         setCollectionSource(source);
         try {
             const config = {suppressBusinessErrorToast: true};
@@ -140,7 +153,9 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
             }});
         } catch (error) {
             if (collectionRequest.current === request) {
-                setCollectionError(sanitizePublicError(error?.response?.message ?? error?.message)
+                setVermeerLoadRequired(isVermeerLoadRequired(source, error));
+                setCollectionError(sanitizePublicError(error?.response?.data?.message
+                    ?? error?.response?.message ?? error?.message)
                     || t('graph.detail.statistics_unavailable'));
             }
         } finally {
@@ -230,7 +245,7 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
                 </Dropdown>
             )}
             actions={[
-                <Tooltip fresh key='counts' title={collectionError || (statistic?.source === 'vermeer'
+                <Tooltip fresh key='counts' title={(vermeerLoadRequired && t('graph.card.vermeer_load_first')) || collectionError || (statistic?.source === 'vermeer'
                     ? `${t('graph.card.element_counts', {
                         vertices: formatRecordedCount(statistic.vertex, statistic),
                         edges: formatRecordedCount(statistic.edge, statistic),
@@ -342,6 +357,14 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
                             aria-label={t('graph.card.view_schema', {graph: graphName})}
                         />
                     )}
+                </div>
+            )}
+            {vermeerLoadRequired && (
+                <div className={style.statistics_guidance} role='status'>
+                    <span>{t('graph.card.vermeer_load_first')}</span>
+                    <Link to={`/algorithms/${encodeURIComponent(graphspace)}/${encodeURIComponent(item.name)}?engine=olap`}>
+                        {t('graph.card.open_graph_compute')}
+                    </Link>
                 </div>
             )}
         </Card>
