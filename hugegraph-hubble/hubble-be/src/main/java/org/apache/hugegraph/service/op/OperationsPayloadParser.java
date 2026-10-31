@@ -34,6 +34,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import org.apache.hugegraph.service.op.OperationsModels.Node;
+import org.apache.hugegraph.service.op.OperationsModels.Lifecycle;
 import org.apache.hugegraph.service.op.OperationsModels.Readiness;
 import org.apache.hugegraph.service.op.OperationsModels.MetricStatus;
 import org.apache.hugegraph.service.op.OperationsModels.Topology;
@@ -44,6 +45,22 @@ public class OperationsPayloadParser {
 
     public OperationsPayloadParser(ObjectMapper mapper) {
         this.mapper = mapper;
+    }
+
+    Lifecycle parseStoreLifecycle(String payload, int httpStatus, long observedAt) {
+        try {
+            JsonNode root = this.mapper.readTree(payload);
+            JsonNode code = root == null ? null : root.get("status");
+            String state = root == null ? null : this.text(root, "text");
+            if (httpStatus != 200 || code == null || !code.isIntegralNumber() ||
+                !code.canConvertToInt() || code.intValue() != 0 ||
+                !List.of("STARTING", "STARTED", "STOPPING", "UNAVAILABLE").contains(state == null ? "" : state)) {
+                throw new MalformedUpstreamException("store_lifecycle");
+            }
+            return new Lifecycle(state, observedAt, null, false);
+        } catch (Exception e) {
+            return new Lifecycle("UNKNOWN", observedAt, "response_unrecognized", false);
+        }
     }
 
     Readiness parseReadiness(String type, String payload, int httpStatus,

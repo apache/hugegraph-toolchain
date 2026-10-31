@@ -19,10 +19,46 @@
 import {fireEvent, render, screen, within} from '@testing-library/react';
 import SourceDiagnostics from './SourceDiagnostics';
 import i18n from '../../i18n';
+import JSONbig from 'json-bigint';
 
 beforeEach(() => {
     i18n.changeLanguage('en-US');
     window.matchMedia = () => ({matches: false, addListener() {}, removeListener() {}});
+});
+
+test('shows an unmatched PD endpoint sample without assigning it to a member', () => {
+    const metrics = JSONbig.parse('{"process_cpu_usage":0.00044612345678912345,' +
+        '"heap_used_bytes":1048576,"threads_live":8}');
+    render(<SourceDiagnostics sourceName='pd' sources={{pd: {
+        status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped',
+        diagnostics: {affected_node_count: 1, failed_metric_groups: ['system'],
+            pd_endpoint_metrics: {metrics, metric_status: {
+            availability: 'AVAILABLE', fresh: true, stale: false, observed_at: 2000,
+        }}},
+    }}} nodes={[{id: 'pd-a', name: 'PD A', type: 'PD'}]} />);
+    fireEvent.click(screen.getByText('Check addresses and how to fix'));
+    expect(screen.getByText('Configured PD endpoint sample')).toBeVisible();
+    expect(screen.getByText(/do not identify a node or represent a cluster total/)).toBeVisible();
+    expect(screen.getByText('0.04%')).toBeVisible();
+    expect(screen.getByText('1 MB')).toBeVisible();
+    expect(screen.getByText(/PD endpoints without node attribution: 1/)).toBeVisible();
+    expect(screen.getByText(/Unattributed metric groups: System/)).toBeVisible();
+    expect(screen.queryByText(/Failed metric groups/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/PD A · system/)).not.toBeInTheDocument();
+});
+
+test.each([
+    ['stale source', true, {availability: 'AVAILABLE', fresh: true}],
+    ['stale sample', false, {availability: 'AVAILABLE', fresh: false, stale: true}],
+    ['failed sample', false, {availability: 'UNAVAILABLE', fresh: false, reason: 'upstream_unavailable'}],
+])('%s does not display old endpoint values as current', (_, stale, status) => {
+    render(<SourceDiagnostics sourceName='pd' sources={{pd: {
+        status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', stale,
+        diagnostics: {pd_endpoint_metrics: {metrics: {process_cpu_usage: 0.125}, metric_status: status}},
+    }}} />);
+    fireEvent.click(screen.getByText('Check addresses and how to fix'));
+    expect(screen.getByText('Configured PD endpoint sample')).toBeVisible();
+    expect(screen.queryByText('12.5%')).not.toBeInTheDocument();
 });
 
 test('keeps source diagnostics available without discovered nodes and reports bounded response evidence', () => {
@@ -136,7 +172,7 @@ test.each([false, true])('keeps an unmapped PD scrape source-wide instead of fai
     }}))} />);
 
     fireEvent.click(screen.getByText('Check addresses and how to fix'));
-    expect(screen.getByText(/Affected PD collection endpoints: 1/)).toBeVisible();
+    expect(screen.getByText(/PD endpoints without node attribution: 1/)).toBeVisible();
     expect(screen.getByText(/Hubble collects system metrics from only the one matched PD member/)).toBeVisible();
     expect(screen.queryByText(/Affected nodes across this snapshot/)).not.toBeInTheDocument();
     for (const id of [1, 2, 3]) {
@@ -159,7 +195,7 @@ test.each(['UNAVAILABLE', 'UNSUPPORTED'])(
         fireEvent.click(screen.getByText('Check addresses and how to fix'));
         expect(screen.getByText(/PD topology was discovered.*restUrl in the PD member list/)).toBeInTheDocument();
         expect(screen.getByText('Last topology success')).toBeInTheDocument();
-        expect(screen.getByText('System metrics not collected')).toBeInTheDocument();
+        expect(screen.getByText('Node system metrics not collected')).toBeInTheDocument();
         for (const id of [1, 2, 3]) {
             expect(screen.getByText(new RegExp(`PD ${id} · system`))).toBeVisible();
         }

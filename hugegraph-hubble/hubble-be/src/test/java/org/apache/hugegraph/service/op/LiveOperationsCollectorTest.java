@@ -639,7 +639,7 @@ public class LiveOperationsCollectorTest {
             pd.stop(0);
         }
 
-        Assert.assertEquals(0, probes.get());
+        Assert.assertEquals(1, probes.get());
         Assert.assertEquals("PARTIAL", snapshot.getSources().get("pd").getAvailability());
         Assert.assertEquals("pd_metrics_unmapped", snapshot.getSources().get("pd").getReason());
         Assert.assertEquals("UP", snapshot.getSources().get("pd").getStatus());
@@ -647,6 +647,12 @@ public class LiveOperationsCollectorTest {
                 .get("affected_node_count"));
         Assert.assertEquals(List.of("system"), snapshot.getSources().get("pd").getDiagnostics()
                 .get("failed_metric_groups"));
+        Map<?, ?> endpoint = (Map<?, ?>) snapshot.getSources().get("pd").getDiagnostics()
+                .get("pd_endpoint_metrics");
+        MetricStatus endpointStatus = (MetricStatus) endpoint.get("metric_status");
+        Assert.assertEquals("UNAVAILABLE", endpointStatus.getAvailability());
+        Assert.assertEquals("/actuator/prometheus", endpointStatus.getDiagnostics().get("request_path"));
+        Assert.assertFalse(endpoint.containsKey("metrics"));
         OperationsModels.Node leader = snapshot.getNodes().stream()
                 .filter(node -> "PD".equals(node.getType()))
                 .findFirst().orElseThrow(AssertionError::new);
@@ -654,6 +660,94 @@ public class LiveOperationsCollectorTest {
         Assert.assertFalse(leader.getMetrics().containsKey("system"));
         Assert.assertEquals("UNSUPPORTED", leader.getMetricStatuses().get("system").getAvailability());
         Assert.assertEquals("metrics_not_collected", leader.getMetricStatuses().get("system").getReason());
+    }
+
+    @Test
+    public void testUnmatchedPdEndpointSampleIsNeverAssignedToMembers() throws IOException {
+        String cluster = new ObjectMapper().writeValueAsString(Map.of("status", 0,
+                "data", Map.of("state", "Cluster_OK", "pdList", List.of(
+                        Map.of("restUrl", "http://pd-a:8620", "state", "Up", "role", "Leader"),
+                        Map.of("restUrl", "http://pd-b:8620", "state", "Up", "role", "Follower")))));
+        HttpServer pd = pdServer(200, cluster, 200, stores());
+        AtomicInteger probes = new AtomicInteger();
+        pd.removeContext("/actuator/prometheus");
+        pd.createContext("/actuator/prometheus", exchange -> {
+            probes.incrementAndGet();
+            byte[] bytes = ("process_cpu_usage 0.125\njvm_threads_live_threads 8\n" +
+                            "untrusted_private_metric 42\n").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+        Snapshot snapshot;
+        try {
+            snapshot = collector(true, pd).collect(serverClient(), true);
+        } finally {
+            pd.stop(0);
+        }
+        Assert.assertEquals(1, probes.get());
+        Assert.assertEquals("PARTIAL", snapshot.getSources().get("pd").getAvailability());
+        Assert.assertEquals("pd_metrics_unmapped", snapshot.getSources().get("pd").getReason());
+        Map<?, ?> endpoint = (Map<?, ?>) snapshot.getSources().get("pd").getDiagnostics()
+                .get("pd_endpoint_metrics");
+        Map<?, ?> metrics = (Map<?, ?>) endpoint.get("metrics");
+        Assert.assertEquals(0.125D, metrics.get("process_cpu_usage"));
+        Assert.assertEquals(8D, metrics.get("threads_live"));
+        Assert.assertFalse(metrics.containsKey("untrusted_private_metric"));
+        Assert.assertEquals("AVAILABLE", ((MetricStatus) endpoint.get("metric_status")).getAvailability());
+        for (OperationsModels.Node node : snapshot.getNodes()) {
+            if ("PD".equals(node.getType())) {
+                Assert.assertFalse(node.getMetrics().containsKey("system"));
+                Assert.assertEquals("metrics_not_collected", node.getMetricStatuses().get("system").getReason());
+            }
+        }
+    }
+
+    @Test
+    public void testUnmatchedPdEndpointSampleIsNotCollectedForTopologyOnly() throws IOException {
+        HttpServer pd = pdServer(200, cluster().replace("http://pd:8620", "http://pd-alias:8620"),
+                                 200, stores());
+        AtomicInteger probes = new AtomicInteger();
+        pd.removeContext("/actuator/prometheus");
+        pd.createContext("/actuator/prometheus", exchange -> {
+            probes.incrementAndGet();
+            exchange.sendResponseHeaders(500, -1);
+            exchange.close();
+        });
+        Snapshot snapshot;
+        try {
+            snapshot = collector(true, pd).collect(serverClient(), false);
+        } finally {
+            pd.stop(0);
+        }
+        Assert.assertEquals(0, probes.get());
+        Assert.assertFalse(snapshot.getSources().get("pd").getDiagnostics().containsKey("pd_endpoint_metrics"));
+    }
+
+    @Test
+    public void testMalformedUnmatchedPdSampleDoesNotExposePayload() throws IOException {
+        HttpServer pd = pdServer(200, cluster().replace("http://pd:8620", "http://pd-alias:8620"),
+                                 200, stores());
+        pd.removeContext("/actuator/prometheus");
+        pd.createContext("/actuator/prometheus", exchange -> {
+            byte[] bytes = "untrusted_secret_metric 99\n".getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, bytes.length);
+            exchange.getResponseBody().write(bytes);
+            exchange.close();
+        });
+        Snapshot snapshot;
+        try {
+            snapshot = collector(true, pd).collect(serverClient(), true);
+        } finally {
+            pd.stop(0);
+        }
+        Map<?, ?> endpoint = (Map<?, ?>) snapshot.getSources().get("pd").getDiagnostics()
+                .get("pd_endpoint_metrics");
+        MetricStatus result = (MetricStatus) endpoint.get("metric_status");
+        Assert.assertEquals("MALFORMED", result.getAvailability());
+        Assert.assertFalse(endpoint.containsKey("metrics"));
+        Assert.assertFalse(new ObjectMapper().writeValueAsString(snapshot).contains("untrusted_secret_metric"));
+        Assert.assertEquals("pd_metrics_unmapped", snapshot.getSources().get("pd").getReason());
     }
 
     @Test
@@ -1677,6 +1771,66 @@ public class LiveOperationsCollectorTest {
                 collector.close();
                 pd.stop(0);
             }
+        }
+    }
+
+    @Test
+    public void testStoreLifecycleIsIndependentOfReadinessAndOldStore404() throws Exception {
+        for (String state : new String[]{"STARTING", "STARTED", "STOPPING", "UNAVAILABLE", "404"}) {
+            HttpServer pd = pdServer(200, cluster(), 200, stores());
+            context(pd, "/v1/ready", 200, "{\"ready\":true,\"state\":\"STATE_FOLLOWER\"}");
+            context(pd, "/-/state", 200, "{\"status\":0,\"text\":\"STARTING\"}");
+            if (!"404".equals(state)) {
+                context(pd, "/-/lifecycle", 200, "{\"status\":0,\"text\":\"" + state + "\"}");
+            }
+            context(pd, "/v1/prom/targets/store", 200, targets("127.0.0.1:" + pd.getAddress().getPort()));
+            storeMetricContexts(pd);
+            LiveOperationsCollector collector = collector(true, pd);
+            try {
+                OperationsModels.Node node = store(collector.collect(serverClient(), true));
+                Assert.assertEquals("UP", node.getStatus());
+                Assert.assertEquals("NOT_READY", node.getReadiness().getStatus());
+                Assert.assertEquals("STARTING", node.getReadiness().getState());
+                Assert.assertEquals("AVAILABLE", node.getMetricStatuses().get("system").getAvailability());
+                Assert.assertEquals("404".equals(state) ? "UNKNOWN" : state,
+                                    node.getProcessLifecycle().getState());
+                if ("404".equals(state)) {
+                    Assert.assertEquals("unsupported_version", node.getProcessLifecycle().getReason());
+                }
+            } finally {
+                collector.close();
+                pd.stop(0);
+            }
+        }
+    }
+
+    @Test
+    public void testSlowLifecycleDoesNotConsumeReadinessOrMetricBudget() throws Exception {
+        java.util.concurrent.ExecutorService upstream = java.util.concurrent.Executors.newCachedThreadPool();
+        HttpServer pd = pdServer(200, cluster(), 200, stores(), upstream);
+        context(pd, "/v1/ready", 200, "{\"ready\":true,\"state\":\"STATE_FOLLOWER\"}");
+        context(pd, "/-/state", 200, "{\"status\":0,\"text\":\"ONLINE\"}");
+        delayedContext(pd, "/-/lifecycle", 200, "{\"status\":0,\"text\":\"STARTED\"}", 1000L);
+        context(pd, "/v1/prom/targets/store", 200, targets("127.0.0.1:" + pd.getAddress().getPort()));
+        storeMetricContexts(pd);
+        String base = "http://127.0.0.1:" + pd.getAddress().getPort();
+        LiveOperationsCollector collector = new LiveOperationsCollector(
+                true, base, "hubble", "secret", "store-hubble", "store-secret", "server-under-test",
+                new OperationsHttpClient(1000, 2000, 8192), new OperationsPayloadParser(new ObjectMapper()), CLOCK,
+                1, 500, Set.of(base));
+        try {
+            long started = System.nanoTime();
+            OperationsModels.Node node = store(collector.collect(serverClient(), true));
+            long elapsed = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started);
+            Assert.assertTrue("Lifecycle must share the bounded Store collection budget", elapsed < 900L);
+            Assert.assertEquals("READY", node.getReadiness().getStatus());
+            Assert.assertEquals("AVAILABLE", node.getMetricStatuses().get("system").getAvailability());
+            Assert.assertEquals("UNKNOWN", node.getProcessLifecycle().getState());
+            Assert.assertEquals("upstream_deadline", node.getProcessLifecycle().getReason());
+        } finally {
+            collector.close();
+            pd.stop(0);
+            upstream.shutdownNow();
         }
     }
 
