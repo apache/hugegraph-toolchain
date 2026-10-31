@@ -39,7 +39,7 @@ const switchOlapMode = (graphSpace, graph, params, config) => {
 };
 
 const getUploadList = (graphspace, graph) => {
-    return `/api/v1.3//graphspaces/${graphspace}/graphs/${graph}/import`;
+    return `/api/v1.3/graphspaces/${graphspace}/graphs/${graph}/import`;
 };
 
 const getMetaEdgeList = (graphspace, graph) => {

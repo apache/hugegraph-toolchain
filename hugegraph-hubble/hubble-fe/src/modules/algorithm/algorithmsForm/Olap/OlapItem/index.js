@@ -45,6 +45,7 @@ import FilterSubGraphMatching from '../FilterSubGraphMatching';
 import KCore from '../KCore';
 import KCoreVermeer from '../KCoreVermeer';
 import PersonalPageRank from '../PersonalPageRank';
+import PersonalPageRankVermeer from '../PersonalPageRankVermeer';
 import SSSPVermeer from '../SSSPVermeer';
 import {
     getCanonicalAlgorithmName,
@@ -148,7 +149,7 @@ const OlapItem = props => {
                     isVermeer ? <KCoreVermeer {...args} /> : <KCore {...args} />
                 );
             case PERSONAL_PAGE_RANK:
-                return <PersonalPageRank {...args} />;
+                return isVermeer ? <PersonalPageRankVermeer {...args} /> : <PersonalPageRank {...args} />;
             case SSSP:
                 return <SSSPVermeer {...args} />;
         }

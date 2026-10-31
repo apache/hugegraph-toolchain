@@ -393,7 +393,7 @@ const GraphResult = props => {
                 aria-label={t('analysis.algorithm.vermeer_docs')} title={t('analysis.algorithm.vermeer_docs')}>
                 {compact ? 'Vermeer' : t('analysis.algorithm.vermeer_docs')}
             </a>
-            <a href='https://github.com/apache/hugegraph/blob/master/helm/hugegraph/docs/vermeer.md#install-and-enable'
+            <a href='https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm/'
                 target='_blank' rel='noreferrer'
                 aria-label={t('analysis.algorithm.helm_guide')} title={t('analysis.algorithm.helm_guide')}>
                 {compact ? 'Helm' : t('analysis.algorithm.helm_guide')}

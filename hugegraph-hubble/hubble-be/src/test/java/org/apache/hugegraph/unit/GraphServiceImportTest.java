@@ -22,9 +22,11 @@ import java.io.File;
 import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
+import java.util.Locale;
 
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,6 +35,7 @@ import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.entity.schema.EdgeLabelEntity;
 import org.apache.hugegraph.entity.schema.VertexLabelEntity;
 import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.service.auth.UserService;
 import org.apache.hugegraph.service.graph.GraphService;
 import org.apache.hugegraph.service.schema.EdgeLabelService;
@@ -391,7 +394,7 @@ public class GraphServiceImportTest {
     }
 
     @Test
-    public void testImportJsonRollsBackCreatedVerticesWhenEdgeWriteFails()
+    public void testImportJsonDoesNotDeleteVerticesWhenEdgeWriteFails()
            throws Exception {
         GraphService service = this.serviceWithSchemas();
         GraphManager graph = Mockito.mock(GraphManager.class);
@@ -411,16 +414,21 @@ public class GraphServiceImportTest {
                       "\"target\":\"target\",\"properties\":{}}]" +
                       "}";
 
-        Assert.assertThrows(RuntimeException.class, () -> {
+        RuntimeException error = (RuntimeException) Assert.assertThrows(RuntimeException.class, () -> {
             service.importJson(client, this.file(json));
         });
 
-        Mockito.verify(graph).deleteVertex("source");
-        Mockito.verify(graph).deleteVertex("target");
+        Mockito.verify(graph, Mockito.never()).deleteVertex(Mockito.any());
+        Mockito.verify(graph, Mockito.never()).deleteEdge(Mockito.anyString());
+        Assert.assertTrue(error instanceof ExternalException);
+        Assert.assertEquals("graph.import.partial-failure", error.getMessage());
+        Assert.assertEquals("write edge failed", error.getCause().getMessage());
+        Assert.assertEquals(2, ((ExternalException) error).args()[0]);
+        Assert.assertEquals(0, ((ExternalException) error).args()[1]);
     }
 
     @Test
-    public void testImportJsonRollsBackCreatedEdgesBeforeVertices()
+    public void testImportJsonDoesNotDeleteEdgesOrVerticesWhenLaterWriteFails()
            throws Exception {
         GraphService service = this.serviceWithSchemas();
         GraphManager graph = Mockito.mock(GraphManager.class);
@@ -447,13 +455,97 @@ public class GraphServiceImportTest {
                       "\"target\":\"source\",\"properties\":{}}]" +
                       "}";
 
-        Assert.assertThrows(RuntimeException.class, () -> {
+        RuntimeException error = (RuntimeException) Assert.assertThrows(RuntimeException.class, () -> {
             service.importJson(client, this.file(json));
         });
 
-        Mockito.verify(graph).deleteEdge("S1:source>target");
-        Mockito.verify(graph).deleteVertex("source");
-        Mockito.verify(graph).deleteVertex("target");
+        Mockito.verify(graph, Mockito.never()).deleteEdge(Mockito.anyString());
+        Mockito.verify(graph, Mockito.never()).deleteVertex(Mockito.any());
+        Assert.assertTrue(error instanceof ExternalException);
+        Assert.assertEquals("graph.import.partial-failure", error.getMessage());
+        Assert.assertEquals(2, ((ExternalException) error).args()[0]);
+        Assert.assertEquals(1, ((ExternalException) error).args()[1]);
+    }
+
+    @Test
+    public void testImportJsonWarnsWhenFirstWriteResponseIsLost() throws Exception {
+        GraphService service = this.serviceWithSchemas();
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        HugeClient client = this.clientWithGraph(graph);
+        Mockito.when(graph.addVertex(Mockito.any(Vertex.class)))
+               .thenThrow(new RuntimeException("response lost"));
+        String json = "{\"vertices\":[{\"id\":\"source\",\"label\":\"person\"," +
+                      "\"properties\":{}}],\"edges\":[]}";
+
+        ExternalException error = (ExternalException) Assert.assertThrows(ExternalException.class, () -> {
+            service.importJson(client, this.file(json));
+        });
+
+        Assert.assertEquals("graph.import.partial-failure", error.getMessage());
+        Assert.assertEquals(0, error.args()[0]);
+        Assert.assertEquals(0, error.args()[1]);
+        Mockito.verify(graph, Mockito.never()).deleteVertex(Mockito.any());
+        Mockito.verify(graph, Mockito.never()).deleteEdge(Mockito.anyString());
+    }
+
+    @Test
+    public void testImportJsonReportsOnlyAcknowledgedVertices() throws Exception {
+        GraphService service = this.serviceWithSchemas();
+        GraphManager graph = Mockito.mock(GraphManager.class);
+        HugeClient client = this.clientWithGraph(graph);
+        Mockito.when(graph.addVertex(Mockito.any(Vertex.class)))
+               .thenAnswer(invocation -> invocation.getArgument(0))
+               .thenThrow(new RuntimeException("response lost"));
+        String json = "{\"vertices\":[" +
+                      "{\"id\":\"source\",\"label\":\"person\",\"properties\":{}}," +
+                      "{\"id\":\"target\",\"label\":\"person\",\"properties\":{}}],\"edges\":[]}";
+
+        ExternalException error = (ExternalException) Assert.assertThrows(ExternalException.class, () -> {
+            service.importJson(client, this.file(json));
+        });
+
+        Assert.assertEquals("graph.import.partial-failure", error.getMessage());
+        Assert.assertEquals(1, error.args()[0]);
+        Assert.assertEquals(0, error.args()[1]);
+        Mockito.verify(graph, Mockito.never()).deleteVertex(Mockito.any());
+        Mockito.verify(graph, Mockito.never()).deleteEdge(Mockito.anyString());
+    }
+
+    @Test
+    public void testPartialImportMessageExplainsAcknowledgedCountsAndUncertainty() {
+        ResourceBundleMessageSource messages = new ResourceBundleMessageSource();
+        messages.setBasename("i18n/messages");
+        messages.setDefaultEncoding("UTF-8");
+        Object[] counts = {2, 1};
+        String english = messages.getMessage("graph.import.partial-failure", counts, Locale.ENGLISH);
+        String chinese = messages.getMessage("graph.import.partial-failure", counts, Locale.SIMPLIFIED_CHINESE);
+
+        Assert.assertTrue(english.contains("2 vertex and 1 edge"));
+        Assert.assertTrue(english.contains("failed request may also have succeeded"));
+        Assert.assertTrue(chinese.contains("2 次顶点写入和 1 次边写入"));
+        Assert.assertTrue(chinese.contains("失败的请求也可能已成功"));
+    }
+
+    @Test
+    public void testImportJsonPreservesServerAuthorizationStatus() throws Exception {
+        for (int status : new int[]{401, 403}) {
+            GraphService service = this.serviceWithSchemas();
+            GraphManager graph = Mockito.mock(GraphManager.class);
+            HugeClient client = this.clientWithGraph(graph);
+            ServerException serverError = new ServerException("denied");
+            serverError.status(status);
+            Mockito.when(graph.addVertex(Mockito.any(Vertex.class))).thenThrow(serverError);
+            String json = "{\"vertices\":[{\"id\":\"source\",\"label\":\"person\"," +
+                          "\"properties\":{}}],\"edges\":[]}";
+
+            ExternalException error = (ExternalException) Assert.assertThrows(ExternalException.class, () -> {
+                service.importJson(client, this.file(json));
+            });
+
+            Assert.assertEquals(status, error.status());
+            Assert.assertEquals("graph.import.partial-failure", error.getMessage());
+            Mockito.verify(graph, Mockito.never()).deleteVertex(Mockito.any());
+        }
     }
 
     private GraphService serviceWithSchemas() throws Exception {

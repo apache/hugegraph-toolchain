@@ -17,17 +17,21 @@
  */
 
 import {QuestionCircleOutlined} from '@ant-design/icons';
-import {Alert, Button, Card, InputNumber, Space, Tooltip, message} from 'antd';
+import {Alert, Button, Card, InputNumber, Radio, Space, Tooltip, message} from 'antd';
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../api';
 
-const toWholeHours = seconds => Number.isInteger(seconds / 3600) && seconds > 0 ? seconds / 3600 : null;
+const UNIT_SECONDS = {hours: 3600, days: 86400};
+const toWholeUnits = (seconds, unit) => (
+    Number.isInteger(seconds / unit) && seconds > 0 ? seconds / unit : null
+);
 
 const SessionSettings = () => {
     const {t} = useTranslation();
     const [settings, setSettings] = useState(null);
-    const [hours, setHours] = useState(null);
+    const [seconds, setSeconds] = useState(null);
+    const [unit, setUnit] = useState('hours');
     const [failed, setFailed] = useState(false);
     const [saving, setSaving] = useState(false);
     const requestRef = useRef(null);
@@ -44,7 +48,7 @@ const SessionSettings = () => {
                 throw new Error('session settings unavailable');
             }
             setSettings(res.data);
-            setHours(toWholeHours(res.data.idle_timeout_seconds));
+            setSeconds(res.data.idle_timeout_seconds);
         }
         catch {
             if (requestRef.current === request) {
@@ -61,10 +65,10 @@ const SessionSettings = () => {
         requestRef.current = request;
         setSaving(true);
         try {
-            const res = await api.auth.updateSessionSettings(hours * 3600);
+            const res = await api.auth.updateSessionSettings(seconds);
             if (requestRef.current === request && res?.status === 200) {
                 setSettings(res.data);
-                setHours(toWholeHours(res.data.idle_timeout_seconds));
+                setSeconds(res.data.idle_timeout_seconds);
                 message.success(t('my.session.saved'));
             }
         }
@@ -77,23 +81,31 @@ const SessionSettings = () => {
             }
         }
     };
-    const min = Math.max(1, Math.ceil(settings?.min_idle_seconds / 3600));
-    const max = Math.floor(settings?.max_idle_seconds / 3600);
+    const unitSeconds = UNIT_SECONDS[unit];
+    const value = toWholeUnits(seconds, unitSeconds);
+    const min = Math.max(1, Math.ceil(settings?.min_idle_seconds / unitSeconds));
+    const max = Math.floor(settings?.max_idle_seconds / unitSeconds);
     const readOnly = settings && max < min;
-    const valid = Number.isInteger(hours) && hours >= min && hours <= max;
+    const valid = Number.isInteger(value) && value >= min && value <= max;
     const hint = settings && (readOnly ? t('my.session.deploymentOnly')
-        : `${t('my.session.description')} ${t('my.session.range', {min, max})}`);
+        : `${t('my.session.description')} ${t(unit === 'hours' ? 'my.session.range' : 'my.session.rangeDays', {min, max})}`);
     return (
         <Card title={t('my.session.title')} style={{width: 'min(100%, 780px)'}}>
             {failed ? <Alert type='error' title={t('my.session.unavailable')}
                 action={<Button onClick={load}>{t('my.load.retry')}</Button>} /> : (
                 <Space wrap>
-                    <label htmlFor='session-idle-hours'>{t('my.session.hours')}</label>
-                    <InputNumber id='session-idle-hours' value={hours} onChange={setHours}
+                    <label htmlFor='session-idle-timeout'>{t(unit === 'hours' ? 'my.session.hours' : 'my.session.days')}</label>
+                    <InputNumber id='session-idle-timeout' value={value}
+                        onChange={next => setSeconds(next === null ? null : next * unitSeconds)}
                         min={min} max={max} step={1} placeholder={settings ? t('my.session.deploymentValue') : ''}
                         disabled={!settings || saving || readOnly} />
+                    <Radio.Group value={unit} onChange={event => setUnit(event.target.value)}
+                        disabled={!settings || saving} aria-label={t('my.session.unit')} buttonStyle='solid'>
+                        <Radio.Button value='hours'>{t('my.session.unitHours')}</Radio.Button>
+                        <Radio.Button value='days'>{t('my.session.unitDays')}</Radio.Button>
+                    </Radio.Group>
                     <Button type='primary' onClick={save} loading={saving}
-                        disabled={!valid || hours * 3600 === settings?.idle_timeout_seconds}>
+                        disabled={!valid || seconds === settings?.idle_timeout_seconds}>
                         {t('common.action.save')}
                     </Button>
                     <Tooltip title={hint} trigger={['hover', 'focus']}>

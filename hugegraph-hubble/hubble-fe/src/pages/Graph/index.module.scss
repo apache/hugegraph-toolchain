@@ -56,6 +56,46 @@ div.add_card {
     }
 }
 
+.schema_summary {
+    height: 153px;
+    overflow-y: auto;
+    padding: 10px 20px;
+    color: #344054;
+    font-size: 12px;
+}
+
+.schema_summary_hint {
+    margin-bottom: 6px;
+    color: #667085;
+}
+
+.schema_summary_group {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+
+    > strong {
+        flex: none;
+    }
+}
+
+.schema_summary_items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    min-width: 0;
+
+    > span {
+        max-width: 100%;
+        overflow: hidden;
+        padding: 1px 6px;
+        border-radius: 4px;
+        background: #f2f4f7;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+}
+
 .empty_schema {
     display: flex;
     min-height: 112px;

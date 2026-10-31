@@ -34,6 +34,7 @@ import org.apache.hugegraph.entity.schema.PropertyKeyEntity;
 import org.apache.hugegraph.entity.schema.SchemaLabelEntity;
 import org.apache.hugegraph.entity.schema.VertexLabelEntity;
 import org.apache.hugegraph.exception.ExternalException;
+import org.apache.hugegraph.exception.ServerException;
 import org.apache.hugegraph.loader.source.file.FileSource;
 import org.apache.hugegraph.loader.source.file.ListFormat;
 import org.apache.hugegraph.loader.util.DataTypeUtil;
@@ -242,16 +243,18 @@ public class GraphService {
             this.buildEdge(client, entity, pendingVertices);
         }
 
-        List<Object> addedVertexIds = new ArrayList<>(vertices.size());
-        List<String> addedEdgeIds = new ArrayList<>(edgeEntities.size());
         GraphManager graph = client.graph();
         Map<Object, Vertex> createdVertices = new HashMap<>(pendingVertices);
         List<Vertex> createdVertexList = new ArrayList<>(vertices.size());
+        int acknowledgedVertices = 0;
+        int acknowledgedEdges = 0;
         try {
             for (int i = 0; i < vertices.size(); i++) {
                 Vertex vertex = vertices.get(i);
                 Vertex created = graph.addVertex(vertex);
-                addedVertexIds.add(created.id());
+                // Count only calls which returned successfully. A failed call
+                // may also have committed before its response was lost.
+                acknowledgedVertices++;
                 createdVertices.put(created.id(), created);
                 Object importId = vertexImportIds.get(i);
                 if (importId != null) {
@@ -263,12 +266,26 @@ public class GraphService {
                 EdgeHolder edgeHolder = this.buildEdge(client, entity,
                                                        createdVertices);
                 Edge edge = graph.addEdge(edgeHolder.edge);
-                addedEdgeIds.add(edge.id());
+                acknowledgedEdges++;
                 edges.put(edge.id(), edge);
             }
         } catch (RuntimeException e) {
-            this.rollbackImport(graph, addedVertexIds, addedEdgeIds);
-            throw e;
+            // Server writes can replace existing elements, and a failed request
+            // can have committed before its response was lost. Deleting IDs
+            // returned by earlier writes is therefore not a safe rollback.
+            log.warn("Graph JSON import failed; changes may remain (failure type: {})",
+                     e.getClass().getName());
+            int status = 400;
+            if (e instanceof ExternalException) {
+                status = ((ExternalException) e).status();
+            } else if (e instanceof ServerException) {
+                int upstream = ((ServerException) e).status();
+                if (upstream == 401 || upstream == 403) {
+                    status = upstream;
+                }
+            }
+            throw new ExternalException(status, "graph.import.partial-failure", e,
+                                        acknowledgedVertices, acknowledgedEdges);
         }
         return GraphView.builder()
                 .vertices(VertexQueryEntity.fromVertices(createdVertexList))
@@ -326,26 +343,6 @@ public class GraphService {
         Ex.check(value instanceof JSONArray, "graph.import.field-should-array",
                  name);
         return (JSONArray) value;
-    }
-
-    private void rollbackImport(GraphManager graph, List<Object> vertexIds,
-                                List<String> edgeIds) {
-        Collections.reverse(edgeIds);
-        for (String edgeId : edgeIds) {
-            try {
-                graph.deleteEdge(edgeId);
-            } catch (RuntimeException e) {
-                log.warn("Failed to rollback imported edge {}", edgeId, e);
-            }
-        }
-        Collections.reverse(vertexIds);
-        for (Object vertexId : vertexIds) {
-            try {
-                graph.deleteVertex(vertexId);
-            } catch (RuntimeException e) {
-                log.warn("Failed to rollback imported vertex {}", vertexId, e);
-            }
-        }
     }
 
     private void checkParamsValid(HugeClient client, VertexEntity entity,

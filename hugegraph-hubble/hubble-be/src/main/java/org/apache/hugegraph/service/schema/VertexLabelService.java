@@ -64,9 +64,9 @@ import lombok.extern.log4j.Log4j2;
 public class VertexLabelService extends SchemaService {
 
     private static final List<String> DEFAULT_LABEL_COLORS = List.of(
-            "#758700", "#16817D", "#408AC9", "#9C67BD",
-            "#B57A43", "#B12C86", "#DC667B", "#6D9953",
-            "#4F9DB5", "#785FC1", "#C46E4A", "#8D8550");
+            "#967572", "#567B75", "#647FA2", "#8A7191",
+            "#B57A43", "#B12C86", "#AD6D70", "#718464",
+            "#567F8C", "#776E94", "#A36E56", "#837D5E");
 
     @Autowired
     private PropertyKeyService pkService;

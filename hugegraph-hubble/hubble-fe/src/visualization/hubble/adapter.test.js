@@ -69,10 +69,17 @@ test('handles all schema nodes before validating edges and hides only preview te
     const visible = adaptHubbleSchema(input);
     const compact = adaptHubbleSchema(input, false);
     expect(visible.nodes[0].style).toMatchObject({labelText: 'person', fill: '#1769e0'});
-    expect(visible.edges[0].style).toMatchObject({labelText: 'knows', endArrow: true});
+    expect(visible.edges[0].style).toMatchObject({labelText: 'knows', endArrow: true, labelBackground: false, labelTextBaseline: 'bottom'});
     expect(compact.nodes[0].style.labelText).toBe('');
     expect(compact.edges[0].style.labelText).toBe('');
     expect(exportHubbleGraph(compact)).toEqual(input);
+});
+
+test('keeps the regular edge label background for non-loop schema edges', () => {
+    const input = {vertices: [{id: 'person'}, {id: 'city'}],
+        edges: [{id: 'lives', source: 'person', target: 'city', label: 'lives'}]};
+    expect(adaptHubbleSchema(input).edges[0].style).toMatchObject({labelBackground: true});
+    expect(adaptHubbleSchema(input).edges[0].style.labelTextBaseline).toBeUndefined();
 });
 
 test('preserves legacy edge type selection when combined with custom properties', () => {

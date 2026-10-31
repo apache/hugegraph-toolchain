@@ -25,12 +25,17 @@ const {spawnSync} = require('child_process');
 const REQUIRED_CHECKS = Object.freeze([
     'authenticated login and GraphSpace/account visibility',
     'clone graph schema without graph data',
+    'profile displays stored remarks and saves a 30-day session',
     'GraphSpace title date and header whitespace navigate exactly to selected space',
+    'dense schema card keeps type names readable and opens the full schema',
     'GraphSpace menu edit does not navigate and current quota is editable',
     'late GraphSpace details cannot overwrite a newly opened editor',
     'Graph context switches via actual header selectors',
+    'partial import failure shows acknowledged writes and recovery guidance',
     'unloaded Vermeer statistics gives a scoped graph compute entry',
     'core query actions are usable at desktop and compact widths',
+    'canvas JSON upload targets the selected graph import endpoint',
+    'late canvas upload cannot replace the newly selected graph result',
     'routine query limit is quiet canvas note without unknown totals',
     'truncation is compact with details on demand',
     'async task ID remains visible in the selected graph and failure is actionable',
@@ -68,6 +73,8 @@ function validateReport(report) {
 
 const screenshotNames = new Set([
     'graphspace-authenticated', 'graphspace-edit', 'graph-context-switch',
+    'import-failure-progress', 'dense-schema-card',
+    'graph-schema-clone-dialog', 'graph-schema-cloned', 'profile-session-units',
     'vermeer-statistics-load-guidance',
     'query-routine-limit', 'query-truncated', 'query-preview-details',
     'query-core-1440', 'query-core-1024',

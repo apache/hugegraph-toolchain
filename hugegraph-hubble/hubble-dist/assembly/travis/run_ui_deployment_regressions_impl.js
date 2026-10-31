@@ -39,6 +39,15 @@ const graphsBySpace = {
     DEFAULT: [graph('DEFAULT', 'hugegraph', '记忆图'), graph('DEFAULT', 'default_only', '默认空间专属图')],
     soc_graph: [graph('soc_graph', 'hugegraph', '记忆图'), graph('soc_graph', 'second', '测试图')],
 };
+// Dense schema fixture exercises the card's readable, navigable summary.
+graphsBySpace.DEFAULT[1].schemaview = {
+    vertices: ['person', 'city', 'company', 'project'].map(name => ({id: name, label: name})),
+    edges: [
+        {id: 'lives', label: 'lives_in', source: 'person', target: 'city'},
+        {id: 'works', label: 'works_at', source: 'person', target: 'company'},
+        {id: 'owns', label: 'owns', source: 'company', target: 'project'},
+    ],
+};
 const hasFixtureScope = scope => Object.entries(graphsBySpace).some(([space, graphs]) => (
     graphs.some(item => scope === `${space}/graphs/${item.name}`)
 ));
@@ -83,6 +92,7 @@ function mobileOverviewFixture() {
 const task = { id: 80001, task_name: 'g.V().limit(100002)', task_type: 'gremlin', task_status: 'failed', task_create: now - 49000, task_update: now - 45602 };
 const taskResult = { ...task, task_result: 'org.apache.hugegraph.exception.LimitExceedException: Task result size 77849617 exceeded limit 16777216 bytes' };
 function pageResult(records, selected) { return { records, total: records.length, current: 1, size: 100, pages: 1, selected: records.find(x => x.name === selected) ?? null }; }
+const partialImportMessage = '导入失败。Server 已确认 2 次顶点写入和 1 次边写入；失败的请求也可能已成功。已有数据可能被覆盖，未自动回滚。请检查图数据和备份后再重试';
 function sessionFixture(state, method) {
     if (method !== 'GET') return {status: 405, message: 'Unexpected fixture session method'};
     if (!state.auth || !state.loggedIn) return {status: 401, message: 'Fixture session requires authenticated login'};
@@ -109,9 +119,10 @@ function queryFixture(method, pathname, body, truncated = false) {
 async function setup(browser, auth) {
     const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, timezoneId: 'Asia/Taipei' });
     await context.addInitScript(() => localStorage.setItem('languageType', 'zh-CN'));
-    const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, graphGate: null, taskLookups: 0, taskSubmitted: false,
+    const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, graphGate: null, taskLookups: 0, taskSubmitted: false, partialImportRequests: 0,
         statisticsScenario: false,
-        operationsOverview: null, extraCapabilities: [], schemaClones: [], schemaCloneEnabled: true };
+        operationsOverview: null, extraCapabilities: [], schemaClones: [], schemaCloneEnabled: true,
+        sessionSeconds: 172800, sessionUpdates: [] };
     const capabilities = ['graphspaces_read', 'operations_health_read', 'operations_topology_read', ...(auth ? ['accounts_manage', 'model_settings_manage'] : [])];
     await context.route('**/api/v*/**', async (route) => {
         const req = route.request();
@@ -160,12 +171,29 @@ async function setup(browser, auth) {
         }
         else if (p === '/auth/context') {
             const admin = auth && state.loggedIn;
-            data = { mode: auth ? 'AUTH' : 'NON_AUTH', role: admin ? 'SUPERADMIN' : 'ANONYMOUS', capabilities: auth && !admin ? [] : [...capabilities, ...state.extraCapabilities], actions: { graphspaces: admin ? ['create', 'read', 'update', 'delete'] : auth ? [] : ['read'] }, scopes: { all_graphspaces: admin } };
+            data = { mode: auth ? 'AUTH' : 'NON_AUTH', role: admin ? 'SUPERADMIN' : 'ANONYMOUS', capabilities: auth && !admin ? [] : [...capabilities, ...state.extraCapabilities], actions: { graphspaces: admin ? ['create', 'read', 'update', 'delete'] : auth ? [] : ['read'], account: admin ? ['read', 'update'] : [] }, scopes: { all_graphspaces: admin } };
         }
         else if (p === '/auth/status')
             data = {};
+        else if (p === '/auth/users/getpersonal')
+            data = {user_name: 'smoke_admin', user_nickname: '测试管理员', user_description: 'None'};
         else if (p === '/auth/session') {
-            const response = sessionFixture(state, method);
+            let response = sessionFixture(state, 'GET');
+            if (response.status === 200 && method === 'PUT') {
+                const seconds = req.postDataJSON()?.idle_timeout_seconds;
+                if (!Number.isInteger(seconds) || seconds < 900 || seconds > 30 * 86400) {
+                    response = {status: 400, message: 'Invalid timeout'};
+                } else {
+                    state.sessionSeconds = seconds;
+                    state.sessionUpdates.push(seconds);
+                }
+            } else if (method !== 'GET') {
+                response = {status: 405};
+            }
+            if (response.status === 200) {
+                response.data.idle_timeout_seconds = state.sessionSeconds;
+                response.data.max_idle_seconds = 30 * 86400;
+            }
             if (response.status !== 200) unexpected.add(`${method} ${p}`);
             await route.fulfill({status: response.status, contentType: 'application/json',
                 body: JSON.stringify(response)});
@@ -210,6 +238,13 @@ async function setup(browser, auth) {
             data = { configured: false, available: false };
         else if (p.endsWith('/text2gql/config'))
             data = { available: false, custom_available: true, reason: 'not_configured' };
+        // Exercise the UI's handling of a simulated partial-import failure.
+        else if (method === 'POST' && p === '/graphspaces/DEFAULT/graphs/hugegraph/import') {
+            state.partialImportRequests++;
+            await route.fulfill({status: 200, contentType: 'application/json',
+                body: JSON.stringify({status: 400, message: partialImportMessage})});
+            return;
+        }
         else if (state.statisticsScenario && p === '/graphspaces/soc_graph/graphs/second/statistics/vermeer'
                  && method === 'GET') {
             await route.fulfill({status: 400, contentType: 'application/json', body: JSON.stringify({status: 400,
@@ -358,6 +393,22 @@ async function main() {
             assert.deepEqual(state.schemaClones, [{graphspace: 'DEFAULT', name: 'copy', nickname: 'Copy', load_data: 0}]);
             await screenshot(page, 'graph-schema-cloned');
         });
+        await check('profile displays stored remarks and saves a 30-day session', async () => {
+            await page.goto(base + '/profile');
+            await page.getByTestId('profile-surface').waitFor();
+            await page.getByText('None', {exact: true}).waitFor();
+            await page.locator('label.ant-radio-button-wrapper').filter({hasText: /^天$/}).click();
+            const input = page.getByRole('spinbutton', {name: '闲置退出（天）'});
+            await input.fill('30');
+            const updated = page.waitForResponse(response => response.url().endsWith('/auth/session')
+                && response.request().method() === 'PUT');
+            await page.getByRole('button', {name: /保\s*存/}).click();
+            assert.equal((await updated).status(), 200);
+            assert.deepEqual(state.sessionUpdates, [30 * 86400]);
+            await page.locator('label.ant-radio-button-wrapper').filter({hasText: /^小时$/}).click();
+            assert.equal(await page.getByRole('spinbutton', {name: '闲置退出（小时）'}).inputValue(), '720');
+            await screenshot(page, 'profile-session-units');
+        });
         await check('GraphSpace title date and header whitespace navigate exactly to selected space', async () => {
             const card = () => page.locator('.ant-card').filter({ has: page.getByText('记忆库', { exact: true }) }).first();
             for (const target of ['date', 'title', 'whitespace', 'enter']) {
@@ -374,6 +425,21 @@ async function main() {
                     await card().locator('.ant-card-head').click({ position: { x: 12, y: 12 } });
                 await page.waitForURL('**/graphspace/soc_graph');
             }
+        });
+        await check('dense schema card keeps type names readable and opens the full schema', async () => {
+            await page.goto(base + '/graphspace');
+            const space = page.locator('.ant-card').filter({has: page.getByText('默认图空间', {exact: true})}).first();
+            await space.getByText('GraphSpace 名称：DEFAULT', {exact: true}).waitFor();
+            await space.getByRole('link', {name: '进入图空间'}).click();
+            await page.waitForURL('**/graphspace/DEFAULT');
+            const card = page.locator('.ant-card').filter({hasText: '默认空间专属图'}).first();
+            await card.getByText('类型较多，点击查看完整关系图', {exact: true}).waitFor();
+            for (const name of ['person', 'city', 'company', 'project', 'lives_in', 'works_at', 'owns']) {
+                assert(await card.getByText(name, {exact: true}).isVisible(), `${name} is not visible`);
+            }
+            await screenshot(page, 'dense-schema-card');
+            await card.getByRole('button', {name: '查看 默认空间专属图 的 Schema'}).click();
+            await page.waitForURL('**/graphspace/DEFAULT/graph/default_only/meta');
         });
         await check('GraphSpace menu edit does not navigate and current quota is editable', async () => {
             await page.goto(base + '/graphspace');
@@ -442,6 +508,109 @@ async function main() {
             await execute.click();
             await page.getByRole('group', {name: '节点：当前结果 2；全图总数未获取', exact: true}).waitFor();
             await screenshot(page, 'graph-context-switch');
+        });
+        await check('partial import failure shows acknowledged writes and recovery guidance', async () => {
+            await page.goto(base + '/gremlin/DEFAULT/hugegraph');
+            const upload = page.locator('input[type=file]');
+            await upload.waitFor({state: 'attached'});
+            assert(await upload.isEnabled());
+            await upload.setInputFiles({name: 'import.json',
+                mimeType: 'application/json', buffer: Buffer.from('{"vertices":[],"edges":[]}')});
+            await page.getByRole('dialog', {name: '确认导入图数据'}).getByRole('button', {name: /确\s*认/}).click();
+            await page.getByText(partialImportMessage, {exact: true}).waitFor();
+            assert.equal(state.partialImportRequests, 1);
+            await screenshot(page, 'import-failure-progress');
+        });
+        await check('canvas JSON upload targets the selected graph import endpoint', async () => {
+            const expectedPath = '/api/v1.3/graphspaces/DEFAULT/graphs/hugegraph/import';
+            const payload = JSON.stringify({vertices: [{id: '1', label: 'Memory', properties: {name: '1'}}], edges: []});
+            let uploads = 0;
+            const handler = async route => {
+                const request = route.request();
+                assert.equal(new URL(request.url()).pathname, expectedPath);
+                assert.equal(request.method(), 'POST');
+                assert.match(request.headers()['content-type'], /^multipart\/form-data; boundary=/);
+                assert(request.postData().includes(payload), 'Multipart request must contain the exported JSON');
+                uploads++;
+                await route.fulfill({status: 200, contentType: 'application/json',
+                    body: JSON.stringify({status: 200, data: JSON.parse(payload)})});
+            };
+            await page.route('**/api/v*/**/import', handler);
+            try {
+                await page.goto(base + '/gremlin/DEFAULT/hugegraph');
+                await page.getByText('尚未执行图查询，点击执行查询查看结果', {exact: true}).waitFor();
+                const upload = page.locator('input[type=file]').first();
+                await upload.setInputFiles({name: 'canvas.json', mimeType: 'application/json', buffer: Buffer.from(payload)});
+                const dialog = page.getByRole('dialog', {name: '确认导入图数据'});
+                await dialog.getByText(/导入会向 DEFAULT \/ hugegraph 写入点和边/).waitFor();
+                await dialog.getByRole('button', {name: /取\s*消/}).click();
+                assert.equal(uploads, 0, 'Cancelling must not upload or write graph data');
+                await dialog.waitFor({state: 'hidden'});
+                await upload.setInputFiles({name: 'canvas.json', mimeType: 'application/json', buffer: Buffer.from(payload)});
+                await dialog.getByRole('button', {name: /确\s*认/}).click();
+                await page.getByText('导入成功', {exact: true}).first().waitFor();
+                assert.equal(uploads, 1);
+            }
+            finally {
+                await page.unroute('**/api/v*/**/import', handler);
+            }
+        });
+        await check('late canvas upload cannot replace the newly selected graph result', async () => {
+            let release;
+            let received;
+            const requestReceived = new Promise(resolve => { received = resolve; });
+            const gate = new Promise(resolve => { release = resolve; });
+            const payload = {vertices: [{id: 'late-A', label: 'Memory', properties: {name: 'A'}}], edges: []};
+            const handler = async route => {
+                assert.equal(new URL(route.request().url()).pathname,
+                    '/api/v1.3/graphspaces/DEFAULT/graphs/hugegraph/import');
+                received();
+                await gate;
+                await route.fulfill({status: 200, contentType: 'application/json',
+                    body: JSON.stringify({status: 200, data: payload})});
+            };
+            await page.route('**/api/v*/**/import', handler);
+            try {
+                await page.goto(base + '/gremlin/DEFAULT/hugegraph');
+                await page.getByText('尚未执行图查询，点击执行查询查看结果', {exact: true}).waitFor();
+                await page.locator('input[type=file]').first().setInputFiles({
+                    name: 'canvas.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(payload)),
+                });
+                const dialog = page.getByRole('dialog', {name: '确认导入图数据'});
+                await dialog.getByRole('button', {name: /确\s*认/}).click();
+                await requestReceived;
+
+                const spaceSelector = page.getByRole('combobox', {name: '当前 GraphSpace', exact: true});
+                await spaceSelector.click();
+                await page.getByRole('option', {name: /记忆库/}).waitFor({state: 'attached'});
+                await spaceSelector.press('ArrowDown');
+                await spaceSelector.press('Enter');
+                const graphSelector = page.getByRole('combobox', {name: '当前图', exact: true});
+                await graphSelector.click();
+                await page.getByRole('option', {name: /测试图/}).waitFor({state: 'attached'});
+                await graphSelector.press('ArrowDown');
+                const ready = page.waitForResponse(response => response.request().method() === 'GET'
+                    && new URL(response.url()).pathname === '/api/v1.3/graphspaces/soc_graph/graphs/second/schema/propertykeys');
+                await graphSelector.press('Enter');
+                await page.waitForURL('**/gremlin/soc_graph/second');
+                await (await ready).finished();
+                const execute = page.getByRole('button', {name: '执行查询', exact: true});
+                await execute.click({trial: true});
+                await page.locator('.cm-content').fill('g.V().limit(2)');
+                await execute.click();
+                const result = page.getByRole('group', {name: '节点：当前结果 2；全图总数未获取', exact: true});
+                await result.waitFor();
+                const response = page.waitForResponse(r => new URL(r.url()).pathname.endsWith('/import'));
+                release();
+                await (await response).finished();
+                await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+                assert(await result.isVisible(), 'The current graph result must survive the old upload response');
+                assert.equal(await page.getByText('导入成功', {exact: true}).count(), 0);
+            }
+            finally {
+                release();
+                await page.unroute('**/api/v*/**/import', handler);
+            }
         });
         await check('unloaded Vermeer statistics gives a scoped graph compute entry', async () => {
             state.statisticsScenario = true;

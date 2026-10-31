@@ -360,6 +360,8 @@ def require_current_pr(plan, fetch):
             or live["head"]["ref"] != plan["branch"]
             or live["base"]["repo"]["full_name"] != plan["repository"]):
         raise StaleInputError("PR inputs changed; refresh the branch and start a new PR run")
+    if "snapshotBaseBranch" in plan and live["base"].get("ref") != plan["snapshotBaseBranch"]:
+        raise StaleInputError("PR target branch changed; start a new PR run")
     if "baseBranch" in plan:
         # Event and REST base.sha can be older snapshots. The actual branch
         # ref, rather than those snapshots, identifies the tested base.
@@ -382,6 +384,26 @@ def record_current_merge(plan, event_pr, parents, fetch):
             raise StaleInputError("PR target branch changed; start a new PR run")
         ref = fetch(f"repos/{plan['repository']}/git/ref/heads/{quote(branch, safe='')}")
         canonical = ref["object"]["sha"]
+        # GitHub can advance the target while this event's immutable merge is
+        # waiting for a runner. Test the merge supplied by the event, rather
+        # than requiring it to equal today's regenerated PR merge. The event
+        # SHA and both parents still have to prove exactly what was checked out.
+        historical_snapshot = (
+            os.environ.get("GITHUB_EVENT_NAME") == "pull_request"
+            and os.environ.get("GITHUB_SHA") == plan["testedMergeSHA"]
+            and event_pr.get("stack") is None and live.get("stack") is None
+            and ref["object"].get("type") == "commit" and canonical
+            and len(parents) == 2 and parents[1] == plan["head"]
+            and git("merge-base", plan["base"], parents[0]) == plan["base"]
+            # The target may have advanced after checkout, so its newest
+            # commit is not necessarily present in the local object database.
+            and fetch(f"repos/{plan['repository']}/compare/{parents[0]}...{canonical}").get("status")
+                in {"ahead", "identical"}
+        )
+        if historical_snapshot:
+            plan.update(base=parents[0], snapshotBaseBranch=branch)
+            require_current_pr(plan, fetch)
+            return
         if (event_pr.get("stack") is not None
                 or ref["object"].get("type") != "commit" or not canonical
                 or live.get("merge_commit_sha") != plan["testedMergeSHA"]
@@ -550,6 +572,10 @@ def write_summary(plan, results=None):
     summary = "## Module validation (advisory)\n\n"
     summary += "CI is advisory; human review remains required. Native jobs report their actual results.\n\n"
     summary += plan.get("reason", "affected inputs") + "\n\n"
+    if "snapshotBaseBranch" in plan:
+        summary += ("This run tests the event's merge snapshot. The target branch may "
+                    "have advanced since the tested base; this run does not claim "
+                    "to test the latest target commit.\n\n")
     summary += "| Check | Required | Selection reason | Result |\n| --- | --- | --- | --- |\n"
     for suite in sorted(set(MODULES[plan["project"]]) | IMAGES | {"dependency-audit"}):
         selected = suite in plan["expected"]
@@ -575,6 +601,8 @@ def result_report(plan, results):
                                         "head", "testedMergeSHA", "externalInputs"]}
     if "baseBranch" in plan:
         report["baseBranch"] = plan["baseBranch"]
+    if "snapshotBaseBranch" in plan:
+        report["snapshotBaseBranch"] = plan["snapshotBaseBranch"]
     if "stack" in plan:
         report["stack"] = plan["stack"]
     report.update(runID=int(os.environ.get("GITHUB_RUN_ID", "0")),

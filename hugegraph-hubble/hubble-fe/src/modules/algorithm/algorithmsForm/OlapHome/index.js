@@ -88,6 +88,7 @@ const OlapFormHome = props => {
 
     const olapVermeerList = [
         PAGE_RANK,
+        PERSONAL_PAGE_RANK,
         WEAKLY_CONNECTED_COMPONENT,
         LABEL_PROPAGATION_ALGORITHM,
         DEGREE_CENTRALIT,

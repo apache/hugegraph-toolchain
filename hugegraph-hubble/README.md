@@ -154,6 +154,20 @@ are received by the SDK before projection; this includes collections returned by
 expressions such as Cypher split. These previews are not an upstream byte or
 execution budget.
 
+Importing canvas JSON writes vertices and edges to the selected graph. A Server
+write may replace an existing element, and an interrupted or failed import can
+leave some changes applied even if a response is lost. Hubble does not attempt
+to delete those IDs on failure: it cannot distinguish new elements from existing
+ones or safely undo concurrent updates. Inspect the graph before retrying; this
+operation is not transactional and cannot restore previous values.
+When a write fails, Hubble reports the number of vertex and edge write requests
+that returned successfully. These are acknowledged operations, not new-element
+counts or a complete list of changes. The failed request may also have succeeded
+before its response was lost. Do not retry or delete reported elements blindly:
+compare the affected graph with a backup, account for concurrent writers, and
+restore only after deciding which changes should be preserved. Hubble cannot
+automatically reverse overwritten values or guarantee that a retry is safe.
+
 <details>
 <summary>Current query preview controls — native browser screenshots</summary>
 
@@ -476,15 +490,14 @@ validates this range and requires the existing username/token session; anonymous
 personal center or session settings.
 
 Administrators configure `hubble.session.max-idle-seconds` in the backend Spring
-configuration (or `HUBBLE_SESSION_MAX_IDLE_SECONDS` in the environment). `0`, the
-default, inherits the original `server.servlet.session.timeout` as the personal
-ceiling. A positive value explicitly authorizes that ceiling in seconds, including
-values above seven days. Personal changes never alter this ceiling. The initial
+configuration (or `HUBBLE_SESSION_MAX_IDLE_SECONDS` in the environment). The
+default ceiling is 30 days (2592000 seconds); set `0` to inherit the original
+`server.servlet.session.timeout`, or set a positive ceiling in seconds. Personal changes never alter this ceiling. The initial
 timeout and subsequent sign-ins are also capped by it. For example, a 48-hour
 servlet default with a 2-hour ceiling starts at 2 hours and offers 1–2 hours in the UI.
-Personal edits use whole hours, starting at 1 hour; the API still uses seconds.
-Non-whole-hour deployment values remain unchanged and display as “Deployment value”
-until the user explicitly selects an allowed hour value. A ceiling below one hour
+Personal edits use whole hours or whole days, selectable in the panel; the API
+still uses seconds. Values that are not whole in the selected unit remain unchanged
+and display as “Deployment value” until the user selects an allowed value. A ceiling below one hour
 leaves no editable whole-hour choice. The compact panel keeps its brief help and
 allowed range in a tooltip.
 A positive deployment default below 15 minutes, or a ceiling below 15 minutes,
@@ -1139,6 +1152,11 @@ OLAP offers a backend only after discovery is confirmed. Load a graph for Vermee
 from the OLAP tab, then inspect progress and results in async tasks.
 Changing the UI language retains graph results and submitted task IDs.
 
+PersonalPageRank is also available with a loaded Vermeer graph. This Chromium
+capture uses anonymous-mode local API fixtures and does not establish live results.
+
+![PersonalPageRank parameters in Vermeer](docs/assets/analytics/vermeer-personal-pagerank.png)
+
 The catalog's search and reset controls share a row, and long algorithm names
 remain aligned with their icons. These two screenshots use anonymous-mode local
 API fixtures in Chromium; they do not demonstrate a live computation.
@@ -1166,6 +1184,18 @@ target, since persisted edge-label hierarchy cannot always be reconstructed.
 This does not copy vertices or edges. It requires a Server implementing the
 `schema-clone` endpoint (API 0.73 or later); older Servers disable the action. If cloning fails,
 inspect the target graph before retrying because it may already have been created.
+
+### PD endpoint mapping and service state
+
+PD source diagnostics keep an endpoint mapping failure visible even when PD
+reports a higher-priority data fault. Registration, data state, cluster readiness
+and metric collection remain separate observations; a Service address is not
+attributed to a particular PD member.
+
+![PD endpoint mapping and data fault](docs/assets/operations/pd-mapping-and-data-fault.png)
+
+The screenshot uses Chromium with intercepted API responses. It demonstrates the
+combined diagnostic presentation, not the state of a deployed cluster.
 
 ### Import task guidance and input progress
 
