@@ -68,9 +68,9 @@ test('maps every supported algorithm without falling back to the traverser index
 
 test('Vermeer algorithms link to Vermeer while interactive API docs stay unchanged', () => {
     expect(getAlgorithmDocumentationUrl(ALGORITHM_NAME.PAGE_RANK, 'vermeer'))
-        .toBe('https://github.com/apache/hugegraph-computer/tree/master/vermeer');
+        .toBe('https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-vermeer/');
     expect(getAlgorithmDocumentationUrl(ALGORITHM_NAME.SSSP, 'vermeer'))
-        .toContain('/master/vermeer');
+        .toBe('https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-vermeer/');
     expect(getAlgorithmDocumentationUrl(ALGORITHM_NAME.K_OUT, 'vermeer'))
         .toMatch(/#321-k-out-api-get-basic-version$/);
     expect(getAlgorithmDocumentationUrl(ALGORITHM_NAME.PAGE_RANK, 'computer'))
@@ -83,7 +83,7 @@ test.each([
     'TRIANGLE_COUNT', 'K_CORE', 'SSSP',
 ])('%s links to the canonical documentation for its selected engine', key => {
     expect(getAlgorithmDocumentationUrl(ALGORITHM_NAME[key], 'vermeer'))
-        .toBe('https://github.com/apache/hugegraph-computer/tree/master/vermeer');
+        .toBe('https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-vermeer/');
     expect(getAlgorithmDocumentationUrl(ALGORITHM_NAME[key], 'computer'))
         .toBe('https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-computer/'
             + '#6-built-in-algorithms-and-development');

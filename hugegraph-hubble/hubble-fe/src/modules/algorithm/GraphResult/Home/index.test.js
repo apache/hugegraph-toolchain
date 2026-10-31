@@ -365,9 +365,9 @@ test('shows unconfigured graph compute and verified startup documentation in the
     expect(screen.getByText('analysis.algorithm.olap_guide')).toBeVisible();
     expect(screen.getByText('analysis.algorithm.olap_unconfigured')).toBeVisible();
     expect(screen.getByRole('link', {name: 'analysis.algorithm.vermeer_docs'}))
-        .toHaveAttribute('href', 'https://github.com/apache/hugegraph-computer/tree/master/vermeer');
+        .toHaveAttribute('href', 'https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-vermeer/');
     expect(screen.getByRole('link', {name: 'analysis.algorithm.helm_guide'}))
-        .toHaveAttribute('href', 'https://github.com/apache/hugegraph/blob/master/helm/hugegraph/docs/vermeer.md#install-and-enable');
+        .toHaveAttribute('href', 'https://hugegraph.apache.org/docs/quickstart/hugegraph/hugegraph-helm/');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 

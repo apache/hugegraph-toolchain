@@ -22,7 +22,7 @@ import {
 
 const TRAVERSER_DOC = 'https://hugegraph.apache.org/docs/clients/restful-api/traverser/';
 const RANK_DOC = 'https://hugegraph.apache.org/docs/clients/restful-api/rank/';
-export const VERMEER_DOC = 'https://github.com/apache/hugegraph-computer/tree/master/vermeer';
+export const VERMEER_DOC = 'https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-vermeer/';
 export const COMPUTER_DOC
     = 'https://hugegraph.apache.org/docs/quickstart/computing/hugegraph-computer/'
     + '#6-built-in-algorithms-and-development';

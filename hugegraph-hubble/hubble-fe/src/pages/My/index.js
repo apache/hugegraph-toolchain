@@ -58,15 +58,6 @@ const My = () => {
         }
         return value;
     };
-    const displayOptionalValue = value => {
-        const normalized = value === null || value === undefined
-            ? ''
-            : String(value).trim();
-        if (!normalized || ['none', 'null', 'undefined'].includes(normalized.toLowerCase())) {
-            return emptyValue;
-        }
-        return value;
-    };
     const profileName = data.user_nickname || data.user_name;
     const avatarText = profileName ? String(profileName).trim().charAt(0).toUpperCase() : '';
     const profileLevel = context?.role === 'SUPERADMIN' ? 'ADMIN'
@@ -254,7 +245,7 @@ const My = () => {
                                         </div>
                                         <div className={`${style.detailItem} ${style.detailWide}`}>
                                             <dt>{t('my.col.remark')}</dt>
-                                            <dd>{displayOptionalValue(data.user_description)}</dd>
+                                            <dd>{displayValue(data.user_description)}</dd>
                                         </div>
                                         <div className={style.detailItem}>
                                             <dt>{t('my.col.create_time')}</dt>

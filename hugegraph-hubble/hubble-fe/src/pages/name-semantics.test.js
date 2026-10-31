@@ -28,7 +28,7 @@ test.each([
     expect(resource.graphspace.form.name).toBe(displayName);
     expect(resource.graph.form.name).toBe(graphName);
     expect(resource.graph.form.nickname).toBe(displayName);
-    expect(resource.graphspace.card.graph_id).toContain(graphName);
+    expect(resource.graphspace.card.graph_id).toBe(`${spaceName}${resource === zhCN ? '：' : ': '}{{name}}`);
 });
 
 test('explains name scope, immutability, and public uses in both languages', () => {

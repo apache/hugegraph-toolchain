@@ -39,6 +39,15 @@ const graphsBySpace = {
     DEFAULT: [graph('DEFAULT', 'hugegraph', '记忆图'), graph('DEFAULT', 'default_only', '默认空间专属图')],
     soc_graph: [graph('soc_graph', 'hugegraph', '记忆图'), graph('soc_graph', 'second', '测试图')],
 };
+// Dense schema fixture exercises the card's readable, navigable summary.
+graphsBySpace.DEFAULT[1].schemaview = {
+    vertices: ['person', 'city', 'company', 'project'].map(name => ({id: name, label: name})),
+    edges: [
+        {id: 'lives', label: 'lives_in', source: 'person', target: 'city'},
+        {id: 'works', label: 'works_at', source: 'person', target: 'company'},
+        {id: 'owns', label: 'owns', source: 'company', target: 'project'},
+    ],
+};
 const hasFixtureScope = scope => Object.entries(graphsBySpace).some(([space, graphs]) => (
     graphs.some(item => scope === `${space}/graphs/${item.name}`)
 ));
@@ -112,7 +121,7 @@ async function setup(browser, auth) {
     await context.addInitScript(() => localStorage.setItem('languageType', 'zh-CN'));
     const state = { auth, loggedIn: false, loginRequests: [], truncation: false, pendingDetail: null, graphGate: null, taskLookups: 0, taskSubmitted: false, partialImportRequests: 0,
         statisticsScenario: false,
-        operationsOverview: null, extraCapabilities: [] };
+        operationsOverview: null, extraCapabilities: [], sessionSeconds: 172800, sessionUpdates: [] };
     const capabilities = ['graphspaces_read', 'operations_health_read', 'operations_topology_read', ...(auth ? ['accounts_manage', 'model_settings_manage'] : [])];
     await context.route('**/api/v*/**', async (route) => {
         const req = route.request();
@@ -161,12 +170,29 @@ async function setup(browser, auth) {
         }
         else if (p === '/auth/context') {
             const admin = auth && state.loggedIn;
-            data = { mode: auth ? 'AUTH' : 'NON_AUTH', role: admin ? 'SUPERADMIN' : 'ANONYMOUS', capabilities: auth && !admin ? [] : [...capabilities, ...state.extraCapabilities], actions: { graphspaces: admin ? ['create', 'read', 'update', 'delete'] : auth ? [] : ['read'] }, scopes: { all_graphspaces: admin } };
+            data = { mode: auth ? 'AUTH' : 'NON_AUTH', role: admin ? 'SUPERADMIN' : 'ANONYMOUS', capabilities: auth && !admin ? [] : [...capabilities, ...state.extraCapabilities], actions: { graphspaces: admin ? ['create', 'read', 'update', 'delete'] : auth ? [] : ['read'], account: admin ? ['read', 'update'] : [] }, scopes: { all_graphspaces: admin } };
         }
         else if (p === '/auth/status')
             data = {};
+        else if (p === '/auth/users/getpersonal')
+            data = {user_name: 'smoke_admin', user_nickname: '测试管理员', user_description: 'None'};
         else if (p === '/auth/session') {
-            const response = sessionFixture(state, method);
+            let response = sessionFixture(state, 'GET');
+            if (response.status === 200 && method === 'PUT') {
+                const seconds = req.postDataJSON()?.idle_timeout_seconds;
+                if (!Number.isInteger(seconds) || seconds < 900 || seconds > 30 * 86400) {
+                    response = {status: 400, message: 'Invalid timeout'};
+                } else {
+                    state.sessionSeconds = seconds;
+                    state.sessionUpdates.push(seconds);
+                }
+            } else if (method !== 'GET') {
+                response = {status: 405};
+            }
+            if (response.status === 200) {
+                response.data.idle_timeout_seconds = state.sessionSeconds;
+                response.data.max_idle_seconds = 30 * 86400;
+            }
             if (response.status !== 200) unexpected.add(`${method} ${p}`);
             await route.fulfill({status: response.status, contentType: 'application/json',
                 body: JSON.stringify(response)});
@@ -339,6 +365,22 @@ async function main() {
             assert(await page.locator('a[href="/account"]').isVisible());
             await screenshot(page, 'graphspace-authenticated');
         });
+        await check('profile displays stored remarks and saves a 30-day session', async () => {
+            await page.goto(base + '/profile');
+            await page.getByTestId('profile-surface').waitFor();
+            await page.getByText('None', {exact: true}).waitFor();
+            await page.locator('label.ant-radio-button-wrapper').filter({hasText: /^天$/}).click();
+            const input = page.getByRole('spinbutton', {name: '闲置退出（天）'});
+            await input.fill('30');
+            const updated = page.waitForResponse(response => response.url().endsWith('/auth/session')
+                && response.request().method() === 'PUT');
+            await page.getByRole('button', {name: /保\s*存/}).click();
+            assert.equal((await updated).status(), 200);
+            assert.deepEqual(state.sessionUpdates, [30 * 86400]);
+            await page.locator('label.ant-radio-button-wrapper').filter({hasText: /^小时$/}).click();
+            assert.equal(await page.getByRole('spinbutton', {name: '闲置退出（小时）'}).inputValue(), '720');
+            await screenshot(page, 'profile-session-units');
+        });
         await check('GraphSpace title date and header whitespace navigate exactly to selected space', async () => {
             const card = () => page.locator('.ant-card').filter({ has: page.getByText('记忆库', { exact: true }) }).first();
             for (const target of ['date', 'title', 'whitespace', 'enter']) {
@@ -355,6 +397,21 @@ async function main() {
                     await card().locator('.ant-card-head').click({ position: { x: 12, y: 12 } });
                 await page.waitForURL('**/graphspace/soc_graph');
             }
+        });
+        await check('dense schema card keeps type names readable and opens the full schema', async () => {
+            await page.goto(base + '/graphspace');
+            const space = page.locator('.ant-card').filter({has: page.getByText('默认图空间', {exact: true})}).first();
+            await space.getByText('GraphSpace 名称：DEFAULT', {exact: true}).waitFor();
+            await space.getByRole('link', {name: '进入图空间'}).click();
+            await page.waitForURL('**/graphspace/DEFAULT');
+            const card = page.locator('.ant-card').filter({hasText: '默认空间专属图'}).first();
+            await card.getByText('类型较多，点击查看完整关系图', {exact: true}).waitFor();
+            for (const name of ['person', 'city', 'company', 'project', 'lives_in', 'works_at', 'owns']) {
+                assert(await card.getByText(name, {exact: true}).isVisible(), `${name} is not visible`);
+            }
+            await screenshot(page, 'dense-schema-card');
+            await card.getByRole('button', {name: '查看 默认空间专属图 的 Schema'}).click();
+            await page.waitForURL('**/graphspace/DEFAULT/graph/default_only/meta');
         });
         await check('GraphSpace menu edit does not navigate and current quota is editable', async () => {
             await page.goto(base + '/graphspace');

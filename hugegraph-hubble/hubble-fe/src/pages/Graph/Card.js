@@ -36,6 +36,8 @@ import {formatRecordedCount, isKnownCount} from '../../utils/graphStatistics';
 
 const EMPTY_SCHEMA = {vertices: [], edges: []};
 const CARD_LAYOUT = {type: 'dagre', options: {rankdir: 'LR', nodesep: 30, ranksep: 60}};
+// A small card cannot show a dense graph at a useful label size.
+const MAX_THUMBNAIL_ELEMENTS = 6;
 // This exact response is emitted only when the requested graph has no loaded
 // Vermeer snapshot. Other 400, authorization and transport errors stay errors.
 const VERMEER_LOAD_REQUIRED = 'Load this graph from OLAP graph compute before collecting Vermeer statistics';
@@ -193,6 +195,7 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
         }
     }, [schemaView]);
     const schemaIsEmpty = !prepared.error && prepared.data.nodes.length === 0 && prepared.data.edges.length === 0;
+    const showSchemaSummary = prepared.data.nodes.length + prepared.data.edges.length > MAX_THUMBNAIL_ELEMENTS;
     const hasElementCounts = isKnownCount(statistic?.vertex) && isKnownCount(statistic?.edge);
     const overviewPath = `/graphspace/${graphspace}/graph/${item.name}/detail`;
     const schemaPath = `/graphspace/${graphspace}/graph/${item.name}/meta`;
@@ -328,14 +331,32 @@ const GraphCard = ({item, menus, canMutate = true, canComputeStatistics = false}
                     tabIndex={0}
                     aria-label={t('graph.card.view_schema', {graph: graphName})}
                 >
-                    <GraphCanvas
-                        key={JSON.stringify([graphspace, item.name])}
-                        data={prepared.data}
-                        preset='thumbnail'
-                        layout={CARD_LAYOUT}
-                        style={{height: 153}}
-                        aria-label={t('graph.card.view_schema', {graph: graphName})}
-                    />
+                    {showSchemaSummary ? (
+                        <div className={style.schema_summary}>
+                            <div className={style.schema_summary_hint}>{t('graph.card.schema_summary_hint')}</div>
+                            {[['vertices', prepared.data.nodes], ['edges', prepared.data.edges]].map(([kind, items]) => (
+                                <div className={style.schema_summary_group} key={kind}>
+                                    <strong>{t(`graph.card.schema_summary_${kind}`)}</strong>
+                                    <div className={style.schema_summary_items}>
+                                        {items.length ? items.map(element => (
+                                            <span key={element.id} title={element.style?.labelText}>
+                                                {element.style?.labelText}
+                                            </span>
+                                        )) : <span>—</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <GraphCanvas
+                            key={JSON.stringify([graphspace, item.name])}
+                            data={prepared.data}
+                            preset='thumbnail'
+                            layout={CARD_LAYOUT}
+                            style={{height: 153}}
+                            aria-label={t('graph.card.view_schema', {graph: graphName})}
+                        />
+                    )}
                 </div>
             )}
             {vermeerLoadRequired && (

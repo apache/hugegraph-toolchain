@@ -161,6 +161,19 @@ public class SessionControllerTest {
     }
 
     @Test
+    public void testThirtyDayCeilingAllowsLongerSessionWithoutChangingDefault() {
+        int max = 30 * 86400;
+        ReflectionTestUtils.setField(this.controller, "configuredMaxIdleSeconds", max);
+        Assert.assertEquals(172800, this.controller.get().get("idle_timeout_seconds"));
+        Assert.assertEquals(max, this.controller.get().get("max_idle_seconds"));
+        this.controller.update(settings(max));
+        Assert.assertEquals(max, this.session.getMaxInactiveInterval());
+        assertThrows(ParameterizedException.class, () -> this.controller.update(settings(max + 1)));
+        SessionController.resetPreferences(this.session, max);
+        Assert.assertEquals(172800, this.session.getMaxInactiveInterval());
+    }
+
+    @Test
     public void testUnconfiguredCeilingInheritsLongDeploymentDefault() {
         this.session.setMaxInactiveInterval(30 * 86400);
         Assert.assertEquals(30 * 86400, this.controller.get().get("max_idle_seconds"));

@@ -141,7 +141,9 @@ export const adaptHubbleSchema = (input: HubbleGraph, showLabels = true): GraphD
         nodes: data.nodes.map(node => ({...node,
             style: {...node.style, labelText: showLabels ? valueText(node.data.raw.label ?? node.data.raw.id) : ''}})),
         edges: data.edges.map(edge => ({...edge,
-            style: {...edge.style, labelText: showLabels ? valueText(edge.data.raw.label ?? edge.data.raw.id) : ''}})),
+            style: {...edge.style, labelText: showLabels ? valueText(edge.data.raw.label ?? edge.data.raw.id) : '',
+                // Keep the loop visible and place its label just outside the stroke.
+                ...(edge.source === edge.target ? {labelBackground: false, labelTextBaseline: 'bottom'} : {})}})),
     };
 };
 
