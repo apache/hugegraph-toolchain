@@ -2,7 +2,7 @@
   "schema": 1,
   "scope": "pnpm list --prod --depth Infinity; conservative production dependency closure, including modules pruned by bundling",
   "lockfile": "hugegraph-hubble/hubble-fe/pnpm-lock.yaml",
-  "lockfileSha256": "e6ef3fc877f6dd284bf21a460ed42cea0f9323a41e7d6bd3b0f3b9a0ec33801f",
+  "lockfileSha256": "43ecf032d2ed2b0a7d9ff5fc0107df23e6fdb988e4949fa2c5e9fb2c728f0c68",
   "packageManager": "pnpm@12.14.0",
   "packageCount": 257,
   "localPatches": [
