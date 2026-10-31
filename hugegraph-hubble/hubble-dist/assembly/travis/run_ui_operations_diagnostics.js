@@ -193,8 +193,8 @@ async function check(name, action) {
             await capture(page, '04-pd-diagnostics-collapsed');
             await disclosure.click();
             await page.getByText('http://pd-service:8620', {exact: true}).waitFor();
-            await page.getByText('尚未采集系统指标', {exact: false}).first().waitFor();
-            await page.getByText(/受影响的 PD 采集端点: 1/).waitFor();
+            await page.getByText('尚未采集节点系统指标', {exact: false}).first().waitFor();
+            await page.getByText(/未归属节点的 PD 采集端点: 1/).waitFor();
             await page.getByText(/Hubble 只采集一个匹配的 PD 成员/).waitFor();
             for (const member of pds) {
                 assert.equal(await page.getByText(`${member.name} · system`, {exact: true}).count(), 0);

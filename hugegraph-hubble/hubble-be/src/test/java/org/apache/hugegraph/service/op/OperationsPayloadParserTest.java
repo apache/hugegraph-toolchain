@@ -82,6 +82,31 @@ public class OperationsPayloadParserTest {
     }
 
     @Test
+    public void testStoreLifecycleAcceptsOnlyExplicitLifecycleStates() throws Exception {
+        OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
+        for (String state : new String[]{"STARTING", "STARTED", "STOPPING", "UNAVAILABLE"}) {
+            OperationsModels.Lifecycle result = parser.parseStoreLifecycle(
+                    "{\"status\":0,\"text\":\"" + state + "\"}", 200, 123L);
+            Assert.assertEquals(state, result.getState());
+            Assert.assertNull(result.getReason());
+            Assert.assertEquals(Long.valueOf(123L), result.getObservedAt());
+            Assert.assertFalse(result.isStale());
+        }
+        for (String body : new String[]{"null", "[]", "{}", "{\"status\":0,\"text\":\"ONLINE\"}",
+                                        "{\"status\":1,\"text\":\"STARTED\"}",
+                                        "{\"status\":4294967296,\"text\":\"STARTED\"}",
+                                        "{\"status\":18446744073709551616,\"text\":\"STARTED\"}",
+                                        "{\"status\":0,\"text\":\"private-secret\"}"}) {
+            OperationsModels.Lifecycle result = parser.parseStoreLifecycle(body, 200, 123L);
+            Assert.assertEquals("UNKNOWN", result.getState());
+            Assert.assertEquals("response_unrecognized", result.getReason());
+            Assert.assertFalse(MAPPER.writeValueAsString(result).contains("private-secret"));
+        }
+        Assert.assertEquals("UNKNOWN", parser.parseStoreLifecycle(
+                "{\"status\":0,\"text\":\"STARTED\"}", 503, 123L).getState());
+    }
+
+    @Test
     public void testParsesPdWrapperAndRedactsInfrastructureFields()
            throws Exception {
         String cluster = "{\"status\":0,\"data\":{" +
