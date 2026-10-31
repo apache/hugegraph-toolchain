@@ -22,6 +22,7 @@
       "text2gql_title": "自然语言查询",
       "text2gql_description": "描述问题，自动生成查询语句并查询当前图",
       "text2gql_placeholder": "例如：查询 10 个顶点及它们之间的关系",
+      "text2gql_schema_example": "查询最多 10 个标签为 {{label}} 的顶点",
       "text2gql_privacy": "问题、当前图 schema 和必要的纠错信息会发送至所选模型，不发送查询结果；临时 Key 仅保留在页面内存",
       "execute_query": "执行查询",
       "execute_task": "提交任务",

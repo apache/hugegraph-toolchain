@@ -22,6 +22,7 @@
       "text2gql_title": "Ask your graph",
       "text2gql_description": "Describe your question to generate a query and run it on the current graph",
       "text2gql_placeholder": "e.g. Show 10 vertices and the relationships between them",
+      "text2gql_schema_example": "Show up to 10 vertices with label {{label}}",
       "text2gql_privacy": "Your question, current graph schema and necessary correction details go to the selected model, not query results; temporary keys stay in page memory",
       "execute_query": "Run Query",
       "execute_task": "Submit Task",

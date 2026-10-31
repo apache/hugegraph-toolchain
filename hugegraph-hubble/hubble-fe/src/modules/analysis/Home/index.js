@@ -643,6 +643,7 @@ const AnalysisHome = ({toolbarExtra}) => {
         scope: {graphSpace, graph, routeGraphSpace, routeGraph},
         active: true,
         ready: isGraphReady,
+        vertexLabels: metaData?.vertexMeta,
         execute: executeGenerated,
         clearResult: initQueryResult,
         clearEditor: resetEditor,

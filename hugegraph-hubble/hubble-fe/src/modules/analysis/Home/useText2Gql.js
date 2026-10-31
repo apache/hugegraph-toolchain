@@ -42,7 +42,7 @@ const restoreConfig = identity => {
 };
 
 export default function useText2Gql({scope, active, ready, execute, clearResult, clearEditor, onGeneratedDraft, t,
-    language = DEFAULT_QUERY_LANGUAGE, cypherEnabled = false, onLanguageChange}) {
+    language = DEFAULT_QUERY_LANGUAGE, cypherEnabled = false, onLanguageChange, vertexLabels}) {
     const [identity, setIdentity] = useState(() => scopedStorageKey('hubble.text2gql'));
     const [identityVersion, setIdentityVersion] = useState(0);
     const [source, setSource] = useState('custom');
@@ -51,7 +51,9 @@ export default function useText2Gql({scope, active, ready, execute, clearResult,
     });
     const metadataRequest = useRef(null);
     const [config, setConfig] = useState(() => restoreConfig(identity));
-    const [question, setQuestion] = useState('');
+    const [question, setQuestionState] = useState('');
+    const touchedQuestions = useRef({});
+    const populatedExamples = useRef({});
     const [sourceQuestion, setSourceQuestion] = useState('');
     const [pending, setPending] = useState(false);
     const [repairing, setRepairing] = useState(false);
@@ -133,7 +135,7 @@ export default function useText2Gql({scope, active, ready, execute, clearResult,
             setConfig(restoreConfig(scopedStorageKey('hubble.text2gql')));
             setIdentity(scopedStorageKey('hubble.text2gql'));
             clearEditor('');
-            setQuestion('');
+            setQuestionState('');
             setSourceQuestion('');
             setError('');
             setErrorStage('');
@@ -146,7 +148,9 @@ export default function useText2Gql({scope, active, ready, execute, clearResult,
     useEffect(() => {
         invalidate();
         languageDrafts.current = {};
-        setQuestion('');
+        touchedQuestions.current = {};
+        populatedExamples.current = {};
+        setQuestionState('');
         setSourceQuestion('');
         setError('');
         setErrorStage('');
@@ -156,6 +160,19 @@ export default function useText2Gql({scope, active, ready, execute, clearResult,
             requestRef.current = null;
         };
     }, [connectionScope, invalidate]);
+
+    // Use only an observed label from this graph. Never replace an edit or an
+    // intentionally cleared input when asynchronous schema metadata arrives.
+    const label = Array.isArray(vertexLabels) ? vertexLabels.find(item =>
+        typeof item?.name === 'string' && item.name.trim() && item.name.length <= 120
+        && Array.from(item.name).every(char => char.charCodeAt(0) >= 32 && char.charCodeAt(0) !== 127))?.name : undefined;
+    const example = label ? t('analysis.query.text2gql_schema_example', {label: JSON.stringify(label)}) : '';
+    useEffect(() => {
+        if (!active || !ready || !example || touchedQuestions.current[language]
+            || populatedExamples.current[language]) return;
+        populatedExamples.current[language] = true;
+        setQuestionState(example);
+    }, [active, ready, example, language]);
 
     useEffect(() => {
         if (!active || !ready) {
@@ -218,7 +235,7 @@ export default function useText2Gql({scope, active, ready, execute, clearResult,
         }
         invalidate();
         languageDrafts.current[language] = {question, sourceQuestion};
-        setQuestion(languageDrafts.current[value]?.question || '');
+        setQuestionState(languageDrafts.current[value]?.question ?? '');
         setSourceQuestion(languageDrafts.current[value]?.sourceQuestion || '');
         clearResult();
         setError('');
@@ -436,7 +453,9 @@ export default function useText2Gql({scope, active, ready, execute, clearResult,
     }, [clearResult, invalidate, t]);
 
     return {
-        config, updateConfig, question, setQuestion, pending, repairing, phase, elapsedSeconds, generationDurationMs,
+        config, updateConfig, question,
+        setQuestion: value => { touchedQuestions.current[language] = true; setQuestionState(value); },
+        pending, repairing, phase, elapsedSeconds, generationDurationMs,
         modelSlow: pending && ['waiting', 'repair_waiting'].includes(phase) && modelSlow,
         error, errorType, errorStage,
         source, changeSource, sharedConfig, language, changeLanguage,
@@ -452,7 +471,8 @@ export default function useText2Gql({scope, active, ready, execute, clearResult,
             setErrorStage('');
             const source = typeof text === 'string' ? text : '';
             setSourceQuestion(source);
-            setQuestion(source);
+            touchedQuestions.current[language] = true;
+            setQuestionState(source);
         },
     };
 }
