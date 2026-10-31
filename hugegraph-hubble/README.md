@@ -398,6 +398,21 @@ uses controlled API responses with an empty Server template list, not a live clu
 Schema deletion keeps the selected graph and targets visible, and leaves failed requests
 open for retry or cancellation. See the [schema deletion recovery guide](docs/schema-delete-recovery-20261023.md).
 
+### Data imports
+
+Task history distinguishes input records read from client-confirmed vertex and edge
+write operations. The input count can include headers and skipped or failed rows.
+Write counts sum the submitted elements of successful responses in the current or
+most recent Loader attempt; a successful batch is counted by request size rather
+than independently verified per element. Resume and retry start new counts.
+Updates to existing IDs are operations too, and a timed-out request or
+process interruption can leave writes uncounted. These are not counts of newly
+created elements or successful source rows. Historical tasks created before these
+metrics were recorded show an unknown value.
+
+New authenticated data sources record the signed-in creator. Sources created in
+anonymous mode and older records without a creator display “Not recorded”.
+
 ### Asynchronous Tasks
 
 Track asynchronous queries and algorithms, then expand compact results inline.
@@ -1124,6 +1139,14 @@ OLAP offers a backend only after discovery is confirmed. Load a graph for Vermee
 from the OLAP tab, then inspect progress and results in async tasks.
 Changing the UI language retains graph results and submitted task IDs.
 
+The catalog's search and reset controls share a row, and long algorithm names
+remain aligned with their icons. These two screenshots use anonymous-mode local
+API fixtures in Chromium; they do not demonstrate a live computation.
+
+![OLTP catalog with a wrapped algorithm name](docs/assets/analytics/oltp-catalog-layout.png)
+
+![OLAP catalog and community group](docs/assets/analytics/olap-catalog-layout.png)
+
 ![OLTP query result and compact algorithm help](docs/assets/analytics/oltp-query-result.png)
 
 ![OLAP loading guidance](docs/assets/analytics/olap-load-guide.png)
@@ -1143,3 +1166,16 @@ target, since persisted edge-label hierarchy cannot always be reconstructed.
 This does not copy vertices or edges. It requires a Server implementing the
 `schema-clone` endpoint (API 0.73 or later); older Servers disable the action. If cloning fails,
 inspect the target graph before retrying because it may already have been created.
+
+### Import task guidance and input progress
+
+Demo actions appear below the target-graph guidance and wrap at compact widths.
+The task history shows input progress, which can include a CSV header and skipped
+or failed rows. It does not represent successfully written graph elements.
+
+![Demo guidance at desktop width](docs/assets/ingest/import-guidance-desktop.png)
+
+![Demo guidance at compact width](docs/assets/ingest/import-guidance-compact.png)
+
+These Chromium screenshots use intercepted API responses. They check layout with
+an empty selection; they do not verify a live import or the number of graph writes.

@@ -26,27 +26,29 @@
     overflow-x: hidden;
     overflow-y: auto;
 
-    .algorithmCatagery {
-        margin: 10px 0 0 10px;
-        font-weight: bold;
-    }
-
     &::-webkit-scrollbar {
         display: none;
-    }
-    
-    .algorithmCatagery {
-        margin: 10px 0 0 10px;
-        font-weight: bold;
     }
 
     .sideBarCollapse {
         margin-left: 0;
     }
 
-    .docs {
+    .searchBar {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         margin: 0 12px 8px;
-        font-size: 12px;
+
+        > :first-child {
+            flex: 1;
+            min-width: 0;
+        }
+
+        :global(.ant-btn) {
+            flex-shrink: 0;
+            padding-inline: 4px;
+        }
     }
 
     .listEmpty {
@@ -90,8 +92,8 @@
 }
 
 .engineTabs {
-    padding: 0 12px;
     :global(.ant-tabs-nav) { margin-bottom: 8px; }
+    :global(.ant-tabs-nav-wrap) { padding-inline: 12px; }
 }
 
 .engineGuide {

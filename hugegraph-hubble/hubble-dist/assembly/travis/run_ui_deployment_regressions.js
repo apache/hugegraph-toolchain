@@ -38,6 +38,7 @@ const REQUIRED_CHECKS = Object.freeze([
     'mobile operations preserves readable main tiers and Store-row compute access',
     'anonymous GraphSpaces visible with account and mutation actions hidden',
     'algorithm search waits for selected graph in authenticated and anonymous modes',
+    'import write counts and datasource creator distinguish recorded and unknown values',
 ]);
 
 function validateReport(report) {
@@ -74,7 +75,7 @@ const screenshotNames = new Set([
     'async-task-submitted', 'async-task-result-limit', 'pd-unmapped-diagnostics',
     'operations-mobile-320', 'operations-mobile-375',
     'operations-mobile-compute-320', 'operations-mobile-compute-375',
-    'graphspace-anonymous', 'failure',
+    'graphspace-anonymous', 'import-write-metrics', 'datasource-creator', 'failure',
 ].map(name => `${name}.png`));
 function main({outputDir, env = process.env, argv = process.argv.slice(2), spawn = spawnSync,
     log = console.error} = {}) {

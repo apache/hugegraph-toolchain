@@ -246,6 +246,13 @@ async function setup(browser, auth) {
             data = taskResult;
         else if (p.endsWith('/async-tasks'))
             data = pageResult([]); // The scheduler metadata must discover this task before the list does.
+        else if (p === '/ingest/jobs/list' && method === 'GET' && url.searchParams.get('taskid') === '42')
+            data = pageResult([{job_id: 7, job_status: 'SUCCEED', job_metrics: {total_count: 2,
+                confirmed_vertex_writes: 1, confirmed_edge_writes: 0, avg_rate: 1, total_time: 2000}},
+                {job_id: 8, job_status: 'SUCCEED', job_metrics: {total_count: 2, avg_rate: 1, total_time: 2000}}]);
+        else if (p === '/ingest/datasources/list' && method === 'GET')
+            data = pageResult([{datasource_id: 1, datasource_name: 'fixture-source', datasource_config: {type: 'FILE'},
+                creator: auth ? 'smoke_admin' : '', create_time: '2026-10-31'}]);
         else if (p === '/operations/nodes')
             data = state.operationsOverview
                 ? {items: state.operationsOverview.nodes, total: state.operationsOverview.nodes.length,
@@ -555,10 +562,51 @@ async function main() {
             await page.setViewportSize({width: 1440, height: 1600});
             await screenshot(page, 'pd-unmapped-diagnostics');
             await page.setViewportSize({width: 1440, height: 1000});
+            const filters = page.locator('.operations-filters');
+            const search = filters.getByRole('textbox', {name: '搜索节点名称'});
+            const submit = filters.getByRole('button', {name: '搜索', exact: true});
+            await search.fill('pd-2');
+            await Promise.all([
+                page.waitForRequest(req => {
+                    const url = new URL(req.url());
+                    return url.pathname.endsWith('/operations/nodes') &&
+                        url.searchParams.get('query') === 'pd-2';
+                }),
+                submit.click(),
+            ]);
+            assert.equal(new URL(page.url()).searchParams.get('query'), 'pd-2');
+            await page.setViewportSize({width: 375, height: 1000});
+            await submit.scrollIntoViewIfNeeded();
+            const bounds = await submit.boundingBox();
+            assert(bounds && bounds.x >= 0 && bounds.x + bounds.width <= 375,
+                'Node search button must remain visible on a narrow screen');
+            await page.setViewportSize({width: 1440, height: 1000});
         });
         await check('mobile operations preserves readable main tiers and Store-row compute access', async () => {
             state.operationsOverview = mobileOverviewFixture();
             state.extraCapabilities = ['operations_metrics_read'];
+            for (const width of [1440, 375]) {
+                await page.setViewportSize({width, height: 900});
+                await page.goto(base + '/operations/overview?view=nodes');
+                const section = page.getByRole('region', {name: 'Vermeer 计算集群'});
+                const entry = section.getByRole('button', {name: '查看计算集群', exact: true});
+                await entry.waitFor();
+                const layout = await section.evaluate(element => {
+                    const sectionBox = element.getBoundingClientRect();
+                    const buttonBox = element.querySelector('button').getBoundingClientRect();
+                    return {sectionWidth: sectionBox.width, buttonWidth: buttonBox.width,
+                        sectionLeft: sectionBox.left, buttonLeft: buttonBox.left};
+                });
+                assert(Math.abs(layout.sectionWidth - layout.buttonWidth) <= 1
+                    && Math.abs(layout.sectionLeft - layout.buttonLeft) <= 1,
+                'List-mode compute entry must fill its separate section instead of floating right');
+                await assertNoHorizontalOverflow(page);
+                await assertUsableControl(entry);
+                await entry.click();
+                await page.locator('.operations-vermeer-workbench').waitFor();
+                await page.getByRole('button', {name: '返回主集群', exact: true}).click();
+                await section.waitFor();
+            }
             for (const width of [320, 375]) {
                 await page.setViewportSize({width, height: 900});
                 await page.goto(base + '/operations/overview');
@@ -663,6 +711,28 @@ async function main() {
                     assert.equal(await search.inputValue(), '查找最短路径');
                 }
                 finally { release(); item.state.graphGate = null; }
+            }
+        });
+        await check('import write counts and datasource creator distinguish recorded and unknown values', async () => {
+            for (const item of [{page, state}, anonymous]) {
+                await item.page.goto(base + '/task/detail/42');
+                const row = item.page.locator('tbody tr').filter({hasText: '7'}).first();
+                await row.waitFor({state: 'visible'});
+                const cells = row.locator('td');
+                assert.equal((await cells.nth(2).innerText()).trim(), '2');
+                assert.equal((await cells.nth(3).innerText()).trim(), '1');
+                assert.equal((await cells.nth(4).innerText()).trim(), '0');
+                const legacyCells = item.page.locator('tbody tr').filter({hasText: '8'}).first().locator('td');
+                assert.equal((await legacyCells.nth(3).innerText()).trim(), '-');
+                assert.equal((await legacyCells.nth(4).innerText()).trim(), '-');
+                assert(await item.page.locator('thead').getByText('已确认写入顶点数', {exact: true}).isVisible());
+                assert(await item.page.locator('thead').getByText('已确认写入边数', {exact: true}).isVisible());
+                if (item.state.auth) await screenshot(item.page, 'import-write-metrics');
+                await item.page.goto(base + '/source');
+                const sourceRow = item.page.locator('tbody tr').filter({hasText: 'fixture-source'}).first();
+                await sourceRow.waitFor({state: 'visible'});
+                assert(await sourceRow.getByText(item.state.auth ? 'smoke_admin' : '未记录', {exact: true}).isVisible());
+                if (item.state.auth) await screenshot(item.page, 'datasource-creator');
             }
         });
     }

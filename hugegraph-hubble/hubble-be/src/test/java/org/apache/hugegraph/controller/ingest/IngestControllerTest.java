@@ -334,6 +334,7 @@ public class IngestControllerTest {
         this.setField(controller, "datasourceService", datasourceService);
         Datasource datasource = new Datasource();
         datasource.setDatasourceName("alice-file");
+        datasource.setCreator("forged");
         Mockito.doAnswer(invocation -> {
             invocation.getArgument(0, Datasource.class).setId(1);
             return null;
@@ -344,6 +345,30 @@ public class IngestControllerTest {
 
         Assert.assertEquals(Constant.STATUS_OK, response.getStatus());
         Mockito.verify(datasourceService).save(datasource);
+        Assert.assertEquals("alice", datasource.getCreator());
+    }
+
+    @Test
+    public void testAnonymousDatasourceDoesNotTrustSubmittedOrStaleCreator()
+            throws Exception {
+        IngestController controller = new IngestController();
+        DatasourceService datasources = Mockito.mock(DatasourceService.class);
+        AuthModeService authMode = Mockito.mock(AuthModeService.class);
+        Mockito.when(authMode.anonymous()).thenReturn(true);
+        this.setField(controller, "datasourceService", datasources);
+        this.setField(controller, "authMode", authMode);
+        this.bindRequestSession("stale-user");
+        Datasource datasource = new Datasource();
+        datasource.setCreator("forged");
+        Mockito.doAnswer(invocation -> {
+            invocation.getArgument(0, Datasource.class).setId(1);
+            return null;
+        }).when(datasources).save(Mockito.any(Datasource.class));
+
+        controller.datasourceCreate(datasource);
+
+        Assert.assertEquals("", datasource.getCreator());
+        Mockito.verify(datasources).save(datasource);
     }
 
     @Test
@@ -379,6 +404,8 @@ public class IngestControllerTest {
                                 .jobId(7)
                                 .status(LoadStatus.SUCCEED)
                                 .fileReadLines(3L)
+                                .confirmedVertexWrites(2L)
+                                .confirmedEdgeWrites(0L)
                                 .lastDuration(63L)
                                 .currDuration(0L)
                                 .build();
@@ -397,6 +424,8 @@ public class IngestControllerTest {
         Assert.assertEquals(3, (int) metrics.avgRate);
         Assert.assertEquals(0, (int) metrics.curRate);
         Assert.assertEquals(63L, metrics.totalTime);
+        Assert.assertEquals(Long.valueOf(2L), metrics.confirmedVertexWrites);
+        Assert.assertEquals(Long.valueOf(0L), metrics.confirmedEdgeWrites);
     }
 
     @Test

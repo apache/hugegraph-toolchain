@@ -162,7 +162,7 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-packageExtensionsChecksum: sha256-n8wn9Ol1zspxuMVFwXmVVKvkxPwBpXOMNTcJ5KFflDs=
+packageExtensionsChecksum: sha256-cGYbIenTMLY4m0GpdBorLMuHrYjANDQ0lvI30uDdkuQ=
 
 patchedDependencies:
   '@antv/g6@5.1.1': a36f126c9a2046a104399de4a1e9a37338a8414fcc594d46d93600c5873352a3
@@ -3954,6 +3954,7 @@ snapshots:
       '@antv/scale': 0.4.16
       '@antv/util': 3.3.11
       svg-path-parser: 1.1.0
+      tslib: 2.8.1
 
   '@antv/event-emitter@0.1.3': {}
 

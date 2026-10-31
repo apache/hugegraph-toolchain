@@ -328,15 +328,20 @@ const Nodes = () => {
                                     label: displayHealthStatus(value, t),
                                 }))}
                         />
-                        <Input
-                            allowClear
-                            prefix={<SearchOutlined />}
-                            value={searchValue}
-                            placeholder={t('operations.search_nodes')}
-                            aria-label={t('operations.search_nodes')}
-                            onPressEnter={search}
-                            onChange={changeSearch}
-                        />
+                        <Space.Compact>
+                            <Input
+                                allowClear
+                                prefix={<SearchOutlined />}
+                                value={searchValue}
+                                placeholder={t('operations.search_nodes')}
+                                aria-label={t('operations.search_nodes')}
+                                onPressEnter={search}
+                                onChange={changeSearch}
+                            />
+                            <Button aria-label={t('common.action.search')} onClick={search}>
+                                {t('common.action.search')}
+                            </Button>
+                        </Space.Compact>
                         {hasUserFilters && (
                             <Button onClick={clearFilters}>
                                 {t('operations.clear_filters')}

@@ -46,6 +46,7 @@ jest.mock('react-i18next', () => ({
         'datasource.col.name': 'Name',
         'datasource.col.type': 'Type',
         'datasource.col.creator': 'Creator',
+        'datasource.creator_not_recorded': 'Not recorded',
         'datasource.col.create_time': 'Created',
         'datasource.col.operation': 'Actions',
     })[key] || key}),
@@ -57,6 +58,16 @@ beforeAll(() => {
         addListener: jest.fn(),
         removeListener: jest.fn(),
     }));
+});
+
+it('shows saved creators and marks missing historical or anonymous creators', async () => {
+    api.manage.getDatasourceList.mockResolvedValue({status: 200, data: {records: [
+        {datasource_id: 1, datasource_name: 'current', datasource_config: {type: 'FILE'}, creator: 'alice'},
+        {datasource_id: 2, datasource_name: 'legacy', datasource_config: {type: 'FILE'}, creator: ''},
+    ], total: 2}});
+    render(<Datasource />);
+    expect(await screen.findByText('alice')).toBeInTheDocument();
+    expect(screen.getByText('Not recorded')).toBeInTheDocument();
 });
 
 it('distinguishes a failed data-source list from an empty list and retries', async () => {
