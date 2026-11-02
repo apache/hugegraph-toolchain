@@ -803,6 +803,8 @@
           "SAME_NEIGHBORS_BATCH": "Same Neighbors Batch",
           "EGONET": "Egonet",
           "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
+          "DEPTH": "Depth",
+          "SLPA": "SLPA",
           "SSSP": "SSSP（单源最短路径）"
         },
         "legacy_item_alias": {
@@ -829,6 +831,16 @@
         "strongly_connected_component": {
           "desc": "强连通分量将有向图中互相可达的顶点归为同一分量。达到最大迭代次数时任务可能提前结束，请检查结果是否收敛。",
           "max_step": "最大迭代次数；达到上限时可能尚未收敛。"
+        },
+        "depth_vermeer": {
+          "desc": "估计无向连通结构的深度；顶点值为算法选择的端点到该点的距离加一，无法到达时为零。端点可能随运行变化；迭代上限过低可能导致结果未完成。",
+          "max_step": "最大迭代步数，达到上限可能未收敛。"
+        },
+        "slpa_vermeer": {
+          "desc": "说话者-听众标签传播，可输出每个点的标签和频次。",
+          "max_step": "最大迭代步数（1–1000）。",
+          "k": "保留的标签数；-1 保留全部，0 保留零个标签。",
+          "select_method": "选择邻居标签的方法：max 取最高频，random 按频次随机选择。"
         },
         "SSSPVermeer": {
           "desc": "单源最短路径算法，求一个点到其他所有点的最短距离"

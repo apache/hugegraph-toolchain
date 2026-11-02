@@ -169,7 +169,7 @@ public class DirectVermeerService {
         String algorithm = options.get("compute.algorithm").toString();
         E.checkArgument(Set.of("pagerank", "wcc", "lpa", "degree", "closeness_centrality",
                                "betweenness_centrality", "triangle_count", "kcore", "sssp", "ppr",
-                               "scc", "clustering_coefficient")
+                               "scc", "clustering_coefficient", "depth", "slpa")
                            .contains(algorithm), "Unsupported Vermeer algorithm: %s", algorithm);
         Map<String, String> params = new HashMap<>();
         options.forEach((key, value) -> {

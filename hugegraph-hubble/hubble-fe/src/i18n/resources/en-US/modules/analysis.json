@@ -803,6 +803,8 @@
           "SAME_NEIGHBORS_BATCH": "Same Neighbors Batch",
           "EGONET": "Egonet",
           "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
+          "DEPTH": "Depth",
+          "SLPA": "SLPA",
           "SSSP": "SSSP (Single Source Shortest Path)"
         },
         "legacy_item_alias": {
@@ -829,6 +831,16 @@
         "strongly_connected_component": {
           "desc": "Strongly connected components group vertices that are mutually reachable in a directed graph. Reaching the iteration limit can stop computation before convergence.",
           "max_step": "Maximum iterations; reaching the limit may leave the result unconverged."
+        },
+        "depth_vermeer": {
+          "desc": "Estimate depth in the undirected connected structure. Each vertex value is its distance from an algorithm-selected endpoint plus one, or zero if unreachable. The endpoint can vary; an insufficient step limit may leave results incomplete.",
+          "max_step": "Maximum iterations; reaching the limit may leave the result unconverged."
+        },
+        "slpa_vermeer": {
+          "desc": "Speaker-listener label propagation outputs label frequencies per vertex.",
+          "max_step": "Maximum iterations (1–1000).",
+          "k": "Maximum labels retained; -1 keeps all, 0 keeps none.",
+          "select_method": "Neighbor label selection: max chooses the most frequent; random samples by frequency."
         },
         "SSSPVermeer": {
           "desc": "Single Source Shortest Path computes the shortest distance from one vertex to all other vertices"

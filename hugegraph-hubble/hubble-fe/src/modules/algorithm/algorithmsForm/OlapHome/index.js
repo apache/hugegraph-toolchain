@@ -66,6 +66,8 @@ const OlapFormHome = props => {
         FILTER_SUBGRAPH_MATCHING,
         K_CORE,
         PERSONAL_PAGE_RANK,
+        DEPTH,
+        SLPA,
         SSSP,
     } = ALGORITHM_NAME;
 
@@ -90,6 +92,8 @@ const OlapFormHome = props => {
     const olapVermeerList = [
         PAGE_RANK,
         PERSONAL_PAGE_RANK,
+        DEPTH,
+        SLPA,
         WEAKLY_CONNECTED_COMPONENT,
         STRONGLY_CONNECTED_COMPONENT,
         CLUSTER_COEFFICIENT,
@@ -127,12 +131,12 @@ const OlapFormHome = props => {
         {
             key: 'communities',
             items: [WEAKLY_CONNECTED_COMPONENT, STRONGLY_CONNECTED_COMPONENT, LABEL_PROPAGATION_ALGORITHM,
-                LOUVAIN, K_CORE],
+                LOUVAIN, K_CORE, SLPA],
         },
         {
             key: 'structure',
             items: [TRIANGLE_COUNT, RINGS_DETECTION, FILTERED_RINGS_DETECTION,
-                LINKS, CLUSTER_COEFFICIENT, FILTER_SUBGRAPH_MATCHING, SSSP],
+                LINKS, CLUSTER_COEFFICIENT, FILTER_SUBGRAPH_MATCHING, SSSP, DEPTH],
         },
     ];
 

@@ -48,6 +48,7 @@ import KCoreVermeer from '../KCoreVermeer';
 import PersonalPageRank from '../PersonalPageRank';
 import PersonalPageRankVermeer from '../PersonalPageRankVermeer';
 import SSSPVermeer from '../SSSPVermeer';
+import DepthSlpaVermeer from '../DepthSlpaVermeer';
 import {
     getCanonicalAlgorithmName,
     useTranslatedConstants,
@@ -76,6 +77,8 @@ const OlapItem = props => {
         FILTER_SUBGRAPH_MATCHING,
         K_CORE,
         PERSONAL_PAGE_RANK,
+        DEPTH,
+        SLPA,
         SSSP,
     } = ALGORITHM_NAME;
 
@@ -155,6 +158,10 @@ const OlapItem = props => {
                 );
             case PERSONAL_PAGE_RANK:
                 return isVermeer ? <PersonalPageRankVermeer {...args} /> : <PersonalPageRank {...args} />;
+            case DEPTH:
+                return isVermeer ? <DepthSlpaVermeer {...args} kind='depth' /> : null;
+            case SLPA:
+                return isVermeer ? <DepthSlpaVermeer {...args} kind='slpa' /> : null;
             case SSSP:
                 return <SSSPVermeer {...args} />;
         }

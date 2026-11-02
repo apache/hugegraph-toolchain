@@ -55,6 +55,8 @@ jest.mock('../../../../utils/constants', () => ({
             FILTER_SUBGRAPH_MATCHING: 'Subgraph',
             K_CORE: 'KCore',
             PERSONAL_PAGE_RANK: 'PersonalPageRank',
+            DEPTH: 'Depth',
+            SLPA: 'SLPA',
             SSSP: 'SSSP',
         },
     }),
@@ -84,11 +86,13 @@ test.each([false, true])('does not expose either OLAP engine before confirmation
         .not.toBeInTheDocument();
     expect(screen.queryByTestId('olap-item')).not.toBeInTheDocument();
     view.rerender(home({isVermeer: true}));
-    expect(screen.getAllByTestId('olap-item')).toHaveLength(12);
+    expect(screen.getAllByTestId('olap-item')).toHaveLength(14);
     expect(screen.queryByText('Louvain')).not.toBeInTheDocument();
     expect(screen.getByText('SSSP')).toBeVisible();
     expect(screen.getByText('SCC')).toBeVisible();
     expect(screen.getByText('Cluster')).toBeVisible();
+    expect(screen.getByText('Depth')).toBeVisible();
+    expect(screen.getByText('SLPA')).toBeVisible();
     expect(screen.getByText('PersonalPageRank')).toBeVisible();
     expect(api.analysis.getOlapCapability).not.toHaveBeenCalled();
 });

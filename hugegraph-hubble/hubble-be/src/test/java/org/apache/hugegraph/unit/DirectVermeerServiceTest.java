@@ -220,6 +220,29 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
+    public void testDepthAndSlpaParametersAreForwarded() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
+               .thenReturn(Map.of("task", Map.of("id", 12)));
+        DirectVermeerService direct = service(backend);
+        direct.compute(graphClient(), Map.of("compute.algorithm", "depth", "compute.max_step", 10));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "slpa", "slpa.k", 10,
+                                            "slpa.select_method", "random"));
+        ArgumentCaptor<Map> body = ArgumentCaptor.forClass(Map.class);
+        Mockito.verify(backend, Mockito.times(2)).request(
+                Mockito.eq("POST"), Mockito.eq("tasks/create"), body.capture());
+        Map<?, ?> depth = (Map<?, ?>) body.getAllValues().get(0).get("params");
+        Map<?, ?> slpa = (Map<?, ?>) body.getAllValues().get(1).get("params");
+        Assert.assertEquals("depth", depth.get("compute.algorithm"));
+        Assert.assertEquals("10", depth.get("compute.max_step"));
+        Assert.assertEquals("slpa", slpa.get("compute.algorithm"));
+        Assert.assertEquals("10", slpa.get("slpa.k"));
+        Assert.assertEquals("random", slpa.get("slpa.select_method"));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "slpa", "output.type", "hugegraph")));
+    }
+
+    @Test
     public void testComputeReusesSafeOutputFilesPerGraph() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
