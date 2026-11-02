@@ -148,6 +148,8 @@ it('does not submit an edge drawer with a half-filled value mapping row', async 
         />
     );
 
+    expect(screen.getByText('task.edit.edge_endpoint_format')).toBeInTheDocument();
+
     fireEvent.click(screen.getAllByRole('button', {name: '+common.action.add'})[1]);
     fireEvent.click(screen.getByRole('button', {name: 'common.action.confirm'}));
 
