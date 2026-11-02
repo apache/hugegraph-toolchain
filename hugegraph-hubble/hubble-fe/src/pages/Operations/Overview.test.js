@@ -679,8 +679,8 @@ test('renders leader, capacity and attention facts in the visual hierarchy', asy
     expect(screen.getByText('1 Store is down')).toBeInTheDocument();
     expect(screen.getByText('PD Leader')).toBeInTheDocument();
     expect(screen.getByText('pd-1')).toBeInTheDocument();
-    expect(screen.getByText('14.6 GB')).toBeInTheDocument();
-    expect(screen.getByText('38 GB / 60 GB (63%)')).toBeInTheDocument();
+    expect(screen.getByText('15.7 GB')).toBeInTheDocument();
+    expect(screen.getByText('40.8 GB / 64.4 GB (63%)')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', {name: 'Capacity'})).toHaveAttribute(
         'aria-valuenow', '63'
     );

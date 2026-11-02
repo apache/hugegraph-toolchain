@@ -133,9 +133,9 @@ const formatBytes = value => {
         return null;
     }
     let unit = 0;
-    while ((big ? size.comparedTo(1024) >= 0 : size >= 1024)
+    while ((big ? size.comparedTo(1000) >= 0 : size >= 1000)
            && unit < units.length - 1) {
-        size = big ? size.dividedBy(1024) : size / 1024;
+        size = big ? size.dividedBy(1000) : size / 1000;
         unit += 1;
     }
     const display = big ? size.toNumber() : size;

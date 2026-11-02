@@ -80,8 +80,8 @@ const formatBytes = value => {
         return null;
     }
     let unit = 0;
-    while (Math.abs(size) >= 1024 && unit < units.length - 1) {
-        size /= 1024;
+    while (Math.abs(size) >= 1000 && unit < units.length - 1) {
+        size /= 1000;
         unit += 1;
     }
     return `${new Intl.NumberFormat(undefined, {maximumFractionDigits: 1}).format(size)} `
@@ -104,9 +104,11 @@ const formatUnitValue = (value, unit) => {
     if (!Number.isFinite(amount)) {
         return null;
     }
-    if (normalized === 'MB' && Math.abs(amount) >= 1024) {
+    // Server and Store metrics report binary MiB with a legacy "MB" label.
+    if (normalized === 'MB') {
+        const large = Math.abs(amount) >= 1024;
         return `${new Intl.NumberFormat(undefined, {maximumFractionDigits: 1})
-            .format(amount / 1024)} GB`;
+            .format(large ? amount / 1024 : amount)} ${large ? 'GiB' : 'MiB'}`;
     }
     return `${new Intl.NumberFormat(undefined, {maximumFractionDigits: 1}).format(amount)}`
         + `${normalized ? ` ${normalized}` : ''}`;
