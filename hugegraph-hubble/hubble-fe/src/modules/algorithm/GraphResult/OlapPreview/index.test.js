@@ -95,7 +95,7 @@ test('preserves nodes and prior missing-edge notice when a later page succeeds',
     api.analysis.fetchOlapPreviewEdges.mockResolvedValueOnce(page([{ID: 'a', Value: 1}], 1, true, [], 'unavailable'))
         .mockResolvedValueOnce(page([{ID: 'b', Value: 2}], 2, false));
     render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
-    await screen.findByText('analysis.algorithm.preview_edges_unavailable');
+    await screen.findByText('analysis.algorithm.preview_edges_missing');
     fireEvent.click(screen.getByText('analysis.algorithm.preview_more'));
     expect(await screen.findByText('analysis.algorithm.preview_edges_partial')).toBeInTheDocument();
     expect(screen.getByText('analysis.algorithm.preview_edges_missing')).toBeInTheDocument();
@@ -105,7 +105,7 @@ test('does not draw endpoints outside the returned page', async () => {
     api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false,
         [{source: 'a', target: 'outside'}]));
     render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
-    expect(await screen.findByText('analysis.algorithm.preview_edges_unavailable')).toBeInTheDocument();
+    expect(await screen.findByText('analysis.algorithm.preview_edges_missing')).toBeInTheDocument();
     expect(screen.getByText('edges: 0')).toBeInTheDocument();
 });
 

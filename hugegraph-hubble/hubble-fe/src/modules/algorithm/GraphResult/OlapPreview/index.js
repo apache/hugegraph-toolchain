@@ -196,7 +196,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             <Alert type='info' showIcon title={t('analysis.algorithm.preview_sample', {count: vertices.length})}
                 description={t('analysis.algorithm.preview_no_edges')} />
             {state.edgeStatus === 'loading' && <Spin description={t('analysis.algorithm.preview_edges_loading')} />}
-            {state.edgeStatus === 'unavailable' && <Alert type='warning' showIcon
+            {state.edgeStatus === 'unavailable' && !state.missingEdgePages && <Alert type='warning' showIcon
                 title={t('analysis.algorithm.preview_edges_unavailable')} />}
             {state.edgeStatus === 'partial' && <Alert type='info' showIcon
                 title={t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})} />}
