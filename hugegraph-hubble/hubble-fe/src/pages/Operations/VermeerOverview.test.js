@@ -317,6 +317,14 @@ test('compute failure does not relabel an independently healthy main cluster', a
     expect(within(health).getByText('Compute service needs attention')).toBeInTheDocument();
 });
 
+test('compute page shows its health once in the header and retains main health and observation', async () => {
+    renderOverview('/operations/overview?service=vermeer');
+    const health = await screen.findByLabelText('Deployment service health');
+    expect(within(health).getByText(/Main cluster/)).toBeInTheDocument();
+    expect(within(health).queryByText(/^Vermeer:/)).not.toBeInTheDocument();
+    expect(document.querySelector('.operations-overall-status')).toHaveTextContent('Observed');
+});
+
 test('removes compute node information when an authorized refresh becomes forbidden', async () => {
     renderOverview('/operations/overview?service=vermeer');
     await screen.findByRole('heading', {level: 2, name: 'Vermeer Compute Cluster'});
