@@ -1637,6 +1637,7 @@
     "vermeer_no_worker": "No registered Workers",
     "vermeer_no_nodes": "Compute node information is unavailable",
     "vermeer_group": "Group",
+    "vermeer_default_group": "Default group ($)",
     "vermeer_address": "Service address",
     "vermeer_cpu": "Process CPU",
     "vermeer_cpu_value": "{{value}} cores",

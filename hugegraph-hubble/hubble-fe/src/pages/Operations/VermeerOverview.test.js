@@ -143,13 +143,24 @@ test('opens node details and a full view without losing the compute context', as
     await userEvent.click(screen.getByRole('button', {name: 'worker-1'}));
     const dialog = await screen.findByRole('dialog');
     expect(within(dialog).getByText('Master reverse connection')).toBeInTheDocument();
-    expect(within(dialog).getByText('RSS memory: 1.2 GiB')).toBeInTheDocument();
+    expect(within(dialog).getByText('RSS memory: 1.3 GB')).toBeInTheDocument();
     await userEvent.click(within(dialog).getByRole('button', {name: 'View full node details'}));
     expect(screen.getByLabelText('Current URL')).toHaveTextContent('detail=full');
     expect(screen.getByRole('heading', {name: 'worker-1'})).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Back to compute cluster'}));
     expect(screen.getByText('Workers ready 1 / registered 1')).toBeInTheDocument();
+});
+
+test('explains the default worker group while retaining its identifier', async () => {
+    const data = snapshot();
+    data.vermeer.workers[0].group = '$';
+    getOverview.mockResolvedValue(data);
+    renderOverview('/operations/overview?service=vermeer');
+    await screen.findByRole('heading', {level: 2, name: 'Vermeer Compute Cluster'});
+    expect(screen.getAllByText(/Default group \(\$\)/).length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole('button', {name: 'worker-1'}));
+    expect(within(await screen.findByRole('dialog')).getByText('Default group ($)')).toBeInTheDocument();
 });
 
 test('same raw Master and Worker IDs select the clicked role without sharing row keys', async () => {
@@ -324,7 +335,7 @@ test('a failed overview refresh marks retained compute readiness and resources a
         .findByText('Cluster refresh failed. The last observed compute snapshot is retained.');
     expect(screen.queryByText('Ready')).not.toBeInTheDocument();
     expect(screen.getByText('Workers ready — / registered 1')).toBeInTheDocument();
-    expect(screen.queryByText('CPU 0.42 cores · RSS 1.2 GiB')).not.toBeInTheDocument();
+    expect(screen.queryByText('CPU 0.42 cores · RSS 1.3 GB')).not.toBeInTheDocument();
 });
 
 test('does not treat an unsupported readiness API as healthy or render missing metrics as zero', async () => {
@@ -354,7 +365,7 @@ test('resource collection failure explains missing metrics without changing Work
 });
 
 test.each([
-    ['RSS-only', {rss_bytes: 1288490188}, 'RSS memory: 1.2 GiB', 'Process CPU: Unavailable'],
+    ['RSS-only', {rss_bytes: 1288490188}, 'RSS memory: 1.3 GB', 'Process CPU: Unavailable'],
     ['CPU-only', {cpu_cores: 0.42}, 'Process CPU: 0.42 cores', 'RSS memory: Unavailable'],
 ])('fresh %s partial resources remain visible in node details', async (_, metrics, present, missing) => {
     const data = snapshot();
@@ -480,7 +491,10 @@ test('resource formatting rejects unknown and non-finite values without confusin
     expect(processMetric(null, 'en-US')).toBeNull();
     expect(processMetric(Infinity, 'en-US')).toBeNull();
     expect(processMetric(0, 'en-US')).toBe('0');
-    expect(formatProcessBytes(1288490188, 'en-US')).toBe('1.2 GiB');
+    expect(formatProcessBytes(1288490188, 'en-US')).toBe('1.3 GB');
+    expect(formatProcessBytes(1000, 'en-US')).toBe('1 KB');
+    expect(formatProcessBytes(1000000, 'en-US')).toBe('1 MB');
+    expect(formatProcessBytes(1000000000, 'en-US')).toBe('1 GB');
     expect(vermeerNodeReady({ready: true}, {configured: true, stale: true, availability: 'AVAILABLE'}))
         .toBeNull();
 });

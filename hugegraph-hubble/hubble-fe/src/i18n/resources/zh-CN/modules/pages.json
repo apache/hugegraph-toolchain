@@ -1637,6 +1637,7 @@
     "vermeer_no_worker": "暂无已注册 Worker",
     "vermeer_no_nodes": "计算节点信息暂不可获取",
     "vermeer_group": "分组",
+    "vermeer_default_group": "默认组 ($)",
     "vermeer_address": "服务地址",
     "vermeer_cpu": "进程 CPU",
     "vermeer_cpu_value": "{{value}} 核",
