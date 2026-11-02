@@ -232,7 +232,7 @@ public class DirectVermeerServiceTest {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
                 "graph_name", "DEFAULT-graph-with-dash", "task_type", "compute", "status", "complete")));
-        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=30", null))
+        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=31", null))
                .thenReturn(Map.of("vertices", List.of(Map.of("ID", "1:marko"), Map.of("ID", "1:vadas"))));
         Mockito.when(backend.requestPreview("POST", "graphs/DEFAULT-graph-with-dash/preview-edges",
                                            Map.of("vertices", List.of("1:marko", "1:vadas"))))
@@ -240,7 +240,10 @@ public class DirectVermeerServiceTest {
                                   "scanned", 3, "truncated", true));
         DirectVermeerService direct = service(backend);
         Map<String, Object> result = direct.previewEdges(graphClient(), -12, 0, 30);
-        Assert.assertEquals(List.of("1:marko", "1:vadas"), result.get("sample_ids"));
+        Assert.assertEquals(List.of(Map.of("ID", "1:marko"), Map.of("ID", "1:vadas")), result.get("vertices"));
+        Assert.assertEquals(2, result.get("cursor"));
+        Assert.assertEquals(false, result.get("has_more"));
+        Assert.assertEquals("available", result.get("edges_status"));
         Assert.assertEquals(List.of(Map.of("source", "1:marko", "target", "1:vadas")), result.get("edges"));
         Assert.assertEquals(true, result.get("truncated"));
         expect(IllegalArgumentException.class, () -> direct.previewEdges(graphClient(), -12, 0, 31));
@@ -256,12 +259,46 @@ public class DirectVermeerServiceTest {
         Mockito.verify(backend, Mockito.never()).requestPreview(Mockito.eq("POST"), Mockito.anyString(), Mockito.any());
         Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
                 "graph_name", "DEFAULT-graph-with-dash", "task_type", "compute", "status", "complete")));
-        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=30", null))
+        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=31", null))
                .thenReturn(Map.of("vertices", List.of(Map.of("ID", "1:marko"))));
         Mockito.when(backend.requestPreview(Mockito.eq("POST"), Mockito.anyString(), Mockito.any()))
                .thenReturn(Map.of("edges", List.of(Map.of("source", "1:marko", "target", "outside")),
                                   "scanned", 1, "truncated", false));
-        expect(IllegalStateException.class, () -> direct.previewEdges(graphClient(), -12, 0, 30));
+        Map<String, Object> result = direct.previewEdges(graphClient(), -12, 0, 30);
+        Assert.assertEquals(List.of(Map.of("ID", "1:marko")), result.get("vertices"));
+        Assert.assertEquals("unavailable", result.get("edges_status"));
+        Assert.assertEquals(List.of(), result.get("edges"));
+    }
+
+    @Test
+    public void testPreviewDistinguishesExpiredValuesFromUpstreamErrors() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
+                "graph_name", "DEFAULT-graph-with-dash", "task_type", "compute", "status", "complete")));
+        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=31", null))
+               .thenThrow(new VermeerClient.ValuesNotFoundException())
+               .thenThrow(new ExternalException("Vermeer unavailable"));
+        DirectVermeerService direct = service(backend);
+        Assert.assertEquals(Map.of("result_status", "expired"), direct.previewEdges(graphClient(), -12, 0, 30));
+        expect(ExternalException.class, () -> direct.previewEdges(graphClient(), -12, 0, 30));
+        Mockito.verify(backend, Mockito.never()).requestPreview(Mockito.eq("POST"), Mockito.anyString(), Mockito.any());
+    }
+
+    @Test
+    public void testPreviewKeepsValuesWhenOldVermeerHasNoEdgeEndpoint() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
+                "graph_name", "DEFAULT-graph-with-dash", "task_type", "compute", "status", "complete")));
+        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=3", null))
+               .thenReturn(Map.of("vertices", List.of(Map.of("ID", "a"), Map.of("ID", "b"), Map.of("ID", "c"))));
+        Mockito.when(backend.requestPreview(Mockito.eq("POST"), Mockito.anyString(), Mockito.any()))
+               .thenThrow(new ExternalException("old Vermeer"));
+        Map<String, Object> result = service(backend).previewEdges(graphClient(), -12, 0, 2);
+        Assert.assertEquals(List.of(Map.of("ID", "a"), Map.of("ID", "b")), result.get("vertices"));
+        Assert.assertEquals(2, result.get("cursor"));
+        Assert.assertEquals(true, result.get("has_more"));
+        Assert.assertEquals("unavailable", result.get("edges_status"));
+        Assert.assertEquals(List.of(), result.get("edges"));
     }
 
     @Test

@@ -83,22 +83,15 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
         let active = true;
         const load = async () => {
             try {
-                const response = await api.analysis.fetchVermeerTaskValues(graphSpace, graph, taskId, cursor, PAGE_SIZE);
+                const response = await api.analysis.fetchOlapPreviewEdges(graphSpace, graph, taskId, cursor, PAGE_SIZE);
                 if (!active) return;
-                if (response?.status !== 200 || !Array.isArray(response.data?.vertices)) {
-                    if (response?.status === 400 && cursor === 0) {
-                        const task = await api.analysis.fetchAsyncTaskResult(graphSpace, graph, taskId);
-                        if (!active) return;
-                        if (task?.status === 200 && task.data?.task_status === 'success'
-                            && task.data?.task_type === 'vermeer-task:compute'
-                            && (task.data?.task_result === null || task.data?.task_result === 'null')) {
-                            setState({phase: 'expired'});
-                            return;
-                        }
-                    }
-                    throw new Error();
+                if (response?.status === 200 && response.data?.result_status === 'expired') {
+                    setState(previous => previous.vertices ? {...previous, phase: 'ready', resultExpired: true,
+                        hasMore: false} : {phase: 'expired'});
+                    return;
                 }
-                if (response.data.vertices.length > PAGE_SIZE ||
+                if (response?.status !== 200 || !Array.isArray(response.data?.vertices) ||
+                    response.data.vertices.length > PAGE_SIZE ||
                     (response.data.has_more === true &&
                      (!Number.isSafeInteger(response.data.cursor) || response.data.cursor <= cursor))) {
                     throw new Error();
@@ -107,42 +100,27 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                 const vertices = [...(cursor === 0 ? [] : accumulated.current), ...pageVertices];
                 accumulated.current = vertices;
                 if (cursor === 0) { accumulatedEdges.current = new Map(); edgePages.current = new Map(); }
-                setState(previous => ({phase: 'ready', vertices, edges: [...accumulatedEdges.current.values()],
-                    missingEdgePages: cursor === 0 ? '' : previous.missingEdgePages,
-                    edgeStatus: pageVertices.length ? 'loading' : 'partial',
-                    next: response.data.cursor, hasMore: response.data.has_more === true}));
-                if (!pageVertices.length) return;
-                try {
-                    const edges = await api.analysis.fetchOlapPreviewEdges(graphSpace, graph, taskId, cursor, PAGE_SIZE);
-                    if (!active) return;
-                    const pageIds = pageVertices.map(item => String(item.ID));
-                    if (edges?.status !== 200 || !Array.isArray(edges.data?.edges) || edges.data.edges.length > 30 ||
-                        !Array.isArray(edges.data?.sample_ids) || edges.data.sample_ids.length !== pageIds.length ||
-                        edges.data.sample_ids.some((id, index) => id !== pageIds[index])) {
-                        throw new Error();
-                    }
-                    // Defensively reject endpoints outside the exact page that is displayed.
-                    const ids = new Set(pageIds);
-                    for (const edge of edges.data.edges) {
-                        if (typeof edge.source !== 'string' || typeof edge.target !== 'string' ||
-                            !ids.has(edge.source) || !ids.has(edge.target)) continue;
+                const ids = new Set(pageVertices.map(item => String(item.ID)));
+                const edges = response.data.edges;
+                let edgeStatus = 'unavailable';
+                if (response.data.edges_status === 'available' && Array.isArray(edges) && edges.length <= 30 &&
+                    edges.every(edge => typeof edge.source === 'string' && typeof edge.target === 'string' &&
+                        ids.has(edge.source) && ids.has(edge.target))) {
+                    for (const edge of edges) {
                         const key = JSON.stringify([edge.source, edge.target]);
                         accumulatedEdges.current.set(key, {id: key, source: edge.source, target: edge.target});
                     }
-                    edgePages.current.set(cursor, {failed: false, count: pageVertices.length,
-                        truncated: edges.data.truncated === true});
-                    const missing = [...edgePages.current.entries()].filter(([, page]) => page.failed)
-                        .map(([start, page]) => `${start + 1}–${start + page.count}`).join(', ');
-                    setState(previous => ({...previous, edges: [...accumulatedEdges.current.values()],
-                        edgeStatus: 'partial', missingEdgePages: missing}));
-                } catch {
-                    if (active) {
-                        edgePages.current.set(cursor, {failed: true, count: pageVertices.length});
-                        const missing = [...edgePages.current.entries()].filter(([, page]) => page.failed)
-                            .map(([start, page]) => `${start + 1}–${start + page.count}`).join(', ');
-                        setState(previous => ({...previous, edgeStatus: 'unavailable', missingEdgePages: missing}));
-                    }
+                    edgeStatus = 'partial';
                 }
+                if (pageVertices.length) {
+                    edgePages.current.set(cursor, {failed: edgeStatus !== 'partial', count: pageVertices.length,
+                        truncated: response.data.truncated === true});
+                }
+                const missing = [...edgePages.current.entries()].filter(([, page]) => page.failed)
+                    .map(([start, page]) => `${start + 1}–${start + page.count}`).join(', ');
+                setState({phase: 'ready', vertices, edges: [...accumulatedEdges.current.values()],
+                    edgeStatus, missingEdgePages: missing,
+                    next: response.data.cursor, hasMore: response.data.has_more === true});
             } catch {
                 if (active) setState(previous => previous.vertices
                     ? {...previous, phase: 'ready', pageError: true}
@@ -179,6 +157,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                 {t('analysis.async_task.retry_result')}
             </Button>} />}
         {state.phase === 'ready' && <>
+            {state.resultExpired && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_expired')} />}
             {state.pageError && <Alert type='error' showIcon title={t('analysis.algorithm.preview_error')}
                 action={<Button onClick={() => setRequestPage(page => page + 1)}>
                     {t('analysis.async_task.retry_result')}
