@@ -805,6 +805,8 @@
           "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
           "DEPTH": "Depth",
           "SLPA": "SLPA",
+          "CYCLE_DETECTION_VERMEER": "Cycle Detection",
+          "LOUVAIN_WEIGHTED": "Louvain Weighted",
           "SSSP": "SSSP（单源最短路径）"
         },
         "legacy_item_alias": {
@@ -841,6 +843,28 @@
           "max_step": "最大迭代步数（1–1000）。",
           "k": "保留的标签数；-1 保留全部，0 保留零个标签。",
           "select_method": "选择邻居标签的方法：max 取最高频，random 按频次随机选择。"
+        },
+        "vermeer_advanced": {
+          "cycle_desc": "有向环检测，不包含自环。all 模式可能产生大量路径，注意限制环长；limit 模式限制每个顶点的环数量。",
+          "louvain_desc": "按模块度优化社区划分；达到计算步数上限可能未收敛。",
+          "weighted_desc": "按边权优化社区；留空权重属性时使用 1，指定属性须已加载且为数值。",
+          "max_step": "计算迭代上限；达到上限可能尚未收敛。",
+          "parallel": "并行数。",
+          "min_length": "最小环长。",
+          "max_length": "最大环长，较大值可能造成高内存和计算开销。",
+          "max_cycles": "limit 模式下每个顶点最多返回的环数。",
+          "mode": "all 枚举所有环，limit 限量，boolean 只判断是否有环。",
+          "resolution": "社区分辨率。",
+          "threshold": "模块度改进阈值。",
+          "step": "Louvain 阶段数上限，与计算迭代上限不同。",
+          "edge_weight": "可选的已加载边权属性，留空使用 1。",
+          "filter_expr": "可选过滤表达式；必须同时提供属性列表并在快照中加载对应属性。",
+          "filter_properties": "JSON 字符串数组，例如 [\"age\"]；须与表达式同时提供。",
+          "invalid_properties": "请输入非空字符串组成的 JSON 数组，并与过滤表达式同时填写。",
+          "nonnegative_integer": "请输入非负整数。",
+          "positive_integer": "请输入正整数。",
+          "nonnegative_number": "请输入非负数。",
+          "invalid_range": "最小环长不能大于最大环长。"
         },
         "SSSPVermeer": {
           "desc": "单源最短路径算法，求一个点到其他所有点的最短距离"

@@ -805,6 +805,8 @@
           "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
           "DEPTH": "Depth",
           "SLPA": "SLPA",
+          "CYCLE_DETECTION_VERMEER": "Cycle Detection",
+          "LOUVAIN_WEIGHTED": "Louvain Weighted",
           "SSSP": "SSSP (Single Source Shortest Path)"
         },
         "legacy_item_alias": {
@@ -841,6 +843,28 @@
           "max_step": "Maximum iterations (1–1000).",
           "k": "Maximum labels retained; -1 keeps all, 0 keeps none.",
           "select_method": "Neighbor label selection: max chooses the most frequent; random samples by frequency."
+        },
+        "vermeer_advanced": {
+          "cycle_desc": "Detect directed cycles excluding self-loops. All mode can enumerate many paths; limit the length or use limit mode.",
+          "louvain_desc": "Optimize modularity for communities; the result may not converge before the compute step limit.",
+          "weighted_desc": "Optimize communities by edge weight; an empty property uses weight 1. A specified numeric property must be loaded.",
+          "max_step": "Compute iteration limit; reaching it may leave the result unconverged.",
+          "parallel": "Parallelism.",
+          "min_length": "Minimum cycle length.",
+          "max_length": "Maximum cycle length; large values may require significant memory and CPU.",
+          "max_cycles": "Maximum cycles per vertex in limit mode.",
+          "mode": "All enumerates cycles; limit caps them; boolean reports presence only.",
+          "resolution": "Community resolution.",
+          "threshold": "Modularity improvement threshold.",
+          "step": "Maximum Louvain phases; separate from the compute iteration limit.",
+          "edge_weight": "Optional loaded edge-weight property; empty uses weight 1.",
+          "filter_expr": "Optional filter expression; also provide a property list loaded in the snapshot.",
+          "filter_properties": "JSON string array, for example [\"age\"]. Provide together with the expression.",
+          "invalid_properties": "Provide a JSON array of nonempty strings together with the filter expression.",
+          "nonnegative_integer": "Enter a non-negative integer.",
+          "positive_integer": "Enter a positive integer.",
+          "nonnegative_number": "Enter a non-negative number.",
+          "invalid_range": "Minimum cycle length must not exceed the maximum."
         },
         "SSSPVermeer": {
           "desc": "Single Source Shortest Path computes the shortest distance from one vertex to all other vertices"

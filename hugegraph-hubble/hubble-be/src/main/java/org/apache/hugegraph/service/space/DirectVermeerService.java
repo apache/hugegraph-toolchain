@@ -27,6 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.hash.Hashing;
 import org.apache.hugegraph.config.HugeConfig;
@@ -169,12 +171,24 @@ public class DirectVermeerService {
         String algorithm = options.get("compute.algorithm").toString();
         E.checkArgument(Set.of("pagerank", "wcc", "lpa", "degree", "closeness_centrality",
                                "betweenness_centrality", "triangle_count", "kcore", "sssp", "ppr",
-                               "scc", "clustering_coefficient", "depth", "slpa")
+                               "scc", "clustering_coefficient", "depth", "slpa",
+                               "cycle_detection", "louvain", "louvain_weighted")
                            .contains(algorithm), "Unsupported Vermeer algorithm: %s", algorithm);
+        if ("cycle_detection".equals(algorithm)) {
+            this.validateCycleFilter(options, "vertex");
+            this.validateCycleFilter(options, "edge");
+        }
         Map<String, String> params = new HashMap<>();
         options.forEach((key, value) -> {
             E.checkArgument(key.startsWith("compute.") ||
                             key.startsWith(algorithm + ".") ||
+                            (("louvain_weighted".equals(algorithm) || "louvain".equals(algorithm)) &&
+                             Set.of("louvain.resolution", "louvain.threshold", "louvain.step",
+                                    "louvain.edge_weight_property").contains(key)) ||
+                            ("cycle_detection".equals(algorithm) &&
+                             Set.of("cycle.max_length", "cycle.min_length", "cycle.max_cycles",
+                                    "cycle.mode", "filter.vertex_expr", "filter.edge_expr",
+                                    "filter.vertex_properties", "filter.edge_properties").contains(key)) ||
                             "output.need_statistics".equals(key),
                             "Unsupported Vermeer parameter: %s", key);
             if (value != null) {
@@ -191,6 +205,30 @@ public class DirectVermeerService {
                 client.getGraphSpaceName(), client.getGraphName())), StandardCharsets.UTF_8).toString();
         params.put("output.file_path", "./data/hubble/" + output);
         return this.submit(client, "compute", params);
+    }
+
+    private void validateCycleFilter(Map<String, Object> options, String type) {
+        Object exprValue = options.get("filter." + type + "_expr");
+        Object propsValue = options.get("filter." + type + "_properties");
+        E.checkArgument(exprValue == null || exprValue instanceof String,
+                        "Filter expression must be a string");
+        E.checkArgument(propsValue == null || propsValue instanceof String,
+                        "Filter properties must be a JSON string array");
+        String expr = exprValue == null ? "" : ((String) exprValue).trim();
+        String props = propsValue == null ? "[]" : (String) propsValue;
+        JsonNode parsed;
+        try {
+            parsed = this.mapper.readTree(props);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Filter properties must be a JSON string array", e);
+        }
+        E.checkArgument(parsed != null && parsed.isArray(), "Filter properties must be a JSON string array");
+        for (JsonNode property : parsed) {
+            E.checkArgument(property.isTextual() && !property.textValue().isBlank(),
+                            "Filter properties must contain nonempty strings");
+        }
+        E.checkArgument(expr.isEmpty() == parsed.isEmpty(),
+                        "Filter expression and properties must be provided together");
     }
 
     private Map<String, Object> submit(HugeClient client, String type,

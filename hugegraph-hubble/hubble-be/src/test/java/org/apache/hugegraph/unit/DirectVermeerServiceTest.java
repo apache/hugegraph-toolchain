@@ -243,6 +243,39 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
+    public void testCycleAndLouvainParameterContracts() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
+               .thenReturn(Map.of("task", Map.of("id", 12)));
+        DirectVermeerService direct = service(backend);
+        direct.compute(graphClient(), Map.of("compute.algorithm", "cycle_detection", "cycle.mode", "limit",
+                "cycle.max_cycles", 10, "filter.vertex_expr", "age > 1",
+                "filter.vertex_properties", "[\"age\"]"));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "louvain_weighted", "louvain.resolution", 1.0,
+                "louvain.edge_weight_property", "weight"));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "louvain", "louvain.threshold", 0.0000001));
+        ArgumentCaptor<Map> body = ArgumentCaptor.forClass(Map.class);
+        Mockito.verify(backend, Mockito.times(3)).request(
+                Mockito.eq("POST"), Mockito.eq("tasks/create"), body.capture());
+        Map<?, ?> cycle = (Map<?, ?>) body.getAllValues().get(0).get("params");
+        Map<?, ?> weighted = (Map<?, ?>) body.getAllValues().get(1).get("params");
+        Assert.assertEquals("limit", cycle.get("cycle.mode"));
+        Assert.assertEquals("[\"age\"]", cycle.get("filter.vertex_properties"));
+        Assert.assertEquals("weight", weighted.get("louvain.edge_weight_property"));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "cycle_detection", "filter.unrecognized", "secret")));
+        for (Object properties : List.of("[]", "[1]", "[\" \"]", "invalid")) {
+            expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                    Map.of("compute.algorithm", "cycle_detection", "filter.vertex_expr", "age > 1",
+                           "filter.vertex_properties", properties)));
+        }
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "cycle_detection", "filter.edge_properties", "[\"x\"]")));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "louvain_weighted", "output.type", "hugegraph")));
+    }
+
+    @Test
     public void testComputeReusesSafeOutputFilesPerGraph() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))

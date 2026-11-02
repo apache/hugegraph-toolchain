@@ -42,6 +42,8 @@ jest.mock('../../../../utils/constants', () => ({
             PAGE_RANK: 'PageRank',
             WEAKLY_CONNECTED_COMPONENT: 'WCC',
             STRONGLY_CONNECTED_COMPONENT: 'SCC',
+            CYCLE_DETECTION_VERMEER: 'Cycle Detection',
+            LOUVAIN_WEIGHTED: 'Louvain Weighted',
             DEGREE_CENTRALIT: 'Degree',
             CLOSENESS_CENTRALITY: 'Closeness',
             TRIANGLE_COUNT: 'Triangle',
@@ -86,8 +88,10 @@ test.each([false, true])('does not expose either OLAP engine before confirmation
         .not.toBeInTheDocument();
     expect(screen.queryByTestId('olap-item')).not.toBeInTheDocument();
     view.rerender(home({isVermeer: true}));
-    expect(screen.getAllByTestId('olap-item')).toHaveLength(14);
-    expect(screen.queryByText('Louvain')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('olap-item')).toHaveLength(17);
+    expect(screen.getByText('Louvain')).toBeVisible();
+    expect(screen.getByText('Louvain Weighted')).toBeVisible();
+    expect(screen.getByText('Cycle Detection')).toBeVisible();
     expect(screen.getByText('SSSP')).toBeVisible();
     expect(screen.getByText('SCC')).toBeVisible();
     expect(screen.getByText('Cluster')).toBeVisible();

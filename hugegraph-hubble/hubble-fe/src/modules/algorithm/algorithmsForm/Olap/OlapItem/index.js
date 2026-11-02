@@ -42,6 +42,7 @@ import BetweennessCentralityVermeer from '../BetweennessCentralityVermeer';
 import LabelPropagationAlgorithm from '../LabelPropagationAlgorithm';
 import LabelPropagationAlgorithmVermeer from '../LabelPropagationAlgorithmVermeer';
 import Louvain from '../Louvain';
+import AdvancedVermeer from '../AdvancedVermeer';
 import FilterSubGraphMatching from '../FilterSubGraphMatching';
 import KCore from '../KCore';
 import KCoreVermeer from '../KCoreVermeer';
@@ -64,6 +65,8 @@ const OlapItem = props => {
         PAGE_RANK,
         WEAKLY_CONNECTED_COMPONENT,
         STRONGLY_CONNECTED_COMPONENT,
+        CYCLE_DETECTION_VERMEER,
+        LOUVAIN_WEIGHTED,
         DEGREE_CENTRALIT,
         CLOSENESS_CENTRALITY,
         TRIANGLE_COUNT,
@@ -149,7 +152,12 @@ const OlapItem = props => {
                         : (<LabelPropagationAlgorithm {...args} />)
                 );
             case LOUVAIN:
-                return <Louvain {...args} canRun={canRunLouvain} />;
+                return isVermeer ? <AdvancedVermeer {...args} kind='louvain' />
+                    : <Louvain {...args} canRun={canRunLouvain} />;
+            case LOUVAIN_WEIGHTED:
+                return isVermeer ? <AdvancedVermeer {...args} kind='louvain_weighted' /> : null;
+            case CYCLE_DETECTION_VERMEER:
+                return isVermeer ? <AdvancedVermeer {...args} kind='cycle_detection' /> : null;
             case FILTER_SUBGRAPH_MATCHING:
                 return <FilterSubGraphMatching {...args} />;
             case K_CORE:
