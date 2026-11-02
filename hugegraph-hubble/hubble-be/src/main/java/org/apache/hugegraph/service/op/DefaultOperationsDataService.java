@@ -336,7 +336,7 @@ public class DefaultOperationsDataService implements OperationsDataService {
                                   Map<String, Long> previous,
                                   String source) {
         Set<String> owned;
-        if ("pd".equals(source)) {
+        if ("pd_cluster_stats".equals(source)) {
             owned = PD_FACTS;
         } else if ("stores".equals(source)) {
             owned = STORE_FACTS;

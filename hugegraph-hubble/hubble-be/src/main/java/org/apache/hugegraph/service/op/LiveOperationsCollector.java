@@ -68,6 +68,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private static final List<String> STORE_METRIC_GROUPS =
             Arrays.asList("system", "drive", "raft");
     private static final AtomicInteger THREAD_SEQUENCE = new AtomicInteger();
+    private static final long CLUSTER_STATISTICS_INTERVAL_MS = 60000L;
 
     private final boolean pdEnabled;
     private final String pdBase;
@@ -85,6 +86,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private final int storeDeadlineMillis;
     private final Set<String> storeAllowedTargets;
     private final ServerClientProvider serverClients;
+    private final PdClusterStatistics clusterStatistics;
 
     @Autowired
     public LiveOperationsCollector(HugeConfig config, ObjectMapper mapper,
@@ -166,6 +168,9 @@ public class LiveOperationsCollector implements OperationsCollector {
         this.http = http;
         this.parser = parser;
         this.clock = clock;
+        this.clusterStatistics = new PdClusterStatistics(
+                () -> this.parser.parseClusterStatistics(this.get("/v1/cluster")),
+                clock, CLUSTER_STATISTICS_INTERVAL_MS);
         this.storeDeadlineMillis = storeDeadlineMillis;
         if (storeAllowedTargets == null || storeAllowedTargets.isEmpty()) {
             throw new IllegalArgumentException(
@@ -202,6 +207,7 @@ public class LiveOperationsCollector implements OperationsCollector {
 
     @PreDestroy
     public void close() {
+        this.clusterStatistics.close();
         this.storeExecutor.shutdownNow();
         this.readinessExecutor.shutdownNow();
         this.lifecycleExecutor.shutdownNow();
@@ -230,6 +236,14 @@ public class LiveOperationsCollector implements OperationsCollector {
             sources.put("stores", unsupported());
         }
         String status = this.overallStatus(sources);
+        // This optional aggregate must not affect topology health or block it.
+        if (this.pdEnabled) {
+            PdClusterStatistics.Result aggregate = this.clusterStatistics.sample();
+            facts.keySet().removeAll(Arrays.asList("graphs", "partitions",
+                                                    "replicas", "data_size_bytes"));
+            facts.putAll(aggregate.getFacts());
+            sources.put("pd_cluster_stats", aggregate.getStatus());
+        }
         if (nodes.stream().anyMatch(node -> node.getReadiness() != null &&
                                            "NOT_READY".equals(node.getReadiness().getStatus()))) {
             if (clusterReason == null) {

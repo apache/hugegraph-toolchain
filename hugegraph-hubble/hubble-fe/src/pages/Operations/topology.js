@@ -64,8 +64,9 @@ const selectAttentionSources = (sources = {}) => {
         return [];
     }
     return Object.entries(sources)
-        .filter(([, source]) => {
-            if (!source || source.availability === 'UNSUPPORTED'
+        .filter(([name, source]) => {
+            // Cluster statistics have no node or node diagnostic endpoint.
+            if (name === 'pd_cluster_stats' || !source || source.availability === 'UNSUPPORTED'
                 && !['DOWN', 'DEGRADED'].includes(source.status)) {
                 return false;
             }

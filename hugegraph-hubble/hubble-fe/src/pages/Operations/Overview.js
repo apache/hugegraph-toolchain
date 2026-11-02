@@ -71,6 +71,8 @@ const Overview = () => {
     const [error, setError] = useState(null);
     const [dashboard, setDashboard] = useState({status: 'checking', url: ''});
     const requestSequence = useRef(0);
+    const statsPollCount = useRef(0);
+    const [statsPollingExhausted, setStatsPollingExhausted] = useState(false);
     const isVermeer = searchParams.get('service') === 'vermeer' && Array.isArray(data?.nodes);
     const viewKey = isVermeer ? 'compute_view' : 'view';
     const view = searchParams.get(viewKey) === 'nodes' ? 'nodes' : 'topology';
@@ -146,6 +148,28 @@ const Overview = () => {
             requestSequence.current += 1;
         };
     }, [load]);
+
+    useEffect(() => {
+        const collecting = data?.sources?.pd_cluster_stats?.reason === 'collecting';
+        if (!collecting) {
+            statsPollCount.current = 0;
+            setStatsPollingExhausted(false);
+            return undefined;
+        }
+        if (statsPollCount.current >= 7) {
+            return undefined;
+        }
+        const timer = setTimeout(() => {
+            statsPollCount.current += 1;
+            // One forced refresh handles a configured overview TTL longer than the polling window.
+            const finalAttempt = statsPollCount.current === 7;
+            if (finalAttempt) {
+                setStatsPollingExhausted(true);
+            }
+            load(finalAttempt);
+        }, 2000);
+        return () => clearTimeout(timer);
+    }, [data, load]);
 
     useEffect(() => {
         let cancelled = false;
@@ -251,6 +275,10 @@ const Overview = () => {
         || attentionSources.length > 0
         || clusterReason;
     const facts = data?.facts ?? {};
+    const clusterStatsSource = data?.sources?.pd_cluster_stats;
+    const statsSampleTime = clusterStatsSource?.last_success_at
+        ?? (clusterStatsSource?.availability === 'AVAILABLE'
+            ? clusterStatsSource?.observed_at : null);
     const pdLeader = facts.pd_leader ?? nodes.find(node => (
         node.type === 'PD' && node.role === 'LEADER'
     ))?.name;
@@ -546,6 +574,23 @@ const Overview = () => {
                             </section>
                             <aside className='operations-facts'>
                                 <h3>{t('operations.cluster_facts')}</h3>
+                                <p className='operations-stats-source' role='status'>
+                                    {t('operations.cluster_stats_source')}: {' '}
+                                    {statsSampleTime == null
+                                        ? (clusterStatsSource?.reason === 'collecting'
+                                            ? t(statsPollingExhausted ? 'operations.cluster_stats_manual_refresh'
+                                                : 'operations.cluster_stats_collecting') : unavailable)
+                                        : formatObservedAt(
+                                        statsSampleTime, i18n.language, unavailable
+                                    )}
+                                    {clusterStatsSource?.stale && ` · ${t('operations.stale')}`}
+                                    {statsSampleTime != null && statsPollingExhausted
+                                        && clusterStatsSource?.reason === 'collecting'
+                                        && ` · ${t('operations.cluster_stats_manual_refresh')}`}
+                                    {clusterStatsSource && clusterStatsSource.availability !== 'AVAILABLE'
+                                        && clusterStatsSource.reason !== 'collecting'
+                                        && ` · ${unavailable}`}
+                                </p>
                                 <div className='operations-fact-list'>
                                     {factRows.map(fact => {
                                         const Icon = fact.icon;

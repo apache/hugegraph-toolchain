@@ -201,3 +201,11 @@ test('formats a stable localized relative observation age', () => {
     expect(formatObservedAge('invalid', 'en-US', 'Unavailable', now))
         .toBe('Unavailable');
 });
+
+
+test('does not offer node diagnostics for cluster statistics failures', () => {
+    expect(selectAttentionSources({
+        pd_cluster_stats: {status: 'UNKNOWN', availability: 'UNAVAILABLE'},
+        pd: {status: 'DOWN', availability: 'UNAVAILABLE'},
+    })).toEqual([{name: 'pd', status: 'DOWN', availability: 'UNAVAILABLE'}]);
+});

@@ -120,6 +120,36 @@ public class OperationsPayloadParser {
         return this.parseTopology(clusterPayload, storesPayload, null);
     }
 
+    Map<String, Long> parseClusterStatistics(String payload) {
+        try {
+            JsonNode status = this.mapper.readTree(payload).get("status");
+            if (status == null || !status.isIntegralNumber() ||
+                !status.canConvertToLong() || status.longValue() != 0L) {
+                throw new MalformedUpstreamException("pd_cluster_stats");
+            }
+        } catch (MalformedUpstreamException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new MalformedUpstreamException("pd_cluster_stats", e);
+        }
+        JsonNode data = this.data(payload, "pd_cluster_stats");
+        for (String key : java.util.List.of("graphSize", "partitionSize", "shardCount", "dataSize")) {
+            JsonNode value = data.get(key);
+            if (value == null || !value.isIntegralNumber()) {
+                throw new MalformedUpstreamException("pd_cluster_stats");
+            }
+        }
+        Map<String, Long> facts = new LinkedHashMap<>();
+        this.putLong(facts, "graphs", data.get("graphSize"));
+        this.putLong(facts, "partitions", data.get("partitionSize"));
+        this.putLong(facts, "replicas", data.get("shardCount"));
+        this.putKilobytesAsBytes(facts, "data_size_bytes", data.get("dataSize"));
+        if (facts.size() != 4 || facts.values().stream().anyMatch(v -> v < 0)) {
+            throw new MalformedUpstreamException("pd_cluster_stats");
+        }
+        return facts;
+    }
+
     public Topology parseTopology(String clusterPayload, String storesPayload,
                                   Long observedAt) {
         JsonNode cluster = this.data(clusterPayload, "pd_cluster");

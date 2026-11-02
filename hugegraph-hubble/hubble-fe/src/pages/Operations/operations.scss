@@ -445,6 +445,12 @@
     > strong { text-align: right; }
 }
 
+.operations-stats-source {
+    color: var(--workbench-color-text-secondary);
+    font-size: 12px;
+    overflow-wrap: anywhere;
+}
+
 .operations-fact-list { display: flex; flex-direction: column; }
 .fact-pd { order: 1; }
 .fact-stores { order: 2; }

@@ -30,6 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -50,12 +51,14 @@ public class LiveOperationsCollectorTest {
             Instant.ofEpochMilli(2000L), ZoneOffset.UTC);
 
     @Test
-    public void testMemberDiscoveryDoesNotReadPartitionSummary()
-           throws IOException {
+    public void testMemberDiscoveryRateLimitsPartitionSummary()
+           throws Exception {
         HttpServer pd = pdServer(200, members("Cluster_OK"), 200, stores());
         AtomicInteger clusterRequests = new AtomicInteger();
+        CountDownLatch clusterReceived = new CountDownLatch(1);
         pd.createContext("/v1/cluster", exchange -> {
             clusterRequests.incrementAndGet();
+            clusterReceived.countDown();
             exchange.sendResponseHeaders(500, -1);
             exchange.close();
         });
@@ -63,12 +66,14 @@ public class LiveOperationsCollectorTest {
         LiveOperationsCollector collector = collector(true, pd);
         try {
             snapshot = collector.collect(serverClient(), false);
+            Assert.assertTrue(clusterReceived.await(2, TimeUnit.SECONDS));
+            collector.collect(serverClient(), false);
         } finally {
             collector.close();
             pd.stop(0);
         }
 
-        Assert.assertEquals(0, clusterRequests.get());
+        Assert.assertEquals(1, clusterRequests.get());
         Assert.assertEquals("UP", snapshot.getStatus());
         Assert.assertEquals("AVAILABLE", snapshot.getSources().get("pd").getAvailability());
         Assert.assertEquals("Cluster_OK", snapshot.getSources().get("pd").getClusterState());
@@ -108,12 +113,14 @@ public class LiveOperationsCollectorTest {
     }
 
     @Test
-    public void testUnavailableMembersDoesNotFallBackToPartitionScan()
-           throws IOException {
+    public void testUnavailableMembersDoesNotBlockStatistics()
+           throws Exception {
         HttpServer pd = pdServer(503, "unavailable", 200, stores());
         AtomicInteger clusterRequests = new AtomicInteger();
+        CountDownLatch clusterReceived = new CountDownLatch(1);
         pd.createContext("/v1/cluster", exchange -> {
             clusterRequests.incrementAndGet();
+            clusterReceived.countDown();
             exchange.sendResponseHeaders(200, -1);
             exchange.close();
         });
@@ -121,12 +128,13 @@ public class LiveOperationsCollectorTest {
         Snapshot snapshot;
         try {
             snapshot = collector.collect(serverClient(), false);
+            Assert.assertTrue(clusterReceived.await(2, TimeUnit.SECONDS));
         } finally {
             collector.close();
             pd.stop(0);
         }
 
-        Assert.assertEquals(0, clusterRequests.get());
+        Assert.assertEquals(1, clusterRequests.get());
         Assert.assertEquals("UNAVAILABLE", snapshot.getSources().get("pd").getAvailability());
         Assert.assertEquals("upstream_rejected", snapshot.getSources().get("pd").getReason());
         Assert.assertEquals(Map.of("request_path", "/v1/members", "http_status", 503),
@@ -1027,7 +1035,7 @@ public class LiveOperationsCollectorTest {
                             snapshot.getSources().get("stores").getDiagnostics());
         Assert.assertTrue(snapshot.getNodes().stream()
                                   .anyMatch(node -> "PD".equals(node.getType())));
-        Assert.assertEquals(2L, snapshot.getFacts().get("graphs"));
+        Assert.assertFalse(snapshot.getFacts().containsKey("graphs"));
     }
 
     @Test
@@ -2246,6 +2254,11 @@ public class LiveOperationsCollectorTest {
             if ("/v1/members".equals(path)) {
                 return cluster();
             }
+            if ("/v1/cluster".equals(path)) {
+                return "{\"status\":0,\"data\":{" +
+                       "\"graphSize\":2,\"partitionSize\":12," +
+                       "\"shardCount\":3,\"dataSize\":1024}}";
+            }
             if ("/v1/stores".equals(path)) {
                 return this.stores;
             }
@@ -2359,6 +2372,12 @@ public class LiveOperationsCollectorTest {
             }
             if ("/v1/stores".equals(target.getPath())) {
                 return stores();
+            }
+            if ("/v1/cluster".equals(target.getPath()) &&
+                "pd-service".equals(target.getHost())) {
+                return "{\"status\":0,\"data\":{" +
+                       "\"graphSize\":2,\"partitionSize\":12," +
+                       "\"shardCount\":3,\"dataSize\":1024}}";
             }
             throw new AssertionError("Unexpected operations target " + target);
         }

@@ -43,6 +43,7 @@ import org.apache.hugegraph.service.op.OperationsCapabilityServiceTest;
 import org.apache.hugegraph.service.op.OperationsHttpClientTest;
 import org.apache.hugegraph.service.op.OperationsIdentityContractTest;
 import org.apache.hugegraph.service.op.OperationsPayloadParserTest;
+import org.apache.hugegraph.service.op.PdClusterStatisticsTest;
 import org.apache.hugegraph.service.query.Text2GqlServiceTest;
 import org.apache.hugegraph.service.query.Text2GqlStreamTest;
 import org.apache.hugegraph.service.query.Text2GqlHttpClientTest;
@@ -132,6 +133,7 @@ import org.junit.runners.Suite;
     OperationsHttpClientTest.class,
     OperationsIdentityContractTest.class,
     OperationsPayloadParserTest.class,
+    PdClusterStatisticsTest.class,
     DefaultOperationsDataServiceTest.class,
     LiveOperationsCollectorTest.class,
     PriorityFixTest.class,
