@@ -25,7 +25,8 @@ jest.mock('antd', () => ({...jest.requireActual('antd'), Select: ({value, onChan
         {options.map(option => <option key={option.value} value={option.value}>{option.value}</option>)}
     </select>}));
 jest.mock('../../AlgorithmPanel', () => ({title, children}) => <div>{title}{children}</div>);
-jest.mock('../../AlgorithmNameHeader', () => ({handleRunning}) => <button onClick={handleRunning}>Run</button>);
+jest.mock('../../AlgorithmNameHeader', () => ({handleRunning, isDisabled}) =>
+    <button disabled={isDisabled} onClick={handleRunning}>Run</button>);
 jest.mock('../../../../../api', () => ({analysis: {runOlapVermeer: jest.fn()}}));
 jest.mock('react-i18next', () => ({...jest.requireActual('react-i18next'),
     useTranslation: () => ({t: key => key})}));
@@ -56,11 +57,13 @@ test.each(['all', 'boolean'])('%s ignores an invalid per-vertex limit after swit
             updateCurrentAlgorithm={jest.fn()} />
     </GraphAnalysisContext.Provider>);
     fireEvent.change(screen.getByLabelText('cycle.max_cycles'), {target: {value: '0'}});
+    await waitFor(() => expect(screen.getByRole('button', {name: 'Run'})).toBeDisabled());
     fireEvent.change(screen.getByRole('combobox'), {target: {value: mode}});
     if (mode === 'all') {
         expect(await screen.findByText('analysis.algorithm.olap.vermeer_advanced.all_warning')).toBeVisible();
     }
     await waitFor(() => expect(screen.queryByLabelText('cycle.max_cycles')).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.getByRole('button', {name: 'Run'})).toBeEnabled());
     fireEvent.click(screen.getByRole('button', {name: 'Run'}));
     await waitFor(() => expect(api.analysis.runOlapVermeer).toHaveBeenCalled());
     const params = api.analysis.runOlapVermeer.mock.calls[0][2];

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-import {useCallback, useContext, useEffect, useState} from 'react';
+import {useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {Alert, Input, InputNumber, Select} from 'antd';
 import {NodeIndexOutlined} from '@ant-design/icons';
 import {useTranslation} from 'react-i18next';
@@ -58,6 +58,20 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
     const [running, beginRequiring] = useAlgorithmPending();
     const [form] = Form.useForm();
     const cycleMode = Form.useWatch('cycle.mode', form) || 'limit';
+    const validationSequence = useRef(0);
+    const validate = useCallback(() => {
+        const sequence = ++validationSequence.current;
+        form.validateFields().then(() => {
+            if (sequence === validationSequence.current) setEnabled(true);
+        }).catch(() => {
+            if (sequence === validationSequence.current) setEnabled(false);
+        });
+    }, [form]);
+    const invalidateValidation = useCallback(() => { validationSequence.current++; }, []);
+    useEffect(() => {
+        if (cycle) validate();
+        return invalidateValidation;
+    }, [cycle, cycleMode, invalidateValidation, validate]);
     useEffect(() => { setEnabled(graphStatus === GRAPH_LOAD_STATUS.LOADED); }, [graphStatus]);
     const submit = useCallback(async values => {
         const finish = beginRequiring();
@@ -92,8 +106,7 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
         isRunning={running} isDisabled={!status} handleRunning={event => { event.stopPropagation(); form.submit(); }}
         searchValue={searchValue} highlightName={currentAlgorithm === name} />} forceRender>
         <Form form={form} isDisabled={!status} isRunning={running} disabled={graphStatus !== GRAPH_LOAD_STATUS.LOADED}
-            onFinish={submit} onValuesChange={() => form.validateFields().then(() => setEnabled(true))
-                .catch(() => setEnabled(false))} layout='vertical'>
+            onFinish={submit} onValuesChange={validate} layout='vertical'>
             <Form.Item name='compute.parallel' label='compute.parallel' initialValue={1}
                 tooltip={t(PATH + '.parallel')} rules={[{validator: positiveInteger}]}><InputNumber /></Form.Item>
             <Form.Item name='compute.max_step' label='compute.max_step' initialValue={10}
