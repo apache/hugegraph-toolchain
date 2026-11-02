@@ -39,6 +39,7 @@ final class PdClusterStatistics implements AutoCloseable {
     private Long lastSuccess;
     private boolean inFlight;
     private boolean failed;
+    private Map<String, Object> failureDetails = Collections.emptyMap();
     private boolean closed;
 
     PdClusterStatistics(Supplier<Map<String, Long>> fetch, Clock clock,
@@ -69,14 +70,15 @@ final class PdClusterStatistics implements AutoCloseable {
             return new Result(Collections.emptyMap(),
                     new SourceStatus("UNAVAILABLE", "UNKNOWN", this.lastAttempt,
                                      null, false, false,
-                                     this.inFlight ? "collecting" : "collection_failed"));
+                                     this.inFlight ? "collecting" : "collection_failed",
+                                     this.failureDetails));
         }
         boolean stale = this.failed;
         String reason = this.inFlight ? "collecting" : stale ? "statistics_stale" : null;
         return new Result(this.facts,
                 new SourceStatus(stale ? "PARTIAL" : "AVAILABLE", "UP",
                                  this.lastAttempt, this.lastSuccess,
-                                 !stale, stale, reason));
+                                 !stale, stale, reason, this.failureDetails));
     }
 
     private void collect() {
@@ -86,10 +88,15 @@ final class PdClusterStatistics implements AutoCloseable {
                 this.facts = Collections.unmodifiableMap(new LinkedHashMap<>(result));
                 this.lastSuccess = this.clock.millis();
                 this.failed = false;
+                this.failureDetails = Collections.emptyMap();
             }
         } catch (RuntimeException e) {
             synchronized (this) {
                 this.failed = true;
+                Map<String, Object> details = new LinkedHashMap<>(
+                        LiveOperationsCollector.diagnostics(e));
+                details.put("failure_reason", LiveOperationsCollector.reason(e));
+                this.failureDetails = Collections.unmodifiableMap(details);
             }
         } finally {
             synchronized (this) {

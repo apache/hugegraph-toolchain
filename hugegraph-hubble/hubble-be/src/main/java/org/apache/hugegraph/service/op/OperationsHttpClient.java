@@ -34,7 +34,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import okhttp3.Dns;
 import okhttp3.OkHttpClient;
@@ -44,15 +50,30 @@ import okhttp3.ResponseBody;
 
 public class OperationsHttpClient {
 
+    // DNS can block in native code even after interruption. Never queue more
+    // resolutions or create unbounded threads when resolvers stop responding.
+    private static final ThreadPoolExecutor DNS_EXECUTOR = new ThreadPoolExecutor(
+            0, 4, 30L, TimeUnit.SECONDS, new SynchronousQueue<>(), runnable -> {
+                Thread thread = new Thread(runnable, "hubble-operations-dns");
+                thread.setDaemon(true);
+                return thread;
+            });
+
     private final int connectTimeoutMillis;
     private final int readTimeoutMillis;
     private final int callTimeoutMillis;
     private final int maxResponseBytes;
     private final OkHttpClient client;
+    private final Dns resolver;
 
     public OperationsHttpClient(int connectTimeoutMillis,
                                 int readTimeoutMillis,
                                 int maxResponseBytes) {
+        this(connectTimeoutMillis, readTimeoutMillis, maxResponseBytes, Dns.SYSTEM);
+    }
+
+    OperationsHttpClient(int connectTimeoutMillis, int readTimeoutMillis,
+                         int maxResponseBytes, Dns resolver) {
         if (connectTimeoutMillis <= 0 || readTimeoutMillis <= 0 ||
             maxResponseBytes <= 0) {
             throw new IllegalArgumentException(
@@ -64,6 +85,7 @@ public class OperationsHttpClient {
                 Integer.MAX_VALUE,
                 (long) connectTimeoutMillis + readTimeoutMillis);
         this.maxResponseBytes = maxResponseBytes;
+        this.resolver = resolver;
         this.client = new OkHttpClient.Builder()
                 .connectTimeout(this.connectTimeoutMillis,
                                 TimeUnit.MILLISECONDS)
@@ -91,7 +113,12 @@ public class OperationsHttpClient {
     public String get(URI target, String username, String password,
                       Set<String> allowedOrigins, String accept) {
         return this.request(target, username, password, allowedOrigins, accept,
-                            false).getBody();
+                            false, false).getBody();
+    }
+
+    public String getBounded(URI target, String username, String password) {
+        return this.request(target, username, password, Set.of(),
+                            "application/json", false, true).getBody();
     }
 
     public String getBearer(URI target, String token,
@@ -99,19 +126,19 @@ public class OperationsHttpClient {
         String authorization = token == null || token.isEmpty() ?
                                null : "Bearer " + token;
         return this.requestAuthorized(target, authorization, allowedOrigins,
-                                      "application/json", false, true).getBody();
+                                      "application/json", false, true, false).getBody();
     }
 
     // Readiness uses 503 with a structured explanation; ordinary GETs still reject it.
     public ProbeResponse probe(URI target, String username, String password,
                                Set<String> allowedOrigins) {
         return this.request(target, username, password, allowedOrigins,
-                            "application/json", true);
+                            "application/json", true, false);
     }
 
     private ProbeResponse request(URI target, String username, String password,
                                    Set<String> allowedOrigins, String accept,
-                                   boolean readiness) {
+                                   boolean readiness, boolean boundedCall) {
         String authorization = null;
         if (username != null && !username.trim().isEmpty()) {
             String credential = username + ':' +
@@ -121,29 +148,37 @@ public class OperationsHttpClient {
             authorization = "Basic " + encoded;
         }
         return this.requestAuthorized(target, authorization, allowedOrigins,
-                                      accept, readiness, false);
+                                      accept, readiness, boundedCall, boundedCall);
     }
 
     private ProbeResponse requestAuthorized(URI target, String authorization,
                                              Set<String> allowedOrigins,
                                              String accept, boolean readiness,
-                                             boolean boundedCall) {
+                                             boolean boundedCall, boolean boundedDns) {
         validateTarget(target, allowedOrigins);
         if (!"application/json".equals(accept) &&
             !"text/plain".equals(accept)) {
             throw new IllegalArgumentException("Invalid operations media type");
         }
         try {
-            InetAddress[] addresses = InetAddress.getAllByName(target.getHost());
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.callTimeoutMillis);
+            InetAddress[] addresses = boundedDns ? this.resolveBounded(target.getHost()) :
+                                      this.resolver.lookup(target.getHost()).toArray(new InetAddress[0]);
+            if (!boundedDns) {
+                deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.callTimeoutMillis);
+            }
             validateResolvedAddresses(target.getHost(), addresses);
             OkHttpClient.Builder requestBuilder = this.client.newBuilder()
                     .dns(pinnedDns(target.getHost(), addresses));
             if (boundedCall) {
-                // Vermeer is an optional enrichment on the overview request.
-                // Bound its whole exchange, including a progressing response body,
-                // without changing the existing idle-read semantics of PD/Store probes.
-                requestBuilder.callTimeout(this.callTimeoutMillis,
-                                           TimeUnit.MILLISECONDS);
+                // Bound the HTTP exchange, including a progressing response body,
+                // without changing idle-read semantics of other PD/Store probes.
+                long remaining = deadline - System.nanoTime();
+                if (remaining < TimeUnit.MILLISECONDS.toNanos(1)) {
+                    throw new UpstreamRequestException("upstream_timeout", null,
+                                                       Map.of("request_path", target.getRawPath()));
+                }
+                requestBuilder.callTimeout(remaining, TimeUnit.NANOSECONDS);
             }
             OkHttpClient requestClient = requestBuilder.build();
             Request.Builder request = new Request.Builder()
@@ -184,6 +219,28 @@ public class OperationsHttpClient {
         } catch (IOException | IllegalArgumentException e) {
             throw new UpstreamRequestException("upstream_unavailable", e,
                                                Map.of("request_path", target.getRawPath()));
+        }
+    }
+
+    private InetAddress[] resolveBounded(String host) throws IOException {
+        Future<List<InetAddress>> future;
+        try {
+            future = DNS_EXECUTOR.submit(() -> this.resolver.lookup(host));
+        } catch (RejectedExecutionException e) {
+            throw new IOException("Operations DNS resolver saturated", e);
+        }
+        try {
+            return future.get(this.callTimeoutMillis, TimeUnit.MILLISECONDS)
+                         .toArray(new InetAddress[0]);
+        } catch (TimeoutException e) {
+            future.cancel(true);
+            throw new SocketTimeoutException("Operations DNS resolution timed out");
+        } catch (InterruptedException e) {
+            future.cancel(true);
+            Thread.currentThread().interrupt();
+            throw new InterruptedIOException("Operations DNS resolution interrupted");
+        } catch (ExecutionException e) {
+            throw new IOException("Operations DNS resolution failed", e.getCause());
         }
     }
 

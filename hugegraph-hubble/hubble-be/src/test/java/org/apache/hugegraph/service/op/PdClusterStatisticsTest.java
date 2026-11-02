@@ -162,6 +162,30 @@ public class PdClusterStatisticsTest {
     }
 
     @Test
+    public void testFailureDiagnosticsAreSanitizedAndClearedOnSuccess() throws Exception {
+        MutableClock clock = new MutableClock(1000L);
+        AtomicInteger calls = new AtomicInteger();
+        try (PdClusterStatistics stats = new PdClusterStatistics(() -> {
+            if (calls.incrementAndGet() == 1) {
+                throw new UpstreamRequestException("upstream_http_status_503", null,
+                        Map.of("request_path", "/v1/cluster", "http_status", 503));
+            }
+            return Map.of("graphs", 3L);
+        }, clock, 60000L)) {
+            stats.sample();
+            PdClusterStatistics.Result failed = await(stats, value ->
+                    "collection_failed".equals(value.getStatus().getReason()));
+            Assert.assertEquals(Map.of("request_path", "/v1/cluster", "http_status", 503,
+                                       "failure_reason", "upstream_rejected"),
+                                failed.getStatus().getDiagnostics());
+            clock.setMillis(61000L);
+            PdClusterStatistics.Result success = await(stats, value ->
+                    "AVAILABLE".equals(value.getStatus().getAvailability()));
+            Assert.assertTrue(success.getStatus().getDiagnostics().isEmpty());
+        }
+    }
+
+    @Test
     public void testParseClusterStatisticsRealPayloadAndKiBConversion() {
         OperationsPayloadParser parser = new OperationsPayloadParser(new ObjectMapper());
         String response = "{\"message\":\"OK\",\"status\":0,\"data\":{" +

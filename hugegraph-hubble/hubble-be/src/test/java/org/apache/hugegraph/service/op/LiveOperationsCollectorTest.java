@@ -2237,6 +2237,11 @@ public class LiveOperationsCollectorTest {
         }
 
         @Override
+        public String getBounded(java.net.URI target, String username, String password) {
+            return this.response(target);
+        }
+
+        @Override
         public String get(java.net.URI target, String username, String password,
                           Set<String> allowedTargets, String accept) {
             return this.response(target);
@@ -2352,6 +2357,11 @@ public class LiveOperationsCollectorTest {
         @Override
         public String get(java.net.URI target, String username,
                           String password) {
+            return this.response(target);
+        }
+
+        @Override
+        public String getBounded(java.net.URI target, String username, String password) {
             return this.response(target);
         }
 

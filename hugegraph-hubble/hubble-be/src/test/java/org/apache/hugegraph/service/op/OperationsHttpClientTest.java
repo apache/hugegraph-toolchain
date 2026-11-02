@@ -27,6 +27,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.util.Collections;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -332,16 +333,57 @@ public class OperationsHttpClientTest {
     @Test(timeout = 6000L)
     public void testBearerCallDeadlineBoundsContinuouslyProgressingBody()
            throws IOException {
-        this.assertVermeerCallDeadline("private-service-token");
+        this.assertCallDeadline("private-service-token", false);
     }
 
     @Test(timeout = 6000L)
     public void testAnonymousVermeerCallStillBoundsContinuouslyProgressingBody()
            throws IOException {
-        this.assertVermeerCallDeadline(null);
+        this.assertCallDeadline(null, false);
     }
 
-    private void assertVermeerCallDeadline(String token) throws IOException {
+    @Test(timeout = 6000L)
+    public void testBoundedBasicCallDeadlineBoundsContinuouslyProgressingBody()
+           throws IOException {
+        this.assertCallDeadline(null, true);
+    }
+
+    @Test(timeout = 4000L)
+    public void testBoundedBasicCallLimitsBlockingDns() {
+        CountDownLatch release = new CountDownLatch(1);
+        OperationsHttpClient client = new OperationsHttpClient(100, 100, 128, host -> {
+            boolean interrupted = false;
+            try {
+                while (true) {
+                    try {
+                        release.await();
+                        break;
+                    } catch (InterruptedException e) {
+                        interrupted = true;
+                    }
+                }
+                return java.util.List.of(InetAddress.getByName("127.0.0.1"));
+            } finally {
+                if (interrupted) {
+                    Thread.currentThread().interrupt();
+                }
+            }
+        });
+        try {
+            long start = System.nanoTime();
+            UpstreamRequestException error = (UpstreamRequestException)
+                    Assert.assertThrows(UpstreamRequestException.class, () ->
+                            client.getBounded(URI.create("http://127.0.0.1/v1/cluster"),
+                                              null, null));
+            Assert.assertEquals("upstream_timeout", error.getMessage());
+            Assert.assertEquals(Map.of("request_path", "/v1/cluster"), error.getDiagnostics());
+            Assert.assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start) < 2000L);
+        } finally {
+            release.countDown();
+        }
+    }
+
+    private void assertCallDeadline(String token, boolean basic) throws IOException {
         AtomicInteger chunks = new AtomicInteger();
         AtomicReference<String> authorization = new AtomicReference<>();
         HttpServer server = HttpServer.create(new InetSocketAddress(0), 0);
@@ -369,14 +411,20 @@ public class OperationsHttpClientTest {
         long started = System.nanoTime();
         try {
             UpstreamRequestException error = (UpstreamRequestException)
-                    Assert.assertThrows(UpstreamRequestException.class, () ->
-                    client.getBearer(uri(server, "/api/v1/admin/cluster?token=private-query"),
-                                     token, Collections.emptySet()));
+                    Assert.assertThrows(UpstreamRequestException.class, () -> {
+                        URI target = uri(server, "/api/v1/admin/cluster?token=private-query");
+                        if (basic) {
+                            client.getBounded(target, "user", "pass");
+                        } else {
+                            client.getBearer(target, token, Collections.emptySet());
+                        }
+                    });
 
             Assert.assertEquals("upstream_timeout", error.getMessage());
             Assert.assertTrue(error.getCause() instanceof InterruptedIOException);
             Assert.assertFalse(error.getCause() instanceof java.net.SocketTimeoutException);
-            Assert.assertEquals(token == null ? null : "Bearer " + token, authorization.get());
+            Assert.assertEquals(basic ? "Basic dXNlcjpwYXNz" :
+                                token == null ? null : "Bearer " + token, authorization.get());
             Assert.assertTrue(chunks.get() >= 3);
             Assert.assertTrue(TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started) < 3000L);
             Assert.assertEquals(Map.of("request_path", "/api/v1/admin/cluster"), error.getDiagnostics());

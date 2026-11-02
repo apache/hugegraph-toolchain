@@ -169,7 +169,9 @@ public class LiveOperationsCollector implements OperationsCollector {
         this.parser = parser;
         this.clock = clock;
         this.clusterStatistics = new PdClusterStatistics(
-                () -> this.parser.parseClusterStatistics(this.get("/v1/cluster")),
+                () -> this.parser.parseClusterStatistics(this.http.getBounded(
+                        URI.create(this.pdBase + "/v1/cluster"),
+                        this.pdUsername, this.pdPassword)),
                 clock, CLUSTER_STATISTICS_INTERVAL_MS);
         this.storeDeadlineMillis = storeDeadlineMillis;
         if (storeAllowedTargets == null || storeAllowedTargets.isEmpty()) {
@@ -1114,7 +1116,7 @@ public class LiveOperationsCollector implements OperationsCollector {
         return unavailableMetric(now, reason).withDiagnostics(diagnostics(error));
     }
 
-    private static Map<String, Object> diagnostics(RuntimeException error) {
+    static Map<String, Object> diagnostics(RuntimeException error) {
         return error instanceof UpstreamRequestException ?
                ((UpstreamRequestException) error).getDiagnostics() : Collections.emptyMap();
     }
@@ -1278,7 +1280,7 @@ public class LiveOperationsCollector implements OperationsCollector {
                                 false, "deployment_mode_unsupported");
     }
 
-    private static String reason(RuntimeException error) {
+    static String reason(RuntimeException error) {
         if (error instanceof UpstreamResponseTooLargeException) {
             return "response_too_large";
         }

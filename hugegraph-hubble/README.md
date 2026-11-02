@@ -666,8 +666,9 @@ TLS SNI and certificate hostname verification.
 PD member discovery uses `/v1/members` independently of aggregate statistics.
 The Overview also samples `/v1/cluster` asynchronously using the configured PD
 credentials. Each Hubble process shares one in-flight sample and retries at most
-once per 60 seconds, including after a failed request or manual refresh. The HTTP
-connect, read and response-size limits also apply. A failed sample never blocks
+once per 60 seconds, including after a failed request or manual refresh. A host
+clock step backwards can trigger an additional sample. DNS resolution, HTTP
+connect, read, whole-call and response-size limits also apply. A failed sample never blocks
 member discovery; the last successful values are labeled stale and retain their
 sampling time. The first sample is shown as collecting, rather than as zero.
 Each Hubble replica samples independently. The PD endpoint scans graph metadata
