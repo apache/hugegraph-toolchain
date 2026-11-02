@@ -35,6 +35,8 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     const {t} = useTranslation();
     const [state, setState] = useState({phase: 'waiting'});
     const [mode, setMode] = useState('graph');
+    const [canvasController, setCanvasController] = useState(null);
+    const canvasHost = useRef(null);
     const [cursor, setCursor] = useState(null);
     const [requestPage, setRequestPage] = useState(0);
     const [statusAttempt, setStatusAttempt] = useState(0);
@@ -132,6 +134,26 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
         return () => { active = false; };
     }, [cursor, graph, graphSpace, requestPage, taskId]);
 
+    // GraphCanvas preserves user zoom on ordinary resizes. This bounded preview
+    // needs to fit again when its host changes width, including sidebar changes.
+    useEffect(() => {
+        const host = canvasHost.current;
+        if (mode !== 'graph' || !host || !canvasController || typeof ResizeObserver === 'undefined') return undefined;
+        let timer;
+        let previous = '';
+        const observer = new ResizeObserver(entries => {
+            const rect = entries[0]?.contentRect;
+            if (!rect || rect.width <= 0 || rect.height <= 0) return;
+            const size = `${Math.round(rect.width)}:${Math.round(rect.height)}`;
+            if (size === previous) return;
+            previous = size;
+            clearTimeout(timer);
+            timer = setTimeout(() => { void canvasController.fitView().catch(() => {}); }, 150);
+        });
+        observer.observe(host);
+        return () => { clearTimeout(timer); observer.disconnect(); };
+    }, [canvasController, mode, state.phase]);
+
     const vertices = useMemo(() => state.vertices || [], [state.vertices]);
     const graphData = useMemo(() => {
         const adapted = adaptHubbleGraph({vertices: vertices.map(item => ({id: String(item.ID),
@@ -183,9 +205,9 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                 value, label: t(`analysis.algorithm.preview_${value}`),
             }))} />
             {vertices.length === 0 ? <Empty description={t('analysis.algorithm.preview_empty')} /> : mode === 'graph'
-                ? <div className={c.canvas} aria-label={t('analysis.algorithm.preview_graph')}>
+                ? <div ref={canvasHost} className={c.canvas} aria-label={t('analysis.algorithm.preview_graph')}>
                     <GraphCanvas data={graphData} datasetKey={`${vertices.length}-${state.edges?.length || 0}`}
-                        preset='preview' layout={{type: 'grid', options: {nodeSize: 54, nodeSpacing: 36}}}
+                        preset='preview' onReady={setCanvasController} layout={{type: 'grid', options: {nodeSize: 54, nodeSpacing: 36}}}
                         style={{height: '100%'}} />
                 </div> : mode === 'table'
                     ? <Table size='small' pagination={false} columns={columns} dataSource={vertices}
