@@ -374,7 +374,8 @@
 }
 
 .tier-server .operations-tier-branch::before,
-.tier-server .operations-topology-node::before {
+.tier-server .operations-topology-node::before,
+.tier-server .operations-topology-overflow::before {
     display: none;
 }
 
