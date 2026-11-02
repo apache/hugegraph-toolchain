@@ -101,6 +101,46 @@ public class PdClusterStatisticsTest {
     }
 
     @Test
+    public void testRefreshKeepsLastValueAndSignalsPollingUntilComplete() throws Exception {
+        MutableClock clock = new MutableClock(1000L);
+        AtomicInteger calls = new AtomicInteger();
+        CountDownLatch refreshStarted = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        try (PdClusterStatistics stats = new PdClusterStatistics(() -> {
+            if (calls.incrementAndGet() == 1) {
+                return Map.of("graphs", 11L);
+            }
+            refreshStarted.countDown();
+            try {
+                if (!release.await(3, TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("test timed out");
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
+            }
+            return Map.of("graphs", 12L);
+        }, clock, 60000L)) {
+            stats.sample();
+            await(stats, value -> "AVAILABLE".equals(value.getStatus().getAvailability()));
+            clock.setMillis(61000L);
+            PdClusterStatistics.Result collecting = stats.sample();
+            Assert.assertTrue(refreshStarted.await(2, TimeUnit.SECONDS));
+            Assert.assertEquals("collecting", collecting.getStatus().getReason());
+            Assert.assertEquals("AVAILABLE", collecting.getStatus().getAvailability());
+            Assert.assertFalse(collecting.getStatus().isStale());
+            Assert.assertEquals(Map.of("graphs", 11L), collecting.getFacts());
+            release.countDown();
+            PdClusterStatistics.Result refreshed = await(stats, value ->
+                    Long.valueOf(12L).equals(value.getFacts().get("graphs")) &&
+                    value.getStatus().getReason() == null);
+            Assert.assertEquals(Long.valueOf(61000L), refreshed.getStatus().getLastSuccessAt());
+        } finally {
+            release.countDown();
+        }
+    }
+
+    @Test
     public void testInitialFailureDoesNotBecomeZeroOrRetryImmediately() throws Exception {
         MutableClock clock = new MutableClock(1000L);
         AtomicInteger calls = new AtomicInteger();

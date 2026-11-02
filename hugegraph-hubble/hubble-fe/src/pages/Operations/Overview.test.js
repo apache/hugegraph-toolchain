@@ -767,6 +767,27 @@ test('polls an initial statistics collection and stops after completion', async 
     }
 });
 
+test('polls a refresh while retaining the previous statistics sample', async () => {
+    jest.useFakeTimers();
+    try {
+        getOverview.mockResolvedValueOnce({status: 'UP', nodes: [], facts: {graphs: 11}, sources: {
+            pd_cluster_stats: {availability: 'AVAILABLE', reason: 'collecting', last_success_at: 1000},
+        }}).mockResolvedValueOnce({status: 'UP', nodes: [], facts: {graphs: 12}, sources: {
+            pd_cluster_stats: {availability: 'AVAILABLE', last_success_at: 61000},
+        }});
+        await act(async () => { renderOverview(); });
+        expect(screen.getByText('11')).toBeInTheDocument();
+        await act(async () => { jest.advanceTimersByTime(2000); });
+        expect(getOverview).toHaveBeenCalledTimes(2);
+        expect(screen.getByText('12')).toBeInTheDocument();
+        await act(async () => { jest.advanceTimersByTime(20000); });
+        expect(getOverview).toHaveBeenCalledTimes(2);
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
+
 test('cancels statistics polling on unmount', async () => {
     jest.useFakeTimers();
     try {

@@ -71,12 +71,12 @@ final class PdClusterStatistics implements AutoCloseable {
                                      null, false, false,
                                      this.inFlight ? "collecting" : "collection_failed"));
         }
-        boolean stale = this.failed || now < this.lastSuccess ||
-                        now - this.lastSuccess >= this.intervalMillis;
+        boolean stale = this.failed;
+        String reason = this.inFlight ? "collecting" : stale ? "statistics_stale" : null;
         return new Result(this.facts,
                 new SourceStatus(stale ? "PARTIAL" : "AVAILABLE", "UP",
                                  this.lastAttempt, this.lastSuccess,
-                                 !stale, stale, stale ? "statistics_stale" : null));
+                                 !stale, stale, reason));
     }
 
     private void collect() {
