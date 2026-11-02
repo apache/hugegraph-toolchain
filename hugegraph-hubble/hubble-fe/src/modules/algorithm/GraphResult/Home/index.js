@@ -442,7 +442,7 @@ const GraphResult = props => {
         }
         if (queryStatus === SUCCESS) {
             if (!isQueryMode) {
-                if (isVermeer && Number(asyncTaskId) < 0) {
+                if (isOlapPreview) {
                     return <OlapPreview key={JSON.stringify([graphSpace, graph, asyncTaskId])}
                         graphSpace={graphSpace} graph={graph} taskId={asyncTaskId} />;
                 }
