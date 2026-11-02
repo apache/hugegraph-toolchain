@@ -218,8 +218,8 @@ it('filters the submitting graph by the task ID in a scoped URL and follows late
     const view = render(page);
     expect(await screen.findByText('tasks 1')).toBeInTheDocument();
     expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('memory', 'soc_graph',
-        expect.objectContaining({content: '80001', page_no: 1}));
-    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('80001');
+        expect.objectContaining({content: 'Server #80001', page_no: 1}));
+    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('Server #80001');
 
     useSearchParams.mockReturnValue([new URLSearchParams('taskId=90001')]);
     view.rerender(
@@ -228,8 +228,8 @@ it('filters the submitting graph by the task ID in a scoped URL and follows late
         </GraphAnalysisContext.Provider>
     );
     await waitFor(() => expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('memory', 'soc_graph',
-        expect.objectContaining({content: '90001', page_no: 1})));
-    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('90001');
+        expect.objectContaining({content: 'Server #90001', page_no: 1})));
+    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('Server #90001');
 });
 
 it('trims a pasted task ID and still supports legacy task links', async () => {
@@ -242,7 +242,7 @@ it('trims a pasted task ID and still supports legacy task links', async () => {
     );
     await screen.findByText('No matching tasks');
     expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('DEFAULT', 'hugegraph',
-        expect.objectContaining({content: '80001'}));
+        expect.objectContaining({content: 'Server #80001'}));
     fireEvent.change(screen.getByPlaceholderText('Search tasks'), {target: {value: '  90001  '}});
     fireEvent.keyDown(screen.getByPlaceholderText('Search tasks'), {key: 'Enter', code: 'Enter', charCode: 13});
     await waitFor(() => expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('DEFAULT', 'hugegraph',
@@ -333,10 +333,30 @@ it('supports negative Vermeer IDs and treats disappearance after discovery as a 
     await act(async () => Promise.resolve());
     expect(screen.getByText('tasks 1')).toBeInTheDocument();
     expect(api.analysis.fetchManageTaskById).toHaveBeenCalledWith('memory', 'soc_graph', '-7');
+    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('Vermeer #7');
+    fireEvent.keyDown(screen.getByPlaceholderText('Search tasks'), {key: 'Enter', code: 'Enter', charCode: 13});
+    expect(api.analysis.fetchManageTaskList).not.toHaveBeenCalled();
     await act(async () => jest.advanceTimersByTime(5000));
     expect(screen.getByText('No matching tasks')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     view.unmount();
+});
+
+it('keeps a linked Vermeer task source-qualified when submitting the untouched search', async () => {
+    useSearchParams.mockReturnValue([new URLSearchParams('taskId=-7')]);
+    api.analysis.fetchManageTaskList.mockResolvedValue({status: 200, data: {records: [], total: 0}});
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'memory', graph: 'soc_graph'}}>
+            <AsyncTaskHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await screen.findByText('No matching tasks');
+    const input = screen.getByPlaceholderText('Search tasks');
+    expect(input).toHaveValue('Vermeer #7');
+    expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('memory', 'soc_graph',
+        expect.objectContaining({content: 'Vermeer #7'}));
+    fireEvent.keyDown(input, {key: 'Enter', code: 'Enter', charCode: 13});
+    expect(api.analysis.fetchManageTaskList).toHaveBeenCalledTimes(1);
 });
 
 it.each([400, 403, 404, 503])('stops discovery on failure %s rather than treating it as a missing task', async status => {
