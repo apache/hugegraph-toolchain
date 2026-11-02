@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-import {render, screen, waitFor, fireEvent} from '@testing-library/react';
+import {act, render, screen, waitFor, fireEvent} from '@testing-library/react';
 import OlapPreview from './index';
 import * as api from '../../../../api';
 
@@ -24,11 +24,17 @@ jest.mock('../../../../api', () => ({analysis: {
     fetchOlapPreviewEdges: jest.fn(),
 }}));
 jest.mock('react-router-dom', () => ({Link: ({children}) => <span>{children}</span>}));
-jest.mock('../../../../visualization/react', () => ({GraphCanvas: ({data}) => <div>{data.nodes.map(node =>
-    <div key={node.id}>{node.style.labelText}</div>)}<span>edges: {data.edges.length}</span></div>}));
+const mockController = {fitView: jest.fn().mockResolvedValue(undefined)};
+jest.mock('../../../../visualization/react', () => ({GraphCanvas: ({data, onReady}) => {
+    const React = require('react');
+    React.useEffect(() => { onReady?.(mockController); return () => onReady?.(null); }, [onReady]);
+    return <div>{data.nodes.map(node => <div key={node.id}>{node.style.labelText}</div>)}
+        <span>edges: {data.edges.length}</span></div>;
+}}));
 
 beforeEach(() => {
     jest.resetAllMocks();
+    mockController.fitView.mockResolvedValue(undefined);
     api.analysis.fetchManageTaskById.mockResolvedValue({status: 200, data: [{id: -7, task_status: 'success'}]});
 });
 
@@ -109,4 +115,35 @@ test('distinguishes confirmed expired results from computation failure', async (
     render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
     expect(await screen.findByText('analysis.algorithm.preview_expired')).toBeInTheDocument();
     expect(screen.queryByText('analysis.algorithm.preview_failed')).not.toBeInTheDocument();
+});
+
+
+test('refits only on a changed host size and cancels pending work on unmount', async () => {
+    let emit;
+    const disconnect = jest.fn();
+    const oldObserver = global.ResizeObserver;
+    global.ResizeObserver = class {
+        constructor(callback) { emit = callback; }
+        observe() {}
+        disconnect() { disconnect(); }
+    };
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
+    const view = render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    await screen.findByText('a 1');
+    await waitFor(() => expect(emit).toBeDefined());
+    jest.useFakeTimers();
+    try {
+        act(() => { emit([{contentRect: {width: 900, height: 300}}]); jest.advanceTimersByTime(150); });
+        expect(mockController.fitView).toHaveBeenCalledTimes(1);
+        act(() => { emit([{contentRect: {width: 900, height: 300}}]); jest.advanceTimersByTime(150); });
+        expect(mockController.fitView).toHaveBeenCalledTimes(1);
+        act(() => { emit([{contentRect: {width: 500, height: 300}}]); });
+        view.unmount();
+        act(() => { jest.advanceTimersByTime(150); });
+        expect(mockController.fitView).toHaveBeenCalledTimes(1);
+        expect(disconnect).toHaveBeenCalled();
+    } finally {
+        jest.useRealTimers();
+        global.ResizeObserver = oldObserver;
+    }
 });

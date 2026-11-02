@@ -369,6 +369,8 @@ const GraphResult = props => {
         && graphData.nodes.length + graphData.edges.length === 0;
     const isOlap = engine === 'olap';
     const {graphSpace, graph, isVermeer, vermeerReady, vermeerError, retryVermeer, graphStatus} = graphSpaceInfo;
+    const isOlapPreview = isOlap && !isQueryMode && isVermeer &&
+        Number(asyncTaskId) < 0 && queryStatus === SUCCESS;
     const computeStatusKey = !graphSpace || !graph ? 'olap_select_graph'
         : vermeerError ? 'get_vermeer_failed'
             : vermeerReady !== true ? 'vermeer_unconfirmed'
@@ -497,7 +499,7 @@ const GraphResult = props => {
                     {t('analysis.algorithm.retry_compute_status')}
                 </Button>}
             </div>}
-            <GraphMenuBar
+            {!isOlapPreview && <GraphMenuBar
                 layout={layoutSettings}
                 defaultLayout={defaultLayout}
                 startId={options?.startId}
@@ -515,11 +517,11 @@ const GraphResult = props => {
                 handleClickNewAddEdge={handleClickNewAddEdge}
                 showCanvasInfo={showCanvasInfo}
                 graphRenderMode={graphRenderMode}
-            />
+            />}
             <div className={showRecoveryRow ? c.recoveryResult : undefined}>
                 {renderMainContent()}
             </div>
-            {!(isOlap && !isQueryMode && Number(asyncTaskId) < 0 && queryStatus === SUCCESS) && <NumberCard
+            {!isOlapPreview && <NumberCard
                 hasPadding={panelType !== CLOSED}
                 data={{
                     currentGraphNodesNum: graphData.nodes.length,
