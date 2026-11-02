@@ -26,6 +26,7 @@ import c from './index.module.scss';
 
 const PAGE_SIZE = 30;
 const MAX_POINTS = 300;
+const PREVIEW_LAYOUT = {type: 'grid', options: {nodeSize: 54, nodeSpacing: 36}};
 const valueText = value => typeof value === 'string' ? value : JSON.stringify(value ?? null);
 const compact = (value, max) => value.length > max ? `${value.slice(0, max - 1)}…` : value;
 
@@ -148,7 +149,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             if (size === previous) return;
             previous = size;
             clearTimeout(timer);
-            timer = setTimeout(() => { void canvasController.fitView().catch(() => {}); }, 150);
+            timer = setTimeout(() => { void canvasController.setLayout(PREVIEW_LAYOUT).catch(() => {}); }, 150);
         });
         observer.observe(host);
         return () => { clearTimeout(timer); observer.disconnect(); };
@@ -160,7 +161,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             properties: {result: valueText(item.Value)}})), edges: state.edges || []});
         return {...adapted, nodes: adapted.nodes.map((node, index) => ({...node,
             style: {...node.style, size: 42, labelFontSize: 12,
-                labelText: `${compact(String(vertices[index].ID), 16)}\n${compact(valueText(vertices[index].Value), 14)}`},
+                labelText: `${compact(String(vertices[index].ID), 10)}\n${compact(valueText(vertices[index].Value), 10)}`},
         })), edges: adapted.edges.map(edge => ({...edge, style: {...edge.style, labelText: ''}}))};
     }, [vertices, state.edges]);
     const columns = [{title: t('analysis.algorithm.preview_id'), dataIndex: 'ID', render: value => String(value)},
@@ -207,7 +208,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             {vertices.length === 0 ? <Empty description={t('analysis.algorithm.preview_empty')} /> : mode === 'graph'
                 ? <div ref={canvasHost} className={c.canvas} aria-label={t('analysis.algorithm.preview_graph')}>
                     <GraphCanvas data={graphData} datasetKey={`${vertices.length}-${state.edges?.length || 0}`}
-                        preset='preview' onReady={setCanvasController} layout={{type: 'grid', options: {nodeSize: 54, nodeSpacing: 36}}}
+                        preset='preview' onReady={setCanvasController} layout={PREVIEW_LAYOUT}
                         style={{height: '100%'}} />
                 </div> : mode === 'table'
                     ? <Table size='small' pagination={false} columns={columns} dataSource={vertices}

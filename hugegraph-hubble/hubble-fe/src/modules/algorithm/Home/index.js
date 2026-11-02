@@ -154,6 +154,18 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         [CLOSED, STANDBY]
     );
 
+    const previousEngine = useRef(engine);
+    useLayoutEffect(() => {
+        if (previousEngine.current === engine) return;
+        previousEngine.current = engine;
+        // An OLAP submission belongs to its own view, not the newly selected engine.
+        algorithmRequest.current = null;
+        setAlgorithmMode();
+        setAsyncTaskResult();
+        setAlgorithmOnCanvas();
+        initQueryResult();
+    }, [engine, initQueryResult]);
+
     const getMetaData = useCallback(
         async () => {
             if (graphNumsOwner.current !== graphNumsScope || !graphSpace || !graph) return;

@@ -595,3 +595,19 @@ it.each(['graph', 'identity'])('does not revive cached Computer capability when 
     expect(computeStatus()).toBe('unavailable');
     expect(api.analysis.getOlapCapability).toHaveBeenCalledTimes(3);
 });
+
+it('clears old OLAP submission and ignores late completion when switching engines', async () => {
+    const view = render(computeHome({engine: 'olap', isVermeer: true}));
+    await screen.findByText('algorithm forms edges 0');
+    let complete;
+    await act(async () => { complete = startAlgorithm('Olap'); });
+    await act(async () => { complete(GRAPH_STATUS.SUCCESS, -24); });
+    expect(algorithmResult().asyncTaskId).toBe(-24);
+    view.rerender(computeHome({engine: 'oltp', isVermeer: true}));
+    expect(algorithmResult().asyncTaskId).toBeUndefined();
+    expect(algorithmResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
+    await act(async () => { complete(GRAPH_STATUS.SUCCESS, -24); });
+    expect(algorithmResult().asyncTaskId).toBeUndefined();
+    view.rerender(computeHome({engine: 'olap', isVermeer: true}));
+    expect(algorithmResult().asyncTaskId).toBeUndefined();
+});

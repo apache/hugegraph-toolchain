@@ -24,7 +24,7 @@ jest.mock('../../../../api', () => ({analysis: {
     fetchOlapPreviewEdges: jest.fn(),
 }}));
 jest.mock('react-router-dom', () => ({Link: ({children}) => <span>{children}</span>}));
-const mockController = {fitView: jest.fn().mockResolvedValue(undefined)};
+const mockController = {setLayout: jest.fn().mockResolvedValue(undefined)};
 jest.mock('../../../../visualization/react', () => ({GraphCanvas: ({data, onReady}) => {
     const React = require('react');
     React.useEffect(() => { onReady?.(mockController); return () => onReady?.(null); }, [onReady]);
@@ -34,7 +34,7 @@ jest.mock('../../../../visualization/react', () => ({GraphCanvas: ({data, onRead
 
 beforeEach(() => {
     jest.resetAllMocks();
-    mockController.fitView.mockResolvedValue(undefined);
+    mockController.setLayout.mockResolvedValue(undefined);
     api.analysis.fetchManageTaskById.mockResolvedValue({status: 200, data: [{id: -7, task_status: 'success'}]});
 });
 
@@ -134,13 +134,13 @@ test('refits only on a changed host size and cancels pending work on unmount', a
     jest.useFakeTimers();
     try {
         act(() => { emit([{contentRect: {width: 900, height: 300}}]); jest.advanceTimersByTime(150); });
-        expect(mockController.fitView).toHaveBeenCalledTimes(1);
+        expect(mockController.setLayout).toHaveBeenCalledTimes(1);
         act(() => { emit([{contentRect: {width: 900, height: 300}}]); jest.advanceTimersByTime(150); });
-        expect(mockController.fitView).toHaveBeenCalledTimes(1);
+        expect(mockController.setLayout).toHaveBeenCalledTimes(1);
         act(() => { emit([{contentRect: {width: 500, height: 300}}]); });
         view.unmount();
         act(() => { jest.advanceTimersByTime(150); });
-        expect(mockController.fitView).toHaveBeenCalledTimes(1);
+        expect(mockController.setLayout).toHaveBeenCalledTimes(1);
         expect(disconnect).toHaveBeenCalled();
     } finally {
         jest.useRealTimers();
