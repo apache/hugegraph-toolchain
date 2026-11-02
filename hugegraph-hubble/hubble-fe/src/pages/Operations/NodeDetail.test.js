@@ -17,6 +17,7 @@
  */
 
 import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
+import JSONbig from 'json-bigint';
 import {MemoryRouter, Route, Routes, useNavigate} from 'react-router-dom';
 import NodeDetail from './NodeDetail';
 import {getNode} from '../../api/operations';
@@ -109,9 +110,9 @@ test('focuses standalone Server details on applicable sources and metric cards',
     const system = screen.getByRole('heading', {name: 'System'}).closest('section');
     const heap = within(system).getByRole('progressbar', {name: 'Heap memory usage'});
     expect(heap).toHaveAttribute('aria-valuenow', '50');
-    expect(within(system).getByText(/512 MiB \/ 1 GiB/)).toBeInTheDocument();
-    expect(within(system).getByText(/256 MiB \/ Unavailable/)).toBeInTheDocument();
-    expect(within(system).getByText(/Committed:.*768 MiB/)).toBeInTheDocument();
+    expect(within(system).getByText(/536.9 MB \/ 1.1 GB/)).toBeInTheDocument();
+    expect(within(system).getByText(/268.4 MB \/ Unavailable/)).toBeInTheDocument();
+    expect(within(system).getByText(/Committed:.*805.3 MB/)).toBeInTheDocument();
     expect(within(system).queryByText(/NaN|Infinity/)).not.toBeInTheDocument();
 
     const runtime = within(system).getByRole('group', {name: 'CPU and runtime'});
@@ -150,6 +151,35 @@ const response = {
         },
     },
 };
+
+test('formats large legacy binary memory values without losing bigint precision', async () => {
+    const values = JSONbig.parse('{"used":9007199254740993,"max":9007199254740993}');
+    getNode.mockResolvedValue({
+        node: {id: 'server-safe', name: 'Server A', type: 'SERVER', status: 'UP',
+            metrics: {system: {heap: values}},
+            metric_statuses: {system: {availability: 'AVAILABLE'}}},
+        sources: {}, observed_at: 1000,
+    });
+    renderDetail();
+    await screen.findByRole('heading', {name: 'Server A'});
+    expect(screen.getByText('9,444.7 EB / 9,444.7 EB')).toBeInTheDocument();
+});
+
+test('calculates large capacity without first coercing bigint values', async () => {
+    const backend = JSONbig.parse(
+        '{"capacity_bytes":9007199254740993,"available_bytes":4503599627370496}'
+    );
+    getNode.mockResolvedValue({
+        node: {id: 'store-1', name: 'Store A', type: 'STORE', status: 'UP',
+            metrics: {backend}, metric_statuses: {backend: {availability: 'AVAILABLE'}}},
+        sources: {}, observed_at: 1000,
+    });
+    renderDetail();
+    await screen.findByRole('heading', {name: 'Store A'});
+    expect(screen.getByText(/4.5 PB \/ 9 PB/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', {name: 'Capacity usage'}))
+        .toHaveAttribute('aria-valuenow', '50');
+});
 
 function renderDetail() {
     return render(
@@ -645,10 +675,10 @@ test('presents native metric labels, units and capacity instead of raw keys', as
     expect(capacity.some(item => item.getAttribute('aria-valuenow') === '98')).toBe(true);
     expect(screen.getByText('75%')).toBeInTheDocument();
     expect(screen.getByText('98%')).toBeInTheDocument();
-    expect(screen.getByText(/222.6 GiB \/ 228.3 GiB/)).toBeInTheDocument();
+    expect(screen.getByText(/239 GB \/ 245.1 GB/)).toBeInTheDocument();
     const drive = screen.getByRole('heading', {name: 'Drive'}).closest('section');
     expect(within(drive).getByText('Available space')).toBeInTheDocument();
-    expect(within(drive).getByText('5.7 GiB')).toBeInTheDocument();
+    expect(within(drive).getByText('6.1 GB')).toBeInTheDocument();
     expect(within(drive).queryByText('Free space')).not.toBeInTheDocument();
     expect(within(drive).queryByText('Space unit')).not.toBeInTheDocument();
     expect(within(drive).getByText('Available space')
