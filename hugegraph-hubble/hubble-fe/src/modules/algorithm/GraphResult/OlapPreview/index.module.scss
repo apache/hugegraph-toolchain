@@ -1,4 +1,5 @@
-.preview { padding: 16px; overflow: auto; height: 100%; }
-.preview > * { margin-bottom: 12px; }
-.canvas { height: 420px; min-width: 0; }
-.json { max-height: 440px; overflow: auto; white-space: pre-wrap; }
+.preview { box-sizing: border-box; height: var(--analysis-result-height, calc(100vh - 40px));
+  min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; overflow: auto; }
+.header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.canvas { flex: 1 0 220px; min-height: 220px; min-width: 0; border: 1px solid #edf0f5; }
+.json { flex: 1 1 auto; min-height: 180px; overflow: auto; white-space: pre-wrap; }

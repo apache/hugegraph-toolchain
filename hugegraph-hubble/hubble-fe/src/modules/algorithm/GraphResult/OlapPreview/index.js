@@ -19,7 +19,7 @@ import {useEffect, useMemo, useRef, useState} from 'react';
 import {Alert, Button, Empty, Segmented, Spin, Table} from 'antd';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../../api';
-import TaskNavigateView from '../../../component/TaskNavigateView';
+import {Link} from 'react-router-dom';
 import {GraphCanvas} from '../../../../visualization/react';
 import {adaptHubbleGraph} from '../../../../visualization/hubble/adapter';
 import c from './index.module.scss';
@@ -27,6 +27,7 @@ import c from './index.module.scss';
 const PAGE_SIZE = 30;
 const MAX_POINTS = 300;
 const valueText = value => typeof value === 'string' ? value : JSON.stringify(value ?? null);
+const compact = (value, max) => value.length > max ? `${value.slice(0, max - 1)}…` : value;
 
 // A result is an ID/value pair, not a graph vertex or an edge. Keep this view
 // read-only and do not feed synthetic elements into the editable graph canvas.
@@ -136,13 +137,20 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
         const adapted = adaptHubbleGraph({vertices: vertices.map(item => ({id: String(item.ID),
             properties: {result: valueText(item.Value)}})), edges: state.edges || []});
         return {...adapted, nodes: adapted.nodes.map((node, index) => ({...node,
-            style: {...node.style, labelText: `${String(vertices[index].ID)}: ${valueText(vertices[index].Value)}`},
+            style: {...node.style, size: 42, labelFontSize: 12,
+                labelText: `${compact(String(vertices[index].ID), 16)}\n${compact(valueText(vertices[index].Value), 14)}`},
         })), edges: adapted.edges.map(edge => ({...edge, style: {...edge.style, labelText: ''}}))};
     }, [vertices, state.edges]);
     const columns = [{title: t('analysis.algorithm.preview_id'), dataIndex: 'ID', render: value => String(value)},
         {title: t('analysis.algorithm.preview_value'), dataIndex: 'Value', render: valueText}];
     return <div className={c.preview}>
-        <TaskNavigateView taskId={taskId} />
+        <div className={c.header}>
+            <strong>{t('analysis.algorithm.preview_title')}</strong>
+            <Link to={`/asyncTasks/${encodeURIComponent(graphSpace)}/${encodeURIComponent(graph)}`
+                + `?taskId=${encodeURIComponent(taskId)}&submitted=1`}>
+                {t('analysis.algorithm.preview_task_detail')}
+            </Link>
+        </div>
         {state.phase === 'waiting' && <Spin description={t('analysis.algorithm.preview_running')} />}
         {state.phase === 'loading' && <Spin description={t('analysis.algorithm.preview_loading')} />}
         {['status_error', 'not_found'].includes(state.phase) && <Alert type='warning' showIcon
@@ -177,7 +185,8 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             {vertices.length === 0 ? <Empty description={t('analysis.algorithm.preview_empty')} /> : mode === 'graph'
                 ? <div className={c.canvas} aria-label={t('analysis.algorithm.preview_graph')}>
                     <GraphCanvas data={graphData} datasetKey={`${vertices.length}-${state.edges?.length || 0}`}
-                        preset='preview' style={{height: '100%'}} />
+                        preset='preview' layout={{type: 'grid', options: {nodeSize: 54, nodeSpacing: 36}}}
+                        style={{height: '100%'}} />
                 </div> : mode === 'table'
                     ? <Table size='small' pagination={false} columns={columns} dataSource={vertices}
                         rowKey={item => String(item.ID)} />
