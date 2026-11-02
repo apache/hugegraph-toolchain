@@ -70,6 +70,7 @@ jest.mock('../RankApiView', () => () => null);
 jest.mock('../JaccView', () => () => null);
 jest.mock('../../../component/GraphStatusView', () => props => <div>{props.message}</div>);
 jest.mock('../../../component/TaskNavigateView', () => () => null);
+jest.mock('../OlapPreview', () => () => null);
 jest.mock('../../../component/Canvas3D', () => ({onExit, children}) => (
     <><button onClick={onExit}>Return to 2D</button>{children}</>
 ));

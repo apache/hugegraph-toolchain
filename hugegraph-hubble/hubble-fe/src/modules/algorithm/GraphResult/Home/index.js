@@ -45,6 +45,7 @@ import RankApiView from '../RankApiView';
 import JaccView from '../JaccView';
 import GraphStatusView from '../../../component/GraphStatusView';
 import TaskNavigateView from '../../../component/TaskNavigateView';
+import OlapPreview from '../OlapPreview';
 import Canvas3D from '../../../component/Canvas3D';
 import {
     GRAPH_STATUS, GRAPH_LOAD_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE, ALGORITHM_NAME,
@@ -439,6 +440,10 @@ const GraphResult = props => {
         }
         if (queryStatus === SUCCESS) {
             if (!isQueryMode) {
+                if (isVermeer && Number(asyncTaskId) < 0) {
+                    return <OlapPreview key={JSON.stringify([graphSpace, graph, asyncTaskId])}
+                        graphSpace={graphSpace} graph={graph} taskId={asyncTaskId} />;
+                }
                 return (
                     <TaskNavigateView
                         message={t('analysis.algorithm.task_submit_success', {
@@ -514,7 +519,7 @@ const GraphResult = props => {
             <div className={showRecoveryRow ? c.recoveryResult : undefined}>
                 {renderMainContent()}
             </div>
-            <NumberCard
+            {!(isOlap && !isQueryMode && Number(asyncTaskId) < 0 && queryStatus === SUCCESS) && <NumberCard
                 hasPadding={panelType !== CLOSED}
                 data={{
                     currentGraphNodesNum: graphData.nodes.length,
@@ -524,7 +529,7 @@ const GraphResult = props => {
                     approximate: graphNums?.approximate,
                     scan_limit: graphNums?.scan_limit,
                 }}
-            />
+            />}
         </div>
     );
 };

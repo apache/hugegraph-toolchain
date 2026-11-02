@@ -1,0 +1,4 @@
+.preview { padding: 16px; overflow: auto; height: 100%; }
+.preview > * { margin-bottom: 12px; }
+.canvas { height: 420px; min-width: 0; }
+.json { max-height: 440px; overflow: auto; white-space: pre-wrap; }
