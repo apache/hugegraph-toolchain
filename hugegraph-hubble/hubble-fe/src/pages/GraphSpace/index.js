@@ -204,6 +204,7 @@ const GraphSpace = () => {
             title: t('graphspace.col.description'),
             dataIndex: 'description',
             ellipsis: true,
+            render: val => val == null || val === '' ? '--' : val,
         },
         {
             title: t('graphspace.col.graph_service'),
@@ -214,7 +215,7 @@ const GraphSpace = () => {
                 formatResourceLimit(row.memory_limit,
                     t('graphspace.unit.memory'), t('graphspace.unit.unlimited')),
                 row.oltp_namespace,
-            ].join('/'),
+            ].filter(value => value != null && value !== '').join(' / '),
             ellipsis: true,
         },
         {
@@ -224,7 +225,7 @@ const GraphSpace = () => {
                 formatComputeLimit(row.compute_cpu_limit, row.cpu_limit, t('graphspace.unit.cpu'), t),
                 formatComputeLimit(row.compute_memory_limit, row.memory_limit, t('graphspace.unit.memory'), t),
                 row.olap_namespace,
-            ].join('/'),
+            ].filter(value => value != null && value !== '').join(' / '),
             ellipsis: true,
         },
         {
