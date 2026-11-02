@@ -62,7 +62,7 @@ public class Text2GqlSettingsService {
     public Map<String, Object> availability() {
         try {
             Snapshot current = this.current();
-            if (!current.configuration.isEnabled()) {
+            if (!configured(current.configuration)) {
                 return Map.of("available", false, "reason", "not_configured");
             }
             Text2GqlRequest resolved = this.connection(current, "");
@@ -80,7 +80,7 @@ public class Text2GqlSettingsService {
         }
         Text2GqlPrompts.validate(request.getPrompt());
         Snapshot current = this.current();
-        if (!current.configuration.isEnabled()) {
+        if (!configured(current.configuration)) {
             throw new ExternalException(503, "text2gql.shared.not-configured");
         }
         if (request.getLanguage() == null) {
@@ -221,6 +221,11 @@ public class Text2GqlSettingsService {
     private static Map<String, String> prompts(Text2GqlConfiguration configuration) {
         return Map.of("gremlin", prompt(configuration, QueryLanguage.GREMLIN),
                       "cypher", prompt(configuration, QueryLanguage.CYPHER));
+    }
+
+    private static boolean configured(Text2GqlConfiguration configuration) {
+        return configuration.isEnabled() && hasText(configuration.getBaseUrl()) &&
+               hasText(configuration.getModel());
     }
 
     private static String prompt(Text2GqlConfiguration configuration, QueryLanguage language) {

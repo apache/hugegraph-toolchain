@@ -81,6 +81,23 @@ public class Text2GqlSettingsServiceTest {
     }
 
     @Test
+    public void testDefaultEnabledWithoutModelAndExplicitDisable() {
+        assertTrue(HubbleOptions.TEXT2GQL_SHARED_ENABLED.defaultValue());
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_ENABLED)).thenReturn(true);
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_BASE_URL)).thenReturn("");
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_MODEL)).thenReturn("");
+        assertEquals(true, this.service.settings().get("enabled"));
+        assertEquals(Map.of("available", false, "reason", "not_configured"),
+                     this.service.availability());
+        Text2GqlSettingsRequest disabled = settings("ollama", "");
+        disabled.setEnabled(false);
+        this.service.save(disabled);
+        assertEquals(false, this.service.settings().get("enabled"));
+        assertEquals(Map.of("available", false, "reason", "not_configured"),
+                     this.service.availability());
+    }
+
+    @Test
     public void testManagedKeyIsEncryptedAndDescriptorsDoNotRevealSecrets() throws Exception {
         assertFalse(Files.exists(this.masterFile));
         assertEquals("deployment", this.service.settings().get("source"));
