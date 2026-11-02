@@ -721,6 +721,8 @@
         },
         "cluster_coefficient": {
           "desc": "Clustering coefficient computes the local clustering coefficient for each vertex. Global clustering coefficient is not available yet",
+          "max_step": "Maximum iterations (at least 2); default 10",
+          "min_step": "Clustering coefficient requires at least 2 iterations",
           "minimum_edges_use_superedge_cache": "Use memory to reduce message volume. If memory is insufficient, change 100 to 1000, but the clustering coefficient job may not complete"
         },
         "degree_centrality": {
@@ -800,6 +802,7 @@
           "RESOURCE_ALLOCATION": "Resource Allocation",
           "SAME_NEIGHBORS_BATCH": "Same Neighbors Batch",
           "EGONET": "Egonet",
+          "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
           "SSSP": "SSSP (Single Source Shortest Path)"
         },
         "legacy_item_alias": {
@@ -822,6 +825,10 @@
         },
         "ring_detection": {
           "desc": "Rings Detection detects rings in the graph. Each ring path is recorded by the vertex with the smallest ID in the ring"
+        },
+        "strongly_connected_component": {
+          "desc": "Strongly connected components group vertices that are mutually reachable in a directed graph. Reaching the iteration limit can stop computation before convergence.",
+          "max_step": "Maximum iterations; reaching the limit may leave the result unconverged."
         },
         "SSSPVermeer": {
           "desc": "Single Source Shortest Path computes the shortest distance from one vertex to all other vertices"

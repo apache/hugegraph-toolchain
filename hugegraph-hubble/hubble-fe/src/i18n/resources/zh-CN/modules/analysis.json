@@ -721,6 +721,8 @@
         },
         "cluster_coefficient": {
           "desc": "聚集系数，计算每个点局部的聚集系数, 暂时未提供全局聚集系数",
+          "max_step": "最大迭代次数（至少 2），默认为 10",
+          "min_step": "聚集系数至少需要 2 次迭代",
           "minimum_edges_use_superedge_cache": "利用内存减少消息量，如果内存不够，可以从100改成1000，但聚集系数可能计算不完"
         },
         "degree_centrality": {
@@ -800,6 +802,7 @@
           "RESOURCE_ALLOCATION": "Resource Allocation",
           "SAME_NEIGHBORS_BATCH": "Same Neighbors Batch",
           "EGONET": "Egonet",
+          "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
           "SSSP": "SSSP（单源最短路径）"
         },
         "legacy_item_alias": {
@@ -822,6 +825,10 @@
         },
         "ring_detection": {
           "desc": "环路检测算法（Rings Detection），用于检测图中的环路，环路的路径由环路中最小id的顶点来记录"
+        },
+        "strongly_connected_component": {
+          "desc": "强连通分量将有向图中互相可达的顶点归为同一分量。达到最大迭代次数时任务可能提前结束，请检查结果是否收敛。",
+          "max_step": "最大迭代次数；达到上限时可能尚未收敛。"
         },
         "SSSPVermeer": {
           "desc": "单源最短路径算法，求一个点到其他所有点的最短距离"

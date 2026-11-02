@@ -36,6 +36,7 @@ import RingsDetection from '../RingsDetection';
 import FilteredRingsDetection from '../FilteredRingsDetection';
 import Links from '../Links';
 import ClusterCoefficient from '../ClusterCoefficient';
+import SimpleVermeerAlgorithm from '../SimpleVermeerAlgorithm';
 import BetweennessCentrality from '../BetweennessCentrality';
 import BetweennessCentralityVermeer from '../BetweennessCentralityVermeer';
 import LabelPropagationAlgorithm from '../LabelPropagationAlgorithm';
@@ -61,6 +62,7 @@ const OlapItem = props => {
     const {
         PAGE_RANK,
         WEAKLY_CONNECTED_COMPONENT,
+        STRONGLY_CONNECTED_COMPONENT,
         DEGREE_CENTRALIT,
         CLOSENESS_CENTRALITY,
         TRIANGLE_COUNT,
@@ -102,6 +104,8 @@ const OlapItem = props => {
                         ? (<WeaklyConnectedComponentVermeer {...args} />)
                         : (<WeaklyConnectedComponent {...args} />)
                 );
+            case STRONGLY_CONNECTED_COMPONENT:
+                return isVermeer ? <SimpleVermeerAlgorithm {...args} kind="scc" /> : null;
             case DEGREE_CENTRALIT:
                 return (
                     isVermeer
@@ -127,7 +131,8 @@ const OlapItem = props => {
             case LINKS:
                 return <Links {...args} />;
             case CLUSTER_COEFFICIENT:
-                return <ClusterCoefficient {...args} />;
+                return isVermeer ? <SimpleVermeerAlgorithm {...args} kind="clustering_coefficient" />
+                    : <ClusterCoefficient {...args} />;
             case BETWEENNESS_CENTRALITY:
                 return (
                     isVermeer

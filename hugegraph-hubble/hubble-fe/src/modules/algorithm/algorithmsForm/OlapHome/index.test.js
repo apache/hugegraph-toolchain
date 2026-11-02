@@ -41,6 +41,7 @@ jest.mock('../../../../utils/constants', () => ({
         ALGORITHM_NAME: {
             PAGE_RANK: 'PageRank',
             WEAKLY_CONNECTED_COMPONENT: 'WCC',
+            STRONGLY_CONNECTED_COMPONENT: 'SCC',
             DEGREE_CENTRALIT: 'Degree',
             CLOSENESS_CENTRALITY: 'Closeness',
             TRIANGLE_COUNT: 'Triangle',
@@ -83,9 +84,11 @@ test.each([false, true])('does not expose either OLAP engine before confirmation
         .not.toBeInTheDocument();
     expect(screen.queryByTestId('olap-item')).not.toBeInTheDocument();
     view.rerender(home({isVermeer: true}));
-    expect(screen.getAllByTestId('olap-item')).toHaveLength(10);
+    expect(screen.getAllByTestId('olap-item')).toHaveLength(12);
     expect(screen.queryByText('Louvain')).not.toBeInTheDocument();
     expect(screen.getByText('SSSP')).toBeVisible();
+    expect(screen.getByText('SCC')).toBeVisible();
+    expect(screen.getByText('Cluster')).toBeVisible();
     expect(screen.getByText('PersonalPageRank')).toBeVisible();
     expect(api.analysis.getOlapCapability).not.toHaveBeenCalled();
 });

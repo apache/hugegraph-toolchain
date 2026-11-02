@@ -52,6 +52,7 @@ const OlapFormHome = props => {
     const {
         PAGE_RANK,
         WEAKLY_CONNECTED_COMPONENT,
+        STRONGLY_CONNECTED_COMPONENT,
         DEGREE_CENTRALIT,
         CLOSENESS_CENTRALITY,
         TRIANGLE_COUNT,
@@ -90,6 +91,8 @@ const OlapFormHome = props => {
         PAGE_RANK,
         PERSONAL_PAGE_RANK,
         WEAKLY_CONNECTED_COMPONENT,
+        STRONGLY_CONNECTED_COMPONENT,
+        CLUSTER_COEFFICIENT,
         LABEL_PROPAGATION_ALGORITHM,
         DEGREE_CENTRALIT,
         CLOSENESS_CENTRALITY,
@@ -123,7 +126,7 @@ const OlapFormHome = props => {
         },
         {
             key: 'communities',
-            items: [WEAKLY_CONNECTED_COMPONENT, LABEL_PROPAGATION_ALGORITHM,
+            items: [WEAKLY_CONNECTED_COMPONENT, STRONGLY_CONNECTED_COMPONENT, LABEL_PROPAGATION_ALGORITHM,
                 LOUVAIN, K_CORE],
         },
         {

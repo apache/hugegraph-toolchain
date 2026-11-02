@@ -199,6 +199,27 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
+    public void testSccAndClusteringCoefficientParameters() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
+               .thenReturn(Map.of("task", Map.of("id", 12)));
+        DirectVermeerService direct = service(backend);
+        direct.compute(graphClient(), Map.of("compute.algorithm", "scc", "compute.max_step", 200));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "clustering_coefficient"));
+        ArgumentCaptor<Map> body = ArgumentCaptor.forClass(Map.class);
+        Mockito.verify(backend, Mockito.times(2)).request(
+                Mockito.eq("POST"), Mockito.eq("tasks/create"), body.capture());
+        Map<?, ?> scc = (Map<?, ?>) body.getAllValues().get(0).get("params");
+        Map<?, ?> clustering = (Map<?, ?>) body.getAllValues().get(1).get("params");
+        Assert.assertEquals("scc", scc.get("compute.algorithm"));
+        Assert.assertEquals("200", scc.get("compute.max_step"));
+        Assert.assertEquals("clustering_coefficient", clustering.get("compute.algorithm"));
+        Assert.assertEquals("1", clustering.get("output.need_query"));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "scc", "output.type", "hugegraph")));
+    }
+
+    @Test
     public void testComputeReusesSafeOutputFilesPerGraph() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
