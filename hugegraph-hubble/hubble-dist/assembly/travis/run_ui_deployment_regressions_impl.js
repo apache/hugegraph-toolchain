@@ -831,7 +831,7 @@ async function main() {
                 assert.equal(await page.locator('.operations-vermeer-node').count(), 2);
                 assert.equal(await page.getByText('已采集 2 / 2 个节点', {exact: true}).count(), 2);
                 assert.deepEqual(await page.locator('.operations-vermeer-resource-fact strong').allTextContents(),
-                    ['0.54 核', '2.4 GiB']);
+                    ['0.54 核', '2.6 GB']);
                 await assertNoHorizontalOverflow(page);
                 await screenshot(page, `operations-mobile-compute-${width}`);
                 await page.getByRole('button', {name: '返回主集群', exact: true}).click();
