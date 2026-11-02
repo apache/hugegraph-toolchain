@@ -61,3 +61,9 @@ test('leaves standalone nodes without a probe uncluttered', () => {
     const {container} = render(<ReadinessStatus />);
     expect(container).toBeEmptyDOMElement();
 });
+
+test('explains direct peer readiness mapping without suggesting a Service address change', () => {
+    render(<ReadinessPanel readiness={{status: 'UNKNOWN', reason: 'readiness_peer_unmapped'}} />);
+    expect(screen.getByText(/did not match a trusted direct address/)).toBeVisible();
+    expect(screen.getByText(/member REST host matches pd.peers/)).toBeVisible();
+});

@@ -347,6 +347,20 @@ test('keeps a retained PD endpoint sample stale through a failed refresh and pen
     expect(within(sample).queryByText('Stale')).not.toBeInTheDocument();
 });
 
+test('shows uncollected PD metrics without claiming an unsupported version', async () => {
+    getNode.mockReset();
+    getNode.mockResolvedValue({...response, stale: false, node: {...response.node,
+        id: 'pd-safe', name: 'PD A', type: 'PD', metrics: {},
+        metric_statuses: {system: {availability: 'UNSUPPORTED', reason: 'metrics_not_collected'}}},
+    sources: {pd: {status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped'}}});
+    renderDetail();
+    await screen.findByRole('heading', {name: 'PD A'});
+    const system = screen.getByRole('heading', {name: 'System'}).closest('section');
+    expect(within(system).getByText('Not collected')).toBeVisible();
+    expect(within(system).getAllByText('This metric is not collected from the current node').length).toBeGreaterThan(0);
+    expect(within(system).queryByText('Unsupported by this service version')).not.toBeInTheDocument();
+});
+
 test('shows Store process lifecycle independently of readiness', async () => {
     getNode.mockResolvedValue({...response, stale: false, node: {...response.node,
         readiness: {status: 'NOT_READY', state: 'STARTING', stale: false},

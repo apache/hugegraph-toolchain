@@ -24,6 +24,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Set;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -401,6 +402,63 @@ public class OperationsPayloadParser {
             }
         }
         return matchedId;
+    }
+
+    Map<String, URI> trustedPdMetricTargets(String payload, String configuredBase,
+                                             String configuredPeers) {
+        Map<String, URI> result = new LinkedHashMap<>();
+        String base = canonicalPdEndpoint(configuredBase, null);
+        if (base == null || configuredPeers == null) {
+            return result;
+        }
+        URI baseUri = URI.create(base);
+        Set<String> peers = new java.util.HashSet<>();
+        for (String peer : configuredPeers.split(",")) {
+            try {
+                URI uri = URI.create("http://" + peer.trim());
+                OperationsHttpClient.validateTarget(uri, Collections.emptySet());
+                if (uri.getRawQuery() == null && (uri.getRawPath() == null ||
+                                                  uri.getRawPath().isEmpty())) {
+                    peers.add(uri.getHost().toLowerCase(java.util.Locale.ROOT));
+                }
+            } catch (IllegalArgumentException ignored) {
+                // Invalid peer entries are never used as trust anchors.
+            }
+        }
+        // Bound optional probes independently of the upstream topology size.
+        if (peers.isEmpty() || peers.size() > 32) {
+            return result;
+        }
+        Map<URI, String> owners = new LinkedHashMap<>();
+        Set<URI> ambiguous = new java.util.HashSet<>();
+        for (JsonNode member : this.pdMembers(payload)) {
+            String endpoint = canonicalPdEndpoint(this.text(member, "restUrl"), baseUri.getScheme());
+            String id = this.pdId(member);
+            if (id == null || endpoint == null) {
+                continue;
+            }
+            URI uri = URI.create(endpoint);
+            if (peers.contains(uri.getHost().toLowerCase(java.util.Locale.ROOT)) &&
+                uri.getScheme().equalsIgnoreCase(baseUri.getScheme()) &&
+                effectivePort(uri) == effectivePort(baseUri) &&
+                uri.getRawPath().equals(baseUri.getRawPath())) {
+                String previous = owners.putIfAbsent(uri, id);
+                if (previous != null && !previous.equals(id)) {
+                    ambiguous.add(uri);
+                }
+                result.put(id, uri);
+            }
+        }
+        result.values().removeIf(ambiguous::contains);
+        if (result.size() > 32) {
+            result.clear();
+        }
+        return result;
+    }
+
+    private static int effectivePort(URI uri) {
+        return uri.getPort() >= 0 ? uri.getPort() :
+               "https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80;
     }
 
     Map<String, Object> pdMetricMappingDiagnostics(String clusterPayload, String configuredBase) {

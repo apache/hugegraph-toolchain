@@ -345,14 +345,17 @@ const MetricGroup = ({group, name, values, status = {}, emptyMessage}) => {
         !HIDDEN_METRIC_KEYS[group]?.has(key)
     );
     const availability = status.availability ?? 'UNSUPPORTED';
-    const emptyState = EMPTY_STATE_BY_AVAILABILITY[availability] ?? 'unavailable';
+    const notCollected = status.reason === 'metrics_not_collected';
+    const emptyState = notCollected ? 'reason_metrics_not_collected'
+        : EMPTY_STATE_BY_AVAILABILITY[availability] ?? 'unavailable';
     const showLastSuccess = status.last_success_at != null
         && (status.stale || status.observed_at == null);
     const displayedAt = showLastSuccess ? status.last_success_at : status.observed_at;
     const displayedTime = displayedAt == null ? null : formatObservedAt(
         displayedAt, i18n.language, t('operations.unavailable')
     );
-    const availabilityLabel = t(`operations.availability_${availability.toLowerCase()}`, {
+    const availabilityLabel = t(notCollected ? 'operations.metrics_not_collected'
+        : `operations.availability_${availability.toLowerCase()}`, {
         defaultValue: availability,
     });
     const reasonLabel = status.reason ? t(`operations.reason_${status.reason}`, {

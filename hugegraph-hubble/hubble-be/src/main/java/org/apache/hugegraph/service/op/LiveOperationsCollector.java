@@ -85,6 +85,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private final int storeDeadlineMillis;
     private final Set<String> storeAllowedTargets;
     private final ServerClientProvider serverClients;
+    private String pdPeers = "";
 
     @Autowired
     public LiveOperationsCollector(HugeConfig config, ObjectMapper mapper,
@@ -107,7 +108,22 @@ public class LiveOperationsCollector implements OperationsCollector {
              config.get(HubbleOptions.OPERATIONS_STORE_DEADLINE),
              new java.util.LinkedHashSet<>(config.get(
                      HubbleOptions.OPERATIONS_STORE_ALLOWED_TARGETS)),
-             serverClients(clientPool));
+             serverClients(clientPool), config.get(HubbleOptions.OPERATIONS_PD_DIRECT_PEERS) ?
+                                        config.get(HubbleOptions.PD_PEERS) : "");
+    }
+
+    LiveOperationsCollector(boolean pdEnabled, String pdBase,
+                            String pdUsername, String pdPassword,
+                            String storeUsername, String storePassword,
+                            String serverIdentity, OperationsHttpClient http,
+                            OperationsPayloadParser parser, Clock clock,
+                            int storeThreads, int storeDeadlineMillis,
+                            Set<String> storeAllowedTargets,
+                            ServerClientProvider serverClients, String pdPeers) {
+        this(pdEnabled, pdBase, pdUsername, pdPassword, storeUsername, storePassword,
+             serverIdentity, http, parser, clock, storeThreads, storeDeadlineMillis,
+             storeAllowedTargets, serverClients);
+        this.pdPeers = pdPeers;
     }
 
     LiveOperationsCollector(boolean pdEnabled, String pdBase,
@@ -538,6 +554,11 @@ public class LiveOperationsCollector implements OperationsCollector {
     }
 
     private void collectPdReadiness(long now, List<Node> nodes, String cluster) {
+        Map<String, URI> trusted = this.parser.trustedPdMetricTargets(cluster, this.pdBase, this.pdPeers);
+        if (this.pdPeers != null && !this.pdPeers.trim().isEmpty()) {
+            this.collectTrustedPdReadiness(now, nodes, trusted);
+            return;
+        }
         int selected = this.pdNodeIndex(nodes, cluster);
         Readiness observed = selected < 0 ? null : this.probeReadiness(
                 "PD", URI.create(this.pdBase + "/v1/ready"),
@@ -550,6 +571,54 @@ public class LiveOperationsCollector implements OperationsCollector {
                                         selected < 0 ? "readiness_target_unmapped" :
                                         "readiness_not_probed", false, Collections.emptyMap())));
             }
+        }
+    }
+
+    private void collectTrustedPdReadiness(long now, List<Node> nodes, Map<String, URI> trusted) {
+        Map<Integer, Future<Readiness>> futures = new LinkedHashMap<>();
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.storeDeadlineMillis);
+        for (int i = 0; i < nodes.size(); i++) {
+            Node node = nodes.get(i);
+            URI base = trusted.get(node.getId());
+            if (!"PD".equals(node.getType()) || base == null) {
+                continue;
+            }
+            URI target = URI.create(base + "/v1/ready");
+            futures.put(i, this.readinessExecutor.submit(() -> this.probeReadiness(
+                    "PD", target, this.pdUsername, this.pdPassword,
+                    Set.of(OperationsHttpClient.origin(base)), now)));
+        }
+        try {
+            for (int i = 0; i < nodes.size(); i++) {
+                Node node = nodes.get(i);
+                if (!"PD".equals(node.getType())) {
+                    continue;
+                }
+                Future<Readiness> future = futures.get(i);
+                Readiness observed;
+                if (future == null) {
+                    observed = new Readiness("UNKNOWN", null, null, "readiness_peer_unmapped",
+                                             false, Collections.emptyMap());
+                } else {
+                    try {
+                        long remaining = Math.max(0, deadline - System.nanoTime());
+                        observed = future.get(remaining, TimeUnit.NANOSECONDS);
+                    } catch (TimeoutException | CancellationException e) {
+                        observed = new Readiness("UNKNOWN", now, null, "upstream_timeout",
+                                                 false, Collections.emptyMap());
+                    } catch (ExecutionException e) {
+                        observed = new Readiness("UNKNOWN", now, null, "upstream_unavailable",
+                                                 false, Collections.emptyMap());
+                    } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                        observed = new Readiness("UNKNOWN", now, null, "upstream_timeout",
+                                                 false, Collections.emptyMap());
+                    }
+                }
+                nodes.set(i, node.withReadiness(observed));
+            }
+        } finally {
+            futures.values().forEach(future -> future.cancel(true));
         }
     }
 
@@ -647,6 +716,10 @@ public class LiveOperationsCollector implements OperationsCollector {
 
     private SourceStatus collectPdMetrics(long now, SourceStatus status,
                                           List<Node> nodes, String cluster) {
+        Map<String, URI> trusted = this.parser.trustedPdMetricTargets(cluster, this.pdBase, this.pdPeers);
+        if (!trusted.isEmpty()) {
+            return this.collectTrustedPdMetrics(now, status, nodes, trusted);
+        }
         int index = this.pdNodeIndex(nodes, cluster);
         if (index < 0) {
             for (int i = 0; i < nodes.size(); i++) {
@@ -726,6 +799,87 @@ public class LiveOperationsCollector implements OperationsCollector {
             return new SourceStatus("PARTIAL", status.getStatus(), now,
                                     status.getLastSuccessAt(), false, false,
                                     preferredReason(status, failureReason), selectedStatus.getDiagnostics());
+        }
+        return status;
+    }
+
+    private SourceStatus collectTrustedPdMetrics(long now, SourceStatus status,
+                                                  List<Node> nodes, Map<String, URI> trusted) {
+        Map<Integer, Future<Node>> futures = new LinkedHashMap<>();
+        long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.storeDeadlineMillis);
+        for (int i = 0; i < nodes.size(); i++) {
+            Node node = nodes.get(i);
+            URI base = trusted.get(node.getId());
+            if (!"PD".equals(node.getType()) || base == null) {
+                continue;
+            }
+            futures.put(i, this.storeExecutor.submit(() -> {
+                Map<String, Object> metrics = new LinkedHashMap<>(node.getMetrics());
+                Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
+                URI target = URI.create(base + "/actuator/prometheus");
+                try {
+                    metrics.put("system", this.parser.parsePdPrometheusMetrics(
+                            this.http.get(target, this.pdUsername, this.pdPassword,
+                                          Set.of(OperationsHttpClient.origin(base)), "text/plain")));
+                    statuses.put("system", availableMetric(now));
+                } catch (RuntimeException e) {
+                    statuses.put("system", metricStatus(e, now, true));
+                }
+                return copyNode(node, metrics, statuses);
+            }));
+        }
+        boolean partial = false;
+        try {
+            for (int i = 0; i < nodes.size(); i++) {
+                Node node = nodes.get(i);
+                if (!"PD".equals(node.getType())) {
+                    continue;
+                }
+                Future<Node> future = futures.get(i);
+                if (future == null) {
+                    Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
+                    statuses.put("system", unsupportedMetric(now, "metrics_not_collected"));
+                    nodes.set(i, copyNode(node, node.getMetrics(), statuses));
+                    partial = true;
+                    continue;
+                }
+                try {
+                    long remaining = Math.max(0, deadline - System.nanoTime());
+                    Node updated = future.get(remaining, TimeUnit.NANOSECONDS);
+                    nodes.set(i, updated);
+                    if (!"AVAILABLE".equals(updated.getMetricStatuses().get("system").getAvailability())) {
+                        partial = true;
+                    }
+                } catch (ExecutionException | TimeoutException | CancellationException e) {
+                    Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
+                    statuses.put("system", unavailableMetric(now, "pd_metrics_failed"));
+                    nodes.set(i, copyNode(node, node.getMetrics(), statuses));
+                    partial = true;
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
+                    statuses.put("system", unavailableMetric(now, "pd_metrics_failed"));
+                    nodes.set(i, copyNode(node, node.getMetrics(), statuses));
+                    partial = true;
+                }
+            }
+        } finally {
+            futures.values().forEach(future -> future.cancel(true));
+        }
+        if (partial) {
+            int affected = 0;
+            for (Node node : nodes) {
+                MetricStatus metric = node.getMetricStatuses().get("system");
+                if ("PD".equals(node.getType()) && metric != null &&
+                    !"AVAILABLE".equals(metric.getAvailability())) {
+                    affected++;
+                }
+            }
+            return new SourceStatus("PARTIAL", status.getStatus(), now, status.getLastSuccessAt(),
+                                    false, false, preferredReason(status, "pd_metrics_partial"))
+                    .withDiagnostics(Map.of("affected_node_count", affected,
+                                            "failed_metric_groups", List.of("system"),
+                                            "pd_peer_metrics", true));
         }
         return status;
     }
