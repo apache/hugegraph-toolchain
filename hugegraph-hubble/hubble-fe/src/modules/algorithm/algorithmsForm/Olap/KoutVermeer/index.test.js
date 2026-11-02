@@ -1,10 +1,10 @@
 /*
  * Licensed to the Apache Software Foundation (ASF) under one or more
- * contributor license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache License, Version 2.0
- * (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
+ * contributor license agreements. See the NOTICE file distributed with this
+ * work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
  *     http://www.apache.org/licenses/LICENSE-2.0
  *
@@ -50,6 +50,14 @@ test('K-out submits the configured source, direction, and bounded steps', async 
         'compute.max_step': 10, 'compute.parallel': 1,
     }));
     await waitFor(() => expect(completed).toHaveBeenCalledWith(GRAPH_STATUS.SUCCESS, -7, undefined));
+});
+
+test('K-out reports a rejected request as failed', async () => {
+    api.analysis.runOlapVermeer.mockRejectedValue(new Error('vermeer offline'));
+    const completed = renderForm(KoutVermeer, 'K-out (Vermeer)');
+    fireEvent.click(screen.getByRole('button', {name: 'K-out (Vermeer)'}));
+    await waitFor(() => expect(completed).toHaveBeenCalledWith(
+        GRAPH_STATUS.FAILED, '', 'vermeer offline'));
 });
 
 test('Jaccard requires a source before it can submit', async () => {

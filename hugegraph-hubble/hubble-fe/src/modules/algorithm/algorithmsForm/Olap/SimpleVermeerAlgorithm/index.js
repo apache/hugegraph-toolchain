@@ -84,15 +84,23 @@ const SimpleVermeerAlgorithm = props => {
             const complete = handleFormSubmit(LOADING);
             const formParams = {'compute.algorithm': kind, ...algorithmParams};
             const filteredParams = removeNilKeys(formParams);
-            const response =  await api.analysis.runOlapVermeer(graphSpace, graph, filteredParams);
-            const {data, status, message} = response || {};
-            if (status !== 200) {
-                complete(FAILED, '', message);
+            try {
+                const response = await api.analysis.runOlapVermeer(
+                    graphSpace, graph, filteredParams);
+                const {data, status, message} = response || {};
+                if (status !== 200) {
+                    complete(FAILED, '', message);
+                }
+                else {
+                    complete(SUCCESS, data?.task_id, message);
+                }
             }
-            else {
-                complete(SUCCESS, data?.task_id, message);
+            catch (error) {
+                complete(FAILED, '', error?.message);
             }
-            finishRequiring();
+            finally {
+                finishRequiring();
+            }
         },
         [graph, graphSpace, beginRequiring, handleFormSubmit, updateCurrentAlgorithm, kind, name]
     );
