@@ -57,6 +57,29 @@ public class AsyncTaskServiceTest {
     }
 
     @Test
+    public void testSearchByDisplayedIdFindsBothTaskSources() {
+        DirectVermeerService vermeer = Mockito.mock(DirectVermeerService.class);
+        ReflectionTestUtils.setField(this.service, "vermeer", vermeer);
+        Task server = task(7L, "query", "running");
+        Task compute = task(-7L, "pagerank", "running");
+        Mockito.when(this.tasks.list((String) null)).thenReturn(List.of(server));
+        Mockito.when(vermeer.configured()).thenReturn(true);
+        Mockito.when(vermeer.supported()).thenReturn(true);
+        Mockito.when(vermeer.tasks(this.client)).thenReturn(List.of(compute));
+
+        Assert.assertEquals(2, this.service.list(this.client, 1, 10, "7", "", "")
+                                         .getTotal());
+        Assert.assertEquals(1, this.service.list(this.client, 1, 10, "-7", "", "")
+                                         .getTotal());
+        Assert.assertEquals(List.of(server), this.service.list(
+                this.client, 1, 10, "Server #7", "", "").getRecords());
+        Assert.assertEquals(List.of(compute), this.service.list(
+                this.client, 1, 10, "Vermeer #7", "", "").getRecords());
+        Assert.assertTrue(this.service.list(this.client, 1, 10, "Vermeer #8", "", "")
+                                      .getRecords().isEmpty());
+    }
+
+    @Test
     public void testKeepsNumericNameMatchesAndAppliesStatusAfterIdLookup() {
         Task named = task(70001L, "query 80001", "failed");
         Task submitted = task(80001L, "g.V()", "running");

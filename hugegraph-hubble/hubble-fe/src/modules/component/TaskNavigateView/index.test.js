@@ -49,6 +49,14 @@ beforeEach(() => {
     useTranslation.mockReturnValue({t: translate(enAnalysis)});
 });
 
+it('displays the native Vermeer ID but navigates with its routing ID', async () => {
+    showTask({taskId: -7});
+    expect(screen.getByText('Vermeer #7')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: enAnalysis.analysis.canvas.task_navigation.view}));
+    expect(screen.getByRole('heading', {name: 'memory space / soc_graph / Task -7 / submitted=1'}))
+        .toBeInTheDocument();
+});
+
 it.each([['en-US', enAnalysis], ['zh-CN', zhAnalysis]])(
     'offers task progress navigation with a localized submission status (%s)', async (locale, resource) => {
         useTranslation.mockReturnValue({t: translate(resource)});
@@ -57,7 +65,7 @@ it.each([['en-US', enAnalysis], ['zh-CN', zhAnalysis]])(
         expect(screen.getByRole('status')).toHaveTextContent(labels.title);
         expect(screen.getByRole('status')).toHaveTextContent(labels.description);
         expect(screen.getByText(labels.task_id)).toBeInTheDocument();
-        expect(screen.getByText('1234567890')).toBeInTheDocument();
+        expect(screen.getByText('Server #1234567890')).toBeInTheDocument();
         await userEvent.click(screen.getByRole('button', {name: labels.view}));
         expect(screen.getByRole('heading', {name: 'memory space / soc_graph / Task 1234567890 / submitted=1'}))
             .toBeInTheDocument();

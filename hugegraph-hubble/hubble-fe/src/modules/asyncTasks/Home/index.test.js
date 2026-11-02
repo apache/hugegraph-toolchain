@@ -32,6 +32,7 @@ jest.mock('../Detail', () => props => (
     <div>{props.loading ? 'loading tasks' : `tasks ${props.asyncManageTaskData.total || 0}`}</div>
 ));
 jest.mock('react-i18next', () => ({
+    Trans: () => <span>Track asynchronous work and results here. Refreshes every <strong>5 seconds</strong></span>,
     useTranslation: () => ({t: (key, values) => ({
         'analysis.async_task.search_placeholder': 'Search tasks',
         'analysis.async_task.help_title': 'About async tasks',
@@ -50,6 +51,11 @@ jest.mock('react-i18next', () => ({
         'analysis.async_task.submitted_delayed': 'Discovery paused after 30 checks',
     })[key] || key}),
 }));
+
+it('emphasizes the refresh interval in both supported languages', () => {
+    expect(enUS.analysis.async_task.help_description).toContain('<strong>5 seconds</strong>');
+    expect(zhCN.analysis.async_task.help_description).toContain('<strong>5 秒</strong>');
+});
 
 beforeAll(() => {
     window.matchMedia = window.matchMedia || (() => ({
@@ -79,6 +85,7 @@ it('shows list failure instead of an empty success and retries', async () => {
         </GraphAnalysisContext.Provider>
     );
 
+    expect(screen.getByText('5 seconds').tagName).toBe('STRONG');
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load tasks.');
     fireEvent.click(screen.getByRole('button', {name: 'Retry tasks'}));
     await waitFor(() => expect(api.analysis.fetchManageTaskList).toHaveBeenCalledTimes(2));
@@ -252,7 +259,7 @@ it('shows the submitted ID immediately and discovers metadata without waiting fo
             <AsyncTaskHome />
         </GraphAnalysisContext.Provider>
     );
-    expect(screen.getByRole('alert')).toHaveTextContent('Task 80001 submitted; synchronizing status');
+    expect(screen.getByRole('alert')).toHaveTextContent('Task Server #80001 submitted; synchronizing status');
     await act(async () => Promise.resolve());
     expect(screen.queryByText('No matching tasks')).not.toBeInTheDocument();
     expect(api.analysis.fetchManageTaskList).not.toHaveBeenCalled();
@@ -280,7 +287,7 @@ it('bounds missing submitted-task polling and offers explicit retry without inve
     for (let attempt = 1; attempt < 30; attempt++) {
         await act(async () => jest.advanceTimersByTime(1000));
     }
-    expect(screen.getByRole('alert')).toHaveTextContent('Task 0 submitted; synchronizing status');
+    expect(screen.getByRole('alert')).toHaveTextContent('Task Server #0 submitted; synchronizing status');
     expect(screen.getByRole('alert')).toHaveTextContent('Discovery paused after 30 checks');
     await act(async () => jest.advanceTimersByTime(10000));
     expect(api.analysis.fetchManageTaskById).toHaveBeenCalledTimes(30);
@@ -308,7 +315,7 @@ it('ignores delayed submitted-task responses after changing graphs', async () =>
         </GraphAnalysisContext.Provider>
     );
     await act(async () => finishOld({status: 200, data: [{id: 80001}]}));
-    expect(screen.getByRole('alert')).toHaveTextContent('Task 80001 submitted; synchronizing status');
+    expect(screen.getByRole('alert')).toHaveTextContent('Task Server #80001 submitted; synchronizing status');
     expect(screen.queryByText('tasks 1')).not.toBeInTheDocument();
     view.unmount();
 });

@@ -993,7 +993,7 @@
       "vermeer_unavailable": "Vermeer 任务暂时不可用，仍显示 Server 任务。服务恢复后可重试",
       "name": "异步任务",
       "help_title": "异步任务有什么用？",
-      "help_description": "图查询或内置图算法以异步方式运行时，可在这里查看进度和结果，也可终止或删除任务。列表每 5 秒自动刷新",
+      "help_description": "图查询或内置图算法以异步方式运行时，可在这里查看进度和结果，也可终止或删除任务。列表每 <strong>5 秒</strong>自动刷新",
       "search_placeholder": "请输入任务ID或名称",
       "get_failed": "获取异步任务失败",
       "retry_list": "重试任务列表",

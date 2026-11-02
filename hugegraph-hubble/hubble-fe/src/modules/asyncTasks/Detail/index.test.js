@@ -92,6 +92,7 @@ it('waits for engine discovery before offering task type filters without hiding 
 
 it('opens Vermeer results and disables unsupported task deletion', () => {
     renderDetail({id: -12, task_type: 'vermeer-task:compute'});
+    expect(screen.getByText('Vermeer #12')).toBeVisible();
     fireEvent.click(screen.getByRole('button', {
         name: 'analysis.async_task.action.check_result',
     }));
@@ -99,6 +100,11 @@ it('opens Vermeer results and disables unsupported task deletion', () => {
     expect(screen.queryByRole('button', {
         name: 'analysis.async_task.action.delete',
     })).not.toBeInTheDocument();
+});
+
+it('distinguishes a Server task with the same native ID', () => {
+    renderDetail({id: 12});
+    expect(screen.getByText('Server #12')).toBeVisible();
 });
 
 it('controls row expansion without opening a new browser tab', () => {
