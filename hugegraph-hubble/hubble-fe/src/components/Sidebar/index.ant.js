@@ -280,12 +280,7 @@ const Sidebar = () => {
                 onCollapse={setNavigationCollapsed}
                 theme='light'
                 className={narrow && !collapsed ? 'is-mobile-open' : ''}
-                trigger={
-                    narrow ? null
-                        : renderedCollapsed
-                            ? <MenuUnfoldOutlined />
-                            : <MenuFoldOutlined />
-                }
+                trigger={null}
             >
                 {!narrow && (
                     <div className={`workbench-navigation-toggle-slot ${styles.toggleSlot}`}>

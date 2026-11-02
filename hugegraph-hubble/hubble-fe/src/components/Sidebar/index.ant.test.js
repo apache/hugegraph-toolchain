@@ -260,7 +260,7 @@ test('starts collapsed on a narrow viewport and exposes an accessible toggle', a
     expect(toggle).toHaveAccessibleName('关闭主导航');
 });
 
-test('offers a second accessible collapse control beside Home', async () => {
+test('offers one accessible collapse control beside Home', async () => {
     render(
         <MemoryRouter
             initialEntries={['/navigation']}
@@ -273,6 +273,7 @@ test('offers a second accessible collapse control beside Home', async () => {
     const navigation = await screen.findByRole('navigation', {name: '主导航'});
     const toggle = screen.getByRole('button', {name: '关闭主导航'});
 
+    expect(navigation.querySelector('.ant-layout-sider-trigger')).not.toBeInTheDocument();
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(toggle).toBeVisible();
     fireEvent.click(toggle);
