@@ -47,7 +47,7 @@ test('cycle submits bounded limit mode by default', async () => {
             'cycle.mode': 'limit', 'cycle.max_cycles': 10, 'cycle.max_length': 5})));
 });
 
-test('all mode warns and does not submit an ignored per-vertex limit', async () => {
+test.each(['all', 'boolean'])('%s ignores an invalid per-vertex limit after switching', async mode => {
     window.localStorage.clear();
     api.analysis.runOlapVermeer.mockClear().mockResolvedValue({status: 200, data: {task_id: -8}});
     render(<GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'isolated',
@@ -55,11 +55,15 @@ test('all mode warns and does not submit an ignored per-vertex limit', async () 
         <AdvancedVermeer kind='cycle_detection' handleFormSubmit={() => jest.fn()}
             updateCurrentAlgorithm={jest.fn()} />
     </GraphAnalysisContext.Provider>);
-    fireEvent.change(screen.getByRole('combobox'), {target: {value: 'all'}});
-    expect(await screen.findByText('analysis.algorithm.olap.vermeer_advanced.all_warning')).toBeVisible();
+    fireEvent.change(screen.getByLabelText('cycle.max_cycles'), {target: {value: '0'}});
+    fireEvent.change(screen.getByRole('combobox'), {target: {value: mode}});
+    if (mode === 'all') {
+        expect(await screen.findByText('analysis.algorithm.olap.vermeer_advanced.all_warning')).toBeVisible();
+    }
+    await waitFor(() => expect(screen.queryByLabelText('cycle.max_cycles')).not.toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', {name: 'Run'}));
     await waitFor(() => expect(api.analysis.runOlapVermeer).toHaveBeenCalled());
     const params = api.analysis.runOlapVermeer.mock.calls[0][2];
-    expect(params['cycle.mode']).toBe('all');
+    expect(params['cycle.mode']).toBe(mode);
     expect(params).not.toHaveProperty('cycle.max_cycles');
 });

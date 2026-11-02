@@ -111,9 +111,8 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
                             ? Promise.resolve() : Promise.reject(new Error(t(PATH + '.invalid_range')))},
                     ]}><InputNumber /></Form.Item>
                 {cycleMode === 'all' && <Alert type='warning' showIcon message={t(PATH + '.all_warning')} />}
-                <Form.Item name='cycle.max_cycles' label='cycle.max_cycles' initialValue={10}
-                    hidden={cycleMode !== 'limit'}
-                    tooltip={t(PATH + '.max_cycles')} rules={[{validator: positiveInteger}]}><InputNumber /></Form.Item>
+                {cycleMode === 'limit' && <Form.Item name='cycle.max_cycles' label='cycle.max_cycles' initialValue={10}
+                    tooltip={t(PATH + '.max_cycles')} rules={[{validator: positiveInteger}]}><InputNumber /></Form.Item>}
                 {['vertex', 'edge'].map(field => <div key={field}>
                     <Form.Item name={`filter.${field}_expr`} label={`filter.${field}_expr`}
                         tooltip={t(PATH + '.filter_expr')}><Input /></Form.Item>
