@@ -21,13 +21,15 @@ import * as api from '../../../../api';
 jest.mock('react-i18next', () => ({useTranslation: () => ({t: key => key})}));
 jest.mock('../../../../api', () => ({analysis: {
     fetchManageTaskById: jest.fn(), fetchVermeerTaskValues: jest.fn(), fetchAsyncTaskResult: jest.fn(),
+    fetchOlapPreviewEdges: jest.fn(),
 }}));
 jest.mock('../../../component/TaskNavigateView', () => () => <div>task link</div>);
-jest.mock('../../../component/Graph', () => ({data}) => <div>{data.nodes.map(node =>
-    <div key={node.id}>{node.style.labelText}</div>)}<span>edges: {data.edges.length}</span></div>);
+jest.mock('../../../../visualization/react', () => ({GraphCanvas: ({data}) => <div>{data.nodes.map(node =>
+    <div key={node.id}>{node.style.labelText}</div>)}<span>edges: {data.edges.length}</span></div>}));
 
 beforeEach(() => {
     jest.resetAllMocks();
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue({status: 200, data: {edges: [], truncated: false, sample_ids: []}});
 });
 
 test('loads a bounded sample and requests more only on demand', async () => {
@@ -84,3 +86,49 @@ test('preserves prior sample and retries a failed next page', async () => {
 });
 
 
+
+
+test('renders real snapshot relationships and gives their provenance', async () => {
+    api.analysis.fetchManageTaskById.mockResolvedValue({status: 200, data: [{id: -7, task_status: 'success'}]});
+    api.analysis.fetchVermeerTaskValues.mockResolvedValue({status: 200, data: {
+        vertices: [{ID: 'a', Value: 1}, {ID: 'b', Value: 2}], cursor: 2, has_more: false,
+    }});
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue({status: 200, data: {
+        edges: [{source: 'a', target: 'b'}], sample_ids: ['a', 'b'], scanned: 1, truncated: false,
+    }});
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    expect(await screen.findByText('edges: 1')).toBeInTheDocument();
+    expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenCalledWith('s', 'g', -7, 0, 30);
+    expect(screen.getByText('analysis.algorithm.preview_edges_partial')).toBeInTheDocument();
+});
+
+
+test('rejects edges when the independently sampled result page changed', async () => {
+    api.analysis.fetchManageTaskById.mockResolvedValue({status: 200, data: [{id: -7, task_status: 'success'}]});
+    api.analysis.fetchVermeerTaskValues.mockResolvedValue({status: 200, data: {
+        vertices: [{ID: 'a', Value: 1}, {ID: 'b', Value: 2}], cursor: 2, has_more: false,
+    }});
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue({status: 200, data: {
+        edges: [{source: 'a', target: 'b'}], sample_ids: ['b', 'a'], truncated: false,
+    }});
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    expect(await screen.findByText('analysis.algorithm.preview_edges_unavailable')).toBeInTheDocument();
+    expect(screen.getByText('edges: 0')).toBeInTheDocument();
+});
+
+test('keeps earlier missing edge pages visible after a later page succeeds', async () => {
+    api.analysis.fetchManageTaskById.mockResolvedValue({status: 200, data: [{id: -7, task_status: 'success'}]});
+    api.analysis.fetchVermeerTaskValues.mockResolvedValueOnce({status: 200, data: {
+        vertices: [{ID: 'a', Value: 1}], cursor: 1, has_more: true,
+    }}).mockResolvedValueOnce({status: 200, data: {
+        vertices: [{ID: 'b', Value: 2}], cursor: 2, has_more: false,
+    }});
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValueOnce({status: 503}).mockResolvedValueOnce({
+        status: 200, data: {edges: [], sample_ids: ['b'], truncated: false},
+    });
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    await screen.findByText('analysis.algorithm.preview_edges_unavailable');
+    fireEvent.click(screen.getByText('analysis.algorithm.preview_more'));
+    expect(await screen.findByText('analysis.algorithm.preview_edges_partial')).toBeInTheDocument();
+    expect(screen.getByText('analysis.algorithm.preview_edges_missing')).toBeInTheDocument();
+});

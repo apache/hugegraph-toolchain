@@ -19,6 +19,8 @@
 package org.apache.hugegraph.service.space;
 
 import java.io.IOException;
+import java.io.ByteArrayOutputStream;
+import java.io.UncheckedIOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -26,6 +28,10 @@ import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -54,6 +60,16 @@ public class VermeerClient {
 
     public Map<String, Object> request(String method, String path,
                                       Map<String, ?> body) {
+        return this.request(method, path, body, false);
+    }
+
+    /** Bounded response and wall-clock wait for interactive preview requests. */
+    public Map<String, Object> requestPreview(String method, String path, Map<String, ?> body) {
+        return this.request(method, path, body, true);
+    }
+
+    private Map<String, Object> request(String method, String path, Map<String, ?> body,
+                                        boolean preview) {
         try {
             E.checkState(this.configured(), "Configure vermeer.url first");
             URI base = URI.create(this.config.get(HubbleOptions.VERMEER_URL));
@@ -82,9 +98,13 @@ public class VermeerClient {
                     HttpRequest.BodyPublishers.noBody() :
                     HttpRequest.BodyPublishers.ofString(
                             this.mapper.writeValueAsString(body)));
-            HttpResponse<String> response = this.http.send(request.build(),
-                    HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = preview ? this.boundedResponse(request.build()) :
+                    this.http.send(request.build(), HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                if (preview && response.statusCode() == 404 && path.contains("/preview-edges")) {
+                    throw new ExternalException("Vermeer snapshot edge preview is unavailable; " +
+                                                "upgrade Vermeer to a version supporting it");
+                }
                 if (response.statusCode() == 401 || response.statusCode() == 403) {
                     throw new ConfigurationException("Vermeer service authentication failed");
                 }
@@ -120,6 +140,32 @@ public class VermeerClient {
             // Adapter validation can include URLs, token values or file paths.
             // Preserve the availability boundary without exposing those details.
             throw new ConfigurationException("Invalid Vermeer configuration or request");
+        }
+    }
+
+    private HttpResponse<String> boundedResponse(HttpRequest request)
+            throws IOException, InterruptedException {
+        final int maxBytes = 128 * 1024;
+        CompletableFuture<HttpResponse<String>> pending = this.http.sendAsync(request, info -> {
+            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+            return HttpResponse.BodySubscribers.mapping(
+                    HttpResponse.BodySubscribers.ofByteArrayConsumer(chunk -> chunk.ifPresent(value -> {
+                        if (value.length > maxBytes - bytes.size()) {
+                            throw new UncheckedIOException(new IOException("Response exceeds preview limit"));
+                        }
+                        bytes.write(value, 0, value.length);
+                    })), ignored -> bytes.toString(java.nio.charset.StandardCharsets.UTF_8));
+        });
+        try {
+            return pending.get(5, TimeUnit.SECONDS);
+        } catch (TimeoutException e) {
+            pending.cancel(true);
+            throw new IOException("Vermeer preview timed out", e);
+        } catch (ExecutionException e) {
+            throw new IOException("Vermeer preview request failed", e);
+        } catch (InterruptedException e) {
+            pending.cancel(true);
+            throw e;
         }
     }
 

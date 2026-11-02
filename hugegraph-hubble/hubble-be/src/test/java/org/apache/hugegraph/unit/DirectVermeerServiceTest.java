@@ -18,12 +18,15 @@
 
 package org.apache.hugegraph.unit;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -222,6 +225,43 @@ public class DirectVermeerServiceTest {
         Assert.assertNotEquals(paths.get(0), paths.get(2));
         Assert.assertNotEquals(paths.get(2), paths.get(3));
         paths.forEach(path -> Assert.assertTrue(path.matches("\\./data/hubble/[0-9a-f]{64}")));
+    }
+
+    @Test
+    public void testPreviewEdgesIsScopedAndReturnsOnlySampleEndpoints() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
+                "graph_name", "DEFAULT-graph-with-dash", "task_type", "compute", "status", "complete")));
+        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=30", null))
+               .thenReturn(Map.of("vertices", List.of(Map.of("ID", "1:marko"), Map.of("ID", "1:vadas"))));
+        Mockito.when(backend.requestPreview("POST", "graphs/DEFAULT-graph-with-dash/preview-edges",
+                                           Map.of("vertices", List.of("1:marko", "1:vadas"))))
+               .thenReturn(Map.of("edges", List.of(Map.of("source", "1:marko", "target", "1:vadas")),
+                                  "scanned", 3, "truncated", true));
+        DirectVermeerService direct = service(backend);
+        Map<String, Object> result = direct.previewEdges(graphClient(), -12, 0, 30);
+        Assert.assertEquals(List.of("1:marko", "1:vadas"), result.get("sample_ids"));
+        Assert.assertEquals(List.of(Map.of("source", "1:marko", "target", "1:vadas")), result.get("edges"));
+        Assert.assertEquals(true, result.get("truncated"));
+        expect(IllegalArgumentException.class, () -> direct.previewEdges(graphClient(), -12, 0, 31));
+    }
+
+    @Test
+    public void testPreviewRejectsOtherGraphAndOutOfSampleEdges() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
+                "graph_name", "OTHER-graph", "task_type", "compute", "status", "complete")));
+        DirectVermeerService direct = service(backend);
+        expect(ForbiddenException.class, () -> direct.previewEdges(graphClient(), -12, 0, 30));
+        Mockito.verify(backend, Mockito.never()).requestPreview(Mockito.eq("POST"), Mockito.anyString(), Mockito.any());
+        Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
+                "graph_name", "DEFAULT-graph-with-dash", "task_type", "compute", "status", "complete")));
+        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=30", null))
+               .thenReturn(Map.of("vertices", List.of(Map.of("ID", "1:marko"))));
+        Mockito.when(backend.requestPreview(Mockito.eq("POST"), Mockito.anyString(), Mockito.any()))
+               .thenReturn(Map.of("edges", List.of(Map.of("source", "1:marko", "target", "outside")),
+                                  "scanned", 1, "truncated", false));
+        expect(IllegalStateException.class, () -> direct.previewEdges(graphClient(), -12, 0, 30));
     }
 
     @Test
@@ -697,6 +737,74 @@ public class DirectVermeerServiceTest {
         ReflectionTestUtils.setField(service, "direct", direct);
         Assert.assertEquals(Map.of("enable", false, "retryable", false, "error", true),
                             service.getVermeer(client, "login-token", false));
+    }
+
+    @Test
+    public void testPreviewHttpResponseIsBoundedAndOldEndpointIsReported() throws Exception {
+        AtomicInteger status = new AtomicInteger(200);
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/graphs/g/preview-edges", exchange -> {
+            byte[] response = status.get() == 200 ? new byte[140 * 1024] : new byte[0];
+            exchange.sendResponseHeaders(status.get(), response.length);
+            try (var output = exchange.getResponseBody()) {
+                output.write(response);
+            } catch (IOException ignored) {
+                // The bounded subscriber closes a response once it is too large.
+            }
+        });
+        server.start();
+        try {
+            HugeConfig config = Mockito.mock(HugeConfig.class);
+            Mockito.when(config.get(HubbleOptions.VERMEER_URL))
+                   .thenReturn("http://127.0.0.1:" + server.getAddress().getPort());
+            VermeerClient client = new VermeerClient();
+            ReflectionTestUtils.setField(client, "config", config);
+            expect(ExternalException.class, () -> client.requestPreview("POST", "graphs/g/preview-edges",
+                                                                         Map.of("vertices", List.of("v"))));
+            status.set(404);
+            try {
+                client.requestPreview("POST", "graphs/g/preview-edges", Map.of("vertices", List.of("v")));
+                Assert.fail("Expected unsupported endpoint");
+            } catch (ExternalException e) {
+                Assert.assertTrue(e.getMessage().contains("upgrade Vermeer"));
+            }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testPreviewHttpDeadlineIncludesResponseBody() throws Exception {
+        CountDownLatch release = new CountDownLatch(1);
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/graphs/g/preview-edges", exchange -> {
+            exchange.sendResponseHeaders(200, 0);
+            try (var output = exchange.getResponseBody()) {
+                output.write('{');
+                output.flush();
+                release.await(10, TimeUnit.SECONDS);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (IOException ignored) {
+                // Timeout cancels the response stream.
+            }
+        });
+        server.start();
+        try {
+            HugeConfig config = Mockito.mock(HugeConfig.class);
+            Mockito.when(config.get(HubbleOptions.VERMEER_URL))
+                   .thenReturn("http://127.0.0.1:" + server.getAddress().getPort());
+            VermeerClient client = new VermeerClient();
+            ReflectionTestUtils.setField(client, "config", config);
+            long started = System.nanoTime();
+            expect(ExternalException.class, () -> client.requestPreview("POST", "graphs/g/preview-edges",
+                                                                         Map.of("vertices", List.of("v"))));
+            Assert.assertTrue("deadline should include a stalled body",
+                              TimeUnit.NANOSECONDS.toSeconds(System.nanoTime() - started) < 9);
+        } finally {
+            release.countDown();
+            server.stop(0);
+        }
     }
 
     @Test

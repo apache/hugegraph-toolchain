@@ -234,6 +234,12 @@ const fetchVermeerTaskValues = (graphspace, graph, taskId, cursor, limit = 1000)
     });
 };
 
+const fetchOlapPreviewEdges = (graphspace, graph, taskId, cursor, limit = 30) => {
+    return request.get(`/graphspaces/${graphspace}/graphs/${graph}/async-tasks/${taskId}/preview-edges`, {
+        params: {cursor, limit}, suppressBusinessErrorToast: true,
+    });
+};
+
 const deleteAsyncTask = (graphspace, graph, selectedTaskIds) => {
     const params  = qs.stringify(selectedTaskIds, {arrayFormat: 'repeat'});
     return request.delete(`/graphspaces/${graphspace}/graphs/${graph}/async-tasks?` + params);
@@ -275,6 +281,7 @@ export {
     runOlapVermeer,
     fetchAsyncTaskResult,
     fetchVermeerTaskValues,
+    fetchOlapPreviewEdges,
     addGraphNode,
     deleteAsyncTask,
     abortAsyncTask,

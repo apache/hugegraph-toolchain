@@ -20,7 +20,7 @@ import {Alert, Button, Empty, Segmented, Spin, Table} from 'antd';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../../api';
 import TaskNavigateView from '../../../component/TaskNavigateView';
-import Graph from '../../../component/Graph';
+import {GraphCanvas} from '../../../../visualization/react';
 import {adaptHubbleGraph} from '../../../../visualization/hubble/adapter';
 import c from './index.module.scss';
 
@@ -38,6 +38,8 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     const [requestPage, setRequestPage] = useState(0);
     const [statusAttempt, setStatusAttempt] = useState(0);
     const accumulated = useRef([]);
+    const accumulatedEdges = useRef(new Map());
+    const edgePages = useRef(new Map());
 
     useEffect(() => {
         let active = true;
@@ -101,10 +103,46 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                      (!Number.isSafeInteger(response.data.cursor) || response.data.cursor <= cursor))) {
                     throw new Error();
                 }
-                const vertices = [...(cursor === 0 ? [] : accumulated.current), ...response.data.vertices];
+                const pageVertices = response.data.vertices;
+                const vertices = [...(cursor === 0 ? [] : accumulated.current), ...pageVertices];
                 accumulated.current = vertices;
-                setState({phase: 'ready', vertices,
-                    next: response.data.cursor, hasMore: response.data.has_more === true});
+                if (cursor === 0) { accumulatedEdges.current = new Map(); edgePages.current = new Map(); }
+                setState(previous => ({phase: 'ready', vertices, edges: [...accumulatedEdges.current.values()],
+                    missingEdgePages: cursor === 0 ? '' : previous.missingEdgePages,
+                    edgeStatus: pageVertices.length ? 'loading' : 'partial',
+                    next: response.data.cursor, hasMore: response.data.has_more === true}));
+                if (!pageVertices.length) return;
+                try {
+                    const edges = await api.analysis.fetchOlapPreviewEdges(graphSpace, graph, taskId, cursor, PAGE_SIZE);
+                    if (!active) return;
+                    const pageIds = pageVertices.map(item => String(item.ID));
+                    if (edges?.status !== 200 || !Array.isArray(edges.data?.edges) || edges.data.edges.length > 30 ||
+                        !Array.isArray(edges.data?.sample_ids) || edges.data.sample_ids.length !== pageIds.length ||
+                        edges.data.sample_ids.some((id, index) => id !== pageIds[index])) {
+                        throw new Error();
+                    }
+                    // Defensively reject endpoints outside the exact page that is displayed.
+                    const ids = new Set(pageIds);
+                    for (const edge of edges.data.edges) {
+                        if (typeof edge.source !== 'string' || typeof edge.target !== 'string' ||
+                            !ids.has(edge.source) || !ids.has(edge.target)) continue;
+                        const key = JSON.stringify([edge.source, edge.target]);
+                        accumulatedEdges.current.set(key, {id: key, source: edge.source, target: edge.target});
+                    }
+                    edgePages.current.set(cursor, {failed: false, count: pageVertices.length,
+                        truncated: edges.data.truncated === true});
+                    const missing = [...edgePages.current.entries()].filter(([, page]) => page.failed)
+                        .map(([start, page]) => `${start + 1}–${start + page.count}`).join(', ');
+                    setState(previous => ({...previous, edges: [...accumulatedEdges.current.values()],
+                        edgeStatus: 'partial', missingEdgePages: missing}));
+                } catch {
+                    if (active) {
+                        edgePages.current.set(cursor, {failed: true, count: pageVertices.length});
+                        const missing = [...edgePages.current.entries()].filter(([, page]) => page.failed)
+                            .map(([start, page]) => `${start + 1}–${start + page.count}`).join(', ');
+                        setState(previous => ({...previous, edgeStatus: 'unavailable', missingEdgePages: missing}));
+                    }
+                }
             } catch {
                 if (active) setState(previous => previous.vertices
                     ? {...previous, phase: 'ready', pageError: true}
@@ -118,11 +156,11 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     const vertices = useMemo(() => state.vertices || [], [state.vertices]);
     const graphData = useMemo(() => {
         const adapted = adaptHubbleGraph({vertices: vertices.map(item => ({id: String(item.ID),
-            properties: {result: valueText(item.Value)}})), edges: []});
+            properties: {result: valueText(item.Value)}})), edges: state.edges || []});
         return {...adapted, nodes: adapted.nodes.map((node, index) => ({...node,
             style: {...node.style, labelText: `${String(vertices[index].ID)}: ${valueText(vertices[index].Value)}`},
-        }))};
-    }, [vertices]);
+        })), edges: adapted.edges.map(edge => ({...edge, style: {...edge.style, labelText: ''}}))};
+    }, [vertices, state.edges]);
     const columns = [{title: t('analysis.algorithm.preview_id'), dataIndex: 'ID', render: value => String(value)},
         {title: t('analysis.algorithm.preview_value'), dataIndex: 'Value', render: valueText}];
     return <div className={c.preview}>
@@ -147,17 +185,26 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                 </Button>} />}
             <Alert type='info' showIcon title={t('analysis.algorithm.preview_sample', {count: vertices.length})}
                 description={t('analysis.algorithm.preview_no_edges')} />
+            {state.edgeStatus === 'loading' && <Spin description={t('analysis.algorithm.preview_edges_loading')} />}
+            {state.edgeStatus === 'unavailable' && <Alert type='warning' showIcon
+                title={t('analysis.algorithm.preview_edges_unavailable')} />}
+            {state.edgeStatus === 'partial' && <Alert type='info' showIcon
+                title={t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})} />}
+            {state.missingEdgePages && <Alert type='warning' showIcon
+                title={t('analysis.algorithm.preview_edges_missing', {pages: state.missingEdgePages})} />}
             <Segmented value={mode} onChange={setMode} options={['graph', 'table', 'json'].map(value => ({
                 value, label: t(`analysis.algorithm.preview_${value}`),
             }))} />
             {vertices.length === 0 ? <Empty description={t('analysis.algorithm.preview_empty')} /> : mode === 'graph'
                 ? <div className={c.canvas} aria-label={t('analysis.algorithm.preview_graph')}>
-                    <Graph data={graphData} datasetKey={vertices.length} />
+                    <GraphCanvas data={graphData} datasetKey={`${vertices.length}-${state.edges?.length || 0}`}
+                        preset='preview' style={{height: '100%'}} />
                 </div> : mode === 'table'
                     ? <Table size='small' pagination={false} columns={columns} dataSource={vertices}
                         rowKey={item => String(item.ID)} />
                     : <pre className={c.json}>{JSON.stringify(vertices, null, 2)}</pre>}
-            {state.hasMore && !state.pageError && vertices.length < MAX_POINTS && <Button onClick={() => {
+            {state.hasMore && !state.pageError && vertices.length < MAX_POINTS &&
+                <Button disabled={state.edgeStatus === 'loading'} onClick={() => {
                 setCursor(state.next);
                 setRequestPage(page => page + 1);
             }}>{t('analysis.algorithm.preview_more')}</Button>}
