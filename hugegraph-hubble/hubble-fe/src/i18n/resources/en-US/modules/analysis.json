@@ -993,7 +993,7 @@
       "vermeer_unavailable": "Vermeer tasks are unavailable. Server tasks remain visible. Retry after the service recovers",
       "name": "Async Tasks",
       "help_title": "About async tasks",
-      "help_description": "Queries and built-in graph algorithms can run asynchronously. Track progress and results here, or stop and delete tasks. The list refreshes every <strong>5 seconds</strong>",
+      "help_description": "Queries and built-in graph algorithms can run asynchronously. Track progress and results here, or stop and delete tasks. The list refreshes <nowrap>every <strong>5 seconds</strong></nowrap>",
       "search_placeholder": "Enter a task ID or name",
       "get_failed": "Failed to get async tasks",
       "retry_list": "Retry tasks",

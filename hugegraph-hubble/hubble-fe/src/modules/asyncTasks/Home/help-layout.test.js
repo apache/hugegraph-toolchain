@@ -25,10 +25,12 @@ it('keeps the emphasized interval inline while the help title remains a block', 
     style.textContent = compileString(scss).css;
     document.head.appendChild(style);
     document.body.innerHTML = '<div class="gremlinAsyncTask"><section class="help">'
-        + '<strong>Title</strong><p>Every <strong>5 seconds</strong> refreshes</p></section></div>';
+        + '<strong>Title</strong><p><span class="refreshHint">Every <strong>5 seconds</strong>'
+        + ' refreshes</span></p></section></div>';
     const [title, interval] = document.querySelectorAll('.help strong');
     expect(getComputedStyle(title).display).toBe('block');
     expect(getComputedStyle(interval).display).not.toBe('block');
+    expect(getComputedStyle(interval.parentElement).whiteSpace).toBe('nowrap');
     style.remove();
     document.body.innerHTML = '';
 });

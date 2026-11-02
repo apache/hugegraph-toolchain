@@ -53,8 +53,8 @@ jest.mock('react-i18next', () => ({
 }));
 
 it('emphasizes the refresh interval in both supported languages', () => {
-    expect(enUS.analysis.async_task.help_description).toContain('<strong>5 seconds</strong>');
-    expect(zhCN.analysis.async_task.help_description).toContain('<strong>5 秒</strong>');
+    expect(enUS.analysis.async_task.help_description).toContain('<nowrap>every <strong>5 seconds</strong></nowrap>');
+    expect(zhCN.analysis.async_task.help_description).toContain('<nowrap>列表每 <strong>5 秒</strong>自动刷新</nowrap>');
 });
 
 beforeAll(() => {

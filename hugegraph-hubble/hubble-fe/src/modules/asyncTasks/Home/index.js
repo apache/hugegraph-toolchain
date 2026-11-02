@@ -248,7 +248,8 @@ const AsyncTaskHome = () => {
                     aria-label={t('analysis.async_task.help_title')}
                 >
                     <strong>{t('analysis.async_task.help_title')}</strong>
-                    <p><Trans i18nKey='analysis.async_task.help_description' components={{strong: <strong />}} /></p>
+                    <p><Trans i18nKey='analysis.async_task.help_description'
+                              components={{strong: <strong />, nowrap: <span className={c.refreshHint} />}} /></p>
                 </section>
                 {loadError && (
                     <Alert
