@@ -847,7 +847,7 @@
           "select_method": "选择邻居标签的方法：max 取最高频，random 按频次随机选择。"
         },
         "vermeer_advanced": {
-          "cycle_desc": "有向环检测，不包含自环。all 模式可能产生大量路径，注意限制环长；limit 模式限制每个顶点的环数量。",
+          "cycle_desc": "有向环检测，不包含自环。默认 limit 模式限制每个顶点的环数量（Vermeer 原生默认是 all）。all 模式可能产生大量路径。",
           "louvain_desc": "按模块度优化社区划分；达到计算步数上限可能未收敛。",
           "weighted_desc": "按边权优化社区；留空权重属性时使用 1，指定属性须已加载且为数值。",
           "max_step": "计算迭代上限；达到上限可能尚未收敛。",
@@ -855,6 +855,7 @@
           "min_length": "最小环长。",
           "max_length": "最大环长，较大值可能造成高内存和计算开销。",
           "max_cycles": "limit 模式下每个顶点最多返回的环数。",
+          "all_warning": "all 模式不限制环数量，可能耗尽内存。请确认图规模并限制环长。",
           "mode": "all 枚举所有环，limit 限量，boolean 只判断是否有环。",
           "resolution": "社区分辨率。",
           "threshold": "模块度改进阈值。",

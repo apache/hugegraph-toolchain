@@ -27,6 +27,7 @@ jest.mock('../../PersistentForm', () => {
         onFinish(mockFields);
     }}>{children}</form>;
     Form.Item = ({children, label, initialValue}) => <div>{label}:{String(initialValue)}{children}</div>;
+    Form.useWatch = () => 'limit';
     Form.useForm = () => [{submit: jest.fn(), validateFields: jest.fn(() => Promise.resolve()),
         getFieldValue: jest.fn(() => 0)}];
     return Form;

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 import {useCallback, useContext, useEffect, useState} from 'react';
-import {Input, InputNumber, Select} from 'antd';
+import {Alert, Input, InputNumber, Select} from 'antd';
 import {NodeIndexOutlined} from '@ant-design/icons';
 import {useTranslation} from 'react-i18next';
 import Form from '../../PersistentForm';
@@ -57,14 +57,18 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
     const [enabled, setEnabled] = useState(graphStatus === GRAPH_LOAD_STATUS.LOADED);
     const [running, beginRequiring] = useAlgorithmPending();
     const [form] = Form.useForm();
+    const cycleMode = Form.useWatch('cycle.mode', form) || 'limit';
     useEffect(() => { setEnabled(graphStatus === GRAPH_LOAD_STATUS.LOADED); }, [graphStatus]);
     const submit = useCallback(async values => {
         const finish = beginRequiring();
         updateCurrentAlgorithm(name);
         const complete = handleFormSubmit(GRAPH_STATUS.LOADING);
         try {
-            const response = await api.analysis.runOlapVermeer(graphSpace, graph,
-                removeNilKeys({'compute.algorithm': kind, ...values}));
+            const params = {'compute.algorithm': kind, ...values};
+            if (cycle && params['cycle.mode'] !== 'limit') {
+                delete params['cycle.max_cycles'];
+            }
+            const response = await api.analysis.runOlapVermeer(graphSpace, graph, removeNilKeys(params));
             if (response?.status === 200) {
                 complete(GRAPH_STATUS.SUCCESS, response.data?.task_id, response.message);
             }
@@ -76,7 +80,7 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
             complete(GRAPH_STATUS.FAILED, '', error?.message);
         }
         finally { finish(); }
-    }, [beginRequiring, graphSpace, graph, handleFormSubmit, kind, name, updateCurrentAlgorithm]);
+    }, [beginRequiring, cycle, graphSpace, graph, handleFormSubmit, kind, name, updateCurrentAlgorithm]);
     const validatePair = field => (_, value) => {
         const expr = form.getFieldValue(`filter.${field}_expr`);
         return validFilterPair(expr, value) ? Promise.resolve()
@@ -97,7 +101,7 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
                     Number.isInteger(value) && value >= (cycle ? 2 : 1) ? Promise.resolve()
                         : Promise.reject(new Error(t(PATH + '.max_step')))}]}><InputNumber /></Form.Item>
             {cycle ? <>
-                <Form.Item name='cycle.mode' label='cycle.mode' initialValue='all' tooltip={t(PATH + '.mode')}
+                <Form.Item name='cycle.mode' label='cycle.mode' initialValue='limit' tooltip={t(PATH + '.mode')}
                     rules={[{required: true}]}><Select options={['all', 'limit', 'boolean'].map(value => ({value}))} /></Form.Item>
                 <Form.Item name='cycle.min_length' label='cycle.min_length' initialValue={0}
                     tooltip={t(PATH + '.min_length')} rules={[{validator: nonnegativeInteger}]}><InputNumber /></Form.Item>
@@ -106,7 +110,9 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
                         {validator: positiveInteger}, {validator: (_, value) => value >= form.getFieldValue('cycle.min_length')
                             ? Promise.resolve() : Promise.reject(new Error(t(PATH + '.invalid_range')))},
                     ]}><InputNumber /></Form.Item>
+                {cycleMode === 'all' && <Alert type='warning' showIcon message={t(PATH + '.all_warning')} />}
                 <Form.Item name='cycle.max_cycles' label='cycle.max_cycles' initialValue={10}
+                    hidden={cycleMode !== 'limit'}
                     tooltip={t(PATH + '.max_cycles')} rules={[{validator: positiveInteger}]}><InputNumber /></Form.Item>
                 {['vertex', 'edge'].map(field => <div key={field}>
                     <Form.Item name={`filter.${field}_expr`} label={`filter.${field}_expr`}
