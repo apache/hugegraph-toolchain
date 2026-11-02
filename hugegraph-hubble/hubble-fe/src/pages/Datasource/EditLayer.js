@@ -910,7 +910,7 @@ const JDBCForm = ({setField, form}) => {
                     <CertForm isHive />
                 </>
             )}
-            <Form.Item wrapperCol={{offset: 8}}>
+            <Form.Item wrapperCol={{xs: {offset: 0, span: 24}, sm: {offset: 8, span: 16}}}>
                 <Space>
                     <Button onClick={handleTest}>{t('datasource.form.test_connection')}</Button>
                     <Typography.Text type={status.type === 'success' ? 'success' : 'danger'}>
