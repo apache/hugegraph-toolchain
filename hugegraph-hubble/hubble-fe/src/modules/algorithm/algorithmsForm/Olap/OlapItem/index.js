@@ -50,6 +50,8 @@ import PersonalPageRank from '../PersonalPageRank';
 import PersonalPageRankVermeer from '../PersonalPageRankVermeer';
 import SSSPVermeer from '../SSSPVermeer';
 import DepthSlpaVermeer from '../DepthSlpaVermeer';
+import KoutVermeer from '../KoutVermeer';
+import JaccardVermeer from '../JaccardVermeer';
 import {
     getCanonicalAlgorithmName,
     useTranslatedConstants,
@@ -83,6 +85,8 @@ const OlapItem = props => {
         DEPTH,
         SLPA,
         SSSP,
+        VERMEER_K_OUT,
+        VERMEER_JACCARD,
     } = ALGORITHM_NAME;
 
 
@@ -170,6 +174,10 @@ const OlapItem = props => {
                 return isVermeer ? <DepthSlpaVermeer {...args} kind='depth' /> : null;
             case SLPA:
                 return isVermeer ? <DepthSlpaVermeer {...args} kind='slpa' /> : null;
+            case VERMEER_K_OUT:
+                return isVermeer ? <KoutVermeer {...args} name={VERMEER_K_OUT} /> : null;
+            case VERMEER_JACCARD:
+                return isVermeer ? <JaccardVermeer {...args} name={VERMEER_JACCARD} /> : null;
             case SSSP:
                 return <SSSPVermeer {...args} />;
         }

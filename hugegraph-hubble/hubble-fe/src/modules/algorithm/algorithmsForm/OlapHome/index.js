@@ -71,6 +71,8 @@ const OlapFormHome = props => {
         DEPTH,
         SLPA,
         SSSP,
+        VERMEER_K_OUT,
+        VERMEER_JACCARD,
     } = ALGORITHM_NAME;
 
     const olapComputeList = [
@@ -109,6 +111,8 @@ const OlapFormHome = props => {
         LOUVAIN,
         LOUVAIN_WEIGHTED,
         CYCLE_DETECTION_VERMEER,
+        VERMEER_K_OUT,
+        VERMEER_JACCARD,
     ];
 
 
@@ -141,7 +145,8 @@ const OlapFormHome = props => {
         {
             key: 'structure',
             items: [TRIANGLE_COUNT, RINGS_DETECTION, FILTERED_RINGS_DETECTION,
-                LINKS, CLUSTER_COEFFICIENT, FILTER_SUBGRAPH_MATCHING, SSSP, DEPTH, CYCLE_DETECTION_VERMEER],
+                LINKS, CLUSTER_COEFFICIENT, FILTER_SUBGRAPH_MATCHING, SSSP, DEPTH,
+                CYCLE_DETECTION_VERMEER, VERMEER_K_OUT, VERMEER_JACCARD],
         },
     ];
 

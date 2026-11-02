@@ -276,6 +276,38 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
+    public void testVermeerNeighborhoodParameters() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
+               .thenReturn(Map.of("task", Map.of("id", 12)));
+        DirectVermeerService direct = service(backend);
+        direct.compute(graphClient(), Map.of("compute.algorithm", "kout", "kout.source", "1:marko",
+                                              "kout.direction", "both", "compute.max_step", 10));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "jaccard", "jaccard.source", "1:marko"));
+        ArgumentCaptor<Map> body = ArgumentCaptor.forClass(Map.class);
+        Mockito.verify(backend, Mockito.times(2)).request(
+                Mockito.eq("POST"), Mockito.eq("tasks/create"), body.capture());
+        Map<?, ?> kout = (Map<?, ?>) body.getAllValues().get(0).get("params");
+        Map<?, ?> jaccard = (Map<?, ?>) body.getAllValues().get(1).get("params");
+        Assert.assertEquals("1:marko", kout.get("kout.source"));
+        Assert.assertEquals("both", kout.get("kout.direction"));
+        Assert.assertEquals("10", kout.get("compute.max_step"));
+        Assert.assertEquals("1:marko", jaccard.get("jaccard.source"));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "jaccard", "output.type", "hugegraph")));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "jaccard")));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "jaccard", "jaccard.source", " ")));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "jaccard", "jaccard.source", "1:marko", "compute.max_step", 1)));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "kout", "compute.max_step", 255)));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "kout", "kout.direction", "invalid")));
+    }
+
+    @Test
     public void testComputeReusesSafeOutputFilesPerGraph() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))

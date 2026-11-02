@@ -807,6 +807,8 @@
           "SLPA": "SLPA",
           "CYCLE_DETECTION_VERMEER": "Cycle Detection",
           "LOUVAIN_WEIGHTED": "Louvain Weighted",
+          "VERMEER_K_OUT": "K-out (Vermeer)",
+          "VERMEER_JACCARD": "Jaccard (Vermeer)",
           "SSSP": "SSSP (Single Source Shortest Path)"
         },
         "legacy_item_alias": {
@@ -865,6 +867,19 @@
           "positive_integer": "Enter a positive integer.",
           "nonnegative_number": "Enter a non-negative number.",
           "invalid_range": "Minimum cycle length must not exceed the maximum."
+        },
+        "kout_vermeer": {
+          "desc": "Find vertices reachable from a source in the selected direction within the iteration limit. Result 1 is the source, 2 is one hop, and 0 is unreached.",
+          "source": "Full source vertex ID. The default 1 may not exist in this snapshot; change it as needed.",
+          "direction": "Follow incoming, outgoing, or both directions.",
+          "max_step": "Maximum propagation steps, from 1 to 254. Expansion stops at the limit.",
+          "max_step_invalid": "Enter an integer from 1 to 254"
+        },
+        "jaccard_vermeer": {
+          "desc": "Compare the source and each vertex using both incoming and outgoing neighbors. Two empty neighbor sets may produce NaN.",
+          "source": "Full source vertex ID; it must exist in the loaded snapshot.",
+          "max_step": "Maximum iterations; this algorithm requires at least 2.",
+          "max_step_invalid": "Enter an integer of at least 2"
         },
         "SSSPVermeer": {
           "desc": "Single Source Shortest Path computes the shortest distance from one vertex to all other vertices"

@@ -172,7 +172,8 @@ public class DirectVermeerService {
         E.checkArgument(Set.of("pagerank", "wcc", "lpa", "degree", "closeness_centrality",
                                "betweenness_centrality", "triangle_count", "kcore", "sssp", "ppr",
                                "scc", "clustering_coefficient", "depth", "slpa",
-                               "cycle_detection", "louvain", "louvain_weighted")
+                               "cycle_detection", "louvain", "louvain_weighted",
+                               "kout", "jaccard")
                            .contains(algorithm), "Unsupported Vermeer algorithm: %s", algorithm);
         if ("cycle_detection".equals(algorithm)) {
             this.validateCycleFilter(options, "vertex");
@@ -195,6 +196,29 @@ public class DirectVermeerService {
                 params.put(key, value.toString());
             }
         });
+        if ("kout".equals(algorithm) || "jaccard".equals(algorithm)) {
+            String source = params.get(algorithm + ".source");
+            // K-out's Vermeer default is "1"; Jaccard has no usable default.
+            E.checkArgument(!"jaccard".equals(algorithm) ||
+                            (source != null && !source.isBlank()),
+                            "jaccard.source is required");
+            E.checkArgument(source == null || !source.isBlank(),
+                            "%s.source must not be blank", algorithm);
+            if ("kout".equals(algorithm) && params.containsKey("kout.direction")) {
+                E.checkArgument(Set.of("in", "out", "both").contains(params.get("kout.direction")),
+                                "Invalid kout.direction");
+            }
+            if (params.containsKey("compute.max_step")) {
+                int steps;
+                try {
+                    steps = Integer.parseInt(params.get("compute.max_step"));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("compute.max_step must be an integer", e);
+                }
+                E.checkArgument("kout".equals(algorithm) ? steps >= 1 && steps <= 254 : steps >= 2,
+                                "Invalid compute.max_step for %s", algorithm);
+            }
+        }
         // Query results directly. Never persist a HugeGraph password or bearer
         // token in Vermeer task parameters for asynchronous output.
         params.put("output.type", "local");

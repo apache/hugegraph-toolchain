@@ -60,6 +60,8 @@ jest.mock('../../../../utils/constants', () => ({
             DEPTH: 'Depth',
             SLPA: 'SLPA',
             SSSP: 'SSSP',
+            VERMEER_K_OUT: 'K-out (Vermeer)',
+            VERMEER_JACCARD: 'Jaccard (Vermeer)',
         },
     }),
 }));
@@ -88,7 +90,7 @@ test.each([false, true])('does not expose either OLAP engine before confirmation
         .not.toBeInTheDocument();
     expect(screen.queryByTestId('olap-item')).not.toBeInTheDocument();
     view.rerender(home({isVermeer: true}));
-    expect(screen.getAllByTestId('olap-item')).toHaveLength(17);
+    expect(screen.getAllByTestId('olap-item')).toHaveLength(19);
     expect(screen.getByText('Louvain')).toBeVisible();
     expect(screen.getByText('Louvain Weighted')).toBeVisible();
     expect(screen.getByText('Cycle Detection')).toBeVisible();
@@ -97,6 +99,8 @@ test.each([false, true])('does not expose either OLAP engine before confirmation
     expect(screen.getByText('Cluster')).toBeVisible();
     expect(screen.getByText('Depth')).toBeVisible();
     expect(screen.getByText('SLPA')).toBeVisible();
+    expect(screen.getByText('K-out (Vermeer)')).toBeVisible();
+    expect(screen.getByText('Jaccard (Vermeer)')).toBeVisible();
     expect(screen.getByText('PersonalPageRank')).toBeVisible();
     expect(api.analysis.getOlapCapability).not.toHaveBeenCalled();
 });
