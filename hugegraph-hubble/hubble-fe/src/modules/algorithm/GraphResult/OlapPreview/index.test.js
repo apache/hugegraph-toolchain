@@ -17,14 +17,14 @@
 import {act, render, screen, waitFor, fireEvent, within} from '@testing-library/react';
 import OlapPreview, {buildConnectedSample} from './index';
 import * as api from '../../../../api';
-import {clearOlapTasks} from '../../olapTaskRegistry';
+import {clearOlapTasks, recordOlapTask} from '../../olapTaskRegistry';
 
 jest.mock('react-i18next', () => ({useTranslation: () => ({t: key => key})}));
 jest.mock('../../../../api', () => ({analysis: {
     fetchManageTaskById: jest.fn(), fetchVermeerTaskValues: jest.fn(), fetchAsyncTaskResult: jest.fn(),
     fetchOlapPreviewEdges: jest.fn(),
 }}));
-jest.mock('react-router-dom', () => ({Link: ({children}) => <span>{children}</span>}));
+jest.mock('react-router-dom', () => ({Link: ({children, to}) => <a href={to}>{children}</a>}));
 const mockController = {setLayout: jest.fn().mockResolvedValue(undefined)};
 jest.mock('../../../../visualization/react', () => ({GraphCanvas: ({data, onReady}) => {
     const React = require('react');
@@ -53,6 +53,26 @@ test('loads a compact bounded sample and requests more only on demand', async ()
     fireEvent.click(screen.getByText('analysis.algorithm.preview_more'));
     expect(await screen.findByText('b 2')).toBeInTheDocument();
     expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenLastCalledWith('s', 'g', -7, 1, 12);
+});
+
+test('displays friendly task numbers while retaining signed IDs for requests and navigation', async () => {
+    recordOlapTask({graphSpace: 's', graph: 'g', id: -7, algorithm: 'PageRank'});
+    recordOlapTask({graphSpace: 's', graph: 'g', id: -8, algorithm: 'Triangle Count'});
+    api.analysis.fetchManageTaskById.mockImplementation(async (space, graph, id) => ({
+        status: 200, data: [{id, task_status: 'success'}],
+    }));
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    expect(await screen.findByText('PageRank · 7')).toBeInTheDocument();
+    expect(screen.getByText('analysis.algorithm.preview_task_detail').closest('a')).toHaveAttribute(
+        'href', '/asyncTasks/s/g?taskId=-7&submitted=1'
+    );
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(await screen.findByText('Triangle Count · 8'));
+    await waitFor(() => expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenCalledWith('s', 'g', -8, 0, 12));
+    expect(screen.getByText('analysis.algorithm.preview_task_detail').closest('a')).toHaveAttribute(
+        'href', '/asyncTasks/s/g?taskId=-8&submitted=1'
+    );
 });
 
 test('explains that a running task continues after leaving', async () => {

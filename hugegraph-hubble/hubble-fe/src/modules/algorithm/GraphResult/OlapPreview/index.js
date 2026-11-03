@@ -23,6 +23,7 @@ import {Link} from 'react-router-dom';
 import {GraphCanvas} from '../../../../visualization/react';
 import {adaptHubbleGraph} from '../../../../visualization/hubble/adapter';
 import {useOlapTasks} from '../../olapTaskRegistry';
+import {displayTaskId} from '../../../asyncTasks/taskIdentity';
 import c from './index.module.scss';
 
 const PAGE_SIZE = 12;
@@ -235,7 +236,7 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
                     aria-label={t('analysis.algorithm.preview_title')} value={activeTaskId}
                     onChange={setActiveTaskId} options={taskOptions.map(task => ({
                         value: task.id,
-                        label: task.algorithm ? `${task.algorithm} · ${task.id}` : String(task.id),
+                        label: task.algorithm ? `${task.algorithm} · ${displayTaskId(task.id)}` : displayTaskId(task.id),
                     }))} />}
                 {state.phase !== 'waiting' && <Link to={`/asyncTasks/${encodeURIComponent(graphSpace)}/${encodeURIComponent(graph)}`
                     + `?taskId=${encodeURIComponent(activeTaskId)}&submitted=1`}>
