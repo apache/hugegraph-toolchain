@@ -17,12 +17,21 @@
  */
 
 import {useCallback} from 'react';
+import {GRAPH_STATUS} from '../../../utils/constants';
+import {recordOlapTask} from '../olapTaskRegistry';
 
 // Async callers retain the completion returned for their own execution.
-export default function useAlgorithmSubmission(beginSubmission) {
+export default function useAlgorithmSubmission(beginSubmission, graphSpace, graph,
+                                               algorithm, trackOlapTask = false) {
     return useCallback((status, ...args) => {
         const complete = beginSubmission();
         complete?.(status, ...args);
-        return complete;
-    }, [beginSubmission]);
+        if (!trackOlapTask) return complete;
+        return (finalStatus, ...finalArgs) => {
+            if (finalStatus === GRAPH_STATUS.SUCCESS) {
+                recordOlapTask({graphSpace, graph, algorithm, id: finalArgs[0]});
+            }
+            complete?.(finalStatus, ...finalArgs);
+        };
+    }, [algorithm, beginSubmission, graph, graphSpace, trackOlapTask]);
 }
