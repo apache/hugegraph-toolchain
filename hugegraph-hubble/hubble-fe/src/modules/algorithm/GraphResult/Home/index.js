@@ -444,7 +444,8 @@ const GraphResult = props => {
             if (!isQueryMode) {
                 if (isOlapPreview) {
                     return <OlapPreview key={JSON.stringify([graphSpace, graph, asyncTaskId])}
-                        graphSpace={graphSpace} graph={graph} taskId={asyncTaskId} />;
+                        graphSpace={graphSpace} graph={graph} taskId={asyncTaskId}
+                        warning={queryMessage} />;
                 }
                 return (
                     <TaskNavigateView
