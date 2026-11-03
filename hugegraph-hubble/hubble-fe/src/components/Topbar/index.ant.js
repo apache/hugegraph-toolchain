@@ -128,7 +128,7 @@ const Topbar = () => {
             }
         },
     };
-    const userLabel = userInfo?.user_nickname ?? userInfo?.user_name ?? (
+    const userLabel = userInfo?.user_nickname?.trim() || userInfo?.user_name?.trim() || (
         authContext?.role === 'SUPERADMIN' ? t('Topbar.super_admin') : ''
     );
     const userCharacters = Array.from(userLabel);
