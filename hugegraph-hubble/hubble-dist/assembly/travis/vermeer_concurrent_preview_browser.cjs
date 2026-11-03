@@ -165,7 +165,14 @@ async function main() {
             });
             await pageRank.waitFor();
             await pageRank.locator('.ant-collapse-header button.ant-btn-primary').click();
-            await firstStarted.promise;
+            let startTimer;
+            await Promise.race([
+                firstStarted.promise,
+                new Promise((_, reject) => {
+                    startTimer = setTimeout(
+                        () => reject(new Error('First Vermeer submission was not observed')), 15000);
+                }),
+            ]).finally(() => clearTimeout(startTimer));
 
             await search.fill('Degree Centrality');
             const degree = page.locator('.ant-collapse-item').filter({
