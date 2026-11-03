@@ -21,6 +21,10 @@ export const displayTaskId = id => {
     return /^-[1-9]\d*$/.test(value) ? value.slice(1) : value;
 };
 
-export const displayTaskIdentity = id => (
-    `${String(id ?? '').startsWith('-') ? 'Vermeer' : 'Server'} #${displayTaskId(id)}`
-);
+export const displayTaskIdentity = id => {
+    const value = String(id ?? '').trim();
+    if (!/^(?:0|-?[1-9]\d*)$/.test(value)) {
+        return value;
+    }
+    return `${value.startsWith('-') ? 'Vermeer' : 'Server'} #${displayTaskId(value)}`;
+};

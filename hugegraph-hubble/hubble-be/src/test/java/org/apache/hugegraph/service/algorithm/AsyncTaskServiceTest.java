@@ -94,6 +94,16 @@ public class AsyncTaskServiceTest {
     }
 
     @Test
+    public void testQualifiedIdentityDoesNotMatchOtherTaskNames() {
+        Task identified = task(7L, "query", "running");
+        Task named = task(8L, "retry Server #7", "running");
+        Mockito.when(this.tasks.list((String) null)).thenReturn(List.of(identified, named));
+
+        Assert.assertEquals(List.of(identified), this.service.list(
+                this.client, 1, 10, "Server #7", "", "").getRecords());
+    }
+
+    @Test
     public void testDoesNotFetchAnIdAlreadyInTheList() {
         Task submitted = task(80001L, "g.V()", "failed");
         Mockito.when(this.tasks.list((String) null)).thenReturn(List.of(submitted));

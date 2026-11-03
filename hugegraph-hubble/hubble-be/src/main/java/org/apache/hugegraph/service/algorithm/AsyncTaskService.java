@@ -133,6 +133,7 @@ public class AsyncTaskService {
             if (!content.isEmpty()) {
                 String taskId = String.valueOf(task.id());
                 if (qualifiedId) {
+                    // A displayed identity selects one source and ID, not task names.
                     boolean vermeerId = taskId.startsWith("-");
                     String source = vermeerId ? "vermeer" : "server";
                     String nativeId = vermeerId ? taskId.substring(1) : taskId;
