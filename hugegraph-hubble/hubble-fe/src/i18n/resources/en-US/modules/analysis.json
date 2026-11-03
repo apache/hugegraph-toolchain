@@ -1148,6 +1148,7 @@
       "test_saved": "Test saved configuration",
       "test_save_first": "Save your changes before testing the configuration",
       "test_disabled": "Enable and save the model before testing",
+      "test_unconfigured": "Configure and save the model connection before testing",
       "testing": "Waiting for a model reply · {{seconds}}s elapsed",
       "saved_testing": "Configuration saved. Waiting for a model reply · {{seconds}}s elapsed",
       "test_failed": "Could not get a model reply; check the URL, model and API Key",

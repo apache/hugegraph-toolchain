@@ -29,6 +29,7 @@ import lombok.Setter;
 public class Text2GqlConfiguration {
 
     private boolean enabled;
+    private boolean useDeploymentConnection;
     private String connectionType;
     private String baseUrl;
     private String model;

@@ -98,6 +98,55 @@ public class Text2GqlSettingsServiceTest {
     }
 
     @Test
+    public void testPromptOnlySavePreservesUnconfiguredEnabledModel() {
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_ENABLED)).thenReturn(true);
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_BASE_URL)).thenReturn("");
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_MODEL)).thenReturn("");
+        Text2GqlSettingsRequest request = settings("openai", null);
+        request.setBaseUrl("");
+        request.setModel("");
+        request.setPrompts(Map.of("gremlin", "Custom template"));
+        Map<String, Object> descriptor = this.service.save(request);
+        assertEquals(true, descriptor.get("enabled"));
+        assertEquals("Custom template", this.stored.get().getGremlinPrompt());
+        assertTrue(this.stored.get().isUseDeploymentConnection());
+        assertEquals(Map.of("available", false, "reason", "not_configured"), this.service.availability());
+        assertEquals("text2gql.shared.not-configured",
+                     failure(() -> this.service.sharedRequest(shared())).getMessage());
+
+        request.setConnectionType("ollama");
+        assertEquals("text2gql.shared.invalid-settings", failure(() -> this.service.save(request)).getMessage());
+        request.setConnectionType("openai");
+        request.setModel("new-model");
+        assertEquals("text2gql.shared.invalid-settings", failure(() -> this.service.save(request)).getMessage());
+        request.setModel("");
+        request.setApiKey("new-key");
+        assertEquals("text2gql.shared.invalid-settings", failure(() -> this.service.save(request)).getMessage());
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_BASE_URL))
+               .thenReturn("http://127.0.0.1:11434/v1");
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_MODEL)).thenReturn("later-model");
+        this.service = this.service(Map.of("HUBBLE_TEXT2GQL_API_KEY", "later-key"));
+        assertEquals("later-model", this.service.sharedRequest(shared()).getModel());
+        assertEquals("later-key", this.service.sharedRequest(shared()).getApiKey());
+        assertEquals("Custom template", this.service.sharedRequest(shared()).getPrompt());
+    }
+
+    @Test
+    public void testOpenAiWithoutKeyIsNotConfigured() throws Exception {
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_ENABLED)).thenReturn(true);
+        assertEquals(Map.of("available", false, "reason", "not_configured"), this.service.availability());
+        assertEquals("text2gql.shared.not-configured",
+                     failure(() -> this.service.sharedRequest(shared())).getMessage());
+        Path emptyKey = this.temporary.getRoot().toPath().resolve("blank-key.txt");
+        Files.writeString(emptyKey, " \n");
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_API_KEY_FILE)).thenReturn(emptyKey.toString());
+        assertEquals(false, this.service.settings().get("has_api_key"));
+        assertEquals(Map.of("available", false, "reason", "not_configured"), this.service.availability());
+        Mockito.when(this.config.get(HubbleOptions.TEXT2GQL_SHARED_CONNECTION_TYPE)).thenReturn("ollama");
+        assertEquals(true, this.service.availability().get("available"));
+    }
+
+    @Test
     public void testManagedKeyIsEncryptedAndDescriptorsDoNotRevealSecrets() throws Exception {
         assertFalse(Files.exists(this.masterFile));
         assertEquals("deployment", this.service.settings().get("source"));

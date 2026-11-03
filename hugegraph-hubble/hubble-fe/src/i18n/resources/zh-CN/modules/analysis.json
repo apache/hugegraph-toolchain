@@ -1148,6 +1148,7 @@
       "test_saved": "测试已保存配置",
       "test_save_first": "请先保存修改，再测试连接",
       "test_disabled": "启用并保存模型后可测试连接",
+      "test_unconfigured": "请先配置并保存模型连接信息",
       "testing": "正在等待模型回复 · 已用 {{seconds}} 秒",
       "saved_testing": "配置已保存，正在等待模型回复 · 已用 {{seconds}} 秒",
       "test_failed": "未收到模型回复，请检查地址、模型名称和 API Key",

@@ -183,7 +183,7 @@ CREATE TABLE IF NOT EXISTS `datasource` (
     PRIMARY KEY (`id`)
 );
 
--- One complete shared-model snapshot; disabled records also override deployment defaults.
+-- Managed snapshots override deployment defaults; prompt-only records may inherit the connection.
 CREATE TABLE IF NOT EXISTS `text2gql_config` (
     `id` INT NOT NULL CHECK (`id` = 1),
     `enabled` BOOLEAN NOT NULL,
@@ -197,6 +197,7 @@ CREATE TABLE IF NOT EXISTS `text2gql_config` (
 -- Idempotent additions also upgrade existing model settings without rewriting credentials.
 ALTER TABLE `text2gql_config` ADD COLUMN IF NOT EXISTS `gremlin_prompt` CLOB;
 ALTER TABLE `text2gql_config` ADD COLUMN IF NOT EXISTS `cypher_prompt` CLOB;
+ALTER TABLE `text2gql_config` ADD COLUMN IF NOT EXISTS `use_deployment_connection` BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE `load_task` ADD COLUMN IF NOT EXISTS `confirmed_vertex_writes` BIGINT;
 ALTER TABLE `load_task` ADD COLUMN IF NOT EXISTS `confirmed_edge_writes` BIGINT;
 
