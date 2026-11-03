@@ -179,14 +179,16 @@ const GraphResult = props => {
     const handleClickNewAddNode = useCallback(
         () => {
             setShowAddNodeDrawer(true);
-        }, []);
+        }, []
+    );
 
     const handleClickNewAddEdge = useCallback(
         isOut => {
             setIsClickNew(true);
             setShowAddEdgeDrawer(true);
             setOutEdge(isOut);
-        }, []);
+        }, []
+    );
 
     const handledbClickNode = useCallback(event => {
         if (event.kind === 'node') return getExpandInfo({vertex_id: event.data.raw.id, vertex_label: event.data.raw.label});
@@ -256,15 +258,13 @@ const GraphResult = props => {
     const onCloseEditElement = useCallback(
         () => {
             setShowEditElement(false);
-        },
-        []
+        }, []
     );
 
     const handleCloseSearch = useCallback(
         () => {
             setSearchVisible(false);
-        },
-        []
+        }, []
     );
 
     const handleChangeSearch = useCallback(params => {
@@ -453,6 +453,7 @@ const GraphResult = props => {
                             name: displayAlgorithmName,
                         })}
                         taskId={asyncTaskId}
+                        warning={queryMessage}
                     />
                 );
             }
