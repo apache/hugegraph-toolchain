@@ -75,6 +75,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const favoriteQueriesRequest = useRef(null);
     const graphNumsRequest = useRef(null);
     const algorithmRequest = useRef(null);
+    const olapSubmissionGroup = useRef(null);
     const graphNumsScope = useMemo(() => ({graphSpace, graph, identityVersion}), [graphSpace, graph, identityVersion]);
     const metaData = metaDataState?.owner === graphNumsScope ? metaDataState.data : undefined;
     const propertyKeysRecords = propertyKeysState?.owner === graphNumsScope ? propertyKeysState.records : undefined;
@@ -114,11 +115,13 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         metaDataRequest.current = null;
         propertyKeysRequest.current = null;
         algorithmRequest.current = null;
+        olapSubmissionGroup.current = null;
         return () => {
             graphNumsOwner.current = null;
             metaDataRequest.current = null;
             propertyKeysRequest.current = null;
             algorithmRequest.current = null;
+            olapSubmissionGroup.current = null;
         };
     }, [graphNumsScope]);
 
@@ -129,6 +132,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             metaDataRequest.current = null;
             propertyKeysRequest.current = null;
             algorithmRequest.current = null;
+            olapSubmissionGroup.current = null;
             asyncTaskOwner.current = null;
             visibleOlapTask.current = undefined;
             clearOlapTasks();
@@ -165,6 +169,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         if (previousScope.current === graphNumsScope) return;
         previousScope.current = graphNumsScope;
         algorithmRequest.current = null;
+        olapSubmissionGroup.current = null;
         asyncTaskOwner.current = null;
         visibleOlapTask.current = undefined;
         setAsyncTaskResult();
@@ -179,6 +184,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         previousEngine.current = engine;
         // An OLAP submission belongs to its own view, not the newly selected engine.
         algorithmRequest.current = null;
+        olapSubmissionGroup.current = null;
         asyncTaskOwner.current = null;
         visibleOlapTask.current = undefined;
         setAlgorithmMode();
@@ -418,14 +424,21 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const beginSubmission = useCallback((applyResult, latestOnly = true) => {
         if (graphNumsOwner.current !== graphNumsScope) return () => {};
         const submissionEngine = engine;
-        const request = latestOnly ? Symbol('algorithm-execution') : null;
-        if (latestOnly) algorithmRequest.current = request;
+        const request = latestOnly ? Symbol('algorithm-execution')
+            : olapSubmissionGroup.current || Symbol('olap-execution-group');
+        if (latestOnly) {
+            olapSubmissionGroup.current = null;
+            algorithmRequest.current = request;
+        } else {
+            algorithmRequest.current = null;
+            olapSubmissionGroup.current = request;
+        }
         return (...args) => {
             const sameContext = graphNumsOwner.current === graphNumsScope &&
                                 previousEngine.current === submissionEngine;
-            if (sameContext && (!latestOnly || algorithmRequest.current === request)) {
-                applyResult(...args);
-            }
+            const currentRequest = latestOnly ? algorithmRequest.current === request
+                : olapSubmissionGroup.current === request;
+            if (sameContext && currentRequest) applyResult(...args);
         };
     }, [engine, graphNumsScope]);
 
@@ -471,6 +484,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const resetGraphStatus = useCallback(
         (status, message, data) => {
             algorithmRequest.current = null;
+            olapSubmissionGroup.current = null;
             asyncTaskOwner.current = null;
             visibleOlapTask.current = undefined;
             setAsyncTaskResult();
