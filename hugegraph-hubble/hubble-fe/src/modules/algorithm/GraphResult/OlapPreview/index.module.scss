@@ -18,7 +18,7 @@
 
 .preview { box-sizing: border-box; height: var(--analysis-result-height, calc(100vh - 40px));
   min-height: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px; overflow: auto; }
-.header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .headerActions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
 .runSelect { width: min(260px, 38vw); min-width: 160px; }
 .pathCard { display: flex; flex-direction: column; gap: 10px; padding: 12px; border: 1px solid #dfe5f2;
