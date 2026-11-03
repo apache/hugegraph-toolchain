@@ -57,6 +57,7 @@ import EditableNicknameCell from './EditableNicknameCell';
 import {TopbarPageContextSlot} from '../../components/Topbar/PageContextSlot';
 import {useAuthContext} from '../../auth/AuthContext';
 import {useGraphspaceAccess} from '../../auth/graphspaceAccess';
+import {clearOlapTasksForGraph} from '../../modules/algorithm/olapTaskRegistry';
 
 const GraphRowAction = ({onAction, graph, children}) => {
     const handleClick = useCallback(() => onAction(graph), [graph, onAction]);
@@ -241,6 +242,7 @@ const Graph = () => {
                 api.manage.delGraph(graphspace, graph).then(res => {
                     hide();
                     if (res.status === 200) {
+                        clearOlapTasksForGraph(graphspace, graph);
                         message.success(t('graph.delete_confirm.success'));
                         setRefresh(value => !value);
                         return;

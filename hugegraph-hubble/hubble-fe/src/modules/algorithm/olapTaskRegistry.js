@@ -46,6 +46,11 @@ export const clearOlapTasks = () => {
     });
 };
 
+export const clearOlapTasksForGraph = (graphSpace, graph) => {
+    const key = scopeKey(graphSpace, graph);
+    if (tasksByScope.delete(key)) notify(key);
+};
+
 export const useOlapTasks = (graphSpace, graph) => {
     const key = useMemo(() => scopeKey(graphSpace, graph), [graph, graphSpace]);
     const [tasks, setTasks] = useState(() => tasksByScope.get(key) || EMPTY_TASKS);

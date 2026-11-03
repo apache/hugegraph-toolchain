@@ -16,9 +16,11 @@
  * under the License.
  */
 
-import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
+import {act, fireEvent, render, renderHook, screen, waitFor, within} from '@testing-library/react';
+import {Modal} from 'antd';
 import Graph from './index';
 import * as api from '../../api';
+import {clearOlapTasks, recordOlapTask, useOlapTasks} from '../../modules/algorithm/olapTaskRegistry';
 
 let mockAuthContext;
 
@@ -47,6 +49,7 @@ jest.mock('../../api', () => ({
         getGraphSpace: jest.fn(),
         getGraphList: jest.fn(),
         clearGraph: jest.fn(),
+        delGraph: jest.fn(),
     },
 }));
 
@@ -96,6 +99,7 @@ beforeAll(installMatchMedia);
 
 beforeEach(() => {
     jest.clearAllMocks();
+    clearOlapTasks();
     installMatchMedia();
     sessionStorage.setItem('hubble_config_', JSON.stringify({
         pd_enabled: true,
@@ -121,6 +125,31 @@ beforeEach(() => {
             total: 1,
         },
     });
+});
+
+test.each([200, 500])('clears only the deleted graph task history after status %i', async status => {
+    api.manage.getGraphList.mockResolvedValue({
+        status: 200,
+        data: {records: [{name: 'graph-a', nickname: 'Graph A', graphspace: 'space'}], total: 1},
+    });
+    api.manage.delGraph.mockResolvedValue({status});
+    recordOlapTask({graphSpace: 'space', graph: 'graph-a', id: -1, algorithm: 'PageRank'});
+    recordOlapTask({graphSpace: 'space', graph: 'graph-b', id: -2, algorithm: 'WCC'});
+    const {result: deleted} = renderHook(() => useOlapTasks('space', 'graph-a'));
+    const {result: other} = renderHook(() => useOlapTasks('space', 'graph-b'));
+    const confirm = jest.spyOn(Modal, 'confirm').mockImplementation(() => ({}));
+    render(<Graph />);
+    const menu = await screen.findByTestId('graph-card-menu');
+    fireEvent.click(within(menu).getByText('common.action.delete'));
+    expect(confirm).toHaveBeenCalled();
+    await act(async () => {
+        confirm.mock.calls[0][0].onOk();
+        await Promise.resolve();
+    });
+    expect(api.manage.delGraph).toHaveBeenCalledWith('space', 'graph-a');
+    await waitFor(() => expect(deleted.current).toHaveLength(status === 200 ? 0 : 1));
+    expect(other.current).toEqual([{id: -2, algorithm: 'WCC'}]);
+    confirm.mockRestore();
 });
 
 test('disables every clear action for the default graph card', async () => {
