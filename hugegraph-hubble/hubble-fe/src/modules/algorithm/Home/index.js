@@ -63,8 +63,6 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const [algorithmOnCanvas, setAlgorithmOnCanvas] = useState();
     const recentOlapTasks = useOlapTasks(graphSpace, graph);
     const pendingOlapTasks = usePendingOlapTasks(graphSpace, graph);
-    const contextVersion = useRef(0);
-    const unmounted = useRef(false);
     const restoreEligible = useRef(true);
     const restoringPending = useRef(false);
     const restoringAlgorithm = useRef();
@@ -122,7 +120,6 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const propertyKeysRequest = useRef(null);
     const graphNumsOwner = useRef(null);
     useLayoutEffect(() => {
-        contextVersion.current += 1;
         graphNumsOwner.current = graphNumsScope;
         metaDataRequest.current = null;
         propertyKeysRequest.current = null;
@@ -159,11 +156,6 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         window.addEventListener(USER_CHANGE_EVENT, resetIdentity);
         return () => window.removeEventListener(USER_CHANGE_EVENT, resetIdentity);
     }, [CLOSED, STANDBY]);
-
-    useEffect(() => {
-        unmounted.current = false;
-        return () => { unmounted.current = true; };
-    }, []);
 
     useEffect(() => () => {
         executionLogsRequest.current = null;
@@ -203,7 +195,6 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     useLayoutEffect(() => {
         if (previousEngine.current === engine) return;
         previousEngine.current = engine;
-        contextVersion.current += 1;
         restoreEligible.current = engine === 'olap';
         restoringPending.current = false;
         restoringAlgorithm.current = undefined;
@@ -522,7 +513,6 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         setRestoredOlapTask(false);
         if (graphNumsOwner.current !== graphNumsScope) return () => false;
         const submissionEngine = engine;
-        const submissionVersion = contextVersion.current;
         const request = latestOnly ? Symbol('algorithm-execution')
             : olapSubmissionGroup.current || {pending: 0};
         let settled = false;
@@ -549,7 +539,6 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             else applyResult(args[0], args[1], args[2], {pending: request.pending});
             return true;
         };
-        complete.isDetachedEligible = () => unmounted.current && submissionVersion === contextVersion.current;
         return complete;
     }, [LOADING, engine, graphNumsScope]);
 

@@ -21,7 +21,7 @@ import AlgorithmHome from './index';
 import GraphAnalysisContext from '../../Context';
 import * as api from '../../../api';
 import {GRAPH_STATUS} from '../../../utils/constants';
-import {clearOlapTasks, clearOlapTasksForGraph, recordOlapTask} from '../olapTaskRegistry';
+import {clearOlapTasks, clearOlapTasksForGraph, clearOlapTasksForGraphSpace, recordOlapTask} from '../olapTaskRegistry';
 import useAlgorithmSubmission from '../algorithmsForm/useAlgorithmSubmission';
 import {USER_CHANGE_EVENT} from '../../../utils/user';
 
@@ -450,3 +450,107 @@ test('shows a detached failure only when returning to its algorithm', async () =
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED);
     expect(currentResult().queryMessage).toBe('PageRank failed');
 });
+
+const scopedHome = (graph = 'hugegraph', engine = 'olap') => (
+    <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph, isVermeer: true, vermeerReady: true}}>
+        <AlgorithmHome engine={engine} />
+    </GraphAnalysisContext.Provider>
+);
+
+test.each(['engine', 'graph'])(
+    'restores a pending task after switching %s away and back before it succeeds', async switchKind => {
+        const view = render(scopedHome());
+        await waitFor(() => expect(formProps).toHaveBeenCalled());
+        const hook = renderHook(() => useAlgorithmSubmission(
+            formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+        ));
+        let finish;
+        act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+        view.rerender(switchKind === 'engine' ? scopedHome('hugegraph', 'oltp') : scopedHome('another'));
+        view.rerender(scopedHome());
+        await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+        act(() => finish(GRAPH_STATUS.SUCCESS, -111));
+        await waitFor(() => expect(currentResult().asyncTaskId).toBe(-111));
+        expect(currentResult().algorithm).toBe('PageRank');
+        act(() => finish(GRAPH_STATUS.FAILED, '', 'duplicate completion'));
+        expect(currentResult().asyncTaskId).toBe(-111);
+        expect(currentResult().queryMessage).toBeUndefined();
+    }
+);
+
+test.each(['engine', 'graph'])(
+    'retains a failed pending task in its original scope while switched %s away', async switchKind => {
+        const view = render(scopedHome());
+        await waitFor(() => expect(formProps).toHaveBeenCalled());
+        const hook = renderHook(() => useAlgorithmSubmission(
+            formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+        ));
+        let finish;
+        act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+        view.rerender(switchKind === 'engine' ? scopedHome('hugegraph', 'oltp') : scopedHome('another'));
+        act(() => finish(GRAPH_STATUS.FAILED, '', 'submission failed'));
+        expect(currentResult().queryMessage).toBeUndefined();
+        expect(currentResult().asyncTaskId).toBeUndefined();
+        view.rerender(scopedHome());
+        await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
+        expect(currentResult().queryMessage).toBe('submission failed');
+    }
+);
+
+test.each(['identity', 'deleted graph', 'deleted graphspace'])(
+    'rejects a stale completion after %s even if the original view remains mounted', async change => {
+        const view = render(scopedHome());
+        await waitFor(() => expect(formProps).toHaveBeenCalled());
+        const hook = renderHook(() => useAlgorithmSubmission(
+            formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+        ));
+        let finish;
+        act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+        act(() => {
+            if (change === 'identity') window.dispatchEvent(new Event(USER_CHANGE_EVENT));
+            else if (change === 'deleted graph') clearOlapTasksForGraph('DEFAULT', 'hugegraph');
+            else clearOlapTasksForGraphSpace('DEFAULT');
+            finish(GRAPH_STATUS.SUCCESS, -112);
+        });
+        expect(currentResult().asyncTaskId).toBeUndefined();
+        view.unmount();
+        render(scopedHome());
+        await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY));
+        expect(currentResult().asyncTaskId).toBeUndefined();
+    }
+);
+
+test.each(['engine', 'graph'])(
+    'stores a successful pending task without updating the other %s view', async switchKind => {
+        const view = render(scopedHome());
+        await waitFor(() => expect(formProps).toHaveBeenCalled());
+        const hook = renderHook(() => useAlgorithmSubmission(
+            formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+        ));
+        let finish;
+        act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+        view.rerender(switchKind === 'engine' ? scopedHome('hugegraph', 'oltp') : scopedHome('another'));
+        act(() => finish(GRAPH_STATUS.SUCCESS, -113));
+        expect(currentResult().asyncTaskId).toBeUndefined();
+        view.rerender(scopedHome());
+        await waitFor(() => expect(currentResult().asyncTaskId).toBe(-113));
+    }
+);
+
+test.each(['engine', 'graph'])(
+    'reports a pending failure after switching %s away and back', async switchKind => {
+        const view = render(scopedHome());
+        await waitFor(() => expect(formProps).toHaveBeenCalled());
+        const hook = renderHook(() => useAlgorithmSubmission(
+            formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+        ));
+        let finish;
+        act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+        view.rerender(switchKind === 'engine' ? scopedHome('hugegraph', 'oltp') : scopedHome('another'));
+        view.rerender(scopedHome());
+        await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+        act(() => finish(GRAPH_STATUS.FAILED, '', 'submission failed'));
+        await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
+        expect(currentResult().queryMessage).toBe('submission failed');
+    }
+);

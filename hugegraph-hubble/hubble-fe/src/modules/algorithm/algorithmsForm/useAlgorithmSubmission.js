@@ -18,7 +18,7 @@
 
 import {useCallback} from 'react';
 import {GRAPH_STATUS} from '../../../utils/constants';
-import {beginPendingOlapTask, finishPendingOlapTask} from '../olapTaskRegistry';
+import {beginPendingOlapTask, finishPendingOlapTask, isPendingOlapTaskValid} from '../olapTaskRegistry';
 
 // Async callers retain the completion returned for their own execution.
 export default function useAlgorithmSubmission(beginSubmission, graphSpace, graph,
@@ -29,11 +29,13 @@ export default function useAlgorithmSubmission(beginSubmission, graphSpace, grap
         if (!trackOlapTask) return complete;
         const token = started ? beginPendingOlapTask(graphSpace, graph, algorithm) : null;
         return (finalStatus, ...finalArgs) => {
-            const accepted = complete?.(finalStatus, ...finalArgs);
-            const detached = complete?.isDetachedEligible?.();
-            const failure = !accepted && detached && finalStatus === GRAPH_STATUS.FAILED
+            // A graph, space or identity may have been deleted while the view
+            // is still mounted. Never apply a completion from an invalid token.
+            const valid = isPendingOlapTaskValid(token);
+            const accepted = valid ? complete?.(finalStatus, ...finalArgs) : false;
+            const failure = !accepted && finalStatus === GRAPH_STATUS.FAILED
                 ? {message: finalArgs[1]} : null;
-            const task = (accepted || detached) && finalStatus === GRAPH_STATUS.SUCCESS
+            const task = finalStatus === GRAPH_STATUS.SUCCESS
                 ? {graphSpace, graph, algorithm, id: finalArgs[0]} : null;
             if (token && finalStatus !== GRAPH_STATUS.LOADING) finishPendingOlapTask(token, failure, task);
             return accepted;

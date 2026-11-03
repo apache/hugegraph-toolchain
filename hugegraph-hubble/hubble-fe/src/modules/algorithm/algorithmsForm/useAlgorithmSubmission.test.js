@@ -22,7 +22,8 @@ import {GRAPH_STATUS} from '../../../utils/constants';
 import {finishPendingOlapTask} from '../olapTaskRegistry';
 
 jest.mock('../olapTaskRegistry', () => ({
-    beginPendingOlapTask: jest.fn(() => ({})), finishPendingOlapTask: jest.fn(() => true)}));
+    beginPendingOlapTask: jest.fn(() => ({})), finishPendingOlapTask: jest.fn(() => true),
+    isPendingOlapTaskValid: jest.fn(() => true)}));
 
 beforeEach(() => jest.clearAllMocks());
 
@@ -74,7 +75,7 @@ test.each([GRAPH_STATUS.SUCCESS, GRAPH_STATUS.FAILED])(
     }
 );
 
-test('records a recent task only when its completion still belongs to the active scope', () => {
+test('retains a valid task when its original view no longer accepts completion', () => {
     const complete = jest.fn()
         .mockReturnValueOnce(true)
         .mockReturnValueOnce(false);
@@ -86,7 +87,9 @@ test('records a recent task only when its completion still belongs to the active
     finish(GRAPH_STATUS.SUCCESS, -7);
     expect(complete).toHaveBeenNthCalledWith(1, GRAPH_STATUS.LOADING);
     expect(complete).toHaveBeenNthCalledWith(2, GRAPH_STATUS.SUCCESS, -7);
-    expect(finishPendingOlapTask).toHaveBeenCalledWith(expect.anything(), null, null);
+    expect(finishPendingOlapTask).toHaveBeenCalledWith(expect.anything(), null, {
+        graphSpace: 'DEFAULT', graph: 'hugegraph', algorithm: 'PageRank', id: -7,
+    });
 });
 
 test('records an accepted successful task with its original graph scope', () => {

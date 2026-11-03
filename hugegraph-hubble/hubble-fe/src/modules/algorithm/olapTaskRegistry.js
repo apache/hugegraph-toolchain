@@ -98,10 +98,13 @@ export const beginPendingOlapTask = (graphSpace, graph, algorithm) => {
     return token;
 };
 
+export const isPendingOlapTaskValid = token => Boolean(token) &&
+    (pendingByScope.get(token.key) || []).includes(token) &&
+    token.identityVersion === identityVersion &&
+    token.scopeVersion === (scopeVersions.get(token.key) || 0);
+
 export const finishPendingOlapTask = (token, failure, task) => {
-    const valid = (pendingByScope.get(token.key) || []).includes(token) &&
-        token.identityVersion === identityVersion &&
-        token.scopeVersion === (scopeVersions.get(token.key) || 0);
+    const valid = isPendingOlapTaskValid(token);
     if (valid && failure) {
         const failures = failuresByScope.get(token.key) || new Map();
         failures.delete(token.algorithm);
