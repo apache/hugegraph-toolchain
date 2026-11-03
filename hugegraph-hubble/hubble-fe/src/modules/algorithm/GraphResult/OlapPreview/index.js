@@ -62,7 +62,7 @@ export const buildConnectedSample = (vertices = [], edges = [], maxNodes = PATH_
 
 // A result is an ID/value pair, not a graph vertex or an edge. Keep this view
 // read-only and do not feed synthetic elements into the editable graph canvas.
-const OlapPreview = ({graphSpace, graph, taskId}) => {
+const OlapPreview = ({graphSpace, graph, taskId, warning}) => {
     const {t} = useTranslation();
     const recentTasks = useOlapTasks(graphSpace, graph);
     const [activeTaskId, setActiveTaskId] = useState(Number(taskId));
@@ -224,6 +224,8 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     }, [vertices, state.edges]);
     const columns = [{title: t('analysis.algorithm.preview_id'), dataIndex: 'ID', render: value => String(value)},
         {title: t('analysis.algorithm.preview_value'), dataIndex: 'Value', render: valueText}];
+    const connectedSampleLabel = `${t('analysis.algorithm.preview_graph')} · ${t(
+        'analysis.algorithm.preview_edges_partial', {count: state.edges?.length || 0})}`;
     return <div className={c.preview}>
         <div className={c.header}>
             <strong>{t('analysis.algorithm.preview_title')}</strong>
@@ -240,6 +242,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                 </Link>
             </div>
         </div>
+        {warning && <Alert type='warning' showIcon title={warning} />}
         {state.phase === 'waiting' && <Spin description={t('analysis.algorithm.preview_running')} />}
         {state.phase === 'loading' && <Spin description={t('analysis.algorithm.preview_loading')} />}
         {['status_error', 'not_found'].includes(state.phase) && <Alert type='warning' showIcon
@@ -276,10 +279,10 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             {state.missingEdgePages && <Alert type='warning' showIcon
                 title={t('analysis.algorithm.preview_edges_missing', {pages: state.missingEdgePages})} />}
             {connectedSample.length > 1 && <section className={c.pathCard}
-                aria-label={t('analysis.algorithm.preview_graph')}>
+                aria-label={connectedSampleLabel}>
                 <div className={c.pathHeading}>
                     <strong>{t('analysis.algorithm.preview_graph')}</strong>
-                    <span>{t('analysis.algorithm.preview_no_edges')}</span>
+                    <span>{t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})}</span>
                 </div>
                 <div className={c.pathTrack}>
                     {connectedSample.map((item, index) => <div className={c.pathStep} key={String(item.ID)}>
