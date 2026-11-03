@@ -843,19 +843,21 @@
         "slpa_vermeer": {
           "desc": "Speaker-listener label propagation outputs label frequencies per vertex",
           "max_step": "Maximum iterations (1–1000)",
-          "k": "Maximum labels retained; -1 keeps all, 0 keeps none",
+          "k": "Maximum labels retained; -1 keeps all",
+          "k_invalid": "Enter -1 or an integer of at least 1",
           "select_method": "Neighbor label selection: max chooses the most frequent; random samples by frequency"
         },
         "vermeer_advanced": {
           "cycle_desc": "Detect directed cycles excluding self-loops. Limit mode is selected by default and caps cycles per vertex (Vermeer defaults to all). All mode can enumerate many paths",
           "louvain_desc": "Optimize modularity for communities; the result may not converge before the compute step limit",
           "weighted_desc": "Optimize communities by edge weight; an empty property uses weight 1. A specified numeric property must be loaded",
-          "max_step": "Compute iteration limit; reaching it may leave the result unconverged",
+          "max_step": "Compute iteration limit: at least 2 for cycle and Louvain, or 3 for weighted Louvain. Reaching it may leave the result unconverged",
           "parallel": "Parallelism",
           "min_length": "Minimum cycle length",
           "max_length": "Maximum cycle length; large values may require significant memory and CPU",
           "max_cycles": "Maximum cycles per vertex in limit mode",
           "all_warning": "All mode does not limit the number of cycles and can exhaust memory. Check graph size and restrict cycle length",
+          "properties_unavailable": "Property filters and explicit edge weights are unavailable until loaded properties can be verified. Clear any previously saved values before running",
           "mode": "All enumerates cycles; limit caps them; boolean reports presence only",
           "resolution": "Community resolution",
           "threshold": "Modularity improvement threshold",

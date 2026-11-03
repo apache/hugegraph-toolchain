@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.hash.Hashing;
@@ -178,6 +179,15 @@ public class DirectVermeerService {
         if ("cycle_detection".equals(algorithm)) {
             this.validateCycleFilter(options, "vertex");
             this.validateCycleFilter(options, "edge");
+            E.checkArgument(!hasText(options.get("filter.vertex_expr")) &&
+                            !hasText(options.get("filter.edge_expr")),
+                            "Property filters require verified loaded properties; " +
+                            "the current Vermeer integration cannot verify them");
+        }
+        if ("louvain_weighted".equals(algorithm)) {
+            E.checkArgument(!hasText(options.get("louvain.edge_weight_property")),
+                            "Weighted properties require verified loaded properties; " +
+                            "the current Vermeer integration cannot verify them");
         }
         Map<String, String> params = new HashMap<>();
         options.forEach((key, value) -> {
@@ -196,6 +206,20 @@ public class DirectVermeerService {
                 params.put(key, value.toString());
             }
         });
+        if ("slpa".equals(algorithm) && params.containsKey("slpa.k")) {
+            int k = integerParameter(params.get("slpa.k"), "slpa.k");
+            E.checkArgument(k == -1 || k >= 1, "slpa.k must be -1 or at least 1");
+        }
+        if ("clustering_coefficient".equals(algorithm) && params.containsKey("compute.max_step")) {
+            int steps = integerParameter(params.get("compute.max_step"), "compute.max_step");
+            E.checkArgument(steps >= 2, "clustering_coefficient requires at least 2 steps");
+        }
+        if (("louvain".equals(algorithm) || "louvain_weighted".equals(algorithm)) &&
+            params.containsKey("compute.max_step")) {
+            int steps = integerParameter(params.get("compute.max_step"), "compute.max_step");
+            int minimum = "louvain".equals(algorithm) ? 2 : 3;
+            E.checkArgument(steps >= minimum, "%s requires at least %s steps", algorithm, minimum);
+        }
         if ("kout".equals(algorithm) || "jaccard".equals(algorithm)) {
             String source = params.get(algorithm + ".source");
             // K-out's Vermeer default is "1"; Jaccard has no usable default.
@@ -231,6 +255,18 @@ public class DirectVermeerService {
         return this.submit(client, "compute", params);
     }
 
+    private static int integerParameter(String value, String name) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(name + " must be an integer", e);
+        }
+    }
+
+    private static boolean hasText(Object value) {
+        return value != null && !value.toString().isBlank();
+    }
+
     private void validateCycleFilter(Map<String, Object> options, String type) {
         Object exprValue = options.get("filter." + type + "_expr");
         Object propsValue = options.get("filter." + type + "_properties");
@@ -242,7 +278,8 @@ public class DirectVermeerService {
         String props = propsValue == null ? "[]" : (String) propsValue;
         JsonNode parsed;
         try {
-            parsed = this.mapper.readTree(props);
+            parsed = this.mapper.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                                .readTree(props);
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Filter properties must be a JSON string array", e);
         }

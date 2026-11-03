@@ -180,7 +180,9 @@ const DepthSlpaVermeer = props => {
                 {isSlpa && <>
                     <Form.Item label='slpa.k' name='slpa.k' initialValue={10}
                         tooltip={t(OWNED_TEXT_PATH + '.k')}
-                        rules={[{required: true}, {type: 'integer', min: -1}]}>
+                        rules={[{required: true}, {validator: (_, value) =>
+                            Number.isInteger(value) && (value === -1 || value >= 1)
+                                ? Promise.resolve() : Promise.reject(new Error(t(OWNED_TEXT_PATH + '.k_invalid')))}]}>
                         <InputNumber min={-1} />
                     </Form.Item>
                     <Form.Item label='slpa.select_method' name='slpa.select_method' initialValue='max'

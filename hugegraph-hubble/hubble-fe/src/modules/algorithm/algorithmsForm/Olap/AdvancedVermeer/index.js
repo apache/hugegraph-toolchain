@@ -58,6 +58,9 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
     const [running, beginRequiring] = useAlgorithmPending();
     const [form] = Form.useForm();
     const cycleMode = Form.useWatch('cycle.mode', form) || 'limit';
+    const vertexExpr = Form.useWatch('filter.vertex_expr', form);
+    const edgeExpr = Form.useWatch('filter.edge_expr', form);
+    const edgeWeight = Form.useWatch('louvain.edge_weight_property', form);
     const validationSequence = useRef(0);
     const validate = useCallback(() => {
         const sequence = ++validationSequence.current;
@@ -69,9 +72,9 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
     }, [form]);
     const invalidateValidation = useCallback(() => { validationSequence.current++; }, []);
     useEffect(() => {
-        if (cycle) validate();
+        if (cycle || weighted) validate();
         return invalidateValidation;
-    }, [cycle, cycleMode, invalidateValidation, validate]);
+    }, [cycle, weighted, cycleMode, vertexExpr, edgeExpr, edgeWeight, invalidateValidation, validate]);
     useEffect(() => { setEnabled(graphStatus === GRAPH_LOAD_STATUS.LOADED); }, [graphStatus]);
     const submit = useCallback(async values => {
         const finish = beginRequiring();
@@ -100,6 +103,8 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
         return validFilterPair(expr, value) ? Promise.resolve()
             : Promise.reject(new Error(t(PATH + '.invalid_properties')));
     };
+    const noProperty = (_, value) => !value?.trim() ? Promise.resolve()
+        : Promise.reject(new Error(t(PATH + '.properties_unavailable')));
     const status = enabled && graphStatus === GRAPH_LOAD_STATUS.LOADED;
     return <AlgorithmPanel title={<AlgorithmNameHeader icon={<NodeIndexOutlined />} name={name}
         description={t(PATH + (cycle ? '.cycle_desc' : weighted ? '.weighted_desc' : '.louvain_desc'))}
@@ -111,7 +116,7 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
                 tooltip={t(PATH + '.parallel')} rules={[{validator: positiveInteger}]}><InputNumber /></Form.Item>
             <Form.Item name='compute.max_step' label='compute.max_step' initialValue={10}
                 tooltip={t(PATH + '.max_step')} rules={[{validator: (_, value) =>
-                    Number.isInteger(value) && value >= (cycle ? 2 : 1) ? Promise.resolve()
+                    Number.isInteger(value) && value >= (weighted ? 3 : 2) ? Promise.resolve()
                         : Promise.reject(new Error(t(PATH + '.max_step')))}]}><InputNumber /></Form.Item>
             {cycle ? <>
                 <Form.Item name='cycle.mode' label='cycle.mode' initialValue='limit' tooltip={t(PATH + '.mode')}
@@ -126,9 +131,10 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
                 {cycleMode === 'all' && <Alert type='warning' showIcon message={t(PATH + '.all_warning')} />}
                 {cycleMode === 'limit' && <Form.Item name='cycle.max_cycles' label='cycle.max_cycles' initialValue={10}
                     tooltip={t(PATH + '.max_cycles')} rules={[{validator: positiveInteger}]}><InputNumber /></Form.Item>}
+                <Alert type='warning' showIcon message={t(PATH + '.properties_unavailable')} />
                 {['vertex', 'edge'].map(field => <div key={field}>
                     <Form.Item name={`filter.${field}_expr`} label={`filter.${field}_expr`}
-                        tooltip={t(PATH + '.filter_expr')}><Input /></Form.Item>
+                        tooltip={t(PATH + '.filter_expr')} rules={[{validator: noProperty}]}><Input /></Form.Item>
                     <Form.Item name={`filter.${field}_properties`} label={`filter.${field}_properties`}
                         initialValue='[]' dependencies={[`filter.${field}_expr`]} tooltip={t(PATH + '.filter_properties')}
                         rules={[{validator: validatePair(field)}]}><Input /></Form.Item>
@@ -140,8 +146,11 @@ const AdvancedVermeer = ({kind, handleFormSubmit, searchValue, currentAlgorithm,
                     tooltip={t(PATH + '.threshold')} rules={[{validator: nonnegativeNumber}]}><InputNumber /></Form.Item>
                 <Form.Item name='louvain.step' label='louvain.step' initialValue={10}
                     tooltip={t(PATH + '.step')} rules={[{validator: positiveInteger}]}><InputNumber /></Form.Item>
-                {weighted && <Form.Item name='louvain.edge_weight_property' label='louvain.edge_weight_property'
-                    tooltip={t(PATH + '.edge_weight')}><Input /></Form.Item>}
+                {weighted && <>
+                    <Alert type='warning' showIcon message={t(PATH + '.properties_unavailable')} />
+                    <Form.Item name='louvain.edge_weight_property' label='louvain.edge_weight_property'
+                        tooltip={t(PATH + '.edge_weight')} rules={[{validator: noProperty}]}><Input /></Form.Item>
+                </>}
             </>}
         </Form>
     </AlgorithmPanel>;

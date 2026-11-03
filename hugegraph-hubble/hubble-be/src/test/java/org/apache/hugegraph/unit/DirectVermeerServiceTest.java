@@ -216,6 +216,10 @@ public class DirectVermeerServiceTest {
         Assert.assertEquals("clustering_coefficient", clustering.get("compute.algorithm"));
         Assert.assertEquals("1", clustering.get("output.need_query"));
         expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "clustering_coefficient", "compute.max_step", 1)));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "clustering_coefficient", "compute.max_step", "2.5")));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
                 Map.of("compute.algorithm", "scc", "output.type", "hugegraph")));
     }
 
@@ -238,6 +242,11 @@ public class DirectVermeerServiceTest {
         Assert.assertEquals("slpa", slpa.get("compute.algorithm"));
         Assert.assertEquals("10", slpa.get("slpa.k"));
         Assert.assertEquals("random", slpa.get("slpa.select_method"));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "slpa", "slpa.k", -1));
+        for (Object invalid : List.of(0, -2, "1.5")) {
+            expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                    Map.of("compute.algorithm", "slpa", "slpa.k", invalid)));
+        }
         expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
                 Map.of("compute.algorithm", "slpa", "output.type", "hugegraph")));
     }
@@ -249,10 +258,8 @@ public class DirectVermeerServiceTest {
                .thenReturn(Map.of("task", Map.of("id", 12)));
         DirectVermeerService direct = service(backend);
         direct.compute(graphClient(), Map.of("compute.algorithm", "cycle_detection", "cycle.mode", "limit",
-                "cycle.max_cycles", 10, "filter.vertex_expr", "age > 1",
-                "filter.vertex_properties", "[\"age\"]"));
-        direct.compute(graphClient(), Map.of("compute.algorithm", "louvain_weighted", "louvain.resolution", 1.0,
-                "louvain.edge_weight_property", "weight"));
+                "cycle.max_cycles", 10));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "louvain_weighted", "louvain.resolution", 1.0));
         direct.compute(graphClient(), Map.of("compute.algorithm", "louvain", "louvain.threshold", 0.0000001));
         ArgumentCaptor<Map> body = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(backend, Mockito.times(3)).request(
@@ -260,8 +267,17 @@ public class DirectVermeerServiceTest {
         Map<?, ?> cycle = (Map<?, ?>) body.getAllValues().get(0).get("params");
         Map<?, ?> weighted = (Map<?, ?>) body.getAllValues().get(1).get("params");
         Assert.assertEquals("limit", cycle.get("cycle.mode"));
-        Assert.assertEquals("[\"age\"]", cycle.get("filter.vertex_properties"));
-        Assert.assertEquals("weight", weighted.get("louvain.edge_weight_property"));
+        Assert.assertFalse(cycle.containsKey("filter.vertex_properties"));
+        Assert.assertFalse(weighted.containsKey("louvain.edge_weight_property"));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "cycle_detection", "filter.vertex_expr", "age > 1",
+                       "filter.vertex_properties", "[\"age\"]")));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "louvain_weighted", "louvain.edge_weight_property", "weight")));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "louvain", "compute.max_step", 1)));
+        expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
+                Map.of("compute.algorithm", "louvain_weighted", "compute.max_step", 2)));
         expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
                 Map.of("compute.algorithm", "cycle_detection", "filter.unrecognized", "secret")));
         for (Object properties : List.of("[]", "[1]", "[\" \"]", "invalid")) {
@@ -271,6 +287,13 @@ public class DirectVermeerServiceTest {
         }
         expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
                 Map.of("compute.algorithm", "cycle_detection", "filter.edge_properties", "[\"x\"]")));
+        try {
+            direct.compute(graphClient(), Map.of("compute.algorithm", "cycle_detection",
+                    "filter.vertex_expr", "age > 1", "filter.vertex_properties", "[\"age\"] true"));
+            Assert.fail("Expected trailing JSON to be rejected");
+        } catch (IllegalArgumentException e) {
+            Assert.assertEquals("Filter properties must be a JSON string array", e.getMessage());
+        }
         expect(IllegalArgumentException.class, () -> direct.compute(graphClient(),
                 Map.of("compute.algorithm", "louvain_weighted", "output.type", "hugegraph")));
     }
