@@ -189,7 +189,7 @@ export async function verifyUi({frontend = frontendRoot, outputDir = defaultOutp
     if (report.runnerHash !== await runnerHash()) throw new Error('Browser runner changed during verification');
     report.checks = vermeer ? [...browser.checks, ...vermeer.checks] : browser.checks;
     report.browserVersion = browser.browserVersion;
-    report.vermeerBrowserVersion = vermeer?.browserVersion;
+    if (vermeer) report.vermeerBrowserVersion = vermeer.browserVersion;
     report.status = 'passed';
   } catch (error) {
     report.failure = error.message;
