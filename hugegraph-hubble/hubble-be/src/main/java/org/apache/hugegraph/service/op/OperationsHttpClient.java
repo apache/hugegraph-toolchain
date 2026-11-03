@@ -162,7 +162,8 @@ public class OperationsHttpClient {
         }
         try {
             long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.callTimeoutMillis);
-            InetAddress[] addresses = boundedDns ? this.resolveBounded(target.getHost()) :
+            InetAddress[] addresses = boundedDns ? this.resolveBounded(target.getHost(),
+                                                                        target.getRawPath()) :
                                       this.resolver.lookup(target.getHost()).toArray(new InetAddress[0]);
             if (!boundedDns) {
                 deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.callTimeoutMillis);
@@ -222,7 +223,7 @@ public class OperationsHttpClient {
         }
     }
 
-    private InetAddress[] resolveBounded(String host) throws IOException {
+    private InetAddress[] resolveBounded(String host, String path) throws IOException {
         Future<List<InetAddress>> future;
         try {
             future = DNS_EXECUTOR.submit(() -> this.resolver.lookup(host));
@@ -238,7 +239,8 @@ public class OperationsHttpClient {
         } catch (InterruptedException e) {
             future.cancel(true);
             Thread.currentThread().interrupt();
-            throw new InterruptedIOException("Operations DNS resolution interrupted");
+            throw new UpstreamRequestException("upstream_interrupted", e,
+                                               Map.of("request_path", path));
         } catch (ExecutionException e) {
             throw new IOException("Operations DNS resolution failed", e.getCause());
         }

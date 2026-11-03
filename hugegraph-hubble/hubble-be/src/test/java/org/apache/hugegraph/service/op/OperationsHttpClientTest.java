@@ -383,6 +383,47 @@ public class OperationsHttpClientTest {
         }
     }
 
+    @Test(timeout = 4000L)
+    public void testBoundedDnsInterruptionPreservesReasonAndInterrupt() throws Exception {
+        CountDownLatch resolving = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicReference<UpstreamRequestException> failure = new AtomicReference<>();
+        AtomicReference<Boolean> interrupted = new AtomicReference<>(false);
+        OperationsHttpClient client = new OperationsHttpClient(1000, 1000, 128, host -> {
+            resolving.countDown();
+            try {
+                release.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new UnknownHostException("DNS interrupted");
+            }
+            return java.util.List.of(InetAddress.getByName("127.0.0.1"));
+        });
+        Thread caller = new Thread(() -> {
+            try {
+                client.getBounded(URI.create("http://127.0.0.1/v1/cluster"), null, null);
+            } catch (UpstreamRequestException e) {
+                failure.set(e);
+                interrupted.set(Thread.currentThread().isInterrupted());
+            }
+        });
+        try {
+            caller.start();
+            Assert.assertTrue(resolving.await(1, TimeUnit.SECONDS));
+            caller.interrupt();
+            caller.join(1000);
+            Assert.assertFalse(caller.isAlive());
+            Assert.assertEquals("upstream_interrupted", failure.get().getMessage());
+            Assert.assertEquals(Map.of("request_path", "/v1/cluster"),
+                                failure.get().getDiagnostics());
+            Assert.assertTrue(interrupted.get());
+        } finally {
+            release.countDown();
+            caller.interrupt();
+            caller.join(1000);
+        }
+    }
+
     private void assertCallDeadline(String token, boolean basic) throws IOException {
         AtomicInteger chunks = new AtomicInteger();
         AtomicReference<String> authorization = new AtomicReference<>();
