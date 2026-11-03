@@ -84,6 +84,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private final Clock clock;
     private final ExecutorService storeExecutor;
     private final ThreadPoolExecutor pdMetricsExecutor;
+    private final ThreadPoolExecutor pdReadinessExecutor;
     private final ExecutorService readinessExecutor;
     private final ExecutorService lifecycleExecutor;
     private final int storeDeadlineMillis;
@@ -230,17 +231,27 @@ public class LiveOperationsCollector implements OperationsCollector {
                     thread.setDaemon(true);
                     return thread;
                 }, new ThreadPoolExecutor.AbortPolicy());
+        this.pdReadinessExecutor = new ThreadPoolExecutor(
+                storeThreads, storeThreads, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(32), runnable -> {
+                    Thread thread = new Thread(runnable, "hubble-pd-readiness-" +
+                                                         THREAD_SEQUENCE.incrementAndGet());
+                    thread.setDaemon(true);
+                    return thread;
+                }, new ThreadPoolExecutor.AbortPolicy());
     }
 
     @PreDestroy
     public void close() {
         this.storeExecutor.shutdownNow();
         this.pdMetricsExecutor.shutdownNow();
+        this.pdReadinessExecutor.shutdownNow();
         this.readinessExecutor.shutdownNow();
         this.lifecycleExecutor.shutdownNow();
         try {
             this.storeExecutor.awaitTermination(1L, TimeUnit.SECONDS);
             this.pdMetricsExecutor.awaitTermination(1L, TimeUnit.SECONDS);
+            this.pdReadinessExecutor.awaitTermination(1L, TimeUnit.SECONDS);
             this.readinessExecutor.awaitTermination(1L, TimeUnit.SECONDS);
             this.lifecycleExecutor.awaitTermination(1L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -594,6 +605,8 @@ public class LiveOperationsCollector implements OperationsCollector {
 
     private void collectTrustedPdReadiness(long now, List<Node> nodes, Map<String, URI> trusted) {
         Map<Integer, Future<Readiness>> futures = new LinkedHashMap<>();
+        Set<Integer> rejected = new java.util.HashSet<>();
+        this.pdReadinessExecutor.purge();
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.storeDeadlineMillis);
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
@@ -602,9 +615,13 @@ public class LiveOperationsCollector implements OperationsCollector {
                 continue;
             }
             URI target = URI.create(base + "/v1/ready");
-            futures.put(i, this.readinessExecutor.submit(() -> this.probeReadiness(
-                    "PD", target, this.pdUsername, this.pdPassword,
-                    Set.of(OperationsHttpClient.origin(base)), now)));
+            try {
+                futures.put(i, this.pdReadinessExecutor.submit(() -> this.probeReadiness(
+                        "PD", target, this.pdUsername, this.pdPassword,
+                        Set.of(OperationsHttpClient.origin(base)), now)));
+            } catch (RejectedExecutionException e) {
+                rejected.add(i);
+            }
         }
         try {
             for (int i = 0; i < nodes.size(); i++) {
@@ -615,7 +632,10 @@ public class LiveOperationsCollector implements OperationsCollector {
                 Future<Readiness> future = futures.get(i);
                 Readiness observed;
                 if (future == null) {
-                    observed = new Readiness("UNKNOWN", null, null, "readiness_peer_unmapped",
+                    observed = rejected.contains(i) ?
+                               new Readiness("UNKNOWN", now, null, "upstream_unavailable", false,
+                                             Map.of("request_path", "/v1/ready")) :
+                               new Readiness("UNKNOWN", null, null, "readiness_peer_unmapped",
                                              false, Collections.emptyMap());
                 } else {
                     try {

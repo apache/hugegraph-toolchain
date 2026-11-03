@@ -706,6 +706,7 @@ public class LiveOperationsCollectorTest {
         String members = "{\"status\":0,\"data\":{\"pdList\":[" +
                          "{\"restUrl\":\"pd-a:8620\",\"state\":\"Up\"}]}}";
         CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch readinessEntered = new CountDownLatch(1);
         CountDownLatch release = new CountDownLatch(1);
         AtomicInteger storeRequests = new AtomicInteger();
         OperationsHttpClient http = new OperationsHttpClient(1000, 10000, 8192) {
@@ -746,7 +747,21 @@ public class LiveOperationsCollectorTest {
 
             @Override
             public ProbeResponse probe(URI uri, String user, String password, Set<String> allowed) {
-                throw new UpstreamRequestException("upstream_http_status_404");
+                if ("pd-a".equals(uri.getHost())) {
+                    readinessEntered.countDown();
+                    boolean done = false;
+                    while (!done) {
+                        try {
+                            done = release.await(5, TimeUnit.SECONDS);
+                        } catch (InterruptedException ignored) {
+                            // Simulate an uninterruptible PD readiness call.
+                        }
+                    }
+                }
+                ProbeResponse response = Mockito.mock(ProbeResponse.class);
+                Mockito.when(response.getStatus()).thenReturn(200);
+                Mockito.when(response.getBody()).thenReturn("{\"status\":0,\"text\":\"ONLINE\"}");
+                return response;
             }
         };
         LiveOperationsCollector collector = new LiveOperationsCollector(
@@ -756,6 +771,7 @@ public class LiveOperationsCollectorTest {
         try {
             Snapshot snapshot = collector.collect(serverClient(), true);
             Assert.assertEquals(0L, entered.getCount());
+            Assert.assertEquals(0L, readinessEntered.getCount());
             OperationsModels.Node pd = snapshot.getNodes().stream()
                     .filter(n -> "PD".equals(n.getType())).findFirst().orElseThrow();
             Assert.assertEquals("upstream_timeout", pd.getMetricStatuses().get("system").getReason());
@@ -765,6 +781,7 @@ public class LiveOperationsCollectorTest {
             OperationsModels.Node store = snapshot.getNodes().stream()
                     .filter(n -> "STORE".equals(n.getType())).findFirst().orElseThrow();
             Assert.assertEquals("AVAILABLE", store.getMetricStatuses().get("system").getAvailability());
+            Assert.assertEquals("READY", store.getReadiness().getStatus());
         } finally {
             release.countDown();
             collector.close();
