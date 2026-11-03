@@ -70,7 +70,7 @@ test('keeps source diagnostics available without discovered nodes and reports bo
     }}} />);
     const panel = screen.getByRole('region', {name: 'Source diagnostics'});
     expect(within(panel).getByText('/v1/stores')).toBeInTheDocument();
-    expect(within(panel).getByText('At least 1 MB (1,048,577 B)')).toBeInTheDocument();
+    expect(within(panel).getByText('At least 1,048,577 B')).toBeInTheDocument();
     expect(within(panel).getByText('1 MB (1,048,576 B)', {exact: true})).toBeInTheDocument();
     expect(within(panel).getByText('Partially available')).toBeInTheDocument();
     expect(within(panel).getByText('UP', {exact: true})).toBeInTheDocument();
@@ -297,7 +297,7 @@ test('localizes the collection status and response size lower bound in Chinese',
         diagnostics: {response_bytes: 1048577, response_size_exact: false},
     }}} />);
     expect(screen.getByText('部分可用', {exact: true})).toBeInTheDocument();
-    expect(screen.getByText('至少 1 MB (1,048,577 B)')).toBeInTheDocument();
+    expect(screen.getByText('至少 1,048,577 B')).toBeInTheDocument();
 });
 
 test('keeps the failed request visible while disclosing supporting collection details on demand', () => {
@@ -387,7 +387,7 @@ test('explains the collection setting and compact Raft remedy for a partial Stor
             diagnostics: {request_path: '/metrics/raft', max_response_bytes: 1048576,
                 response_bytes: 1052672, response_size_exact: false}},
     }}]} />);
-    expect(screen.getByText('至少 1 MB (1,052,672 B)')).toBeVisible();
+    expect(screen.getByText('至少 1,052,672 B')).toBeVisible();
     expect(screen.getByText(/不是完整响应大小/)).not.toBeVisible();
     fireEvent.click(screen.getByText('采集详情与修复方法'));
     expect(screen.getByText(/operations.max_response_bytes 限制每次上游响应/)).toBeVisible();

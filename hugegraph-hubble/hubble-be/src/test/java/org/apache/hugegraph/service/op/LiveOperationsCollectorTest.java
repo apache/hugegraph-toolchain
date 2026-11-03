@@ -52,12 +52,14 @@ public class LiveOperationsCollectorTest {
             Instant.ofEpochMilli(2000L), ZoneOffset.UTC);
 
     @Test
-    public void testMemberDiscoveryDoesNotReadPartitionSummary()
-           throws IOException {
+    public void testMemberDiscoveryRateLimitsPartitionSummary()
+           throws Exception {
         HttpServer pd = pdServer(200, members("Cluster_OK"), 200, stores());
         AtomicInteger clusterRequests = new AtomicInteger();
+        CountDownLatch clusterReceived = new CountDownLatch(1);
         pd.createContext("/v1/cluster", exchange -> {
             clusterRequests.incrementAndGet();
+            clusterReceived.countDown();
             exchange.sendResponseHeaders(500, -1);
             exchange.close();
         });
@@ -65,12 +67,14 @@ public class LiveOperationsCollectorTest {
         LiveOperationsCollector collector = collector(true, pd);
         try {
             snapshot = collector.collect(serverClient(), false);
+            Assert.assertTrue(clusterReceived.await(2, TimeUnit.SECONDS));
+            collector.collect(serverClient(), false);
         } finally {
             collector.close();
             pd.stop(0);
         }
 
-        Assert.assertEquals(0, clusterRequests.get());
+        Assert.assertEquals(1, clusterRequests.get());
         Assert.assertEquals("UP", snapshot.getStatus());
         Assert.assertEquals("AVAILABLE", snapshot.getSources().get("pd").getAvailability());
         Assert.assertEquals("Cluster_OK", snapshot.getSources().get("pd").getClusterState());
@@ -110,12 +114,14 @@ public class LiveOperationsCollectorTest {
     }
 
     @Test
-    public void testUnavailableMembersDoesNotFallBackToPartitionScan()
-           throws IOException {
+    public void testUnavailableMembersDoesNotBlockStatistics()
+           throws Exception {
         HttpServer pd = pdServer(503, "unavailable", 200, stores());
         AtomicInteger clusterRequests = new AtomicInteger();
+        CountDownLatch clusterReceived = new CountDownLatch(1);
         pd.createContext("/v1/cluster", exchange -> {
             clusterRequests.incrementAndGet();
+            clusterReceived.countDown();
             exchange.sendResponseHeaders(200, -1);
             exchange.close();
         });
@@ -123,12 +129,13 @@ public class LiveOperationsCollectorTest {
         Snapshot snapshot;
         try {
             snapshot = collector.collect(serverClient(), false);
+            Assert.assertTrue(clusterReceived.await(2, TimeUnit.SECONDS));
         } finally {
             collector.close();
             pd.stop(0);
         }
 
-        Assert.assertEquals(0, clusterRequests.get());
+        Assert.assertEquals(1, clusterRequests.get());
         Assert.assertEquals("UNAVAILABLE", snapshot.getSources().get("pd").getAvailability());
         Assert.assertEquals("upstream_rejected", snapshot.getSources().get("pd").getReason());
         Assert.assertEquals(Map.of("request_path", "/v1/members", "http_status", 503),
@@ -886,6 +893,9 @@ public class LiveOperationsCollectorTest {
         context(pd, "/v1/members", 200, members);
         pd.removeContext("/actuator/prometheus");
         context(pd, "/actuator/prometheus", 200, "process_cpu_usage 0.125\n");
+        context(pd, "/v1/cluster", 200,
+                "{\"status\":0,\"data\":{\"graphSize\":2,\"partitionSize\":12," +
+                "\"shardCount\":3,\"dataSize\":1024}}");
         LiveOperationsCollector collector = new LiveOperationsCollector(
                 true, "http://127.0.0.1:" + port, "", "", "", "", "server-under-test",
                 new OperationsHttpClient(1000, 1000, 8192),
@@ -898,6 +908,15 @@ public class LiveOperationsCollectorTest {
             Assert.assertEquals(2, pdNodes.size());
             Assert.assertEquals(1L, pdNodes.stream().filter(n -> n.getMetrics().containsKey("system")).count());
             Assert.assertEquals("PARTIAL", snapshot.getSources().get("pd").getAvailability());
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (!snapshot.getFacts().containsKey("graphs") && System.nanoTime() < deadline) {
+                Thread.sleep(10L);
+                snapshot = collector.collect(serverClient(), true);
+            }
+            Assert.assertEquals(Long.valueOf(2L), snapshot.getFacts().get("graphs"));
+            Assert.assertEquals(Long.valueOf(12L), snapshot.getFacts().get("partitions"));
+            Assert.assertEquals(Long.valueOf(3L), snapshot.getFacts().get("replicas"));
+            Assert.assertEquals(Long.valueOf(1048576L), snapshot.getFacts().get("data_size_bytes"));
         } finally {
             collector.close();
             pd.stop(0);
@@ -1269,7 +1288,7 @@ public class LiveOperationsCollectorTest {
                             snapshot.getSources().get("stores").getDiagnostics());
         Assert.assertTrue(snapshot.getNodes().stream()
                                   .anyMatch(node -> "PD".equals(node.getType())));
-        Assert.assertEquals(2L, snapshot.getFacts().get("graphs"));
+        Assert.assertFalse(snapshot.getFacts().containsKey("graphs"));
     }
 
     @Test
@@ -2471,6 +2490,11 @@ public class LiveOperationsCollectorTest {
         }
 
         @Override
+        public String getBounded(java.net.URI target, String username, String password) {
+            return this.response(target);
+        }
+
+        @Override
         public String get(java.net.URI target, String username, String password,
                           Set<String> allowedTargets, String accept) {
             return this.response(target);
@@ -2487,6 +2511,11 @@ public class LiveOperationsCollectorTest {
             String path = target.getPath();
             if ("/v1/members".equals(path)) {
                 return cluster();
+            }
+            if ("/v1/cluster".equals(path)) {
+                return "{\"status\":0,\"data\":{" +
+                       "\"graphSize\":2,\"partitionSize\":12," +
+                       "\"shardCount\":3,\"dataSize\":1024}}";
             }
             if ("/v1/stores".equals(path)) {
                 return this.stores;
@@ -2585,6 +2614,11 @@ public class LiveOperationsCollectorTest {
         }
 
         @Override
+        public String getBounded(java.net.URI target, String username, String password) {
+            return this.response(target);
+        }
+
+        @Override
         public ProbeResponse probe(java.net.URI target, String username, String password,
                                    Set<String> allowedTargets) {
             throw new UpstreamRequestException("upstream_http_status_404", null,
@@ -2601,6 +2635,12 @@ public class LiveOperationsCollectorTest {
             }
             if ("/v1/stores".equals(target.getPath())) {
                 return stores();
+            }
+            if ("/v1/cluster".equals(target.getPath()) &&
+                "pd-service".equals(target.getHost())) {
+                return "{\"status\":0,\"data\":{" +
+                       "\"graphSize\":2,\"partitionSize\":12," +
+                       "\"shardCount\":3,\"dataSize\":1024}}";
             }
             throw new AssertionError("Unexpected operations target " + target);
         }

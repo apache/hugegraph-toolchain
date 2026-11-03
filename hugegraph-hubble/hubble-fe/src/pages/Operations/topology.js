@@ -64,8 +64,9 @@ const selectAttentionSources = (sources = {}) => {
         return [];
     }
     return Object.entries(sources)
-        .filter(([, source]) => {
-            if (!source || source.availability === 'UNSUPPORTED'
+        .filter(([name, source]) => {
+            // Cluster statistics have no node or node diagnostic endpoint.
+            if (name === 'pd_cluster_stats' || !source || source.availability === 'UNSUPPORTED'
                 && !['DOWN', 'DEGRADED'].includes(source.status)) {
                 return false;
             }
@@ -132,9 +133,9 @@ const formatBytes = value => {
         return null;
     }
     let unit = 0;
-    while ((big ? size.comparedTo(1024) >= 0 : size >= 1024)
+    while ((big ? size.comparedTo(1000) >= 0 : size >= 1000)
            && unit < units.length - 1) {
-        size = big ? size.dividedBy(1024) : size / 1024;
+        size = big ? size.dividedBy(1000) : size / 1000;
         unit += 1;
     }
     const display = big ? size.toNumber() : size;

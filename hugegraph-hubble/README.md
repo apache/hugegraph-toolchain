@@ -677,13 +677,23 @@ probe failures are reported per node, with bounded concurrent probes and deadlin
 
 ### Cluster source diagnostics
 
-PD member discovery uses the lightweight `/v1/members` endpoint for members,
-leader and cluster state. It does not call `/v1/cluster` or fall back to that
-endpoint when discovery fails, so discovering nodes does not scan every graph
-partition. Optional aggregate fields absent from the member response, including
-graph, partition and replica counts and data state, remain unavailable rather
-than zero. Store counts and capacity still come from the existing `/v1/stores`
-response; Hubble does not request the heavy summary to fill the remaining cards.
+PD member discovery uses `/v1/members` independently of aggregate statistics.
+The Overview also samples `/v1/cluster` asynchronously using the configured PD
+credentials. Each Hubble process shares one in-flight sample and retries at most
+once per 60 seconds, including after a failed request or manual refresh. A host
+clock step backwards can trigger an additional sample. DNS resolution, HTTP
+connect, read, whole-call and response-size limits also apply. A failed sample never blocks
+member discovery; the last successful values are labeled stale and retain their
+sampling time. The first sample is shown as collecting, rather than as zero.
+Each Hubble replica samples independently. The PD endpoint scans graph metadata
+and aggregates Store statistics, so operators should assess its cost for large
+deployments. Browser polling uses the normal overview cache with one bounded
+refresh fallback, so a longer custom overview TTL does not hide the first sample.
+
+The graph count includes graph names ending in `/g`; partition count is the
+number of shard groups; replicas is the configured target per group, not the
+actual total; and data size is approximate physical Store data including
+replicas. Store counts and capacity come from `/v1/stores`.
 
 Cluster Overview distinguishes node reachability from collection quality. A
 Store source with failed or partial collection shows an amber attention status,

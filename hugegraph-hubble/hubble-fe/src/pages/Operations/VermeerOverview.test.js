@@ -500,9 +500,12 @@ test('resource formatting rejects unknown and non-finite values without confusin
     expect(processMetric(Infinity, 'en-US')).toBeNull();
     expect(processMetric(0, 'en-US')).toBe('0');
     expect(formatProcessBytes(1288490188, 'en-US')).toBe('1.3 GB');
+    expect(formatProcessBytes(999, 'en-US')).toBe('999 B');
     expect(formatProcessBytes(1000, 'en-US')).toBe('1 KB');
     expect(formatProcessBytes(1000000, 'en-US')).toBe('1 MB');
     expect(formatProcessBytes(1000000000, 'en-US')).toBe('1 GB');
+    expect(formatProcessBytes(1_500_000, 'de-DE')).toBe('1,5 MB');
+    expect(formatProcessBytes(-1, 'en-US')).toBeNull();
     expect(vermeerNodeReady({ready: true}, {configured: true, stale: true, availability: 'AVAILABLE'}))
         .toBeNull();
 });

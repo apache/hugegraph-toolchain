@@ -71,6 +71,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private static final List<String> STORE_METRIC_GROUPS =
             Arrays.asList("system", "drive", "raft");
     private static final AtomicInteger THREAD_SEQUENCE = new AtomicInteger();
+    private static final long CLUSTER_STATISTICS_INTERVAL_MS = 60000L;
 
     private final boolean pdEnabled;
     private final String pdBase;
@@ -90,6 +91,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private final int storeDeadlineMillis;
     private final Set<String> storeAllowedTargets;
     private final ServerClientProvider serverClients;
+    private final PdClusterStatistics clusterStatistics;
     // Null disables direct-peer mode; an empty configured list still fails closed.
     private String pdPeers;
 
@@ -188,6 +190,11 @@ public class LiveOperationsCollector implements OperationsCollector {
         this.http = http;
         this.parser = parser;
         this.clock = clock;
+        this.clusterStatistics = new PdClusterStatistics(
+                () -> this.parser.parseClusterStatistics(this.http.getBounded(
+                        URI.create(this.pdBase + "/v1/cluster"),
+                        this.pdUsername, this.pdPassword)),
+                clock, CLUSTER_STATISTICS_INTERVAL_MS);
         this.storeDeadlineMillis = storeDeadlineMillis;
         if (storeAllowedTargets == null || storeAllowedTargets.isEmpty()) {
             throw new IllegalArgumentException(
@@ -243,6 +250,7 @@ public class LiveOperationsCollector implements OperationsCollector {
 
     @PreDestroy
     public void close() {
+        this.clusterStatistics.close();
         this.storeExecutor.shutdownNow();
         this.pdMetricsExecutor.shutdownNow();
         this.pdReadinessExecutor.shutdownNow();
@@ -275,6 +283,14 @@ public class LiveOperationsCollector implements OperationsCollector {
             sources.put("stores", unsupported());
         }
         String status = this.overallStatus(sources);
+        // This optional aggregate must not affect topology health or block it.
+        if (this.pdEnabled) {
+            PdClusterStatistics.Result aggregate = this.clusterStatistics.sample();
+            facts.keySet().removeAll(Arrays.asList("graphs", "partitions",
+                                                    "replicas", "data_size_bytes"));
+            facts.putAll(aggregate.getFacts());
+            sources.put("pd_cluster_stats", aggregate.getStatus());
+        }
         if (nodes.stream().anyMatch(node -> node.getReadiness() != null &&
                                            "NOT_READY".equals(node.getReadiness().getStatus()))) {
             if (clusterReason == null) {
@@ -1314,7 +1330,7 @@ public class LiveOperationsCollector implements OperationsCollector {
         return unavailableMetric(now, reason).withDiagnostics(diagnostics(error));
     }
 
-    private static Map<String, Object> diagnostics(RuntimeException error) {
+    static Map<String, Object> diagnostics(RuntimeException error) {
         return error instanceof UpstreamRequestException ?
                ((UpstreamRequestException) error).getDiagnostics() : Collections.emptyMap();
     }
@@ -1478,7 +1494,7 @@ public class LiveOperationsCollector implements OperationsCollector {
                                 false, "deployment_mode_unsupported");
     }
 
-    private static String reason(RuntimeException error) {
+    static String reason(RuntimeException error) {
         if (error instanceof UpstreamResponseTooLargeException) {
             return "response_too_large";
         }

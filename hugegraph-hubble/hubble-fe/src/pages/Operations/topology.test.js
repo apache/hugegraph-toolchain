@@ -176,12 +176,15 @@ test('never renders unknown values as zero or NaN', () => {
 test('formats byte facts without inventing values', () => {
     expect(formatBytes(0)).toBe('0 B');
     expect(formatBytes(1536)).toBe('1.5 KB');
+    expect(formatBytes(999)).toBe('999 B');
+    expect(formatBytes(1000)).toBe('1 KB');
+    expect(formatBytes(18715231 * 1024)).toBe('19.2 GB');
     expect(formatBytes(null)).toBe(null);
     expect(formatBytes(-1)).toBe(null);
     const facts = JSONbig.parse(
         '{"used":9007199254740993,"total":18014398509481986}'
     );
-    expect(formatBytes(facts.used)).toBe('8 PB');
+    expect(formatBytes(facts.used)).toBe('9 PB');
     expect(ratioPercent(facts.used, facts.total)).toBe(50);
 });
 
@@ -200,4 +203,12 @@ test('formats a stable localized relative observation age', () => {
         .toBe('2m ago');
     expect(formatObservedAge('invalid', 'en-US', 'Unavailable', now))
         .toBe('Unavailable');
+});
+
+
+test('does not offer node diagnostics for cluster statistics failures', () => {
+    expect(selectAttentionSources({
+        pd_cluster_stats: {status: 'UNKNOWN', availability: 'UNAVAILABLE'},
+        pd: {status: 'DOWN', availability: 'UNAVAILABLE'},
+    })).toEqual([{name: 'pd', status: 'DOWN', availability: 'UNAVAILABLE'}]);
 });

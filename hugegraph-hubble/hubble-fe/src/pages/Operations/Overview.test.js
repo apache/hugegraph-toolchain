@@ -679,8 +679,8 @@ test('renders leader, capacity and attention facts in the visual hierarchy', asy
     expect(screen.getByText('1 Store is down')).toBeInTheDocument();
     expect(screen.getByText('PD Leader')).toBeInTheDocument();
     expect(screen.getByText('pd-1')).toBeInTheDocument();
-    expect(screen.getByText('14.6 GB')).toBeInTheDocument();
-    expect(screen.getByText('38 GB / 60 GB (63%)')).toBeInTheDocument();
+    expect(screen.getByText('15.7 GB')).toBeInTheDocument();
+    expect(screen.getByText('40.8 GB / 64.4 GB (63%)')).toBeInTheDocument();
     expect(screen.getByRole('progressbar', {name: 'Capacity'})).toHaveAttribute(
         'aria-valuenow', '63'
     );
@@ -704,4 +704,128 @@ test('links source alerts to dedicated diagnostics even when discovery returned 
     expect(link).toHaveAttribute('href',
         '/operations/nodes?type=STORE&source=stores#operations-source-diagnostics');
     expect(screen.getByText(/metrics or discovery response exceeded/)).toBeInTheDocument();
+});
+
+test('labels PD cluster statistics by their actual meaning and sampling time', async () => {
+    getOverview.mockResolvedValue({
+        status: 'UP', nodes: [], observed_at: 2000,
+        sources: {pd_cluster_stats: {
+            availability: 'AVAILABLE', observed_at: 1000, last_success_at: 1000, stale: false,
+        }},
+        facts: {graphs: 11, partitions: 12, replicas: 3, data_size_bytes: 1024},
+    });
+    renderOverview();
+    const panel = (await screen.findByText('Cluster facts')).closest('aside');
+    expect(within(panel).getByText('Graphs (/g)')).toBeInTheDocument();
+    expect(within(panel).getByText('Shard groups')).toBeInTheDocument();
+    expect(within(panel).getByText('Target replicas per group')).toBeInTheDocument();
+    expect(within(panel).getByText('Approx. Store size (including replicas)')).toBeInTheDocument();
+    expect(within(panel).getByText('11')).toBeInTheDocument();
+    expect(within(panel).getByText('12')).toBeInTheDocument();
+    expect(within(panel).getByText('3')).toBeInTheDocument();
+    expect(within(panel).getByText('1 KB')).toBeInTheDocument();
+    expect(within(panel).getByRole('status')).toHaveTextContent('PD statistics sampled at:');
+    expect(within(panel).getByRole('status')).not.toHaveTextContent('Unavailable');
+});
+
+test('marks stale PD statistics and reports unavailable without a successful sample', async () => {
+    getOverview.mockResolvedValueOnce({
+        status: 'UP', nodes: [], sources: {pd_cluster_stats: {
+            availability: 'PARTIAL', reason: 'statistics_stale',
+            observed_at: 2000, last_success_at: 1000, stale: true,
+        }}, facts: {graphs: 11},
+    });
+    const {unmount} = renderOverview();
+    const panel = (await screen.findByText('Cluster facts')).closest('aside');
+    expect(within(panel).getByRole('status')).toHaveTextContent('Stale');
+    expect(within(panel).getByRole('status')).not.toHaveTextContent('Unavailable');
+    unmount();
+    getOverview.mockResolvedValueOnce({status: 'UP', nodes: [], sources: {
+        pd_cluster_stats: {availability: 'UNAVAILABLE', reason: 'collection_failed', stale: false},
+    }, facts: {}});
+    renderOverview();
+    const emptyPanel = (await screen.findByText('Cluster facts')).closest('aside');
+    expect(within(emptyPanel).getByRole('status')).toHaveTextContent('Unavailable');
+    expect(within(emptyPanel).getByRole('status')).not.toHaveTextContent(/Unavailable.*Unavailable/);
+});
+
+test('polls an initial statistics collection and stops after completion', async () => {
+    jest.useFakeTimers();
+    try {
+        getOverview.mockResolvedValueOnce({status: 'UP', nodes: [], facts: {}, sources: {
+            pd_cluster_stats: {availability: 'UNAVAILABLE', reason: 'collecting'},
+        }}).mockResolvedValueOnce({status: 'UP', nodes: [], facts: {graphs: 11}, sources: {
+            pd_cluster_stats: {availability: 'AVAILABLE', observed_at: 1000},
+        }});
+        await act(async () => { renderOverview(); });
+        expect(screen.getByText(/PD statistics sampled at:.*Collecting/)).toBeInTheDocument();
+        expect(getOverview).toHaveBeenCalledTimes(1);
+        await act(async () => { jest.advanceTimersByTime(2000); });
+        expect(getOverview).toHaveBeenCalledTimes(2);
+        expect(getOverview).toHaveBeenLastCalledWith(false);
+        expect(screen.getByText('11')).toBeInTheDocument();
+        await act(async () => { jest.advanceTimersByTime(20000); });
+        expect(getOverview).toHaveBeenCalledTimes(2);
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
+
+test('polls a refresh while retaining the previous statistics sample', async () => {
+    jest.useFakeTimers();
+    try {
+        getOverview.mockResolvedValueOnce({status: 'UP', nodes: [], facts: {graphs: 11}, sources: {
+            pd_cluster_stats: {availability: 'AVAILABLE', reason: 'collecting', last_success_at: 1000},
+        }}).mockResolvedValueOnce({status: 'UP', nodes: [], facts: {graphs: 12}, sources: {
+            pd_cluster_stats: {availability: 'AVAILABLE', last_success_at: 61000},
+        }});
+        await act(async () => { renderOverview(); });
+        expect(screen.getByText('11')).toBeInTheDocument();
+        await act(async () => { jest.advanceTimersByTime(2000); });
+        expect(getOverview).toHaveBeenCalledTimes(2);
+        expect(screen.getByText('12')).toBeInTheDocument();
+        await act(async () => { jest.advanceTimersByTime(20000); });
+        expect(getOverview).toHaveBeenCalledTimes(2);
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
+
+test('cancels statistics polling on unmount', async () => {
+    jest.useFakeTimers();
+    try {
+        getOverview.mockResolvedValue({status: 'UP', nodes: [], facts: {}, sources: {
+            pd_cluster_stats: {availability: 'UNAVAILABLE', reason: 'collecting'},
+        }});
+        let rendered;
+        await act(async () => { rendered = renderOverview(); });
+        rendered.unmount();
+        await act(async () => { jest.advanceTimersByTime(2000); });
+        expect(getOverview).toHaveBeenCalledTimes(1);
+    }
+    finally {
+        jest.useRealTimers();
+    }
+});
+
+test('limits statistics polling while collection remains pending', async () => {
+    jest.useFakeTimers();
+    try {
+        getOverview.mockImplementation(async () => ({status: 'UP', nodes: [], facts: {}, sources: {
+            pd_cluster_stats: {availability: 'UNAVAILABLE', reason: 'collecting'},
+        }}));
+        await act(async () => { renderOverview(); });
+        for (let attempt = 0; attempt < 8; attempt++) {
+            await act(async () => { jest.advanceTimersByTime(2000); });
+        }
+        expect(getOverview).toHaveBeenCalledTimes(8);
+        expect(getOverview.mock.calls.slice(1, 7).every(([refresh]) => refresh === false)).toBe(true);
+        expect(getOverview).toHaveBeenLastCalledWith(true);
+        expect(screen.getByText(/Still collecting; refresh manually/)).toBeInTheDocument();
+    }
+    finally {
+        jest.useRealTimers();
+    }
 });

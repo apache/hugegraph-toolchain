@@ -17,6 +17,7 @@
  */
 
 import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
+import JSONbig from 'json-bigint';
 import {MemoryRouter, Route, Routes, useNavigate} from 'react-router-dom';
 import NodeDetail from './NodeDetail';
 import {getNode} from '../../api/operations';
@@ -109,9 +110,9 @@ test('focuses standalone Server details on applicable sources and metric cards',
     const system = screen.getByRole('heading', {name: 'System'}).closest('section');
     const heap = within(system).getByRole('progressbar', {name: 'Heap memory usage'});
     expect(heap).toHaveAttribute('aria-valuenow', '50');
-    expect(within(system).getByText(/512 MB \/ 1 GB/)).toBeInTheDocument();
-    expect(within(system).getByText(/256 MB \/ Unavailable/)).toBeInTheDocument();
-    expect(within(system).getByText(/Committed:.*768 MB/)).toBeInTheDocument();
+    expect(within(system).getByText(/536.9 MB \/ 1.1 GB/)).toBeInTheDocument();
+    expect(within(system).getByText(/268.4 MB \/ Unavailable/)).toBeInTheDocument();
+    expect(within(system).getByText(/Committed:.*805.3 MB/)).toBeInTheDocument();
     expect(within(system).queryByText(/NaN|Infinity/)).not.toBeInTheDocument();
 
     const runtime = within(system).getByRole('group', {name: 'CPU and runtime'});
@@ -150,6 +151,35 @@ const response = {
         },
     },
 };
+
+test('formats large legacy binary memory values without losing bigint precision', async () => {
+    const values = JSONbig.parse('{"used":9007199254740993,"max":9007199254740993}');
+    getNode.mockResolvedValue({
+        node: {id: 'server-safe', name: 'Server A', type: 'SERVER', status: 'UP',
+            metrics: {system: {heap: values}},
+            metric_statuses: {system: {availability: 'AVAILABLE'}}},
+        sources: {}, observed_at: 1000,
+    });
+    renderDetail();
+    await screen.findByRole('heading', {name: 'Server A'});
+    expect(screen.getByText('9,444.7 EB / 9,444.7 EB')).toBeInTheDocument();
+});
+
+test('calculates large capacity without first coercing bigint values', async () => {
+    const backend = JSONbig.parse(
+        '{"capacity_bytes":9007199254740993,"available_bytes":4503599627370496}'
+    );
+    getNode.mockResolvedValue({
+        node: {id: 'store-1', name: 'Store A', type: 'STORE', status: 'UP',
+            metrics: {backend}, metric_statuses: {backend: {availability: 'AVAILABLE'}}},
+        sources: {}, observed_at: 1000,
+    });
+    renderDetail();
+    await screen.findByRole('heading', {name: 'Store A'});
+    expect(screen.getByText(/4.5 PB \/ 9 PB/)).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', {name: 'Capacity usage'}))
+        .toHaveAttribute('aria-valuenow', '50');
+});
 
 function renderDetail() {
     return render(
@@ -321,7 +351,7 @@ test('keeps a retained PD endpoint sample stale through a failed refresh and pen
     const pd = {...response, stale: false, node: {...response.node,
         id: 'pd-safe', name: 'PD A', type: 'PD', metrics: {}, metric_statuses: {}},
     sources: {pd: {status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped', stale: false,
-        diagnostics: {pd_endpoint_metrics: {metrics: {process_cpu_usage: 0.125, heap_used_bytes: 1048576},
+        diagnostics: {pd_endpoint_metrics: {metrics: {process_cpu_usage: 0.125, heap_used_bytes: 1000, nonheap_used_bytes: 999},
             metric_status: {availability: 'AVAILABLE', fresh: true, stale: false, observed_at: 1000}}}}}};
     let finishRetry;
     getNode.mockResolvedValueOnce(pd).mockRejectedValueOnce(new Error('offline'))
@@ -331,19 +361,21 @@ test('keeps a retained PD endpoint sample stale through a failed refresh and pen
     fireEvent.click(screen.getByText('Check addresses and how to fix'));
     const sample = screen.getByText('Configured PD endpoint sample').parentElement;
     expect(within(sample).getByText('12.5%')).toBeVisible();
-    expect(within(sample).getByText('1 MB')).toBeVisible();
+    expect(within(sample).getByText('1 KB')).toBeVisible();
+    expect(within(sample).getByText('999 B')).toBeVisible();
 
     fireEvent.click(screen.getByRole('button', {name: /Refresh/}));
     await waitFor(() => expect(within(sample).getAllByText('Stale').length).toBeGreaterThan(0));
     expect(within(sample).queryByText('12.5%')).not.toBeInTheDocument();
-    expect(within(sample).queryByText('1 MB')).not.toBeInTheDocument();
+    expect(within(sample).queryByText('1 KB')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', {name: /Refresh/}));
     expect(within(sample).getAllByText('Stale').length).toBeGreaterThan(0);
     expect(within(sample).queryByText('12.5%')).not.toBeInTheDocument();
 
     await act(async () => finishRetry(pd));
     expect(within(sample).getByText('12.5%')).toBeVisible();
-    expect(within(sample).getByText('1 MB')).toBeVisible();
+    expect(within(sample).getByText('1 KB')).toBeVisible();
+    expect(within(sample).getByText('999 B')).toBeVisible();
     expect(within(sample).queryByText('Stale')).not.toBeInTheDocument();
 });
 
@@ -657,10 +689,10 @@ test('presents native metric labels, units and capacity instead of raw keys', as
     expect(capacity.some(item => item.getAttribute('aria-valuenow') === '98')).toBe(true);
     expect(screen.getByText('75%')).toBeInTheDocument();
     expect(screen.getByText('98%')).toBeInTheDocument();
-    expect(screen.getByText(/222.6 GB \/ 228.3 GB/)).toBeInTheDocument();
+    expect(screen.getByText(/239 GB \/ 245.1 GB/)).toBeInTheDocument();
     const drive = screen.getByRole('heading', {name: 'Drive'}).closest('section');
     expect(within(drive).getByText('Available space')).toBeInTheDocument();
-    expect(within(drive).getByText('5.7 GB')).toBeInTheDocument();
+    expect(within(drive).getByText('6.1 GB')).toBeInTheDocument();
     expect(within(drive).queryByText('Free space')).not.toBeInTheDocument();
     expect(within(drive).queryByText('Space unit')).not.toBeInTheDocument();
     expect(within(drive).getByText('Available space')

@@ -964,6 +964,8 @@ public class DefaultOperationsDataServiceTest {
                                          Long stores, Long storesUp) {
         Map<String, SourceStatus> sources = new LinkedHashMap<>();
         sources.put("pd", factSource(pdAvailability));
+        sources.put("pd_cluster_stats", factSource(
+                    dataSize == null ? "UNAVAILABLE" : "AVAILABLE"));
         sources.put("stores", factSource(storesAvailability));
         Map<String, Long> facts = new LinkedHashMap<>();
         if (dataSize != null) {
