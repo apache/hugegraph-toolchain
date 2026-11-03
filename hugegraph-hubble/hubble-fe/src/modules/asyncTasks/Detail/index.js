@@ -38,6 +38,7 @@ import {intersection, size} from 'lodash';
 import {format} from 'date-fns';
 import {useTranslation} from 'react-i18next';
 import {AsyncTaskResultContent} from '../Result';
+import {displayTaskIdentity} from '../taskIdentity';
 import c from './index.module.scss';
 const {Text} = Typography;
 
@@ -214,6 +215,7 @@ const AsyncTaskDetail = props => {
             title: t('analysis.async_task.column.task_id'),
             dataIndex: 'id',
             fixed: 'left',
+            render: id => displayTaskIdentity(id),
         },
         {
             title: t('analysis.async_task.column.task_name'),

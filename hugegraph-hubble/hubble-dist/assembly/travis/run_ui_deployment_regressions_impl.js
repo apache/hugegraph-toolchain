@@ -687,11 +687,11 @@ async function main() {
             await page.getByRole('button', { name: '提交任务', exact: true }).click();
             await page.getByRole('button', { name: '查看任务进度', exact: true }).click();
             await page.waitForURL('**/asyncTasks/soc_graph/hugegraph?taskId=80001&submitted=1');
-            await page.getByText('任务 80001 已提交，正在同步状态', { exact: true }).waitFor();
+            await page.getByText('任务 Server #80001 已提交，正在同步状态', { exact: true }).waitFor();
             await page.getByText(/服务端已接受任务，正在每秒查询任务状态/).waitFor();
-            assert.equal(await page.getByText('80001', { exact: true }).count(), 0);
+            assert.equal(await page.getByText('Server #80001', { exact: true }).count(), 0);
             await screenshot(page, 'async-task-submitted');
-            await page.getByText('80001', { exact: true }).waitFor();
+            await page.getByText('Server #80001', { exact: true }).waitFor();
             assert(state.taskLookups >= 3, `Expected delayed exact-ID polling, got ${state.taskLookups} lookups`);
             await page.getByText('查看原因', { exact: true }).click();
             await page.getByText('任务执行失败', { exact: true }).waitFor();

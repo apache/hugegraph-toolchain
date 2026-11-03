@@ -25,8 +25,9 @@ import GraphAnalysisContext from '../../Context';
 import {useParams, useSearchParams} from 'react-router-dom';
 import {Alert, Button, Empty, Input, Space} from 'antd';
 import AsyncTaskDetail from '../Detail';
+import {displayTaskIdentity} from '../taskIdentity';
 import * as api from '../../../api/index';
-import {useTranslation} from 'react-i18next';
+import {Trans, useTranslation} from 'react-i18next';
 import c from './index.module.scss';
 
 const defaultPageParams = {page: 1, pageSize: 10};
@@ -39,8 +40,8 @@ const AsyncTaskHome = () => {
     const {graphSpace, graph} = useContext(GraphAnalysisContext);
     const [page, setPage] = useState(defaultPageParams.page);
     const [pageSize, setPageSize] = useState(defaultPageParams.pageSize);
-    const [searchCache, setSearchCache] = useState(taskId);
-    const [search, setSearch] = useState(taskId);
+    const [searchCache, setSearchCache] = useState(taskId ? displayTaskIdentity(taskId) : '');
+    const [search, setSearch] = useState(taskId ? displayTaskIdentity(taskId) : '');
     const [filters, setFilters] = useState({});
     const [asyncManageTaskData, setAsyncManageTaskData] = useState({});
     const [loading, setLoading] = useState(true);
@@ -56,7 +57,8 @@ const AsyncTaskHome = () => {
     const hasActiveFilters = Boolean(search) || Object.values(filters).some(value => (
         Array.isArray(value) ? value.length > 0 : Boolean(value)
     ));
-    const submittedTask = searchParams.get('submitted') === '1' && taskId !== '' && search === taskId
+    const submittedTask = searchParams.get('submitted') === '1' && taskId !== ''
+        && search === displayTaskIdentity(taskId)
         && !Object.values(filters).some(value => value?.length);
 
     useEffect(() => {
@@ -70,8 +72,8 @@ const AsyncTaskHome = () => {
             return;
         }
         routeTaskId.current = taskId;
-        setSearchCache(taskId);
-        setSearch(taskId);
+        setSearchCache(taskId ? displayTaskIdentity(taskId) : '');
+        setSearch(taskId ? displayTaskIdentity(taskId) : '');
         setFilters({});
         setPage(defaultPageParams.page);
     }, [taskId]);
@@ -247,7 +249,8 @@ const AsyncTaskHome = () => {
                     aria-label={t('analysis.async_task.help_title')}
                 >
                     <strong>{t('analysis.async_task.help_title')}</strong>
-                    <p>{t('analysis.async_task.help_description')}</p>
+                    <p><Trans i18nKey='analysis.async_task.help_description'
+                              components={{strong: <strong />, nowrap: <span className={c.refreshHint} />}} /></p>
                 </section>
                 {loadError && (
                     <Alert
@@ -273,7 +276,7 @@ const AsyncTaskHome = () => {
                     <Alert
                         showIcon
                         type={submissionState === 'delayed' ? 'warning' : 'info'}
-                        title={t('analysis.async_task.submitted_pending', {taskId})}
+                        title={t('analysis.async_task.submitted_pending', {taskId: displayTaskIdentity(taskId)})}
                         description={t(submissionState === 'delayed'
                             ? 'analysis.async_task.submitted_delayed'
                             : 'analysis.async_task.submitted_discovering')}
