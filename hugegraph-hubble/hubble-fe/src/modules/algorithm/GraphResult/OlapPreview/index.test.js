@@ -55,6 +55,19 @@ test('loads a compact bounded sample and requests more only on demand', async ()
     expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenLastCalledWith('s', 'g', -7, 1, 12);
 });
 
+test('explains that a running task continues after leaving', async () => {
+    api.analysis.fetchManageTaskById.mockResolvedValue({status: 200, data: [{id: -7, task_status: 'running'}]});
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    expect(await screen.findByText('analysis.algorithm.preview_async_hint')).toBeInTheDocument();
+    expect(screen.getByText('analysis.algorithm.preview_task_detail')).toBeInTheDocument();
+});
+
+test('labels a restored result with the option to run again', async () => {
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} restoredOlapTask />);
+    expect(await screen.findByText('analysis.algorithm.preview_restored_hint')).toBeInTheDocument();
+});
+
 test('does not display a delayed result after unmount', async () => {
     let finish;
     api.analysis.fetchOlapPreviewEdges.mockReturnValue(new Promise(resolve => { finish = resolve; }));
