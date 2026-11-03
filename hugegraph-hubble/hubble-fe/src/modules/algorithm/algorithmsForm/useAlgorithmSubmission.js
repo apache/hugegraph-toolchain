@@ -30,8 +30,11 @@ export default function useAlgorithmSubmission(beginSubmission, graphSpace, grap
         const token = started ? beginPendingOlapTask(graphSpace, graph, algorithm) : null;
         return (finalStatus, ...finalArgs) => {
             const accepted = complete?.(finalStatus, ...finalArgs);
-            const valid = token ? finishPendingOlapTask(token) : false;
-            if (valid && (accepted || complete?.isDetachedEligible?.()) && finalStatus === GRAPH_STATUS.SUCCESS) {
+            const detached = complete?.isDetachedEligible?.();
+            const failure = !accepted && detached && finalStatus === GRAPH_STATUS.FAILED
+                ? {message: finalArgs[1]} : null;
+            const valid = token ? finishPendingOlapTask(token, failure) : false;
+            if (valid && (accepted || detached) && finalStatus === GRAPH_STATUS.SUCCESS) {
                 recordOlapTask({graphSpace, graph, algorithm, id: finalArgs[0]});
             }
             return accepted;

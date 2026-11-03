@@ -21,7 +21,7 @@
  */
 import {useCallback, useEffect, useLayoutEffect, useState, useContext, useMemo, useRef} from 'react';
 import {useTranslation} from 'react-i18next';
-import {Alert, Button, Empty, Space} from 'antd';
+import {Button, Empty, Space} from 'antd';
 import {Link} from 'react-router-dom';
 import GraphAnalysisContext from '../../../Context';
 import Graph from '../../../component/Graph';
@@ -523,7 +523,7 @@ const GraphResult = props => {
             />}
             <div className={showRecoveryRow ? c.recoveryResult : undefined}>
                 {isOlap && queryStatus === LOADING && queryMessage &&
-                    <Alert type='warning' showIcon title={queryMessage} />}
+                    <p className={c.loadingWarning} role='status'>{queryMessage}</p>}
                 {renderMainContent()}
             </div>
             {!isOlapPreview && <NumberCard

@@ -21,13 +21,14 @@
  */
 
 import {useCallback, useState, useEffect, useContext, useRef, useMemo, useLayoutEffect} from 'react';
+import {useTranslation} from 'react-i18next';
 import AlgorithmFormHome from '../algorithmsForm/Home';
 import GraphResult from '../GraphResult/Home';
 import LogsDetail from '../LogsDetail/Home';
 import GraphAnalysisContext from '../../Context';
 import {GRAPH_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE} from '../../../utils/constants';
 import * as api from '../../../api';
-import {clearOlapTasks, getLatestOlapTask, useOlapTasks, usePendingOlapTasks} from '../olapTaskRegistry';
+import {clearOlapTasks, consumeOlapFailure, getLatestOlapTask, useOlapTasks, usePendingOlapTasks} from '../olapTaskRegistry';
 import {toGraphCounts} from '../../../utils/graphStatistics';
 import {USER_CHANGE_EVENT} from '../../../utils/user';
 import _ from 'lodash';
@@ -37,6 +38,7 @@ const ALGORITHM_MODE = {OLTP: 'oltp', OLAP: 'olap'};
 
 const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const {STANDBY, LOADING, SUCCESS, FAILED} = GRAPH_STATUS;
+    const {t} = useTranslation();
     const {CLOSED} = PANEL_TYPE;
     const {OLTP, OLAP} = ALGORITHM_MODE;
     const {CANVAS2D} = GRAPH_RENDER_MODE;
@@ -463,10 +465,12 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             setQueryStatus(LOADING);
             return;
         }
+        const failure = consumeOlapFailure(graphSpace, graph);
         if (!recentOlapTasks.length) {
-            if (restoringPending.current) {
+            if (restoringPending.current || failure) {
                 restoringPending.current = false;
                 restoreEligible.current = false;
+                setQueryMessage(failure?.message || t('analysis.query_result.run_failed'));
                 setQueryStatus(FAILED);
             }
             return;
@@ -474,7 +478,9 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         restoringPending.current = false;
         restoreEligible.current = false;
         showRecentTask(recentOlapTasks[0]);
-    }, [engine, isVermeer, recentOlapTasks, pendingOlapTasks, showRecentTask, LOADING, OLAP, FAILED]);
+        if (failure) setQueryMessage(failure.message || t('analysis.query_result.run_failed'));
+    }, [engine, isVermeer, graphSpace, graph, recentOlapTasks, pendingOlapTasks, showRecentTask,
+        LOADING, OLAP, FAILED, t]);
 
     const handleSelectOlapAlgorithm = useCallback(algorithm => {
         restoreEligible.current = false;

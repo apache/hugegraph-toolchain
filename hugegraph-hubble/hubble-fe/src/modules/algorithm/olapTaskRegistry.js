@@ -24,6 +24,7 @@ const EMPTY_TASKS = [];
 const tasksByScope = new Map();
 const latestByAlgorithm = new Map();
 const pendingByScope = new Map();
+const failuresByScope = new Map();
 const scopeVersions = new Map();
 let identityVersion = 0;
 const listenersByScope = new Map();
@@ -51,6 +52,7 @@ export const clearOlapTasks = () => {
     tasksByScope.clear();
     latestByAlgorithm.clear();
     pendingByScope.clear();
+    failuresByScope.clear();
     listenersByScope.forEach((listeners, key) => {
         listeners.forEach(listener => listener());
         if (listeners.size === 0) listenersByScope.delete(key);
@@ -63,6 +65,7 @@ export const clearOlapTasksForGraph = (graphSpace, graph) => {
     tasksByScope.delete(key);
     latestByAlgorithm.delete(key);
     pendingByScope.delete(key);
+    failuresByScope.delete(key);
     notify(key);
 };
 
@@ -81,15 +84,23 @@ export const beginPendingOlapTask = (graphSpace, graph, algorithm) => {
     return token;
 };
 
-export const finishPendingOlapTask = token => {
+export const finishPendingOlapTask = (token, failure) => {
     const valid = (pendingByScope.get(token.key) || []).includes(token) &&
         token.identityVersion === identityVersion &&
         token.scopeVersion === (scopeVersions.get(token.key) || 0);
+    if (valid && failure) failuresByScope.set(token.key, failure);
     const pending = (pendingByScope.get(token.key) || []).filter(item => item !== token);
     if (pending.length) pendingByScope.set(token.key, pending);
     else pendingByScope.delete(token.key);
     notify(token.key);
     return valid;
+};
+
+export const consumeOlapFailure = (graphSpace, graph) => {
+    const key = scopeKey(graphSpace, graph);
+    const failure = failuresByScope.get(key);
+    failuresByScope.delete(key);
+    return failure;
 };
 
 export const usePendingOlapTasks = (graphSpace, graph) => {

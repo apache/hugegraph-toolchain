@@ -300,3 +300,39 @@ test('does not restore a task from a different graph', async () => {
     act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
     expect(currentResult().asyncTaskId).toBeUndefined();
 });
+
+
+test('preserves a detached submission failure alongside the previous result', async () => {
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -7, algorithm: 'PageRank'});
+    const view = render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
+    const hook = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    let finish;
+    act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    act(() => { finish(GRAPH_STATUS.FAILED, '', 'submission failed'); });
+    render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
+    expect(currentResult().queryMessage).toBe('submission failed');
+    expect(currentResult().restoredOlapTask).toBe(true);
+    act(() => { start('Olap', 'PageRank'); });
+    expect(currentResult().queryMessage).toBeUndefined();
+});
+
+test('reports detached submission failure after return without previous result', async () => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const hook = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    let finish;
+    act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => { finish(GRAPH_STATUS.FAILED, '', 'submission failed'); });
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
+    expect(currentResult().queryMessage).toBe('submission failed');
+});
