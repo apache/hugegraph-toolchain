@@ -232,7 +232,7 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
         <div className={c.header}>
             <strong>{t('analysis.algorithm.preview_title')}</strong>
             <div className={c.headerActions}>
-                {taskOptions.length > 1 && <Select className={c.runSelect} size='small'
+                {taskOptions.length > 1 && <Select className={c.runSelect} size='small' virtual={false}
                     aria-label={t('analysis.algorithm.preview_title')} value={activeTaskId}
                     onChange={setActiveTaskId} options={taskOptions.map(task => ({
                         value: task.id,

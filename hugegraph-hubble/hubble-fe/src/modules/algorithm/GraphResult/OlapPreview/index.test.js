@@ -68,7 +68,10 @@ test('displays friendly task numbers while retaining signed IDs for requests and
         'href', '/asyncTasks/s/g?taskId=-7&submitted=1'
     );
     fireEvent.mouseDown(screen.getByRole('combobox'));
-    fireEvent.click(await screen.findByText('Triangle Count · 8'));
+    expect((await screen.findAllByRole('option')).map(option => option.textContent)).toEqual([
+        'Triangle Count · 8', 'PageRank · 7',
+    ]);
+    fireEvent.click(screen.getByRole('option', {name: 'Triangle Count · 8'}));
     await waitFor(() => expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenCalledWith('s', 'g', -8, 0, 12));
     expect(screen.getByText('analysis.algorithm.preview_task_detail').closest('a')).toHaveAttribute(
         'href', '/asyncTasks/s/g?taskId=-8&submitted=1'
