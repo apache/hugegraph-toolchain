@@ -19,6 +19,11 @@
 import {renderHook} from '@testing-library/react';
 import useAlgorithmSubmission from './useAlgorithmSubmission';
 import {GRAPH_STATUS} from '../../../utils/constants';
+import {recordOlapTask} from '../olapTaskRegistry';
+
+jest.mock('../olapTaskRegistry', () => ({recordOlapTask: jest.fn()}));
+
+beforeEach(() => jest.clearAllMocks());
 
 it('keeps each form completion through loading and terminal callbacks', () => {
     const first = jest.fn();
@@ -67,3 +72,44 @@ test.each([GRAPH_STATUS.SUCCESS, GRAPH_STATUS.FAILED])(
         ]);
     }
 );
+
+test('records a recent task only when its completion still belongs to the active scope', () => {
+    const complete = jest.fn()
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
+    const beginSubmission = jest.fn(() => complete);
+    const {result} = renderHook(() => useAlgorithmSubmission(
+        beginSubmission, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const finish = result.current(GRAPH_STATUS.LOADING);
+    finish(GRAPH_STATUS.SUCCESS, -7);
+    expect(complete).toHaveBeenNthCalledWith(1, GRAPH_STATUS.LOADING);
+    expect(complete).toHaveBeenNthCalledWith(2, GRAPH_STATUS.SUCCESS, -7);
+    expect(recordOlapTask).not.toHaveBeenCalled();
+});
+
+test('records an accepted successful task with its original graph scope', () => {
+    const complete = jest.fn(() => true);
+    const beginSubmission = jest.fn(() => complete);
+    const {result} = renderHook(() => useAlgorithmSubmission(
+        beginSubmission, 'DEFAULT', 'hugegraph', 'Degree Centrality', true
+    ));
+    const finish = result.current(GRAPH_STATUS.LOADING);
+    finish(GRAPH_STATUS.SUCCESS, -8);
+    expect(recordOlapTask).toHaveBeenCalledWith({
+        graphSpace: 'DEFAULT',
+        graph: 'hugegraph',
+        algorithm: 'Degree Centrality',
+        id: -8,
+    });
+});
+
+test('does not register failures even when their completion is accepted', () => {
+    const complete = jest.fn(() => true);
+    const {result} = renderHook(() => useAlgorithmSubmission(
+        () => complete, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const finish = result.current(GRAPH_STATUS.LOADING);
+    finish(GRAPH_STATUS.FAILED, '', 'worker failed');
+    expect(recordOlapTask).not.toHaveBeenCalled();
+});
