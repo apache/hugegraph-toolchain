@@ -423,7 +423,8 @@ test('preserves a selected old result and reports a detached recomputation failu
     act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
     view.unmount();
     render(home());
-    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
     act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
     expect(currentResult().asyncTaskId).toBe(-7);
     act(() => finish(GRAPH_STATUS.FAILED, '', 'recompute failed'));
@@ -554,3 +555,76 @@ test.each(['engine', 'graph'])(
         expect(currentResult().queryMessage).toBe('submission failed');
     }
 );
+
+test('restores the first available result while a sibling remains pending', async () => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const a = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const b = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'WCC', true
+    ));
+    let finishA;
+    let finishB;
+    act(() => { finishA = a.result.current(GRAPH_STATUS.LOADING); finishB = b.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => finishA(GRAPH_STATUS.SUCCESS, -201));
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-201));
+    expect(currentResult().algorithm).toBe('PageRank');
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    act(() => finishB(GRAPH_STATUS.SUCCESS, -202));
+    expect(currentResult().asyncTaskId).toBe(-201);
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('WCC'));
+    expect(currentResult().asyncTaskId).toBe(-202);
+});
+
+test('keeps an available result and a failure visible while another submission is pending', async () => {
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -7, algorithm: 'PageRank'});
+    const view = render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
+    const a = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'WCC', true
+    ));
+    const b = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'Triangle Count', true
+    ));
+    let finishA;
+    let finishB;
+    act(() => { finishA = a.result.current(GRAPH_STATUS.LOADING); finishB = b.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    act(() => finishA(GRAPH_STATUS.FAILED, '', 'WCC failed'));
+    await waitFor(() => expect(currentResult().queryMessage).toBe('WCC failed'));
+    expect(currentResult().asyncTaskId).toBe(-7);
+    act(() => finishB(GRAPH_STATUS.SUCCESS, -202));
+    expect(currentResult().asyncTaskId).toBe(-7);
+    expect(currentResult().queryMessage).toBe('WCC failed');
+});
+
+test('shows a failed submission while another is still pending without a result', async () => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const a = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const b = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'WCC', true
+    ));
+    let finishA;
+    let finishB;
+    act(() => { finishA = a.result.current(GRAPH_STATUS.LOADING); finishB = b.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => finishA(GRAPH_STATUS.FAILED, '', 'PageRank failed'));
+    await waitFor(() => expect(currentResult().queryMessage).toBe('PageRank failed'));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING);
+    act(() => finishB(GRAPH_STATUS.SUCCESS, -202));
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-202));
+    expect(currentResult().queryMessage).toBe('PageRank failed');
+});

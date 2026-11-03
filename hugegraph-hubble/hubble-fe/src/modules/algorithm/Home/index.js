@@ -434,7 +434,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     }, [graph, graphSpace, identityVersion, getMetaData, getPropertykeys, initQueryResult, onResetPage]);
 
 
-    const showRecentTask = useCallback(task => {
+    const showRecentTask = useCallback((task, preserveWarning = false) => {
         if (!task || graphNumsOwner.current !== graphNumsScope || engine !== 'olap') return;
         asyncTaskOwner.current = graphNumsScope;
         visibleOlapTask.current = task.id;
@@ -444,7 +444,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         setAlgorithmOnCanvas(task.algorithm);
         setOlapResultAlgorithm(task.algorithm);
         setQueryResult({});
-        setQueryMessage();
+        if (!preserveWarning) setQueryMessage();
         setQueryStatus(SUCCESS);
     }, [OLAP, SUCCESS, engine, graphNumsScope]);
 
@@ -454,29 +454,36 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         if (engine !== 'olap' || !isVermeer || !restoreEligible.current) return;
         const algorithm = restoringAlgorithm.current;
         const pending = algorithm ? pendingOlapTasks.filter(item => item.algorithm === algorithm) : pendingOlapTasks;
+        const failure = consumeOlapFailure(graphSpace, graph, algorithm);
+        const task = algorithm ? getLatestOlapTask(graphSpace, graph, algorithm) : recentOlapTasks[0];
+        if (task) {
+            // A sibling request must not hide an available result. Keep listening
+            // until the relevant requests settle, without erasing earlier failures.
+            if ((algorithm || visibleOlapTask.current === undefined || asyncTaskOwner.current !== graphNumsScope) &&
+                (visibleOlapTask.current !== task.id || asyncTaskOwner.current !== graphNumsScope)) {
+                showRecentTask(task, true);
+            }
+            if (failure) setQueryMessage(failure.message || t('analysis.query_result.run_failed'));
+            restoringPending.current = pending.length > 0;
+            restoreEligible.current = pending.length > 0;
+            return;
+        }
         if (pending.length) {
             restoringPending.current = true;
             setAlgorithmMode(OLAP);
             setAlgorithmOnCanvas(algorithm || pending[pending.length - 1].algorithm);
-            if (!algorithm || !getLatestOlapTask(graphSpace, graph, algorithm)) setQueryStatus(LOADING);
+            setQueryStatus(LOADING);
+            if (failure) setQueryMessage(failure.message || t('analysis.query_result.run_failed'));
             return;
         }
-        const failure = consumeOlapFailure(graphSpace, graph, algorithm);
-        const task = algorithm ? getLatestOlapTask(graphSpace, graph, algorithm) : recentOlapTasks[0];
-        if (!task) {
-            if (restoringPending.current || failure) {
-                restoringPending.current = false;
-                restoreEligible.current = false;
-                setQueryMessage(failure?.message || t('analysis.query_result.run_failed'));
-                setQueryStatus(FAILED);
-            }
-            return;
+        if (restoringPending.current || failure) {
+            restoringPending.current = false;
+            restoreEligible.current = false;
+            if (failure) setQueryMessage(failure.message || t('analysis.query_result.run_failed'));
+            else setQueryMessage(previous => previous || t('analysis.query_result.run_failed'));
+            setQueryStatus(FAILED);
         }
-        restoringPending.current = false;
-        restoreEligible.current = false;
-        showRecentTask(task);
-        if (failure) setQueryMessage(failure.message || t('analysis.query_result.run_failed'));
-    }, [engine, isVermeer, graphSpace, graph, recentOlapTasks, pendingOlapTasks, showRecentTask,
+    }, [engine, isVermeer, graphSpace, graph, graphNumsScope, recentOlapTasks, pendingOlapTasks, showRecentTask,
         LOADING, OLAP, FAILED, t]);
 
     const handleSelectOlapAlgorithm = useCallback(algorithm => {
