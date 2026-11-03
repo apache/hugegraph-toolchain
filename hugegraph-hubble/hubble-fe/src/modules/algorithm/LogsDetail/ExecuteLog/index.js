@@ -193,7 +193,7 @@ const ExecuteLog = props => {
                 current: pageExecute,
                 pageSize: pageSize,
             }}
-            scroll={{y: 360}}
+            scroll={{x: 760, y: 360}}
             loading={isLoading}
         />
     );

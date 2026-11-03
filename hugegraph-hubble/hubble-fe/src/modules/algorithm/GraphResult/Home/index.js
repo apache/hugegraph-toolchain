@@ -67,6 +67,8 @@ const GraphResult = props => {
         metaData,
         options,
         asyncTaskId,
+        restoredOlapTask,
+        onSelectOlapTask,
         queryStatus,
         queryMessage,
         isQueryMode,
@@ -179,14 +181,16 @@ const GraphResult = props => {
     const handleClickNewAddNode = useCallback(
         () => {
             setShowAddNodeDrawer(true);
-        }, []);
+        }, []
+    );
 
     const handleClickNewAddEdge = useCallback(
         isOut => {
             setIsClickNew(true);
             setShowAddEdgeDrawer(true);
             setOutEdge(isOut);
-        }, []);
+        }, []
+    );
 
     const handledbClickNode = useCallback(event => {
         if (event.kind === 'node') return getExpandInfo({vertex_id: event.data.raw.id, vertex_label: event.data.raw.label});
@@ -256,15 +260,13 @@ const GraphResult = props => {
     const onCloseEditElement = useCallback(
         () => {
             setShowEditElement(false);
-        },
-        []
+        }, []
     );
 
     const handleCloseSearch = useCallback(
         () => {
             setSearchVisible(false);
-        },
-        []
+        }, []
     );
 
     const handleChangeSearch = useCallback(params => {
@@ -444,7 +446,9 @@ const GraphResult = props => {
             if (!isQueryMode) {
                 if (isOlapPreview) {
                     return <OlapPreview key={JSON.stringify([graphSpace, graph, asyncTaskId])}
-                        graphSpace={graphSpace} graph={graph} taskId={asyncTaskId} />;
+                        graphSpace={graphSpace} graph={graph} taskId={asyncTaskId}
+                        warning={queryMessage} restoredOlapTask={restoredOlapTask}
+                        onSelectTask={onSelectOlapTask} />;
                 }
                 return (
                     <TaskNavigateView
@@ -452,6 +456,7 @@ const GraphResult = props => {
                             name: displayAlgorithmName,
                         })}
                         taskId={asyncTaskId}
+                        warning={queryMessage}
                     />
                 );
             }
@@ -519,6 +524,8 @@ const GraphResult = props => {
                 graphRenderMode={graphRenderMode}
             />}
             <div className={showRecoveryRow ? c.recoveryResult : undefined}>
+                {isOlap && queryStatus === LOADING && queryMessage &&
+                    <p className={c.loadingWarning} role='status'>{queryMessage}</p>}
                 {renderMainContent()}
             </div>
             {!isOlapPreview && <NumberCard

@@ -573,6 +573,8 @@
       "preview_id": "Vertex ID",
       "preview_value": "Result",
       "preview_running": "Task is running",
+      "preview_restored_hint": "Showing the recent result for this algorithm. Use its Run button to calculate again",
+      "preview_async_hint": "This task runs asynchronously. You can leave this page, check its status in task details, and return to view the result",
       "preview_loading": "Loading results",
       "preview_failed": "Task did not succeed; see task details",
       "preview_expired": "The task succeeded, but its values are empty or no longer available. Check the results or run it again",

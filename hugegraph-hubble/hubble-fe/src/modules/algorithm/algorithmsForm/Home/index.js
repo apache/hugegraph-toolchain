@@ -36,6 +36,7 @@ const AlgorithmFormHome = props => {
         handleOlapFormSubmit,
         currentAlgorithm,
         updateCurrentAlgorithm,
+        onSelectOlapAlgorithm,
         graphNums,
         graphSpace,
         graph,
@@ -87,6 +88,7 @@ const AlgorithmFormHome = props => {
                 <OlapFormHome
                     key={`olap-${formVersion}`}
                     onOlapFormSubmit={handleOlapFormSubmit}
+                    onSelectOlapAlgorithm={onSelectOlapAlgorithm}
                     search={search}
                     currentAlgorithm={currentAlgorithm}
                     updateCurrentAlgorithm={updateCurrentAlgorithm}

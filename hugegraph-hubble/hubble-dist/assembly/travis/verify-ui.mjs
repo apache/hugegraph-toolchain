@@ -26,12 +26,14 @@ import {validateReport} from './run_ui_deployment_regressions.js';
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const frontendRoot = path.resolve(directory, '../../../hubble-fe');
 const defaultOutput = path.resolve(directory, '../../../target/hubble-ui-fixture');
+const VERMEER_CHECK = 'concurrent Vermeer submissions retain both compact connected previews';
 
 async function runnerFingerprint() {
   // These Node runners live outside the frontend build inventory.
   const hash = createHash('sha256');
   for (const file of ['verify-ui.mjs', 'run_ui_deployment_regressions.js',
-    'run_ui_deployment_regressions_impl.js', 'run_ui_browser_smoke.js', 'ui_auth.js', 'ui_usability.js']) {
+    'run_ui_deployment_regressions_impl.js', 'vermeer_concurrent_preview_browser.cjs',
+    'run_ui_browser_smoke.js', 'ui_auth.js', 'ui_usability.js']) {
     hash.update(file + '\0');
     hash.update(await readFile(path.join(directory, file)));
   }
@@ -73,11 +75,11 @@ export function terminateBrowserProcess(child, signal, dependencies = {}) {
   }
 }
 
-export function runBrowser(url, outputDir, signal) {
+function runBrowserScript(script, url, outputDir, signal) {
   return new Promise((resolve, reject) => {
     if (signal.aborted) { reject(new Error('Verification interrupted')); return; }
     const grouped = process.platform !== 'win32';
-    const child = spawn(process.execPath, [path.join(directory, 'run_ui_deployment_regressions.js')], {
+    const child = spawn(process.execPath, [path.join(directory, script)], {
       stdio: 'inherit', detached: grouped,
       env: {...process.env, HUBBLE_URL: url, HUBBLE_UI_EVIDENCE_DIR: outputDir},
     });
@@ -99,10 +101,37 @@ export function runBrowser(url, outputDir, signal) {
       clearTimeout(forceTimer);
       signal.removeEventListener('abort', stop);
       if (code === 0 && !signal.aborted && !timedOut) resolve();
-      else reject(new Error(timedOut ? 'Browser regression exceeded 180 seconds'
-        : `Browser regression failed (${childSignal || code})`));
+      else reject(new Error(timedOut ? `${script} exceeded 180 seconds`
+        : `${script} failed (${childSignal || code})`));
     });
   });
+}
+
+export function runBrowser(url, outputDir, signal) {
+  return runBrowserScript('run_ui_deployment_regressions.js', url, outputDir, signal);
+}
+
+export function runVermeerBrowser(url, outputDir, signal) {
+  return runBrowserScript('vermeer_concurrent_preview_browser.cjs', url, outputDir, signal);
+}
+
+export function validateVermeerReport(report) {
+  if (!report || typeof report !== 'object' || Array.isArray(report) || report.status !== 'passed') {
+    throw new Error('Vermeer browser report must have status passed');
+  }
+  if (!Array.isArray(report.checks) || report.checks.length !== 1 ||
+      report.checks[0]?.name !== VERMEER_CHECK || report.checks[0]?.status !== 'passed') {
+    throw new Error('Vermeer browser report must contain its required passed check');
+  }
+  for (const key of ['unexpectedApi', 'pageErrors']) {
+    if (!Array.isArray(report[key]) || report[key].length !== 0) {
+      throw new Error(`Vermeer browser report contains or omits ${key}`);
+    }
+  }
+  if (report.failure !== undefined && report.failure !== null) {
+    throw new Error('Vermeer browser report contains a failure');
+  }
+  return report;
 }
 
 async function currentBuild(frontend, inputHash) {
@@ -116,21 +145,25 @@ export async function verifyUi({frontend = frontendRoot, outputDir = defaultOutp
   const build = dependencies.build || (() => buildFrontend({frontend}));
   const serve = dependencies.serve || (() => previewBuild(frontend));
   const run = dependencies.run || runBrowser;
+  const shouldRunVermeer = dependencies.runVermeer !== undefined || dependencies.run === undefined;
+  const runVermeer = dependencies.runVermeer || runVermeerBrowser;
   const unchanged = dependencies.unchanged || (hash => currentBuild(frontend, hash));
   const runnerHash = dependencies.runnerHash || runnerFingerprint;
   const evidence = path.resolve(outputDir);
   await mkdir(evidence, {recursive: true});
   const reportPath = path.join(evidence, 'verification.json');
   const browserPath = path.join(evidence, 'browser-report.json');
+  const vermeerPath = path.join(evidence, 'vermeer-concurrent-preview-report.json');
   await rm(reportPath, {force: true});
   await rm(browserPath, {force: true});
+  await rm(vermeerPath, {force: true});
   const revision = spawnSync('git', ['rev-parse', 'HEAD'], {cwd: frontend, encoding: 'utf8'});
   const dirty = spawnSync('git', ['status', '--porcelain'], {cwd: frontend, encoding: 'utf8'});
   const report = {schema: 1, layer: 'controlled-browser', status: 'failed',
     startedAt: new Date().toISOString(), commit: revision.status === 0 ? revision.stdout.trim() : null,
     dirty: dirty.status === 0 ? Boolean(dirty.stdout.trim()) : null,
     coverage: 'Production UI with fixture APIs; not live Server/PD/Store/Vermeer acceptance',
-    browserReport: browserPath};
+    browserReport: browserPath, vermeerBrowserReport: vermeerPath};
   const controller = new AbortController();
   const interrupted = () => controller.abort();
   let server;
@@ -146,10 +179,17 @@ export async function verifyUi({frontend = frontendRoot, outputDir = defaultOutp
     await run(server.url, evidence, controller.signal);
     if (controller.signal.aborted) throw new Error('Verification interrupted');
     const browser = validateReport(JSON.parse(await readFile(browserPath, 'utf8')));
+    let vermeer;
+    if (shouldRunVermeer) {
+      await runVermeer(server.url, evidence, controller.signal);
+      if (controller.signal.aborted) throw new Error('Verification interrupted');
+      vermeer = validateVermeerReport(JSON.parse(await readFile(vermeerPath, 'utf8')));
+    }
     if (!await unchanged(report.inputHash)) throw new Error('Build inputs or output changed during verification');
     if (report.runnerHash !== await runnerHash()) throw new Error('Browser runner changed during verification');
-    report.checks = browser.checks;
+    report.checks = vermeer ? [...browser.checks, ...vermeer.checks] : browser.checks;
     report.browserVersion = browser.browserVersion;
+    if (vermeer) report.vermeerBrowserVersion = vermeer.browserVersion;
     report.status = 'passed';
   } catch (error) {
     report.failure = error.message;

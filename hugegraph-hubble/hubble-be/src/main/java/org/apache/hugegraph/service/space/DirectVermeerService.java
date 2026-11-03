@@ -31,7 +31,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.hash.Hashing;
 import org.apache.hugegraph.config.HugeConfig;
 import org.apache.hugegraph.driver.HugeClient;
 import org.apache.hugegraph.exception.ForbiddenException;
@@ -243,15 +242,11 @@ public class DirectVermeerService {
                                 "Invalid compute.max_step for %s", algorithm);
             }
         }
-        // Query results directly. Never persist a HugeGraph password or bearer
-        // token in Vermeer task parameters for asynchronous output.
-        params.put("output.type", "local");
+        // Hubble reads Vermeer's bounded in-memory query cache. The no-op
+        // writer avoids durable worker-local files while output.need_query
+        // retains values for the preview and task result APIs.
+        params.put("output.type", "none");
         params.put("output.need_query", "1");
-        // Native compute is exclusive and LocalWriter truncates its part files.
-        // Reuse one safe basename per graph instead of retaining files per run.
-        String output = Hashing.sha256().hashString(json(List.of(
-                client.getGraphSpaceName(), client.getGraphName())), StandardCharsets.UTF_8).toString();
-        params.put("output.file_path", "./data/hubble/" + output);
         return this.submit(client, "compute", params);
     }
 

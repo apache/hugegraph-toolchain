@@ -21,21 +21,28 @@
  */
 
 import {useCallback, useState, useEffect, useContext, useRef, useMemo, useLayoutEffect} from 'react';
+import {useTranslation} from 'react-i18next';
 import AlgorithmFormHome from '../algorithmsForm/Home';
 import GraphResult from '../GraphResult/Home';
 import LogsDetail from '../LogsDetail/Home';
 import GraphAnalysisContext from '../../Context';
-import {GRAPH_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE} from '../../../utils/constants';
+import {GRAPH_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE, getAlgorithmDisplayName} from '../../../utils/constants';
 import * as api from '../../../api';
+import {clearOlapTasks, consumeOlapFailure, getLatestOlapTask, useOlapTasks, usePendingOlapTasks} from '../olapTaskRegistry';
 import {toGraphCounts} from '../../../utils/graphStatistics';
 import {USER_CHANGE_EVENT} from '../../../utils/user';
 import _ from 'lodash';
 import c from './index.module.scss';
 
 const ALGORITHM_MODE = {OLTP: 'oltp', OLAP: 'olap'};
+const formatOlapFailure = (algorithm, message, t) => {
+    const detail = message || t('analysis.query_result.run_failed');
+    return algorithm ? `${getAlgorithmDisplayName(algorithm, t)}: ${detail}` : detail;
+};
 
 const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
-    const {STANDBY} = GRAPH_STATUS;
+    const {STANDBY, LOADING, SUCCESS, FAILED} = GRAPH_STATUS;
+    const {t} = useTranslation();
     const {CLOSED} = PANEL_TYPE;
     const {OLTP, OLAP} = ALGORITHM_MODE;
     const {CANVAS2D} = GRAPH_RENDER_MODE;
@@ -54,9 +61,18 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const [queryResult, setQueryResult] = useState();
     const [asyncTaskResult, setAsyncTaskResult] = useState();
     const asyncTaskOwner = useRef(null);
+    const visibleOlapTask = useRef();
+    const userSelectedOlapTask = useRef(false);
     const [graphOptions, setGraphOptions] = useState();
     const [panelType, setPanelType] = useState(CLOSED);
     const [algorithmOnCanvas, setAlgorithmOnCanvas] = useState();
+    const recentOlapTasks = useOlapTasks(graphSpace, graph);
+    const pendingOlapTasks = usePendingOlapTasks(graphSpace, graph);
+    const restoreEligible = useRef(true);
+    const restoringPending = useRef(false);
+    const restoringAlgorithm = useRef();
+    const [restoredOlapTask, setRestoredOlapTask] = useState(false);
+    const [olapResultAlgorithm, setOlapResultAlgorithm] = useState();
     const [pageExecute, setExecutePage] = useState(defaultPageParams.page);
     const [pageFavorite, setFavoritePage] = useState(defaultPageParams.page);
     const [pageSize, setPageSize] = useState(defaultPageParams.pageSize);
@@ -73,6 +89,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const favoriteQueriesRequest = useRef(null);
     const graphNumsRequest = useRef(null);
     const algorithmRequest = useRef(null);
+    const olapSubmissionGroup = useRef(null);
     const graphNumsScope = useMemo(() => ({graphSpace, graph, identityVersion}), [graphSpace, graph, identityVersion]);
     const metaData = metaDataState?.owner === graphNumsScope ? metaDataState.data : undefined;
     const propertyKeysRecords = propertyKeysState?.owner === graphNumsScope ? propertyKeysState.records : undefined;
@@ -112,11 +129,13 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         metaDataRequest.current = null;
         propertyKeysRequest.current = null;
         algorithmRequest.current = null;
+        olapSubmissionGroup.current = null;
         return () => {
             graphNumsOwner.current = null;
             metaDataRequest.current = null;
             propertyKeysRequest.current = null;
             algorithmRequest.current = null;
+            olapSubmissionGroup.current = null;
         };
     }, [graphNumsScope]);
 
@@ -127,6 +146,11 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             metaDataRequest.current = null;
             propertyKeysRequest.current = null;
             algorithmRequest.current = null;
+            olapSubmissionGroup.current = null;
+            asyncTaskOwner.current = null;
+            visibleOlapTask.current = undefined;
+            userSelectedOlapTask.current = false;
+            clearOlapTasks();
             setQueryStatus(STANDBY);
             setQueryMessage();
             setQueryResult({});
@@ -160,7 +184,14 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         if (previousScope.current === graphNumsScope) return;
         previousScope.current = graphNumsScope;
         algorithmRequest.current = null;
+        olapSubmissionGroup.current = null;
         asyncTaskOwner.current = null;
+        visibleOlapTask.current = undefined;
+        userSelectedOlapTask.current = false;
+        restoreEligible.current = true;
+        restoringPending.current = false;
+        restoringAlgorithm.current = undefined;
+        setRestoredOlapTask(false);
         setAsyncTaskResult();
         setAlgorithmMode();
         setAlgorithmOnCanvas();
@@ -171,8 +202,16 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     useLayoutEffect(() => {
         if (previousEngine.current === engine) return;
         previousEngine.current = engine;
+        restoreEligible.current = engine === 'olap';
+        restoringPending.current = false;
+        restoringAlgorithm.current = undefined;
+        setRestoredOlapTask(false);
         // An OLAP submission belongs to its own view, not the newly selected engine.
         algorithmRequest.current = null;
+        olapSubmissionGroup.current = null;
+        asyncTaskOwner.current = null;
+        visibleOlapTask.current = undefined;
+        userSelectedOlapTask.current = false;
         setAlgorithmMode();
         setAsyncTaskResult();
         setAlgorithmOnCanvas();
@@ -403,20 +442,132 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     }, [graph, graphSpace, identityVersion, getMetaData, getPropertykeys, initQueryResult, onResetPage]);
 
 
+    const showRecentTask = useCallback((task, preserveWarning = false) => {
+        if (!task || graphNumsOwner.current !== graphNumsScope || engine !== 'olap') return;
+        asyncTaskOwner.current = graphNumsScope;
+        visibleOlapTask.current = task.id;
+        setRestoredOlapTask(true);
+        setAsyncTaskResult(task.id);
+        setAlgorithmMode(OLAP);
+        setAlgorithmOnCanvas(task.algorithm);
+        setOlapResultAlgorithm(task.algorithm);
+        setQueryResult({});
+        if (!preserveWarning) setQueryMessage();
+        setQueryStatus(SUCCESS);
+    }, [OLAP, SUCCESS, engine, graphNumsScope]);
+
+    // This registry is deliberately session-only: a graph can be deleted and
+    // recreated with the same name, so server history alone cannot prove scope.
+    useEffect(() => {
+        if (engine !== 'olap' || !isVermeer || !restoreEligible.current) return;
+        const algorithm = restoringAlgorithm.current;
+        const pending = algorithm ? pendingOlapTasks.filter(item => item.algorithm === algorithm) : pendingOlapTasks;
+        const failure = consumeOlapFailure(graphSpace, graph, algorithm);
+        const task = algorithm ? getLatestOlapTask(graphSpace, graph, algorithm) : recentOlapTasks[0];
+        if (task) {
+            // A sibling request must not hide an available result. Keep listening
+            // until the relevant requests settle, without erasing earlier failures.
+            if (!userSelectedOlapTask.current &&
+                (algorithm || visibleOlapTask.current === undefined || asyncTaskOwner.current !== graphNumsScope) &&
+                (visibleOlapTask.current !== task.id || asyncTaskOwner.current !== graphNumsScope)) {
+                showRecentTask(task, true);
+            }
+            if (failure) setQueryMessage(formatOlapFailure(failure.algorithm, failure.message, t));
+            restoringPending.current = pending.length > 0;
+            restoreEligible.current = pending.length > 0;
+            return;
+        }
+        if (pending.length) {
+            restoringPending.current = true;
+            setAlgorithmMode(OLAP);
+            setAlgorithmOnCanvas(algorithm || pending[pending.length - 1].algorithm);
+            setQueryStatus(LOADING);
+            if (failure) setQueryMessage(formatOlapFailure(failure.algorithm, failure.message, t));
+            return;
+        }
+        if (restoringPending.current || failure) {
+            restoringPending.current = false;
+            restoreEligible.current = false;
+            if (failure) setQueryMessage(formatOlapFailure(failure.algorithm, failure.message, t));
+            else setQueryMessage(previous => previous || t('analysis.query_result.run_failed'));
+            setQueryStatus(FAILED);
+        }
+    }, [engine, isVermeer, graphSpace, graph, graphNumsScope, recentOlapTasks, pendingOlapTasks, showRecentTask,
+        LOADING, OLAP, FAILED, t]);
+
+    const handleSelectOlapAlgorithm = useCallback(algorithm => {
+        userSelectedOlapTask.current = false;
+        const pending = pendingOlapTasks.some(item => item.algorithm === algorithm);
+        restoreEligible.current = pending;
+        restoringPending.current = pending;
+        restoringAlgorithm.current = pending ? algorithm : undefined;
+        const task = getLatestOlapTask(graphSpace, graph, algorithm);
+        const failure = pending ? undefined : consumeOlapFailure(graphSpace, graph, algorithm);
+        if (task) {
+            showRecentTask(task);
+            if (failure) setQueryMessage(formatOlapFailure(failure.algorithm, failure.message, t));
+        } else {
+            asyncTaskOwner.current = null;
+            visibleOlapTask.current = undefined;
+            setRestoredOlapTask(false);
+            setAsyncTaskResult();
+            setAlgorithmOnCanvas(algorithm);
+            setAlgorithmMode(OLAP);
+            setQueryResult({});
+            setQueryMessage(failure ? formatOlapFailure(failure.algorithm, failure.message, t) : undefined);
+            setQueryStatus(pending ? LOADING : failure ? FAILED : STANDBY);
+        }
+    }, [graphSpace, graph, pendingOlapTasks, showRecentTask, OLAP, LOADING, FAILED, STANDBY, t]);
+
+    const handleSelectOlapTask = useCallback(taskId => {
+        if (graphNumsOwner.current !== graphNumsScope || engine !== 'olap') return;
+        userSelectedOlapTask.current = true;
+        visibleOlapTask.current = taskId;
+        asyncTaskOwner.current = graphNumsScope;
+        setAsyncTaskResult(taskId);
+        setRestoredOlapTask(false);
+    }, [engine, graphNumsScope]);
+
     const handleUpdateCurrentAlgorithm = useCallback(value => {
         setAlgorithmOnCanvas(value);
     }, []);
 
-    const beginSubmission = useCallback(applyResult => {
-        if (graphNumsOwner.current !== graphNumsScope) return () => {};
-        const request = Symbol('algorithm-execution');
-        algorithmRequest.current = request;
-        return (...args) => {
-            if (graphNumsOwner.current === graphNumsScope && algorithmRequest.current === request) {
-                applyResult(...args);
+    const beginSubmission = useCallback((applyResult, latestOnly = true) => {
+        userSelectedOlapTask.current = false;
+        restoreEligible.current = false;
+        restoringPending.current = false;
+        restoringAlgorithm.current = undefined;
+        setRestoredOlapTask(false);
+        if (graphNumsOwner.current !== graphNumsScope) return () => false;
+        const submissionEngine = engine;
+        const request = latestOnly ? Symbol('algorithm-execution')
+            : olapSubmissionGroup.current || {pending: 0};
+        let settled = false;
+        if (latestOnly) {
+            olapSubmissionGroup.current = null;
+            algorithmRequest.current = request;
+        } else {
+            algorithmRequest.current = null;
+            request.pending += 1;
+            olapSubmissionGroup.current = request;
+        }
+        const complete = (...args) => {
+            const sameContext = graphNumsOwner.current === graphNumsScope &&
+                                previousEngine.current === submissionEngine;
+            const currentRequest = latestOnly ? algorithmRequest.current === request
+                : olapSubmissionGroup.current === request;
+            if (!sameContext || !currentRequest || (!latestOnly && settled)) return false;
+            const status = args[0];
+            if (!latestOnly && status !== LOADING) {
+                settled = true;
+                request.pending = Math.max(0, request.pending - 1);
             }
+            if (latestOnly) applyResult(...args);
+            else applyResult(args[0], args[1], args[2], {pending: request.pending});
+            return true;
         };
-    }, [graphNumsScope]);
+        return complete;
+    }, [LOADING, engine, graphNumsScope]);
 
     const handleOltpFormSubmit = useCallback(
         () => beginSubmission((status, data, message, options) => {
@@ -434,27 +585,60 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     );
 
     const handleOlapFormSubmit = useCallback(
-        () => beginSubmission((status, data, message) => {
+        algorithm => beginSubmission((status, data, message, {pending = 0} = {}) => {
+            const hasVisibleTask = visibleOlapTask.current !== undefined &&
+                                   asyncTaskOwner.current === graphNumsScope;
+            if (status === LOADING) {
+                setQueryMessage();
+                if (hasVisibleTask) return;
+            }
+            if (status === SUCCESS && hasVisibleTask && userSelectedOlapTask.current) {
+                getExecutionLogsList();
+                return;
+            }
+            if (status === FAILED && hasVisibleTask) {
+                setQueryMessage(formatOlapFailure(algorithm, message, t));
+                getExecutionLogsList();
+                return;
+            }
+            if (status === FAILED && pending > 0) {
+                setQueryMessage(formatOlapFailure(algorithm, message, t));
+                getExecutionLogsList();
+                return;
+            }
             setPanelType(CLOSED);
             setAlgorithmMode(OLAP);
             setQueryResult({});
             setQueryStatus(status);
             asyncTaskOwner.current = graphNumsScope;
+            if (status === SUCCESS) {
+                visibleOlapTask.current = data;
+                setOlapResultAlgorithm(algorithm);
+            }
+            if (status === FAILED) visibleOlapTask.current = undefined;
             setAsyncTaskResult(data);
-            setQueryMessage(message || '');
-        }),
-        [CLOSED, OLAP, beginSubmission, graphNumsScope]
+            // A sibling may have failed while this submission was pending.
+            // Keep that warning visible until a new submission starts.
+            if (status !== SUCCESS) setQueryMessage(status === FAILED ? formatOlapFailure(algorithm, message, t) : message || '');
+            if (status === SUCCESS || status === FAILED) getExecutionLogsList();
+        }, false),
+        [CLOSED, FAILED, LOADING, OLAP, SUCCESS, beginSubmission, getExecutionLogsList, graphNumsScope, t]
     );
 
     const resetGraphStatus = useCallback(
         (status, message, data) => {
             algorithmRequest.current = null;
+            olapSubmissionGroup.current = null;
+            asyncTaskOwner.current = null;
+            visibleOlapTask.current = undefined;
+            userSelectedOlapTask.current = false;
+            setAsyncTaskResult();
             setPanelType(CLOSED);
             setAlgorithmMode(OLTP);
             setAlgorithmOnCanvas();
             setGraphOptions();
             status && setQueryStatus(status);
-            message && setQueryMessage(message);
+            setQueryMessage(message);
             data && setQueryResult(data);
         }, [CLOSED, OLTP]);
 
@@ -496,6 +680,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
                     onEngineChange={onEngineChange}
                     handleOltpFormSubmit={handleOltpFormSubmit}
                     handleOlapFormSubmit={handleOlapFormSubmit}
+                    onSelectOlapAlgorithm={handleSelectOlapAlgorithm}
                     currentAlgorithm={algorithmOnCanvas}
                     updateCurrentAlgorithm={handleUpdateCurrentAlgorithm}
                     graphNums={graphNums}
@@ -511,11 +696,13 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
                     data={queryResult}
                     metaData={metaData}
                     options={graphOptions}
+                    restoredOlapTask={restoredOlapTask}
+                    onSelectOlapTask={handleSelectOlapTask}
                     asyncTaskId={asyncTaskOwner.current === graphNumsScope ? asyncTaskResult : undefined}
                     queryStatus={asyncTaskResult && asyncTaskOwner.current !== graphNumsScope ? STANDBY : queryStatus}
                     queryMessage={queryMessage}
                     isQueryMode={algorithmMode === OLTP}
-                    algorithm={algorithmOnCanvas}
+                    algorithm={algorithmMode === OLAP ? olapResultAlgorithm : algorithmOnCanvas}
                     panelType={panelType}
                     graphNums={graphNums}
                     onRefreshGraphNums={getGraphNumsInfo}

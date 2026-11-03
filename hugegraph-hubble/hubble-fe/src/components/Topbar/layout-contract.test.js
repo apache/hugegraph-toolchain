@@ -23,10 +23,12 @@ const stylesheet = fs.readFileSync(path.join(__dirname, 'index.module.scss'), 'u
 
 test('keeps graph context left while centering page context in the viewport', () => {
     expect(component).toContain('className={style.leftContainer}');
-    expect(stylesheet).toMatch(/\.header\s*\{[\s\S]*display:\s*grid/);
-    expect(stylesheet).toMatch(
-        /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+minmax\(0,\s*1fr\)/
-    );
+    // Match Ant Design's header class too, so its default padding cannot override ours.
+    const header = stylesheet.match(/\.header:global\(\.ant-layout-header\)\s*\{([^}]*)\}/)?.[1];
+    expect(header).toBeDefined();
+    expect(header).toMatch(/display:\s*grid/);
+    expect(header).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+minmax\(0,\s*1fr\)/);
+    expect(header).toMatch(/padding-inline:\s*24px/);
     expect(stylesheet).toMatch(/\.pageContext\s*\{[\s\S]*justify-self:\s*center/);
     expect(stylesheet).toMatch(/\.rightContainer\s*\{[\s\S]*justify-self:\s*end/);
     expect(stylesheet).toMatch(/\.leftContainer\s*\{[\s\S]*grid-column:\s*1/);

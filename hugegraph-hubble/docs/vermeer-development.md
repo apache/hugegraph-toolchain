@@ -76,9 +76,9 @@ the vertex values. The verification artifacts are under
 
 Live processes do not survive environment publication. Run `start` again in each
 restored environment; rerun `smoke` to produce current queryable computation
-results. Master/Worker in-memory result caches are temporary. Database data,
-Vermeer metadata, and local output files are retained, but historical task status
-alone does not guarantee its in-memory query results remain available.
+results. Master/Worker in-memory result caches are temporary. Database data and
+Vermeer metadata are retained, but historical task status alone does not guarantee
+its in-memory query results remain available.
 
 ## Local development credentials
 
@@ -172,8 +172,8 @@ cursor; additional pages are available at Hubble's
 `GET /api/v1.3/graphspaces/{space}/graphs/{graph}/async-tasks/{negative-id}/values?cursor=N&limit=1000`.
 Hubble provides next/previous controls for these result pages. Native Vermeer does not expose task-history deletion, so Hubble disables that action for direct tasks.
 Query values are temporary; successful task history remains readable after their
-cache expires. Local output uses a safe per-graph basename and truncates its part
-files on repeated computations, rather than accumulating files for every run.
+cache expires. Hubble requests `output.type=none` and `output.need_query=1`, so
+its direct computations use the query cache without writing worker-local result files.
 The native task-history API currently has no cursor or offset. Hubble reads up to
 10,000 native tasks before applying graph filters; older records outside that
 window are not included in the displayed total. Extending history beyond that

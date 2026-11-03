@@ -19,6 +19,13 @@
 import {renderHook} from '@testing-library/react';
 import useAlgorithmSubmission from './useAlgorithmSubmission';
 import {GRAPH_STATUS} from '../../../utils/constants';
+import {finishPendingOlapTask} from '../olapTaskRegistry';
+
+jest.mock('../olapTaskRegistry', () => ({
+    beginPendingOlapTask: jest.fn(() => ({})), finishPendingOlapTask: jest.fn(() => true),
+    isPendingOlapTaskValid: jest.fn(() => true)}));
+
+beforeEach(() => jest.clearAllMocks());
 
 it('keeps each form completion through loading and terminal callbacks', () => {
     const first = jest.fn();
@@ -67,3 +74,60 @@ test.each([GRAPH_STATUS.SUCCESS, GRAPH_STATUS.FAILED])(
         ]);
     }
 );
+
+test('retains a valid task when its original view no longer accepts completion', () => {
+    const complete = jest.fn()
+        .mockReturnValueOnce(true)
+        .mockReturnValueOnce(false);
+    const beginSubmission = jest.fn(() => complete);
+    const {result} = renderHook(() => useAlgorithmSubmission(
+        beginSubmission, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const finish = result.current(GRAPH_STATUS.LOADING);
+    finish(GRAPH_STATUS.SUCCESS, -7);
+    expect(complete).toHaveBeenNthCalledWith(1, GRAPH_STATUS.LOADING);
+    expect(complete).toHaveBeenNthCalledWith(2, GRAPH_STATUS.SUCCESS, -7);
+    expect(finishPendingOlapTask).toHaveBeenCalledWith(expect.anything(), null, {
+        graphSpace: 'DEFAULT', graph: 'hugegraph', algorithm: 'PageRank', id: -7,
+    });
+});
+
+test('records an accepted successful task with its original graph scope', () => {
+    const complete = jest.fn(() => true);
+    const beginSubmission = jest.fn(() => complete);
+    const {result} = renderHook(() => useAlgorithmSubmission(
+        beginSubmission, 'DEFAULT', 'hugegraph', 'Degree Centrality', true
+    ));
+    const finish = result.current(GRAPH_STATUS.LOADING);
+    expect(beginSubmission).toHaveBeenCalledWith('Degree Centrality');
+    finish(GRAPH_STATUS.SUCCESS, -8);
+    expect(finishPendingOlapTask).toHaveBeenCalledWith(expect.anything(), null, {
+        graphSpace: 'DEFAULT',
+        graph: 'hugegraph',
+        algorithm: 'Degree Centrality',
+        id: -8,
+    });
+});
+
+test('does not register failures even when their completion is accepted', () => {
+    const complete = jest.fn(() => true);
+    const {result} = renderHook(() => useAlgorithmSubmission(
+        () => complete, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const finish = result.current(GRAPH_STATUS.LOADING);
+    finish(GRAPH_STATUS.FAILED, '', 'worker failed');
+    expect(finishPendingOlapTask).toHaveBeenCalledWith(expect.anything(), null, null);
+});
+
+
+test('does not settle a pending submission for a nonterminal loading callback', () => {
+    const complete = jest.fn(() => true);
+    const {result} = renderHook(() => useAlgorithmSubmission(
+        () => complete, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const finish = result.current(GRAPH_STATUS.LOADING);
+    finish(GRAPH_STATUS.LOADING);
+    expect(finishPendingOlapTask).not.toHaveBeenCalled();
+    finish(GRAPH_STATUS.SUCCESS, -8);
+    expect(finishPendingOlapTask).toHaveBeenCalledTimes(1);
+});

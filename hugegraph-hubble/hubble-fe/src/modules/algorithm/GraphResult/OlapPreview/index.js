@@ -16,24 +16,57 @@
  */
 
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {Alert, Button, Empty, Segmented, Spin, Table} from 'antd';
+import {Button, Empty, Segmented, Select, Spin, Table} from 'antd';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../../api';
 import {Link} from 'react-router-dom';
 import {GraphCanvas} from '../../../../visualization/react';
 import {adaptHubbleGraph} from '../../../../visualization/hubble/adapter';
+import {useOlapTasks} from '../../olapTaskRegistry';
+import {displayTaskId} from '../../../asyncTasks/taskIdentity';
 import c from './index.module.scss';
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 12;
 const MAX_POINTS = 300;
+const PATH_SIZE = 6;
 const PREVIEW_LAYOUT = {type: 'grid', options: {nodeSize: 54, nodeSpacing: 36}};
 const valueText = value => typeof value === 'string' ? value : JSON.stringify(value ?? null);
 const compact = (value, max) => value.length > max ? `${value.slice(0, max - 1)}…` : value;
 
+export const buildConnectedSample = (vertices = [], edges = [], maxNodes = PATH_SIZE) => {
+    const nodes = new Map(vertices.map(vertex => [String(vertex.ID), vertex]));
+    const adjacency = new Map();
+    for (const edge of edges) {
+        const source = String(edge.source);
+        const target = String(edge.target);
+        if (!nodes.has(source) || !nodes.has(target)) continue;
+        const targets = adjacency.get(source) || [];
+        if (!targets.includes(target)) targets.push(target);
+        adjacency.set(source, targets);
+    }
+    let best = [];
+    for (const start of nodes.keys()) {
+        const path = [start];
+        const visited = new Set(path);
+        let current = start;
+        while (path.length < maxNodes) {
+            const next = (adjacency.get(current) || []).find(id => !visited.has(id));
+            if (!next) break;
+            path.push(next);
+            visited.add(next);
+            current = next;
+        }
+        if (path.length > best.length) best = path;
+    }
+    return best.length > 1 ? best.map(id => nodes.get(id)) : [];
+};
+
 // A result is an ID/value pair, not a graph vertex or an edge. Keep this view
 // read-only and do not feed synthetic elements into the editable graph canvas.
-const OlapPreview = ({graphSpace, graph, taskId}) => {
+const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask, onSelectTask}) => {
     const {t} = useTranslation();
+    const recentTasks = useOlapTasks(graphSpace, graph);
+    const [activeTaskId, setActiveTaskId] = useState(Number(taskId));
     const [state, setState] = useState({phase: 'waiting'});
     const [mode, setMode] = useState('graph');
     const [canvasController, setCanvasController] = useState(null);
@@ -45,18 +78,33 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     const accumulatedEdges = useRef(new Map());
     const edgePages = useRef(new Map());
     const pageInFlight = useRef(false);
+    const taskOptions = useMemo(() => {
+        const current = Number(taskId);
+        return recentTasks.some(task => task.id === current) ? recentTasks
+            : [{id: current, algorithm: ''}, ...recentTasks];
+    }, [recentTasks, taskId]);
+
+    useEffect(() => setActiveTaskId(Number(taskId)), [taskId]);
+
 
     useEffect(() => {
+        accumulated.current = [];
+        accumulatedEdges.current = new Map();
+        edgePages.current = new Map();
+        pageInFlight.current = false;
+        setCursor(null);
+        setRequestPage(0);
+        setState({phase: 'waiting'});
         let active = true;
         let timer;
         let misses = 0;
         let seen = false;
         const load = async () => {
             try {
-                const response = await api.analysis.fetchManageTaskById(graphSpace, graph, taskId);
+                const response = await api.analysis.fetchManageTaskById(graphSpace, graph, activeTaskId);
                 if (!active) return;
                 if (response?.status !== 200 || !Array.isArray(response.data)) throw new Error();
-                const task = response.data.find(item => String(item.id) === String(taskId));
+                const task = response.data.find(item => String(item.id) === String(activeTaskId));
                 if (!task) {
                     misses += 1;
                     if (seen || misses >= 12) { setState({phase: 'not_found'}); return; }
@@ -81,14 +129,16 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
         };
         load();
         return () => { active = false; clearTimeout(timer); };
-    }, [graphSpace, graph, statusAttempt, taskId]);
+    }, [activeTaskId, graphSpace, graph, statusAttempt]);
 
     useEffect(() => {
         if (!requestPage || cursor === null) return undefined;
         let active = true;
         const load = async () => {
             try {
-                const response = await api.analysis.fetchOlapPreviewEdges(graphSpace, graph, taskId, cursor, PAGE_SIZE);
+                const response = await api.analysis.fetchOlapPreviewEdges(
+                    graphSpace, graph, activeTaskId, cursor, PAGE_SIZE
+                );
                 if (!active) return;
                 if (response?.status === 200 && response.data?.result_status === 'too_large') {
                     setState(previous => previous.vertices ? {...previous, phase: 'ready', pageError: false,
@@ -142,7 +192,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
         };
         load();
         return () => { active = false; };
-    }, [cursor, graph, graphSpace, requestPage, taskId]);
+    }, [activeTaskId, cursor, graph, graphSpace, requestPage]);
 
     // GraphCanvas preserves user zoom on ordinary resizes. This bounded preview
     // needs to fit again when its host changes width, including sidebar changes.
@@ -165,6 +215,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     }, [canvasController, mode, state.phase]);
 
     const vertices = useMemo(() => state.vertices || [], [state.vertices]);
+    const connectedSample = useMemo(() => buildConnectedSample(vertices, state.edges), [state.edges, vertices]);
     const graphData = useMemo(() => {
         const adapted = adaptHubbleGraph({vertices: vertices.map(item => ({id: String(item.ID),
             properties: {result: valueText(item.Value)}})), edges: state.edges || []});
@@ -175,55 +226,94 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     }, [vertices, state.edges]);
     const columns = [{title: t('analysis.algorithm.preview_id'), dataIndex: 'ID', render: value => String(value)},
         {title: t('analysis.algorithm.preview_value'), dataIndex: 'Value', render: valueText}];
+    const connectedSampleLabel = `${t('analysis.algorithm.preview_graph')} · ${t(
+        'analysis.algorithm.preview_edges_partial', {count: state.edges?.length || 0})}`;
     return <div className={c.preview}>
         <div className={c.header}>
             <strong>{t('analysis.algorithm.preview_title')}</strong>
+            <div className={c.headerActions}>
+                {taskOptions.length > 1 && <Select className={c.runSelect} size='small' virtual={false}
+                    aria-label={t('analysis.algorithm.preview_title')} value={activeTaskId}
+                    onChange={value => { setActiveTaskId(value); onSelectTask?.(value); }} options={taskOptions.map(task => ({
+                        value: task.id,
+                        label: task.algorithm ? `${task.algorithm} · ${displayTaskId(task.id)}` : displayTaskId(task.id),
+                    }))} />}
+                {state.phase !== 'waiting' && <Link to={`/asyncTasks/${encodeURIComponent(graphSpace)}/${encodeURIComponent(graph)}`
+                    + `?taskId=${encodeURIComponent(activeTaskId)}&submitted=1`}>
+                    {t('analysis.algorithm.preview_task_detail')}
+                </Link>}
+            </div>
+        </div>
+        {warning && <div className={c.problem} role='status'>{warning}</div>}
+        {state.phase === 'waiting' && <div className={c.asyncStatus}>
+            <Spin description={t('analysis.algorithm.preview_running')} />
+            <p>{t('analysis.algorithm.preview_async_hint')}</p>
             <Link to={`/asyncTasks/${encodeURIComponent(graphSpace)}/${encodeURIComponent(graph)}`
-                + `?taskId=${encodeURIComponent(taskId)}&submitted=1`}>
+                + `?taskId=${encodeURIComponent(activeTaskId)}&submitted=1`}>
                 {t('analysis.algorithm.preview_task_detail')}
             </Link>
-        </div>
-        {state.phase === 'waiting' && <Spin description={t('analysis.algorithm.preview_running')} />}
+        </div>}
         {state.phase === 'loading' && <Spin description={t('analysis.algorithm.preview_loading')} />}
-        {['status_error', 'not_found'].includes(state.phase) && <Alert type='warning' showIcon
-            title={t(state.phase === 'not_found' ? 'analysis.algorithm.preview_not_found' : 'analysis.algorithm.preview_error')}
-            action={<Button onClick={() => { setState({phase: 'waiting'}); setStatusAttempt(value => value + 1); }}>
+        {['status_error', 'not_found'].includes(state.phase) && <div className={c.problem} role='status'>
+            <span>{t(state.phase === 'not_found' ? 'analysis.algorithm.preview_not_found' : 'analysis.algorithm.preview_error')}</span>
+            <Button onClick={() => { setState({phase: 'waiting'}); setStatusAttempt(value => value + 1); }}>
                 {t('analysis.async_task.retry_result')}
-            </Button>} />}
-        {state.phase === 'failed' && <Alert type='error' showIcon title={t('analysis.algorithm.preview_failed')} />}
-        {state.phase === 'expired' && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_expired')} />}
-        {state.phase === 'too_large' && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_too_large')} />}
-        {state.phase === 'error' && <Alert type='error' showIcon title={t('analysis.algorithm.preview_error')}
-            action={<Button onClick={() => { setState({phase: 'loading'}); setRequestPage(page => page + 1); }}>
+            </Button>
+        </div>}
+        {state.phase === 'failed' && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_failed')}</p>}
+        {state.phase === 'expired' && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_expired')}</p>}
+        {state.phase === 'too_large' && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_too_large')}</p>}
+        {state.phase === 'error' && <div className={c.problem} role='status'>
+            <span>{t('analysis.algorithm.preview_error')}</span>
+            <Button onClick={() => { setState({phase: 'loading'}); setRequestPage(page => page + 1); }}>
                 {t('analysis.async_task.retry_result')}
-            </Button>} />}
+            </Button>
+        </div>}
         {state.phase === 'ready' && <>
-            {state.resultTooLarge && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_too_large')} />}
-            {state.resultExpired && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_expired')} />}
-            {state.pageError && <Alert type='error' showIcon title={t('analysis.algorithm.preview_error')}
-                action={<Button loading={state.pageLoading} onClick={() => {
+            {state.resultTooLarge && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_too_large')}</p>}
+            {state.resultExpired && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_expired')}</p>}
+            {state.pageError && <div className={c.problem} role='status'>
+                <span>{t('analysis.algorithm.preview_error')}</span>
+                <Button loading={state.pageLoading} onClick={() => {
                     if (pageInFlight.current) return;
                     pageInFlight.current = true;
                     setState(previous => ({...previous, pageLoading: true}));
                     setRequestPage(page => page + 1);
                 }}>
                     {t('analysis.async_task.retry_result')}
-                </Button>} />}
-            <Alert type='info' showIcon title={t('analysis.algorithm.preview_sample', {count: vertices.length})}
-                description={t('analysis.algorithm.preview_no_edges')} />
+                </Button>
+            </div>}
             {state.edgeStatus === 'loading' && <Spin description={t('analysis.algorithm.preview_edges_loading')} />}
-            {state.edgeStatus === 'unavailable' && !state.missingEdgePages && <Alert type='warning' showIcon
-                title={t('analysis.algorithm.preview_edges_unavailable')} />}
-            {state.edgeStatus === 'partial' && <Alert type='info' showIcon
-                title={t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})} />}
-            {state.missingEdgePages && <Alert type='warning' showIcon
-                title={t('analysis.algorithm.preview_edges_missing', {pages: state.missingEdgePages})} />}
+            {connectedSample.length > 1 && <section className={c.pathCard}
+                aria-label={connectedSampleLabel}>
+                <div className={c.pathHeading}>
+                    <strong>{t('analysis.algorithm.preview_graph')}</strong>
+                    <span>{t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})}</span>
+                </div>
+                <div className={c.pathTrack}>
+                    {connectedSample.map((item, index) => <div className={c.pathStep} key={String(item.ID)}>
+                        {index > 0 && <span className={c.pathArrow} aria-hidden='true'>→</span>}
+                        <div className={c.pathNode} title={`${String(item.ID)} · ${valueText(item.Value)}`}>
+                            <span className={c.pathId}>{compact(String(item.ID), 18)}</span>
+                            <span className={c.pathValue}>{compact(valueText(item.Value), 24)}</span>
+                        </div>
+                    </div>)}
+                </div>
+            </section>}
             <Segmented value={mode} onChange={setMode} options={['graph', 'table', 'json'].map(value => ({
                 value, label: t(`analysis.algorithm.preview_${value}`),
             }))} />
+            <div className={c.sampleNote}>
+                {restoredOlapTask && activeTaskId === Number(taskId) && <span>{t('analysis.algorithm.preview_restored_hint')}</span>}
+                <span>{t('analysis.algorithm.preview_sample', {count: vertices.length})} · {t('analysis.algorithm.preview_no_edges')}</span>
+                {state.edgeStatus === 'partial' && <span>{t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})}</span>}
+                {state.missingEdgePages ? <span>{t('analysis.algorithm.preview_edges_missing', {pages: state.missingEdgePages})}</span>
+                    : state.edgeStatus === 'unavailable' && <span>{t('analysis.algorithm.preview_edges_unavailable')}</span>}
+            </div>
             {vertices.length === 0 ? <Empty description={t('analysis.algorithm.preview_empty')} /> : mode === 'graph'
                 ? <div ref={canvasHost} className={c.canvas} aria-label={t('analysis.algorithm.preview_graph')}>
-                    <GraphCanvas data={graphData} datasetKey={`${vertices.length}-${state.edges?.length || 0}`}
+                    <GraphCanvas data={graphData}
+                        datasetKey={`${activeTaskId}-${vertices.length}-${state.edges?.length || 0}`}
                         preset='preview' onReady={setCanvasController} layout={PREVIEW_LAYOUT}
                         style={{height: '100%'}} />
                 </div> : mode === 'table'

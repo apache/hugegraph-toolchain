@@ -244,6 +244,15 @@ describe('Topbar request errors', () => {
             .toHaveAttribute('data-trigger', 'click');
     });
 
+    it('trims account labels and falls back from a blank nickname', async () => {
+        sessionStorage.setItem('user_', JSON.stringify({id: 'user', user_name: '  User  ', user_nickname: '  '}));
+        api.auth.status.mockResolvedValue({status: 200});
+        render(<MemoryRouter initialEntries={['/navigation']}><Topbar /></MemoryRouter>);
+        expect(await screen.findByRole('option', {name: 'DEFAULT'})).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Topbar.user_menu: User'})).toHaveAttribute('title', 'User');
+        expect(screen.getByLabelText('User')).toHaveTextContent('Ur');
+    });
+
     it('does not infer a superadmin label from the cached username', async () => {
         sessionStorage.setItem('user_', JSON.stringify({
             id: 'admin',
