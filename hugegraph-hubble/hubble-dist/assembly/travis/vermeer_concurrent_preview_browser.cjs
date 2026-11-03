@@ -187,13 +187,15 @@ async function main() {
 
             firstRelease.resolve();
             await page.getByTitle('page-a · 0.42', {exact: true}).waitFor();
-            const taskSelect = page.locator('.ant-select').filter({hasText: '-901'}).last();
+            const taskSelect = page.locator('.ant-select').filter({hasText: 'PageRank · 901'}).last();
             await taskSelect.waitFor();
             await taskSelect.click();
-            const older = page.locator('.ant-select-item-option').filter({hasText: '-902'}).last();
+            const older = page.getByRole('option', {name: 'Degree Centrality · 902', exact: true});
             await older.waitFor();
             await older.click();
             await page.getByTitle('degree-a · 0.80', {exact: true}).waitFor();
+            const detail = page.getByRole('link', {name: '查看任务详情', exact: true});
+            assert.match(await detail.getAttribute('href'), /[?&]taskId=-902(?:&|$)/);
 
             assert.deepEqual(new Set(state.statusReads), new Set([-901, -902]));
             assert.deepEqual(new Set(state.previewReads.map(read => read.id)), new Set([-901, -902]));
