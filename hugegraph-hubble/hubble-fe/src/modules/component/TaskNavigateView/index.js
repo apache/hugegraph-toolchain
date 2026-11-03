@@ -23,7 +23,7 @@
 import {useCallback, useContext} from 'react';
 import {useTranslation} from 'react-i18next';
 import {useNavigate} from 'react-router-dom';
-import {Button} from 'antd';
+import {Alert, Button} from 'antd';
 import {ArrowRightOutlined, CheckCircleFilled} from '@ant-design/icons';
 import GraphAnalysisContext from '../../Context';
 import {displayTaskIdentity} from '../../asyncTasks/taskIdentity';
@@ -31,7 +31,7 @@ import c from './index.module.scss';
 
 const TaskNavigateView = props => {
     const {t} = useTranslation();
-    const {message, taskId} = props;
+    const {message, taskId, warning} = props;
     const {graphSpace, graph} = useContext(GraphAnalysisContext);
     const title = t('analysis.canvas.task_navigation.title');
     const submissionDetail = message && message !== title
@@ -48,6 +48,7 @@ const TaskNavigateView = props => {
 
     return (
         <div className={c.taskView}>
+            {warning && <Alert type='warning' showIcon title={warning} />}
             <section className={c.taskCard}>
                 <div className={c.taskHeader} role='status'>
                     <span className={c.successIcon} aria-hidden='true'>
