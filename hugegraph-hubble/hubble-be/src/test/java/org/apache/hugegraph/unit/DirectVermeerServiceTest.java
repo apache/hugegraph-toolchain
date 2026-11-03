@@ -174,9 +174,10 @@ public class DirectVermeerServiceTest {
         Mockito.verify(backend).request(Mockito.eq("POST"), Mockito.eq("tasks/create"), body.capture());
         Assert.assertEquals("DEFAULT-graph-with-dash", body.getValue().get("graph"));
         Map<?, ?> params = (Map<?, ?>) body.getValue().get("params");
-        Assert.assertEquals("local", params.get("output.type"));
+        Assert.assertEquals("none", params.get("output.type"));
         Assert.assertEquals("1", params.get("output.need_query"));
         Assert.assertEquals("0.85", params.get("pagerank.damping"));
+        Assert.assertFalse(params.containsKey("output.file_path"));
         Assert.assertFalse(params.containsKey("output.hugegraph_password"));
         Assert.assertFalse(params.containsKey("output.hugegraph_token"));
     }
@@ -334,34 +335,22 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
-    public void testComputeIsolatesOutputFilesPerSubmission() {
+    public void testComputeUsesQueryCacheWithoutLocalOutputFiles() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
                .thenReturn(Map.of("task", Map.of("id", 12)));
         DirectVermeerService direct = service(backend);
-        HugeClient client = graphClient();
-        direct.compute(client, Map.of("compute.algorithm", "pagerank"));
-        direct.compute(client, Map.of("compute.algorithm", "degree"));
-        Mockito.when(client.getGraphSpaceName()).thenReturn("OTHER");
-        direct.compute(client, Map.of("compute.algorithm", "pagerank"));
-        Mockito.when(client.getGraphName()).thenReturn("../../escape/graph");
-        direct.compute(client, Map.of("compute.algorithm", "pagerank"));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "pagerank"));
+        direct.compute(graphClient(), Map.of("compute.algorithm", "degree"));
         ArgumentCaptor<Map> bodies = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(backend, Mockito.times(4)).request(
+        Mockito.verify(backend, Mockito.times(2)).request(
                 Mockito.eq("POST"), Mockito.eq("tasks/create"), bodies.capture());
-        List<String> paths = bodies.getAllValues().stream().map(body -> {
+        for (Map body : bodies.getAllValues()) {
             Map<?, ?> params = (Map<?, ?>) body.get("params");
-            return (String) params.get("output.file_path");
-        }).toList();
-        List<String> scopes = paths.stream()
-                                    .map(path -> path.substring(0, path.lastIndexOf('/')))
-                                    .toList();
-        Assert.assertEquals(scopes.get(0), scopes.get(1));
-        Assert.assertNotEquals(scopes.get(0), scopes.get(2));
-        Assert.assertNotEquals(scopes.get(2), scopes.get(3));
-        Assert.assertEquals(4L, paths.stream().distinct().count());
-        paths.forEach(path -> Assert.assertTrue(
-                path.matches("\\./data/hubble/[0-9a-f]{64}/[0-9a-f]{32}")));
+            Assert.assertEquals("none", params.get("output.type"));
+            Assert.assertEquals("1", params.get("output.need_query"));
+            Assert.assertFalse(params.containsKey("output.file_path"));
+        }
     }
 
     @Test
