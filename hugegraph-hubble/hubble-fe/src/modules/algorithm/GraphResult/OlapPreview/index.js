@@ -16,7 +16,7 @@
  */
 
 import {useEffect, useMemo, useRef, useState} from 'react';
-import {Alert, Button, Empty, Segmented, Select, Spin, Table} from 'antd';
+import {Button, Empty, Segmented, Select, Spin, Table} from 'antd';
 import {useTranslation} from 'react-i18next';
 import * as api from '../../../../api';
 import {Link} from 'react-router-dom';
@@ -68,6 +68,7 @@ const OlapPreview = ({graphSpace, graph, taskId, warning}) => {
     const [activeTaskId, setActiveTaskId] = useState(Number(taskId));
     const [state, setState] = useState({phase: 'waiting'});
     const [mode, setMode] = useState('graph');
+    const [visibleWarning, setVisibleWarning] = useState();
     const [canvasController, setCanvasController] = useState(null);
     const canvasHost = useRef(null);
     const [cursor, setCursor] = useState(null);
@@ -84,6 +85,13 @@ const OlapPreview = ({graphSpace, graph, taskId, warning}) => {
     }, [recentTasks, taskId]);
 
     useEffect(() => setActiveTaskId(Number(taskId)), [taskId]);
+
+    useEffect(() => {
+        setVisibleWarning(warning);
+        if (!warning) return undefined;
+        const timer = setTimeout(() => setVisibleWarning(undefined), 5000);
+        return () => clearTimeout(timer);
+    }, [warning]);
 
     useEffect(() => {
         accumulated.current = [];
@@ -242,42 +250,39 @@ const OlapPreview = ({graphSpace, graph, taskId, warning}) => {
                 </Link>
             </div>
         </div>
-        {warning && <Alert type='warning' showIcon title={warning} />}
+        {visibleWarning && <div className={c.notice} role='status'>{visibleWarning}</div>}
         {state.phase === 'waiting' && <Spin description={t('analysis.algorithm.preview_running')} />}
         {state.phase === 'loading' && <Spin description={t('analysis.algorithm.preview_loading')} />}
-        {['status_error', 'not_found'].includes(state.phase) && <Alert type='warning' showIcon
-            title={t(state.phase === 'not_found' ? 'analysis.algorithm.preview_not_found' : 'analysis.algorithm.preview_error')}
-            action={<Button onClick={() => { setState({phase: 'waiting'}); setStatusAttempt(value => value + 1); }}>
+        {['status_error', 'not_found'].includes(state.phase) && <div className={c.problem} role='status'>
+            <span>{t(state.phase === 'not_found' ? 'analysis.algorithm.preview_not_found' : 'analysis.algorithm.preview_error')}</span>
+            <Button onClick={() => { setState({phase: 'waiting'}); setStatusAttempt(value => value + 1); }}>
                 {t('analysis.async_task.retry_result')}
-            </Button>} />}
-        {state.phase === 'failed' && <Alert type='error' showIcon title={t('analysis.algorithm.preview_failed')} />}
-        {state.phase === 'expired' && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_expired')} />}
-        {state.phase === 'too_large' && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_too_large')} />}
-        {state.phase === 'error' && <Alert type='error' showIcon title={t('analysis.algorithm.preview_error')}
-            action={<Button onClick={() => { setState({phase: 'loading'}); setRequestPage(page => page + 1); }}>
+            </Button>
+        </div>}
+        {state.phase === 'failed' && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_failed')}</p>}
+        {state.phase === 'expired' && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_expired')}</p>}
+        {state.phase === 'too_large' && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_too_large')}</p>}
+        {state.phase === 'error' && <div className={c.problem} role='status'>
+            <span>{t('analysis.algorithm.preview_error')}</span>
+            <Button onClick={() => { setState({phase: 'loading'}); setRequestPage(page => page + 1); }}>
                 {t('analysis.async_task.retry_result')}
-            </Button>} />}
+            </Button>
+        </div>}
         {state.phase === 'ready' && <>
-            {state.resultTooLarge && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_too_large')} />}
-            {state.resultExpired && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_expired')} />}
-            {state.pageError && <Alert type='error' showIcon title={t('analysis.algorithm.preview_error')}
-                action={<Button loading={state.pageLoading} onClick={() => {
+            {state.resultTooLarge && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_too_large')}</p>}
+            {state.resultExpired && <p className={c.problem} role='status'>{t('analysis.algorithm.preview_expired')}</p>}
+            {state.pageError && <div className={c.problem} role='status'>
+                <span>{t('analysis.algorithm.preview_error')}</span>
+                <Button loading={state.pageLoading} onClick={() => {
                     if (pageInFlight.current) return;
                     pageInFlight.current = true;
                     setState(previous => ({...previous, pageLoading: true}));
                     setRequestPage(page => page + 1);
                 }}>
                     {t('analysis.async_task.retry_result')}
-                </Button>} />}
-            <Alert type='info' showIcon title={t('analysis.algorithm.preview_sample', {count: vertices.length})}
-                description={t('analysis.algorithm.preview_no_edges')} />
+                </Button>
+            </div>}
             {state.edgeStatus === 'loading' && <Spin description={t('analysis.algorithm.preview_edges_loading')} />}
-            {state.edgeStatus === 'unavailable' && !state.missingEdgePages && <Alert type='warning' showIcon
-                title={t('analysis.algorithm.preview_edges_unavailable')} />}
-            {state.edgeStatus === 'partial' && <Alert type='info' showIcon
-                title={t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})} />}
-            {state.missingEdgePages && <Alert type='warning' showIcon
-                title={t('analysis.algorithm.preview_edges_missing', {pages: state.missingEdgePages})} />}
             {connectedSample.length > 1 && <section className={c.pathCard}
                 aria-label={connectedSampleLabel}>
                 <div className={c.pathHeading}>
@@ -297,6 +302,12 @@ const OlapPreview = ({graphSpace, graph, taskId, warning}) => {
             <Segmented value={mode} onChange={setMode} options={['graph', 'table', 'json'].map(value => ({
                 value, label: t(`analysis.algorithm.preview_${value}`),
             }))} />
+            <div className={c.sampleNote}>
+                <span>{t('analysis.algorithm.preview_sample', {count: vertices.length})} · {t('analysis.algorithm.preview_no_edges')}</span>
+                {state.edgeStatus === 'partial' && <span>{t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})}</span>}
+                {state.missingEdgePages ? <span>{t('analysis.algorithm.preview_edges_missing', {pages: state.missingEdgePages})}</span>
+                    : state.edgeStatus === 'unavailable' && <span>{t('analysis.algorithm.preview_edges_unavailable')}</span>}
+            </div>
             {vertices.length === 0 ? <Empty description={t('analysis.algorithm.preview_empty')} /> : mode === 'graph'
                 ? <div ref={canvasHost} className={c.canvas} aria-label={t('analysis.algorithm.preview_graph')}>
                     <GraphCanvas data={graphData}

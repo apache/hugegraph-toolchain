@@ -87,9 +87,15 @@ test('preserves prior sample and retries a failed next page', async () => {
 
 test('renders a concurrent submission warning without hiding the retained preview', async () => {
     api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
-    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} warning='worker failed' />);
+    const view = render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
     expect(await screen.findByText('a 1')).toBeInTheDocument();
+    jest.useFakeTimers();
+    view.rerender(<OlapPreview graphSpace='s' graph='g' taskId={-7} warning='worker failed' />);
     expect(screen.getByText('worker failed')).toBeInTheDocument();
+    act(() => { jest.advanceTimersByTime(5000); });
+    expect(screen.queryByText('worker failed')).not.toBeInTheDocument();
+    expect(screen.getByText('a 1')).toBeInTheDocument();
+    jest.useRealTimers();
 });
 
 test('renders only returned snapshot relationships and a connected sample path', async () => {
