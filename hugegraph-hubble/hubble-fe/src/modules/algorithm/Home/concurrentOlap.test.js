@@ -114,12 +114,27 @@ test('preserves a task explicitly selected during concurrent submissions until a
     expect(currentResult().asyncTaskId).toBe(-21);
     act(() => currentResult().onSelectOlapTask(-10));
     act(() => second(GRAPH_STATUS.SUCCESS, -22));
-    expect(currentResult().asyncTaskId).toBe(-21);
+    expect(currentResult().asyncTaskId).toBe(-10);
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
     let next;
     act(() => { next = start('Olap', 'Triangle Count'); });
     act(() => next(GRAPH_STATUS.SUCCESS, -23));
     expect(currentResult().asyncTaskId).toBe(-23);
+});
+
+test('synchronizes a selected historical task before returning to the original algorithm', async () => {
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -7, algorithm: 'PageRank'});
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -8, algorithm: 'WCC'});
+    render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-8));
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    expect(currentResult().asyncTaskId).toBe(-7);
+    expect(currentResult().restoredOlapTask).toBe(true);
+    act(() => currentResult().onSelectOlapTask(-8));
+    expect(currentResult().asyncTaskId).toBe(-8);
+    expect(currentResult().restoredOlapTask).toBe(false);
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    expect(currentResult().asyncTaskId).toBe(-7);
 });
 
 test('keeps a successful preview and exposes another concurrent failure as a warning', async () => {

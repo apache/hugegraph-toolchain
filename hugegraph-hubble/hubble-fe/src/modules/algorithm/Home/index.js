@@ -523,6 +523,9 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         if (graphNumsOwner.current !== graphNumsScope || engine !== 'olap') return;
         userSelectedOlapTask.current = true;
         visibleOlapTask.current = taskId;
+        asyncTaskOwner.current = graphNumsScope;
+        setAsyncTaskResult(taskId);
+        setRestoredOlapTask(false);
     }, [engine, graphNumsScope]);
 
     const handleUpdateCurrentAlgorithm = useCallback(value => {
