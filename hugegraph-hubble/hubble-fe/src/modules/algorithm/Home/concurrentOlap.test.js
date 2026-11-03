@@ -128,7 +128,7 @@ test('keeps loading until every concurrent OLAP submission has settled', async (
     expect(currentResult().queryMessage).toBe('second failed');
 });
 
-test('a new OLAP attempt clears the retained preview warning', async () => {
+test('a new OLAP attempt and success clear the retained warning and reject late loading', async () => {
     render(home());
     await waitFor(() => expect(formProps).toHaveBeenCalled());
     let success;
@@ -140,10 +140,18 @@ test('a new OLAP attempt clears the retained preview warning', async () => {
         failure(GRAPH_STATUS.FAILED, '', 'old warning');
     });
     expect(currentResult().queryMessage).toBe('old warning');
-    act(() => { start('Olap'); });
+    let recovery;
+    act(() => { recovery = start('Olap'); });
     expect(currentResult().asyncTaskId).toBe(-35);
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
     expect(currentResult().queryMessage).toBeUndefined();
+    act(() => recovery(GRAPH_STATUS.SUCCESS, -36, 'accepted'));
+    expect(currentResult().asyncTaskId).toBe(-36);
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    expect(currentResult().queryMessage).toBeUndefined();
+    act(() => recovery(GRAPH_STATUS.LOADING));
+    expect(currentResult().asyncTaskId).toBe(-36);
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
 });
 
 test('keeps OLTP latest-only while OLTP and concurrent OLAP invalidate each other', async () => {
