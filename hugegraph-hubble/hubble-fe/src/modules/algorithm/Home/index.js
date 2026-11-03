@@ -422,15 +422,17 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     }, []);
 
     const beginSubmission = useCallback((applyResult, latestOnly = true) => {
-        if (graphNumsOwner.current !== graphNumsScope) return () => {};
+        if (graphNumsOwner.current !== graphNumsScope) return () => false;
         const submissionEngine = engine;
         const request = latestOnly ? Symbol('algorithm-execution')
-            : olapSubmissionGroup.current || Symbol('olap-execution-group');
+            : olapSubmissionGroup.current || {pending: 0};
+        let settled = false;
         if (latestOnly) {
             olapSubmissionGroup.current = null;
             algorithmRequest.current = request;
         } else {
             algorithmRequest.current = null;
+            request.pending += 1;
             olapSubmissionGroup.current = request;
         }
         return (...args) => {
@@ -438,9 +440,18 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
                                 previousEngine.current === submissionEngine;
             const currentRequest = latestOnly ? algorithmRequest.current === request
                 : olapSubmissionGroup.current === request;
-            if (sameContext && currentRequest) applyResult(...args);
+            if (!sameContext || !currentRequest) return false;
+            const status = args[0];
+            if (!latestOnly && status !== LOADING) {
+                if (settled) return false;
+                settled = true;
+                request.pending = Math.max(0, request.pending - 1);
+            }
+            if (latestOnly) applyResult(...args);
+            else applyResult(...args, {pending: request.pending});
+            return true;
         };
-    }, [engine, graphNumsScope]);
+    }, [LOADING, engine, graphNumsScope]);
 
     const handleOltpFormSubmit = useCallback(
         () => beginSubmission((status, data, message, options) => {
@@ -458,11 +469,19 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     );
 
     const handleOlapFormSubmit = useCallback(
-        () => beginSubmission((status, data, message) => {
+        () => beginSubmission((status, data, message, {pending = 0} = {}) => {
             const hasVisibleTask = visibleOlapTask.current !== undefined &&
                                    asyncTaskOwner.current === graphNumsScope;
-            if (status === LOADING && hasVisibleTask) return;
+            if (status === LOADING) {
+                setQueryMessage();
+                if (hasVisibleTask) return;
+            }
             if (status === FAILED && hasVisibleTask) {
+                setQueryMessage(message || '');
+                getExecutionLogsList();
+                return;
+            }
+            if (status === FAILED && pending > 0) {
                 setQueryMessage(message || '');
                 getExecutionLogsList();
                 return;
@@ -493,7 +512,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             setAlgorithmOnCanvas();
             setGraphOptions();
             status && setQueryStatus(status);
-            message && setQueryMessage(message);
+            setQueryMessage(message);
             data && setQueryResult(data);
         }, [CLOSED, OLTP]);
 
