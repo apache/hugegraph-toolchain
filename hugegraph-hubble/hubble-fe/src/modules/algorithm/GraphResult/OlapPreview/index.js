@@ -44,6 +44,7 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
     const accumulated = useRef([]);
     const accumulatedEdges = useRef(new Map());
     const edgePages = useRef(new Map());
+    const pageInFlight = useRef(false);
 
     useEffect(() => {
         let active = true;
@@ -89,9 +90,14 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             try {
                 const response = await api.analysis.fetchOlapPreviewEdges(graphSpace, graph, taskId, cursor, PAGE_SIZE);
                 if (!active) return;
+                if (response?.status === 200 && response.data?.result_status === 'too_large') {
+                    setState(previous => previous.vertices ? {...previous, phase: 'ready', pageError: false,
+                        pageLoading: false, resultTooLarge: true, hasMore: false} : {phase: 'too_large'});
+                    return;
+                }
                 if (response?.status === 200 && response.data?.result_status === 'expired') {
-                    setState(previous => previous.vertices ? {...previous, phase: 'ready', resultExpired: true,
-                        hasMore: false} : {phase: 'expired'});
+                    setState(previous => previous.vertices ? {...previous, phase: 'ready', resultExpired: true, pageError: false,
+                        pageLoading: false, hasMore: false} : {phase: 'expired'});
                     return;
                 }
                 if (response?.status !== 200 || !Array.isArray(response.data?.vertices) ||
@@ -123,12 +129,15 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                 const missing = [...edgePages.current.entries()].filter(([, page]) => page.failed)
                     .map(([start, page]) => `${start + 1}–${start + page.count}`).join(', ');
                 setState({phase: 'ready', vertices, edges: [...accumulatedEdges.current.values()],
-                    edgeStatus, missingEdgePages: missing,
+                    edgeStatus: [...edgePages.current.values()].some(page => !page.failed) ? 'partial' : 'unavailable',
+                    missingEdgePages: missing, pageLoading: false,
                     next: response.data.cursor, hasMore: response.data.has_more === true});
             } catch {
                 if (active) setState(previous => previous.vertices
-                    ? {...previous, phase: 'ready', pageError: true}
+                    ? {...previous, phase: 'ready', pageError: true, pageLoading: false}
                     : {phase: 'error'});
+            } finally {
+                if (active) pageInFlight.current = false;
             }
         };
         load();
@@ -183,14 +192,21 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
             </Button>} />}
         {state.phase === 'failed' && <Alert type='error' showIcon title={t('analysis.algorithm.preview_failed')} />}
         {state.phase === 'expired' && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_expired')} />}
+        {state.phase === 'too_large' && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_too_large')} />}
         {state.phase === 'error' && <Alert type='error' showIcon title={t('analysis.algorithm.preview_error')}
             action={<Button onClick={() => { setState({phase: 'loading'}); setRequestPage(page => page + 1); }}>
                 {t('analysis.async_task.retry_result')}
             </Button>} />}
         {state.phase === 'ready' && <>
+            {state.resultTooLarge && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_too_large')} />}
             {state.resultExpired && <Alert type='warning' showIcon title={t('analysis.algorithm.preview_expired')} />}
             {state.pageError && <Alert type='error' showIcon title={t('analysis.algorithm.preview_error')}
-                action={<Button onClick={() => setRequestPage(page => page + 1)}>
+                action={<Button loading={state.pageLoading} onClick={() => {
+                    if (pageInFlight.current) return;
+                    pageInFlight.current = true;
+                    setState(previous => ({...previous, pageLoading: true}));
+                    setRequestPage(page => page + 1);
+                }}>
                     {t('analysis.async_task.retry_result')}
                 </Button>} />}
             <Alert type='info' showIcon title={t('analysis.algorithm.preview_sample', {count: vertices.length})}
@@ -215,7 +231,10 @@ const OlapPreview = ({graphSpace, graph, taskId}) => {
                         rowKey={item => String(item.ID)} />
                     : <pre className={c.json}>{JSON.stringify(vertices, null, 2)}</pre>}
             {state.hasMore && !state.pageError && vertices.length < MAX_POINTS &&
-                <Button disabled={state.edgeStatus === 'loading'} onClick={() => {
+                <Button loading={state.pageLoading} disabled={state.pageLoading} onClick={() => {
+                if (pageInFlight.current) return;
+                pageInFlight.current = true;
+                setState(previous => ({...previous, pageLoading: true}));
                 setCursor(state.next);
                 setRequestPage(page => page + 1);
             }}>{t('analysis.algorithm.preview_more')}</Button>}

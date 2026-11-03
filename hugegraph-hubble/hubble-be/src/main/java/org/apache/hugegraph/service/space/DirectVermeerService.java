@@ -246,8 +246,13 @@ public class DirectVermeerService {
         authorize(client);
         E.checkArgument(cursor >= 0 && limit > 0 && limit <= 30 && cursor <= Integer.MAX_VALUE - limit,
                         "Invalid preview cursor or limit");
-        Map<String, Object> rawTask = HubbleUtil.uncheckedCast(
-                this.backend.requestPreview("GET", "task/" + nativeId(id), null).get("task"));
+        Map<String, Object> rawTask;
+        try {
+            rawTask = HubbleUtil.uncheckedCast(
+                    this.backend.requestPreview("GET", "task/" + nativeId(id), null).get("task"));
+        } catch (VermeerClient.PreviewTooLargeException e) {
+            return Map.of("result_status", "too_large");
+        }
         if (rawTask == null || !name(client).equals(rawTask.get("graph_name"))) {
             throw new ForbiddenException("Task does not belong to this graph");
         }
@@ -260,9 +265,10 @@ public class DirectVermeerService {
                     "GET", "tasks/value/" + nativeId(id) + "?cursor=" + cursor +
                     "&limit=" + (limit + 1), null);
         } catch (VermeerClient.ValuesNotFoundException e) {
-            // This exact upstream response confirms that the successful task's
-            // cached values have been removed; unrelated failures stay errors.
+            // Vermeer uses this response for both empty and removed values.
             return Map.of("result_status", "expired");
+        } catch (VermeerClient.PreviewTooLargeException e) {
+            return Map.of("result_status", "too_large");
         }
         Object rawVertices = values.getOrDefault("vertices", List.of());
         E.checkState(rawVertices instanceof List<?> && ((List<?>) rawVertices).size() <= limit + 1,
@@ -281,6 +287,7 @@ public class DirectVermeerService {
         result.put("truncated", false);
         List<String> ids = new ArrayList<>();
         int totalBytes = 0;
+        boolean idsTooLarge = false;
         for (Object entry : vertices) {
             E.checkState(entry instanceof Map<?, ?> && ((Map<?, ?>) entry).get("ID") instanceof String,
                          "Invalid Vermeer preview vertex");
@@ -290,10 +297,11 @@ public class DirectVermeerService {
             totalBytes += size;
             // Keep valid computation values available even when an ID cannot
             // be safely included in the bounded adjacency request.
-            if (size > 256 || totalBytes > 16384) {
-                return result;
-            }
+            idsTooLarge |= size > 256 || totalBytes > 16384;
             ids.add(vertex);
+        }
+        if (idsTooLarge) {
+            return result;
         }
         if (ids.isEmpty()) {
             result.put("edges_status", "available");

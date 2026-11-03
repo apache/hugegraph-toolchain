@@ -147,3 +147,50 @@ test('refits only on a changed host size and cancels pending work on unmount', a
         global.ResizeObserver = oldObserver;
     }
 });
+
+test('keeps edge provenance when a later page cannot load edges', async () => {
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValueOnce(page(
+        [{ID: 'a', Value: 1}, {ID: 'b', Value: 2}], 2, true, [{source: 'a', target: 'b'}]))
+        .mockResolvedValueOnce(page([{ID: 'c', Value: 3}], 3, false, [], 'unavailable'));
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    await screen.findByText('edges: 1');
+    fireEvent.click(screen.getByText('analysis.algorithm.preview_more'));
+    await screen.findByText('c 3');
+    expect(screen.getByText('analysis.algorithm.preview_edges_partial')).toBeInTheDocument();
+    expect(screen.getByText('analysis.algorithm.preview_edges_missing')).toBeInTheDocument();
+});
+
+test('prevents concurrent requests for the same next page', async () => {
+    let finish;
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValueOnce(page([{ID: 'a', Value: 1}], 1, true))
+        .mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    await screen.findByText('a 1');
+    const button = screen.getByText('analysis.algorithm.preview_more');
+    fireEvent.click(button);
+    fireEvent.click(button);
+    await waitFor(() => expect(finish).toBeDefined());
+    expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenCalledTimes(2);
+    await act(async () => finish(page([{ID: 'b', Value: 2}], 2, false)));
+    expect(await screen.findByText('b 2')).toBeInTheDocument();
+});
+
+test('clears a page error when a retry returns unavailable values', async () => {
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValueOnce(page([{ID: 'a', Value: 1}], 1, true))
+        .mockResolvedValueOnce({status: 503})
+        .mockResolvedValueOnce({status: 200, data: {result_status: 'expired'}});
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    await screen.findByText('a 1');
+    fireEvent.click(screen.getByText('analysis.algorithm.preview_more'));
+    await screen.findByText('analysis.algorithm.preview_error');
+    fireEvent.click(screen.getByText('analysis.async_task.retry_result'));
+    await screen.findByText('analysis.algorithm.preview_expired');
+    expect(screen.queryByText('analysis.algorithm.preview_error')).not.toBeInTheDocument();
+});
+
+test('distinguishes a result that is too large to preview', async () => {
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue({status: 200, data: {result_status: 'too_large'}});
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    expect(await screen.findByText('analysis.algorithm.preview_too_large')).toBeInTheDocument();
+    expect(screen.queryByText('analysis.algorithm.preview_error')).not.toBeInTheDocument();
+});

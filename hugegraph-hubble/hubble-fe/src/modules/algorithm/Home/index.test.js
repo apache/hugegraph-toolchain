@@ -611,3 +611,15 @@ it('clears old OLAP submission and ignores late completion when switching engine
     view.rerender(computeHome({engine: 'olap', isVermeer: true}));
     expect(algorithmResult().asyncTaskId).toBeUndefined();
 });
+
+it.each(['graph', 'space'])('never renders an old OLAP task for a new %s', async change => {
+    const view = render(computeHome({engine: 'olap', isVermeer: true}));
+    await screen.findByText('algorithm forms edges 0');
+    await act(async () => { startAlgorithm('Olap')(GRAPH_STATUS.SUCCESS, -24); });
+    expect(algorithmResult().asyncTaskId).toBe(-24);
+    mockGraphResultProps.mockClear();
+    view.rerender(computeHome({engine: 'olap', isVermeer: true,
+        ...(change === 'graph' ? {graph: 'other'} : {graphSpace: 'OTHER'})}));
+    expect(mockGraphResultProps.mock.calls.every(([props]) => props.asyncTaskId === undefined)).toBe(true);
+    expect(algorithmResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
+});

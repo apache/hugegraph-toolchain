@@ -499,6 +499,7 @@ test('switching to OLTP removes the read-only preview before showing editing con
     </GraphAnalysisContext.Provider>;
     const view = render(scene('olap'));
     expect(screen.getByText('olap preview')).toBeInTheDocument();
+    expect(mockCounts).not.toHaveBeenCalled();
     expect(screen.queryByText('graph menu')).not.toBeInTheDocument();
     view.rerender(scene('oltp'));
     expect(screen.queryByText('olap preview')).not.toBeInTheDocument();

@@ -285,6 +285,17 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
+    public void testPreviewValidatesEveryVertexBeforeSkippingLargeIds() {
+        VermeerClient backend = Mockito.mock(VermeerClient.class);
+        Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
+                "graph_name", "DEFAULT-graph-with-dash", "task_type", "compute", "status", "complete")));
+        Mockito.when(backend.requestPreview("GET", "tasks/value/12?cursor=0&limit=31", null))
+               .thenReturn(Map.of("vertices", List.of(Map.of("ID", "a".repeat(257)), Map.of("Value", "bad"))));
+        expect(IllegalStateException.class, () -> service(backend).previewEdges(graphClient(), -12, 0, 30));
+        Mockito.verify(backend, Mockito.never()).requestPreview(Mockito.eq("POST"), Mockito.anyString(), Mockito.any());
+    }
+
+    @Test
     public void testPreviewKeepsValuesWhenOldVermeerHasNoEdgeEndpoint() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.requestPreview("GET", "task/12", null)).thenReturn(Map.of("task", Map.of(
@@ -781,7 +792,9 @@ public class DirectVermeerServiceTest {
         AtomicInteger status = new AtomicInteger(200);
         HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
         server.createContext("/api/v1/graphs/g/preview-edges", exchange -> {
-            byte[] response = status.get() == 200 ? new byte[140 * 1024] : new byte[0];
+            byte[] response = status.get() == 200 ?
+                    ("{\"errcode\":0,\"data\":\"" + "a".repeat(140 * 1024) + "\"}")
+                            .getBytes(StandardCharsets.UTF_8) : new byte[0];
             exchange.sendResponseHeaders(status.get(), response.length);
             try (var output = exchange.getResponseBody()) {
                 output.write(response);
@@ -796,8 +809,12 @@ public class DirectVermeerServiceTest {
                    .thenReturn("http://127.0.0.1:" + server.getAddress().getPort());
             VermeerClient client = new VermeerClient();
             ReflectionTestUtils.setField(client, "config", config);
-            expect(ExternalException.class, () -> client.requestPreview("POST", "graphs/g/preview-edges",
-                                                                         Map.of("vertices", List.of("v"))));
+            try {
+                client.requestPreview("POST", "graphs/g/preview-edges", Map.of("vertices", List.of("v")));
+                Assert.fail("Expected size limit");
+            } catch (ExternalException e) {
+                Assert.assertTrue(e.getMessage().contains("size limit"));
+            }
             status.set(404);
             try {
                 client.requestPreview("POST", "graphs/g/preview-edges", Map.of("vertices", List.of("v")));
@@ -805,6 +822,37 @@ public class DirectVermeerServiceTest {
             } catch (ExternalException e) {
                 Assert.assertTrue(e.getMessage().contains("upgrade Vermeer"));
             }
+        } finally {
+            server.stop(0);
+        }
+    }
+
+    @Test
+    public void testOversizedValuesReturnPreviewStatus() throws Exception {
+        HttpServer server = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        server.createContext("/api/v1/task/12", exchange -> {
+            byte[] body = ("{\"task\":{\"graph_name\":\"DEFAULT-graph-with-dash\","
+                           + "\"task_type\":\"compute\",\"status\":\"complete\"}}")
+                          .getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (var output = exchange.getResponseBody()) { output.write(body); }
+        });
+        server.createContext("/api/v1/tasks/value/12", exchange -> {
+            byte[] body = ("{\"vertices\":[{\"ID\":\"v\",\"Value\":\"" +
+                           "a".repeat(140 * 1024) + "\"}]}").getBytes(StandardCharsets.UTF_8);
+            exchange.sendResponseHeaders(200, body.length);
+            try (var output = exchange.getResponseBody()) { output.write(body); }
+            catch (IOException ignored) { /* Bounded reader closed the stream. */ }
+        });
+        server.start();
+        try {
+            HugeConfig config = Mockito.mock(HugeConfig.class);
+            Mockito.when(config.get(HubbleOptions.VERMEER_URL))
+                   .thenReturn("http://127.0.0.1:" + server.getAddress().getPort());
+            VermeerClient backend = new VermeerClient();
+            ReflectionTestUtils.setField(backend, "config", config);
+            Assert.assertEquals(Map.of("result_status", "too_large"),
+                                service(backend).previewEdges(graphClient(), -12, 0, 30));
         } finally {
             server.stop(0);
         }

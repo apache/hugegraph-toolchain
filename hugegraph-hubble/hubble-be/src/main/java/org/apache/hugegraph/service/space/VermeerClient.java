@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Map;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -146,11 +147,13 @@ public class VermeerClient {
     private HttpResponse<String> boundedResponse(HttpRequest request)
             throws IOException, InterruptedException {
         final int maxBytes = 128 * 1024;
+        AtomicBoolean tooLarge = new AtomicBoolean();
         CompletableFuture<HttpResponse<String>> pending = this.http.sendAsync(request, info -> {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             return HttpResponse.BodySubscribers.mapping(
                     HttpResponse.BodySubscribers.ofByteArrayConsumer(chunk -> chunk.ifPresent(value -> {
                         if (value.length > maxBytes - bytes.size()) {
+                            tooLarge.set(true);
                             throw new UncheckedIOException(new IOException("Response exceeds preview limit"));
                         }
                         bytes.write(value, 0, value.length);
@@ -162,10 +165,21 @@ public class VermeerClient {
             pending.cancel(true);
             throw new IOException("Vermeer preview timed out", e);
         } catch (ExecutionException e) {
+            if (tooLarge.get()) {
+                throw new PreviewTooLargeException();
+            }
             throw new IOException("Vermeer preview request failed", e);
         } catch (InterruptedException e) {
             pending.cancel(true);
             throw e;
+        }
+    }
+
+    static class PreviewTooLargeException extends ExternalException {
+        private static final long serialVersionUID = 1L;
+
+        PreviewTooLargeException() {
+            super("Vermeer preview response exceeds the size limit");
         }
     }
 
