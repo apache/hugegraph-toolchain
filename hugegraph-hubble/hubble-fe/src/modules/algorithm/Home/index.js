@@ -447,7 +447,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
                 request.pending = Math.max(0, request.pending - 1);
             }
             if (latestOnly) applyResult(...args);
-            else applyResult(...args, {pending: request.pending});
+            else applyResult(args[0], args[1], args[2], {pending: request.pending});
             return true;
         };
     }, [LOADING, engine, graphNumsScope]);
