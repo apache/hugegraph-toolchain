@@ -336,3 +336,117 @@ test('reports detached submission failure after return without previous result',
     await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
     expect(currentResult().queryMessage).toBe('submission failed');
 });
+
+
+test.each([GRAPH_STATUS.SUCCESS, GRAPH_STATUS.FAILED])(
+    'settles a selected detached pending algorithm after return (%s)', async terminal => {
+        const view = render(home());
+        await waitFor(() => expect(formProps).toHaveBeenCalled());
+        const hook = renderHook(() => useAlgorithmSubmission(
+            formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+        ));
+        let finish;
+        act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+        view.unmount();
+        render(home());
+        await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+        act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+        act(() => finish(terminal, terminal === GRAPH_STATUS.SUCCESS ? -101 : '', 'request failed'));
+        if (terminal === GRAPH_STATUS.SUCCESS) {
+            await waitFor(() => expect(currentResult().asyncTaskId).toBe(-101));
+            expect(currentResult().algorithm).toBe('PageRank');
+        } else {
+            await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
+            expect(currentResult().queryMessage).toBe('request failed');
+        }
+    }
+);
+
+test.each([GRAPH_STATUS.SUCCESS, GRAPH_STATUS.FAILED])(
+    'settles the selected algorithm without waiting for another pending algorithm (%s)', async terminal => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const a = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    const b = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'WCC', true
+    ));
+    let finishA;
+    let finishB;
+    act(() => { finishA = a.result.current(GRAPH_STATUS.LOADING); finishB = b.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    act(() => finishA(terminal, terminal === GRAPH_STATUS.SUCCESS ? -101 : '', 'PageRank failed'));
+    if (terminal === GRAPH_STATUS.SUCCESS) {
+        await waitFor(() => expect(currentResult().asyncTaskId).toBe(-101));
+        expect(currentResult().algorithm).toBe('PageRank');
+    } else {
+        await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
+        expect(currentResult().queryMessage).toBe('PageRank failed');
+    }
+    act(() => finishB(GRAPH_STATUS.SUCCESS, -102));
+    expect(currentResult().asyncTaskId).toBe(terminal === GRAPH_STATUS.SUCCESS ? -101 : undefined);
+    if (terminal === GRAPH_STATUS.SUCCESS) expect(currentResult().algorithm).toBe('PageRank');
+    else expect(currentResult().queryMessage).toBe('PageRank failed');
+});
+
+test('does not let a formerly selected pending algorithm replace the current selection', async () => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const a = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    let finishA;
+    act(() => { finishA = a.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('WCC'));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
+    act(() => finishA(GRAPH_STATUS.SUCCESS, -101));
+    expect(currentResult().asyncTaskId).toBeUndefined();
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
+});
+
+test('preserves a selected old result and reports a detached recomputation failure', async () => {
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -7, algorithm: 'PageRank'});
+    const view = render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
+    const hook = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    let finish;
+    act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    expect(currentResult().asyncTaskId).toBe(-7);
+    act(() => finish(GRAPH_STATUS.FAILED, '', 'recompute failed'));
+    await waitFor(() => expect(currentResult().queryMessage).toBe('recompute failed'));
+    expect(currentResult().asyncTaskId).toBe(-7);
+});
+
+
+test('shows a detached failure only when returning to its algorithm', async () => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const hook = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    let finish;
+    act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('WCC'));
+    act(() => finish(GRAPH_STATUS.FAILED, '', 'PageRank failed'));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED);
+    expect(currentResult().queryMessage).toBe('PageRank failed');
+});

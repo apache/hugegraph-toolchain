@@ -18,7 +18,7 @@
 
 import {useCallback} from 'react';
 import {GRAPH_STATUS} from '../../../utils/constants';
-import {beginPendingOlapTask, finishPendingOlapTask, recordOlapTask} from '../olapTaskRegistry';
+import {beginPendingOlapTask, finishPendingOlapTask} from '../olapTaskRegistry';
 
 // Async callers retain the completion returned for their own execution.
 export default function useAlgorithmSubmission(beginSubmission, graphSpace, graph,
@@ -33,10 +33,9 @@ export default function useAlgorithmSubmission(beginSubmission, graphSpace, grap
             const detached = complete?.isDetachedEligible?.();
             const failure = !accepted && detached && finalStatus === GRAPH_STATUS.FAILED
                 ? {message: finalArgs[1]} : null;
-            const valid = token ? finishPendingOlapTask(token, failure) : false;
-            if (valid && (accepted || detached) && finalStatus === GRAPH_STATUS.SUCCESS) {
-                recordOlapTask({graphSpace, graph, algorithm, id: finalArgs[0]});
-            }
+            const task = (accepted || detached) && finalStatus === GRAPH_STATUS.SUCCESS
+                ? {graphSpace, graph, algorithm, id: finalArgs[0]} : null;
+            if (token && finalStatus !== GRAPH_STATUS.LOADING) finishPendingOlapTask(token, failure, task);
             return accepted;
         };
     }, [algorithm, beginSubmission, graph, graphSpace, trackOlapTask]);

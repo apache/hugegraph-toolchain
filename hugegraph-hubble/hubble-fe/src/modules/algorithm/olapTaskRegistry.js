@@ -78,17 +78,28 @@ if (typeof window !== 'undefined') window.addEventListener(USER_CHANGE_EVENT, cl
 export const beginPendingOlapTask = (graphSpace, graph, algorithm) => {
     const key = scopeKey(graphSpace, graph);
     const token = {key, algorithm, identityVersion, scopeVersion: scopeVersions.get(key) || 0};
+    const failures = failuresByScope.get(key);
+    failures?.delete(algorithm);
+    if (failures?.size === 0) failuresByScope.delete(key);
     const pending = pendingByScope.get(key) || [];
     pendingByScope.set(key, [...pending, token]);
     notify(key);
     return token;
 };
 
-export const finishPendingOlapTask = (token, failure) => {
+export const finishPendingOlapTask = (token, failure, task) => {
     const valid = (pendingByScope.get(token.key) || []).includes(token) &&
         token.identityVersion === identityVersion &&
         token.scopeVersion === (scopeVersions.get(token.key) || 0);
-    if (valid && failure) failuresByScope.set(token.key, failure);
+    if (valid && failure) {
+        const failures = failuresByScope.get(token.key) || new Map();
+        failures.delete(token.algorithm);
+        failures.set(token.algorithm, failure);
+        failuresByScope.set(token.key, failures);
+    }
+    // Publish a successful task before removing its pending marker, so subscribers
+    // never see a settled request with neither a result nor a failure.
+    if (valid && task) recordOlapTask(task);
     const pending = (pendingByScope.get(token.key) || []).filter(item => item !== token);
     if (pending.length) pendingByScope.set(token.key, pending);
     else pendingByScope.delete(token.key);
@@ -96,10 +107,14 @@ export const finishPendingOlapTask = (token, failure) => {
     return valid;
 };
 
-export const consumeOlapFailure = (graphSpace, graph) => {
+export const consumeOlapFailure = (graphSpace, graph, algorithm) => {
     const key = scopeKey(graphSpace, graph);
-    const failure = failuresByScope.get(key);
-    failuresByScope.delete(key);
+    const failures = failuresByScope.get(key);
+    if (!failures?.size) return undefined;
+    const selected = algorithm ?? [...failures.keys()].at(-1);
+    const failure = failures.get(selected);
+    failures.delete(selected);
+    if (!failures.size) failuresByScope.delete(key);
     return failure;
 };
 
