@@ -440,10 +440,9 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
                                 previousEngine.current === submissionEngine;
             const currentRequest = latestOnly ? algorithmRequest.current === request
                 : olapSubmissionGroup.current === request;
-            if (!sameContext || !currentRequest) return false;
+            if (!sameContext || !currentRequest || (!latestOnly && settled)) return false;
             const status = args[0];
             if (!latestOnly && status !== LOADING) {
-                if (settled) return false;
                 settled = true;
                 request.pending = Math.max(0, request.pending - 1);
             }
@@ -494,7 +493,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             if (status === SUCCESS) visibleOlapTask.current = data;
             if (status === FAILED) visibleOlapTask.current = undefined;
             setAsyncTaskResult(data);
-            setQueryMessage(message || '');
+            setQueryMessage(status === SUCCESS ? undefined : message || '');
             if (status === SUCCESS || status === FAILED) getExecutionLogsList();
         }, false),
         [CLOSED, FAILED, LOADING, OLAP, SUCCESS, beginSubmission, getExecutionLogsList, graphNumsScope]
