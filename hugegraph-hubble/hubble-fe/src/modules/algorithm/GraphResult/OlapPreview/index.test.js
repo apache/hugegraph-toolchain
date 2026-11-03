@@ -14,7 +14,7 @@
  * License for the specific language governing permissions and limitations
  * under the License.
  */
-import {act, render, screen, waitFor, fireEvent} from '@testing-library/react';
+import {act, render, screen, waitFor, fireEvent, within} from '@testing-library/react';
 import OlapPreview, {buildConnectedSample} from './index';
 import * as api from '../../../../api';
 import {clearOlapTasks} from '../../olapTaskRegistry';
@@ -85,12 +85,24 @@ test('preserves prior sample and retries a failed next page', async () => {
     expect(await screen.findByText('b 3')).toBeInTheDocument();
 });
 
+test('renders a concurrent submission warning without hiding the retained preview', async () => {
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} warning='worker failed' />);
+    expect(await screen.findByText('a 1')).toBeInTheDocument();
+    expect(screen.getByText('worker failed')).toBeInTheDocument();
+});
+
 test('renders only returned snapshot relationships and a connected sample path', async () => {
     api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}, {ID: 'b', Value: 2}],
         2, false, [{source: 'a', target: 'b'}]));
     render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
     expect(await screen.findByText('edges: 1')).toBeInTheDocument();
-    expect(screen.getByText('analysis.algorithm.preview_edges_partial')).toBeInTheDocument();
+    const path = screen.getByRole('region', {
+        name: 'analysis.algorithm.preview_graph · analysis.algorithm.preview_edges_partial',
+    });
+    expect(within(path).getByText('analysis.algorithm.preview_graph')).toBeInTheDocument();
+    expect(within(path).getByText('analysis.algorithm.preview_edges_partial')).toBeInTheDocument();
+    expect(within(path).queryByText('analysis.algorithm.preview_no_edges')).not.toBeInTheDocument();
     expect(screen.getByTitle('a · 1')).toBeInTheDocument();
     expect(screen.getByTitle('b · 2')).toBeInTheDocument();
 });
@@ -103,12 +115,20 @@ test('builds a deterministic bounded path and does not invent one without edges'
     expect(buildConnectedSample(vertices, [])).toEqual([]);
 });
 
-test('does not show a connected sample when relationships are unavailable', async () => {
-    api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false,
-        [], 'unavailable'));
+test('does not show a connected sample when relationships are marked unavailable', async () => {
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page(
+        [{ID: 'a', Value: 1}, {ID: 'b', Value: 2}], 2, false,
+        [{source: 'a', target: 'b'}], 'unavailable'
+    ));
     render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
     expect(await screen.findByText('a 1')).toBeInTheDocument();
+    expect(screen.getByText('b 2')).toBeInTheDocument();
+    expect(screen.getByText('edges: 0')).toBeInTheDocument();
     expect(screen.queryByTitle('a · 1')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('b · 2')).not.toBeInTheDocument();
+    expect(screen.queryByRole('region', {
+        name: 'analysis.algorithm.preview_graph · analysis.algorithm.preview_edges_partial',
+    })).not.toBeInTheDocument();
 });
 
 test('preserves nodes and prior missing-edge notice when a later page succeeds', async () => {
@@ -176,7 +196,7 @@ test('keeps edge provenance when a later page cannot load edges', async () => {
     await screen.findByText('edges: 1');
     fireEvent.click(screen.getByText('analysis.algorithm.preview_more'));
     await screen.findByText('c 3');
-    expect(screen.getByText('analysis.algorithm.preview_edges_partial')).toBeInTheDocument();
+    expect(screen.getAllByText('analysis.algorithm.preview_edges_partial')).not.toHaveLength(0);
     expect(screen.getByText('analysis.algorithm.preview_edges_missing')).toBeInTheDocument();
 });
 
