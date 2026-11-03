@@ -33,7 +33,7 @@ export const recordOlapTask = ({graphSpace, graph, id, algorithm}) => {
     if (!graphSpace || !graph || !Number.isSafeInteger(taskId) || taskId >= 0) return;
     const key = scopeKey(graphSpace, graph);
     const previous = tasksByScope.get(key) || EMPTY_TASKS;
-    const task = {id: taskId, algorithm: algorithm || '', completedAt: Date.now()};
+    const task = {id: taskId, algorithm: algorithm || ''};
     tasksByScope.set(key, [task, ...previous.filter(item => item.id !== taskId)].slice(0, TASK_LIMIT));
     notify(key);
 };
