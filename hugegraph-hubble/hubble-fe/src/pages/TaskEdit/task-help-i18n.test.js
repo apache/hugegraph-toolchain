@@ -103,3 +103,14 @@ it('labels each side of ID, property, and value mappings without ambiguous wordi
     expect(zhPages.task.edit.select_source_field).toMatch(/源字段/);
     expect(zhPages.task.edit.select_schema_property).toMatch(/Schema 属性/);
 });
+
+it('explains edge endpoint formats and unsupported automatic IDs in both languages', () => {
+    const en = enPages.task.edit.edge_endpoint_format;
+    const zh = zhPages.task.edit.edge_endpoint_format;
+    expect(en).toMatch(/PRIMARY_KEY.*original primary key value/i);
+    expect(en).toMatch(/does not support AUTOMATIC/i);
+    expect(en).toMatch(/General edge.*custom string IDs/i);
+    expect(zh).toMatch(/PRIMARY_KEY.*原始主键值/);
+    expect(zh).toMatch(/AUTOMATIC.*不受 Loader 支持/);
+    expect(zh).toMatch(/通用边.*自定义字符串 ID/);
+});

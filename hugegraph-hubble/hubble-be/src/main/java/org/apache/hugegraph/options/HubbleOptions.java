@@ -56,7 +56,7 @@ public class HubbleOptions extends OptionHolder {
     }
 
     public static final ConfigOption<Boolean> TEXT2GQL_SHARED_ENABLED =
-            new ConfigOption<>("text2gql.shared.enabled", "Enable the deployment shared model.", false);
+            new ConfigOption<>("text2gql.shared.enabled", "Enable the deployment shared model.", true);
 
     public static final ConfigOption<String> TEXT2GQL_SHARED_CONNECTION_TYPE =
             new ConfigOption<>(

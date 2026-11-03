@@ -40,6 +40,9 @@ const safeSettings = data => ({
     defaultPrompts: readPromptTemplates(data.default_prompts),
 });
 
+const configured = settings => Boolean(settings?.enabled && settings.base_url.trim()
+    && settings.model.trim() && (settings.connection_type === 'ollama' || settings.has_api_key));
+
 const Text2GqlSettingsForm = () => {
     const {t} = useTranslation();
     const {identityEpoch} = useAuthContext();
@@ -150,16 +153,25 @@ const Text2GqlSettingsForm = () => {
     const dirty = Boolean(settings && saved && (apiKey || clearKey
         || ['enabled', 'connection_type', 'base_url', 'model'].some(field => settings[field] !== saved[field])
         || JSON.stringify(settings.prompts) !== JSON.stringify(saved.prompts)));
-    const cannotTest = busy || loading || !saved?.enabled || dirty;
+    const cannotTest = busy || loading || !configured(saved) || dirty;
     const testHint = dirty ? t('analysis.model_settings.test_save_first')
-        : !saved?.enabled ? t('analysis.model_settings.test_disabled') : undefined;
+        : !saved?.enabled ? t('analysis.model_settings.test_disabled')
+            : !configured(saved) ? t('analysis.model_settings.test_unconfigured') : undefined;
+    const connectionChanged = Boolean(settings && saved && (apiKey || clearKey
+        || ['enabled', 'connection_type', 'base_url', 'model'].some(field => settings[field] !== saved[field])));
+    // Allow prompt-only saves while an untouched deployment configuration is incomplete.
+    const preserveIncomplete = Boolean(saved?.enabled && (!saved.base_url.trim() || !saved.model.trim())
+        && !connectionChanged);
+    const promptsChanged = Boolean(settings?.prompts && saved?.prompts
+        && JSON.stringify(settings.prompts) !== JSON.stringify(saved.prompts));
     const urlChanged = settings?.base_url.trim().replace(/\/+$/, '')
         !== saved?.base_url.trim().replace(/\/+$/, '');
     const endpointNeedsKey = saved?.has_api_key && urlChanged && !clearKey && !apiKey.trim()
         && settings?.connection_type !== 'ollama';
-    const requiresKey = endpointNeedsKey || (settings?.enabled && settings.connection_type !== 'ollama'
-        && (!saved?.has_api_key || urlChanged || clearKey) && !apiKey.trim());
-    const cannotSave = busy || loading || !settings || requiresKey || (settings.enabled
+    const requiresKey = !preserveIncomplete && (endpointNeedsKey || (settings?.enabled && settings.connection_type !== 'ollama'
+        && (!saved?.has_api_key || urlChanged || clearKey) && !apiKey.trim()));
+    const cannotSave = busy || loading || !settings || requiresKey || (preserveIncomplete && !promptsChanged)
+        || (!preserveIncomplete && settings.enabled
         && (!settings.base_url.trim() || !settings.model.trim()));
 
     const runTest = useCallback(async (request, afterSave, configuration, secret = '') => {
@@ -262,7 +274,7 @@ const Text2GqlSettingsForm = () => {
             setApiKey('');
             setClearKey(false);
             setSaving(false);
-            if (next.enabled) {
+            if (configured(next)) {
                 await runTest(request, true, next, apiKey);
             }
             else {
@@ -352,8 +364,8 @@ const Text2GqlSettingsForm = () => {
                             id='shared-model-url'
                             placeholder={t('analysis.query.base_url_placeholder')}
                             value={settings.base_url}
-                            status={settings.enabled && !settings.base_url.trim() ? 'error' : undefined}
-                            aria-invalid={settings.enabled && !settings.base_url.trim()}
+                            status={settings.enabled && !preserveIncomplete && !settings.base_url.trim() ? 'error' : undefined}
+                            aria-invalid={settings.enabled && !preserveIncomplete && !settings.base_url.trim()}
                             aria-required={settings.enabled}
                             maxLength={2048}
                             disabled={busy}
@@ -370,8 +382,8 @@ const Text2GqlSettingsForm = () => {
                             id='shared-model-name'
                             placeholder={t('analysis.query.model_name_placeholder')}
                             value={settings.model}
-                            status={settings.enabled && !settings.model.trim() ? 'error' : undefined}
-                            aria-invalid={settings.enabled && !settings.model.trim()}
+                            status={settings.enabled && !preserveIncomplete && !settings.model.trim() ? 'error' : undefined}
+                            aria-invalid={settings.enabled && !preserveIncomplete && !settings.model.trim()}
                             aria-required={settings.enabled}
                             maxLength={256}
                             disabled={busy}
@@ -432,7 +444,7 @@ const Text2GqlSettingsForm = () => {
                                 </span>
                             </Tooltip>
                             <Button type='primary' disabled={cannotSave} loading={saving} onClick={save}>
-                                {t(settings.enabled
+                                {t(settings.enabled && !preserveIncomplete
                                     ? 'analysis.model_settings.save_test' : 'analysis.model_settings.save')}
                             </Button>
                         </div>

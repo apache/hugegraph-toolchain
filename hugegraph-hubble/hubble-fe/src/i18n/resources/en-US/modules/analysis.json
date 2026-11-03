@@ -172,7 +172,7 @@
       "mode_3d_experimental": "3D (experimental)",
       "import_success": "Imported successfully",
       "import_confirm_title": "Confirm graph data import",
-      "import_confirm_warning": "Import writes vertices and edges to {{graphSpace}} / {{graph}} and may modify existing data; rollback after a failure may also affect existing data. Confirm you have a backup and selected the correct graph",
+      "import_confirm_warning": "Import writes vertices and edges to {{graphSpace}} / {{graph}} and may overwrite existing data. Failures are not automatically rolled back and partial writes may remain. Confirm you have a backup and selected the correct graph",
       "import_scope_changed": "The graph or signed-in account changed; select the file again",
       "number_card": {
         "paths": "Paths",
@@ -1148,6 +1148,7 @@
       "test_saved": "Test saved configuration",
       "test_save_first": "Save your changes before testing the configuration",
       "test_disabled": "Enable and save the model before testing",
+      "test_unconfigured": "Configure and save the model connection before testing",
       "testing": "Waiting for a model reply · {{seconds}}s elapsed",
       "saved_testing": "Configuration saved. Waiting for a model reply · {{seconds}}s elapsed",
       "test_failed": "Could not get a model reply; check the URL, model and API Key",

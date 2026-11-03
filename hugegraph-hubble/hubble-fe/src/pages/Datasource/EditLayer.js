@@ -910,7 +910,7 @@ const JDBCForm = ({setField, form}) => {
                     <CertForm isHive />
                 </>
             )}
-            <Form.Item wrapperCol={{offset: 5}}>
+            <Form.Item wrapperCol={{xs: {offset: 0, span: 24}, sm: {offset: 8, span: 16}}}>
                 <Space>
                     <Button onClick={handleTest}>{t('datasource.form.test_connection')}</Button>
                     <Typography.Text type={status.type === 'success' ? 'success' : 'danger'}>
@@ -1045,7 +1045,8 @@ const EditLayer = ({edit, visible, onCancel, refresh}) => {
             <Form
                 form={form}
                 preserve={false}
-                labelCol={{span: 5}}
+                labelCol={{span: 8}}
+                labelWrap
                 initialValues={{
                     batch_size: 500,
                     split: ',',

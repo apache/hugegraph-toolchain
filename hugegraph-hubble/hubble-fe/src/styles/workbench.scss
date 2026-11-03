@@ -87,12 +87,6 @@
         overscroll-behavior: contain;
     }
 
-    .ant-layout-sider-trigger {
-        position: static;
-        width: 100% !important;
-        flex: 0 0 48px;
-    }
-
     .ant-menu-inline {
         border-right: 0;
     }
@@ -143,7 +137,7 @@
         }
     }
 
-    .workbench-mobile-navigation-toggle {
+    .workbench-navigation .workbench-mobile-navigation-toggle {
         position: fixed;
         z-index: 2;
         top: 14px;
@@ -151,12 +145,12 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        color: #fff;
+        color: #fff !important;
 
         &:hover,
         &:focus {
-            color: #fff;
-            background: rgba(255, 255, 255, 0.12);
+            color: #fff !important;
+            background: rgba(255, 255, 255, 0.12) !important;
         }
     }
 

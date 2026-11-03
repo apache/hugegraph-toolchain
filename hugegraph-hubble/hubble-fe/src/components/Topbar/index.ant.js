@@ -175,7 +175,8 @@ const Topbar = () => {
                             title={userLabel}
                         >
                             <Avatar
-                                size={'small'}
+                                size={32}
+                                gap={0}
                                 icon={avatarLabel ? undefined : <UserOutlined />}
                                 aria-label={userLabel}
                                 title={userLabel}

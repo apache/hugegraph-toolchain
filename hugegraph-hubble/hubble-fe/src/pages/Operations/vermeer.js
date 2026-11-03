@@ -104,11 +104,11 @@ const formatProcessBytes = (bytes, locale) => {
     if (typeof bytes !== 'number' || !Number.isFinite(bytes) || bytes < 0) {
         return null;
     }
-    const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB', 'EiB'];
+    const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
     let value = bytes;
     let unit = 0;
-    while (value >= 1024 && unit < units.length - 1) {
-        value /= 1024;
+    while (value >= 1000 && unit < units.length - 1) {
+        value /= 1000;
         unit += 1;
     }
     return new Intl.NumberFormat(locale, {maximumFractionDigits: 1}).format(value) + ' ' + units[unit];

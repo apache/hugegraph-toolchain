@@ -24,15 +24,17 @@ import org.apache.ibatis.annotations.Select;
 
 public interface Text2GqlConfigMapper {
 
-    @Select("SELECT enabled, connection_type AS connectionType, base_url AS baseUrl, model, " +
+    @Select("SELECT enabled, use_deployment_connection AS useDeploymentConnection, " +
+            "connection_type AS connectionType, base_url AS baseUrl, model, " +
             "encrypted_api_key AS encryptedApiKey, gremlin_prompt AS gremlinPrompt, " +
             "cypher_prompt AS cypherPrompt FROM text2gql_config WHERE id = 1")
     Text2GqlConfiguration current();
 
     @Insert("MERGE INTO text2gql_config " +
-            "(id, enabled, connection_type, base_url, model, encrypted_api_key, " +
+            "(id, enabled, use_deployment_connection, connection_type, base_url, model, encrypted_api_key, " +
             "gremlin_prompt, cypher_prompt) KEY(id) " +
-            "VALUES (1, #{enabled}, #{connectionType}, #{baseUrl}, #{model}, #{encryptedApiKey}, " +
+            "VALUES (1, #{enabled}, #{useDeploymentConnection}, #{connectionType}, #{baseUrl}, " +
+            "#{model}, #{encryptedApiKey}, " +
             "#{gremlinPrompt}, #{cypherPrompt})")
     int save(Text2GqlConfiguration configuration);
 }

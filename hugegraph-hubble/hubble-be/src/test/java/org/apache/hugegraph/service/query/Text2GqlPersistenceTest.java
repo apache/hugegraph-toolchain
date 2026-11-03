@@ -139,6 +139,7 @@ public class Text2GqlPersistenceTest {
         try (Connection connection = source.getConnection(); Statement statement = connection.createStatement()) {
             statement.execute("ALTER TABLE text2gql_config DROP COLUMN gremlin_prompt");
             statement.execute("ALTER TABLE text2gql_config DROP COLUMN cypher_prompt");
+            statement.execute("ALTER TABLE text2gql_config DROP COLUMN use_deployment_connection");
             try (java.sql.PreparedStatement insert = connection.prepareStatement(
                     "INSERT INTO text2gql_config VALUES (1, TRUE, 'openai', " +
                     "'http://127.0.0.1:11434/v1', 'legacy-model', ?)")) {
@@ -159,11 +160,51 @@ public class Text2GqlPersistenceTest {
             assertEquals("legacy-model-key", service.sharedRequest(request).getApiKey());
             assertEquals(Text2GqlPrompts.defaults(), service.settings().get("prompts"));
             assertEquals(encrypted, session.getMapper(Text2GqlConfigMapper.class).current().getEncryptedApiKey());
+            assertFalse(session.getMapper(Text2GqlConfigMapper.class).current().isUseDeploymentConnection());
         }
         try (Connection connection = source.getConnection(); Statement statement = connection.createStatement();
              ResultSet result = statement.executeQuery("SELECT VERSION FROM HUBBLE_SCHEMA_VERSION WHERE ID = 1")) {
             assertTrue(result.next());
             assertEquals(1, result.getInt(1));
+        }
+    }
+
+    @Test
+    public void testPromptOnlyRetainsDeploymentConnectionAfterRestart() throws Exception {
+        String url = "jdbc:h2:mem:deployment-prompts;DB_CLOSE_DELAY=-1";
+        JdbcDataSource source = dataSource(url);
+        new ResourceDatabasePopulator(new FileSystemResource("src/main/resources/database/schema.sql")).execute(source);
+        HugeConfig config = Mockito.mock(HugeConfig.class);
+        Mockito.when(config.get(HubbleOptions.TEXT2GQL_SHARED_ENABLED)).thenReturn(true);
+        Mockito.when(config.get(HubbleOptions.TEXT2GQL_SHARED_CONNECTION_TYPE)).thenReturn("openai");
+        Mockito.when(config.get(HubbleOptions.TEXT2GQL_SHARED_BASE_URL)).thenReturn("");
+        Mockito.when(config.get(HubbleOptions.TEXT2GQL_SHARED_MODEL)).thenReturn("");
+        Mockito.when(config.get(HubbleOptions.TEXT2GQL_SHARED_API_KEY_FILE)).thenReturn("");
+        Path keyFile = this.temporary.getRoot().toPath().resolve("prompt-only-master.key");
+        try (SqlSession session = sessions(source).openSession(true)) {
+            Text2GqlSettingsService service = new Text2GqlSettingsService(config,
+                    session.getMapper(Text2GqlConfigMapper.class),
+                    new Text2GqlSecretStore(keyFile, ignored -> null), ignored -> null);
+            Text2GqlSettingsRequest request = new Text2GqlSettingsRequest();
+            request.setEnabled(true);
+            request.setConnectionType("openai");
+            request.setBaseUrl("");
+            request.setModel("");
+            request.setPrompts(Map.of("gremlin", "Saved template"));
+            service.save(request);
+        }
+        Mockito.when(config.get(HubbleOptions.TEXT2GQL_SHARED_BASE_URL)).thenReturn("http://127.0.0.1:11434/v1");
+        Mockito.when(config.get(HubbleOptions.TEXT2GQL_SHARED_MODEL)).thenReturn("new-deployment-model");
+        try (SqlSession session = sessions(source).openSession(true)) {
+            Text2GqlSettingsService service = new Text2GqlSettingsService(config,
+                    session.getMapper(Text2GqlConfigMapper.class),
+                    new Text2GqlSecretStore(keyFile, ignored -> null), key -> "model-key");
+            Text2GqlRequest request = new Text2GqlRequest();
+            request.setSource("shared");
+            request.setQuestion("Find people");
+            assertEquals("new-deployment-model", service.sharedRequest(request).getModel());
+            assertEquals("Saved template", service.sharedRequest(request).getPrompt());
+            assertEquals("deployment", service.settings().get("source"));
         }
     }
 
