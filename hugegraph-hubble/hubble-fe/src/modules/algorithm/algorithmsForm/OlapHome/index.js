@@ -42,6 +42,7 @@ const OlapFormHome = props => {
         search,
         currentAlgorithm,
         updateCurrentAlgorithm,
+        onSelectOlapAlgorithm,
         canRunLouvain,
         graphSpace,
         graph,
@@ -183,7 +184,7 @@ const OlapFormHome = props => {
                     <div className={c.algorithmGoal}>
                         {t(`analysis.algorithm.group.${group.key}`)}
                     </div>
-                    <AlgorithmPanelGroup className={c.sideBarCollapse}>
+                    <AlgorithmPanelGroup className={c.sideBarCollapse} onSelect={isVermeer ? onSelectOlapAlgorithm : undefined}>
                         {group.items.map(item => (
                             <OlapItem
                                 key={item}

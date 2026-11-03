@@ -22,9 +22,9 @@ import {AlgorithmPersistenceContext} from '../algorithmFormPersistence';
 
 const ExpandedAlgorithmContext = createContext(null);
 
-export const AlgorithmPanelGroup = ({children, className}) => {
+export const AlgorithmPanelGroup = ({children, className, onSelect}) => {
     const [active, setActive] = useState(null);
-    return <ExpandedAlgorithmContext value={{active, setActive}}>
+    return <ExpandedAlgorithmContext value={{active, setActive, onSelect}}>
         <div className={className}>{children}</div>
     </ExpandedAlgorithmContext>;
 };
@@ -38,6 +38,7 @@ const AlgorithmPanel = ({title, children, forceRender = false}) => {
         const next = keys.length > 0;
         if (group) {
             group.setActive(next ? algorithm : null);
+            if (next) group.onSelect?.(algorithm);
         }
         else {
             setExpanded(next);

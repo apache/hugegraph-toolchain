@@ -16,12 +16,14 @@
  * under the License.
  */
 
-import {act, render, waitFor} from '@testing-library/react';
+import {act, render, renderHook, waitFor} from '@testing-library/react';
 import AlgorithmHome from './index';
 import GraphAnalysisContext from '../../Context';
 import * as api from '../../../api';
 import {GRAPH_STATUS} from '../../../utils/constants';
-import {clearOlapTasks} from '../olapTaskRegistry';
+import {clearOlapTasks, clearOlapTasksForGraph, recordOlapTask} from '../olapTaskRegistry';
+import useAlgorithmSubmission from '../algorithmsForm/useAlgorithmSubmission';
+import {USER_CHANGE_EVENT} from '../../../utils/user';
 
 jest.mock('../../../api', () => ({
     analysis: {
@@ -223,4 +225,78 @@ test('invalidates the whole OLAP completion group after an explicit result reset
     expect(currentResult().asyncTaskId).toBeUndefined();
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
     expect(currentResult().data).toEqual({});
+});
+
+
+test('restores recent tasks after navigation and switches by selected algorithm', async () => {
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -7, algorithm: 'PageRank'});
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -8, algorithm: 'Triangle Count'});
+    const view = render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-8));
+    expect(currentResult().restoredOlapTask).toBe(true);
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    expect(currentResult().asyncTaskId).toBe(-7);
+    expect(currentResult().algorithm).toBe('PageRank');
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('WCC'));
+    expect(currentResult().asyncTaskId).toBeUndefined();
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-8));
+});
+
+test('retains a pending acceptance over navigation and restores it once accepted', async () => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const hook = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    let finish;
+    act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
+    act(() => { finish(GRAPH_STATUS.SUCCESS, -19); });
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-19));
+    expect(currentResult().restoredOlapTask).toBe(true);
+});
+
+test.each(['identity', 'deleted graph'])('invalidates detached pending submissions on %s change', async change => {
+    const view = render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    const hook = renderHook(() => useAlgorithmSubmission(
+        formProps.mock.lastCall[0].handleOlapFormSubmit, 'DEFAULT', 'hugegraph', 'PageRank', true
+    ));
+    let finish;
+    act(() => { finish = hook.result.current(GRAPH_STATUS.LOADING); });
+    view.unmount();
+    act(() => {
+        if (change === 'identity') window.dispatchEvent(new Event(USER_CHANGE_EVENT));
+        else clearOlapTasksForGraph('DEFAULT', 'hugegraph');
+        finish(GRAPH_STATUS.SUCCESS, -19);
+    });
+    render(home());
+    await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY));
+    expect(currentResult().asyncTaskId).toBeUndefined();
+});
+
+
+test('keeps the latest task per algorithm beyond the eight recent-task switcher entries', async () => {
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -1, algorithm: 'PageRank'});
+    for (let i = 2; i <= 10; i += 1) {
+        recordOlapTask({graphSpace: 'DEFAULT', graph: 'hugegraph', id: -i, algorithm: `algorithm-${i}`});
+    }
+    render(home());
+    await waitFor(() => expect(currentResult().asyncTaskId).toBe(-10));
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    expect(currentResult().asyncTaskId).toBe(-1);
+});
+
+test('does not restore a task from a different graph', async () => {
+    recordOlapTask({graphSpace: 'DEFAULT', graph: 'another', id: -1, algorithm: 'PageRank'});
+    render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    expect(currentResult().asyncTaskId).toBeUndefined();
+    act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
+    expect(currentResult().asyncTaskId).toBeUndefined();
 });

@@ -18,18 +18,20 @@
 
 import {useCallback} from 'react';
 import {GRAPH_STATUS} from '../../../utils/constants';
-import {recordOlapTask} from '../olapTaskRegistry';
+import {beginPendingOlapTask, finishPendingOlapTask, recordOlapTask} from '../olapTaskRegistry';
 
 // Async callers retain the completion returned for their own execution.
 export default function useAlgorithmSubmission(beginSubmission, graphSpace, graph,
                                                algorithm, trackOlapTask = false) {
     return useCallback((status, ...args) => {
         const complete = beginSubmission(algorithm);
-        complete?.(status, ...args);
+        const started = complete?.(status, ...args);
         if (!trackOlapTask) return complete;
+        const token = started ? beginPendingOlapTask(graphSpace, graph, algorithm) : null;
         return (finalStatus, ...finalArgs) => {
             const accepted = complete?.(finalStatus, ...finalArgs);
-            if (accepted && finalStatus === GRAPH_STATUS.SUCCESS) {
+            const valid = token ? finishPendingOlapTask(token) : false;
+            if (valid && (accepted || complete?.isDetachedEligible?.()) && finalStatus === GRAPH_STATUS.SUCCESS) {
                 recordOlapTask({graphSpace, graph, algorithm, id: finalArgs[0]});
             }
             return accepted;

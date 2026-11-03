@@ -21,7 +21,8 @@ import useAlgorithmSubmission from './useAlgorithmSubmission';
 import {GRAPH_STATUS} from '../../../utils/constants';
 import {recordOlapTask} from '../olapTaskRegistry';
 
-jest.mock('../olapTaskRegistry', () => ({recordOlapTask: jest.fn()}));
+jest.mock('../olapTaskRegistry', () => ({recordOlapTask: jest.fn(),
+    beginPendingOlapTask: jest.fn(() => ({})), finishPendingOlapTask: jest.fn(() => true)}));
 
 beforeEach(() => jest.clearAllMocks());
 
