@@ -442,7 +442,7 @@ const Overview = () => {
                                 <HealthStatus status={data.main_cluster_status ?? data.status}
                                     reason={data.main_cluster_reason} stale={data.stale} />
                             </span>
-                            <span>Vermeer: <VermeerHealth cluster={data.vermeer} /></span>
+                            {!isVermeer && <span>Vermeer: <VermeerHealth cluster={data.vermeer} /></span>}
                         </div>
                     )}
                 </div>

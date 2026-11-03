@@ -356,6 +356,34 @@ test.each(['openai', 'ollama'])('explains the empty Key field for an unconfigure
 const templates = {gremlin: 'shared Gremlin examples', cypher: 'shared Cypher examples'};
 const builtIn = {gremlin: 'default Gremlin examples', cypher: 'default Cypher examples'};
 
+test('fresh enabled but unconfigured model permits prompt-only save without testing', async () => {
+    const fresh = {enabled: true, base_url: '', model: '', has_api_key: false,
+        prompts: templates, default_prompts: builtIn};
+    api.config.getText2GqlSettings.mockResolvedValue(response(fresh));
+    api.config.updateText2GqlSettings.mockResolvedValue(response({...fresh, prompts: {...templates, gremlin: 'new'}}));
+    await load();
+    expect(testButton()).toBeDisabled();
+    expect(screen.getByText('analysis.model_settings.test_unconfigured')).toBeInTheDocument();
+    expect(screen.getByLabelText('Base URL')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByLabelText('analysis.query.model_name')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.queryByText('analysis.model_settings.key_required')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', {name: 'analysis.prompt.title'}));
+    fireEvent.change(screen.getByRole('textbox', {name: /^analysis.prompt.template/}), {target: {value: 'new'}});
+    fireEvent.click(screen.getByRole('button', {name: 'analysis.prompt.apply'}));
+    await act(async () => fireEvent.click(saveButton()));
+    expect(api.config.updateText2GqlSettings).toHaveBeenCalledWith(expect.objectContaining({
+        enabled: true, base_url: '', model: '', prompts: {...templates, gremlin: 'new'},
+    }), expect.any(Object));
+    expect(api.config.testText2GqlSettings).not.toHaveBeenCalled();
+});
+
+test('enabled saved OpenAI model without a key cannot be tested', async () => {
+    api.config.getText2GqlSettings.mockResolvedValue(response({has_api_key: false}));
+    await load();
+    expect(testButton()).toBeDisabled();
+    expect(screen.getByText('analysis.model_settings.test_unconfigured')).toBeInTheDocument();
+});
+
 test('applies shared Prompt drafts to the form and persists them only with Save', async () => {
     api.config.getText2GqlSettings.mockResolvedValue(response({prompts: templates, default_prompts: builtIn}));
     api.config.updateText2GqlSettings.mockResolvedValue(response({prompts: {...templates, gremlin: 'few-shot'},

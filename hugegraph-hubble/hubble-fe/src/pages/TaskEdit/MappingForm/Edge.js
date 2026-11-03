@@ -16,7 +16,7 @@
  * under the License.
  */
 
-import {Space, Button, Form, Select, Input, Drawer} from 'antd';
+import {Alert, Space, Button, Form, Select, Input, Drawer} from 'antd';
 import {useCallback, useMemo, useState, useEffect} from 'react';
 import {useTranslation} from 'react-i18next';
 import * as rules from '../../../utils/rules';
@@ -189,6 +189,7 @@ const EdgeForm = ({open, index, onCancel, sourceField, targetField, edgeList}) =
                 labelCol={{span: 4}}
                 onFinish={onFinish}
             >
+                <Alert type='info' showIcon title={t('task.edit.edge_endpoint_format')} />
                 <Form.Item
                     required
                     label={(

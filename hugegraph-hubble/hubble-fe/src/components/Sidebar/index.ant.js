@@ -66,14 +66,14 @@ const items = (t, pathname, capabilities = []) => {
         systemList = isAuthEnabled() ? [MY, ACCOUNT] : [];
     }
     const operationsList = [
-        ...(capabilities.includes('model_settings_manage') ? [{
-            label: <Link to='/settings/text2gql'>{t('analysis.model_settings.title')}</Link>,
-            key: 'text2gql-settings',
-        }] : []),
         ...(pdMode && capabilities.includes('operations_health_read') ? [{
             label: <Link to='/operations/overview'>{t('operations.overview')}</Link>,
             key: 'overview',
             icon: <ClusterOutlined />,
+        }] : []),
+        ...(capabilities.includes('model_settings_manage') ? [{
+            label: <Link to='/settings/text2gql'>{t('analysis.model_settings.title')}</Link>,
+            key: 'text2gql-settings',
         }] : []),
         ...(capabilities.includes('operations_topology_read') ? [{
             label: <Link to='/operations/nodes'>{t('operations.nodes')}</Link>,
@@ -280,12 +280,7 @@ const Sidebar = () => {
                 onCollapse={setNavigationCollapsed}
                 theme='light'
                 className={narrow && !collapsed ? 'is-mobile-open' : ''}
-                trigger={
-                    narrow ? null
-                        : renderedCollapsed
-                            ? <MenuUnfoldOutlined />
-                            : <MenuFoldOutlined />
-                }
+                trigger={null}
             >
                 {!narrow && (
                     <div className={`workbench-navigation-toggle-slot ${styles.toggleSlot}`}>

@@ -152,6 +152,17 @@ test('opens node details and a full view without losing the compute context', as
     expect(screen.getByText('Workers ready 1 / registered 1')).toBeInTheDocument();
 });
 
+test('explains the default worker group while retaining its identifier', async () => {
+    const data = snapshot();
+    data.vermeer.workers[0].group = '$';
+    getOverview.mockResolvedValue(data);
+    renderOverview('/operations/overview?service=vermeer');
+    await screen.findByRole('heading', {level: 2, name: 'Vermeer Compute Cluster'});
+    expect(screen.getAllByText(/Default group \(\$\)/).length).toBeGreaterThan(0);
+    await userEvent.click(screen.getByRole('button', {name: 'worker-1'}));
+    expect(within(await screen.findByRole('dialog')).getByText('Default group ($)')).toBeInTheDocument();
+});
+
 test('same raw Master and Worker IDs select the clicked role without sharing row keys', async () => {
     const data = snapshot();
     data.vermeer.master = {...data.vermeer.master, id: 'master', name: 'master-shared',
@@ -304,6 +315,14 @@ test('compute failure does not relabel an independently healthy main cluster', a
     const health = await screen.findByLabelText('Deployment service health');
     expect(within(health).getByText('UP')).toBeInTheDocument();
     expect(within(health).getByText('Compute service needs attention')).toBeInTheDocument();
+});
+
+test('compute page shows its health once in the header and retains main health and observation', async () => {
+    renderOverview('/operations/overview?service=vermeer');
+    const health = await screen.findByLabelText('Deployment service health');
+    expect(within(health).getByText(/Main cluster/)).toBeInTheDocument();
+    expect(within(health).queryByText(/^Vermeer:/)).not.toBeInTheDocument();
+    expect(document.querySelector('.operations-overall-status')).toHaveTextContent('Observed');
 });
 
 test('removes compute node information when an authorized refresh becomes forbidden', async () => {
@@ -483,6 +502,8 @@ test('resource formatting rejects unknown and non-finite values without confusin
     expect(formatProcessBytes(1288490188, 'en-US')).toBe('1.3 GB');
     expect(formatProcessBytes(999, 'en-US')).toBe('999 B');
     expect(formatProcessBytes(1000, 'en-US')).toBe('1 KB');
+    expect(formatProcessBytes(1000000, 'en-US')).toBe('1 MB');
+    expect(formatProcessBytes(1000000000, 'en-US')).toBe('1 GB');
     expect(formatProcessBytes(1_500_000, 'de-DE')).toBe('1,5 MB');
     expect(formatProcessBytes(-1, 'en-US')).toBeNull();
     expect(vermeerNodeReady({ready: true}, {configured: true, stale: true, availability: 'AVAILABLE'}))

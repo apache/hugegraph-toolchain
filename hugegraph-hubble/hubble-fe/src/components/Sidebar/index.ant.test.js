@@ -260,7 +260,7 @@ test('starts collapsed on a narrow viewport and exposes an accessible toggle', a
     expect(toggle).toHaveAccessibleName('关闭主导航');
 });
 
-test('offers a second accessible collapse control beside Home', async () => {
+test('offers one accessible collapse control beside Home', async () => {
     render(
         <MemoryRouter
             initialEntries={['/navigation']}
@@ -273,6 +273,7 @@ test('offers a second accessible collapse control beside Home', async () => {
     const navigation = await screen.findByRole('navigation', {name: '主导航'});
     const toggle = screen.getByRole('button', {name: '关闭主导航'});
 
+    expect(navigation.querySelector('.ant-layout-sider-trigger')).not.toBeInTheDocument();
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(toggle).toBeVisible();
     fireEvent.click(toggle);
@@ -491,4 +492,17 @@ it('keeps unscoped analysis links when no graph has been selected', async () => 
     render(<MemoryRouter initialEntries={['/navigation']}><Sidebar /></MemoryRouter>);
     expect(await screen.findByRole('link', {name: i18n.t('analysis.algorithm.name'), exact: true}))
         .toHaveAttribute('href', '/algorithms');
+});
+
+test('places cluster overview before model settings', async () => {
+    sessionStorage.setItem('hubble_config_', JSON.stringify({pd_enabled: true, auth_enabled: true}));
+    useOperationsCapabilities.mockReturnValue({
+        loading: false,
+        capabilities: ['operations_health_read', 'model_settings_manage'],
+        error: null,
+    });
+    render(<MemoryRouter initialEntries={['/operations/overview']}><Sidebar /></MemoryRouter>);
+    const overview = await screen.findByRole('link', {name: '集群概览'});
+    const settings = screen.getByRole('link', {name: '模型设置'});
+    expect(overview.compareDocumentPosition(settings) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

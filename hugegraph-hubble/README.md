@@ -336,6 +336,10 @@ configuration instead.
 For deployment-managed configuration, set these options in
 `conf/hugegraph-hubble.properties`:
 
+The default-model switch is enabled by default, but it is unavailable until a
+base URL, model and required credentials are configured. Set `enabled=false` to
+disable it; a saved administrator setting takes precedence over deployment defaults.
+
 ```properties
 text2gql.shared.enabled=true
 text2gql.shared.connection_type=openai

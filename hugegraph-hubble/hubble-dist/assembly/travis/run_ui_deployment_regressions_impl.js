@@ -838,6 +838,17 @@ async function main() {
                 await topology.waitFor();
                 assert.equal(new URL(page.url()).searchParams.get('service'), null);
             }
+            // More than three Servers renders an overflow marker; its stem must
+            // not dangle after the Server-layer branch was removed.
+            const server = state.operationsOverview.nodes.find(node => node.type === 'SERVER');
+            state.operationsOverview.nodes.push(...[3, 4].map(index => ({...server,
+                id: `server-mobile-${index}`, name: `Server overflow ${index}`})));
+            await page.setViewportSize({width: 1440, height: 1000});
+            await page.goto(base + '/operations/overview');
+            const serverOverflow = page.locator('.tier-server .operations-topology-overflow');
+            await serverOverflow.waitFor({state: 'visible'});
+            assert.equal(await serverOverflow.evaluate(element =>
+                getComputedStyle(element, '::before').display), 'none');
             state.operationsOverview = null;
             state.extraCapabilities = [];
             await page.setViewportSize({width: 1440, height: 1000});

@@ -119,6 +119,9 @@ const NodeResources = ({node, cluster}) => {
     );
 };
 
+const displayGroup = (group, t) => group === '$'
+    ? t('operations.vermeer_default_group') : group ?? '—';
+
 const VermeerNode = ({node, cluster, onOpen}) => {
     const {t, i18n} = useTranslation();
     const values = vermeerResourceValues(node, cluster);
@@ -135,7 +138,7 @@ const VermeerNode = ({node, cluster, onOpen}) => {
             <span className='operations-node-copy'>
                 <strong>{node.name ?? node.id}</strong>
                 <span>{node.role === 'MASTER' ? 'Master' : 'Worker'} · {node.version ?? '—'}</span>
-                {node.role === 'WORKER' && <span>{t('operations.vermeer_group')}: {node.group ?? '—'}</span>}
+                {node.role === 'WORKER' && <span>{t('operations.vermeer_group')}: {displayGroup(node.group, t)}</span>}
                 <VermeerHealth cluster={cluster} node={node} />
             </span>
             <span className='operations-vermeer-node-metrics'>{resources
@@ -298,7 +301,7 @@ const VermeerNodeDetails = ({node, cluster}) => {
             <h3>{t('operations.vermeer_node_information')}</h3>
             <Descriptions column={1} size='small' items={[
                 {key: 'role', label: t('operations.role'), children: node.role === 'MASTER' ? 'Master' : 'Worker'},
-                {key: 'group', label: t('operations.vermeer_group'), children: node.group ?? '—'},
+                {key: 'group', label: t('operations.vermeer_group'), children: displayGroup(node.group, t)},
                 {key: 'version', label: t('operations.version'), children: node.version ?? '—'},
                 {key: 'address', label: t('operations.vermeer_address'), children: node.grpc_peer
                     ? <Typography.Text copyable={{text: node.grpc_peer, tooltips: [
@@ -332,7 +335,7 @@ const VermeerOverview = ({cluster, mainStatus, mainStale, view, selectedNode, fu
         {title: t('operations.status'), key: 'status', render: (_, node) => (
             <VermeerHealth cluster={cluster} node={node} />
         )},
-        {title: t('operations.vermeer_group'), dataIndex: 'group', render: value => value ?? '—'},
+        {title: t('operations.vermeer_group'), dataIndex: 'group', render: value => displayGroup(value, t)},
         {title: t('operations.version'), dataIndex: 'version', render: value => value ?? '—'},
         {title: t('operations.vermeer_cpu'), key: 'cpu', render: (_, node) => {
             const values = vermeerResourceValues(node, cluster);

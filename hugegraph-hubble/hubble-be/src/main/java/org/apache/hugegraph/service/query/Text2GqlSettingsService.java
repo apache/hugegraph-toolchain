@@ -62,7 +62,7 @@ public class Text2GqlSettingsService {
     public Map<String, Object> availability() {
         try {
             Snapshot current = this.current();
-            if (!current.configuration.isEnabled()) {
+            if (!this.configured(current)) {
                 return Map.of("available", false, "reason", "not_configured");
             }
             Text2GqlRequest resolved = this.connection(current, "");
@@ -80,7 +80,7 @@ public class Text2GqlSettingsService {
         }
         Text2GqlPrompts.validate(request.getPrompt());
         Snapshot current = this.current();
-        if (!current.configuration.isEnabled()) {
+        if (!this.configured(current)) {
             throw new ExternalException(503, "text2gql.shared.not-configured");
         }
         if (request.getLanguage() == null) {
@@ -123,23 +123,33 @@ public class Text2GqlSettingsService {
         }
         String baseUrl = optional(request.getBaseUrl(), 2048);
         String model = optional(request.getModel(), 256);
+        String suppliedKey = apiKey(request.getApiKey());
+        Snapshot previous = this.current();
+        boolean sameConnection = request.getEnabled().equals(previous.configuration.isEnabled()) &&
+                                 request.getPrompts() != null && suppliedKey.isEmpty() &&
+                                 !request.isClearApiKey() &&
+                                 type.equals(previous.configuration.getConnectionType()) &&
+                                 normalized(baseUrl).equals(normalized(previous.configuration.getBaseUrl())) &&
+                                 model.equals(optional(previous.configuration.getModel(), 256));
+        // A prompt-only save must not freeze deployment-supplied connection settings or secrets.
+        boolean inheritPrompts = sameConnection && !previous.managed;
+        boolean promptOnly = sameConnection && (baseUrl.isEmpty() || model.isEmpty());
         if (!baseUrl.isEmpty()) {
-            baseUrl = request.getEnabled() ? Text2GqlService.validateBaseUrl(baseUrl) : normalized(baseUrl);
+            baseUrl = request.getEnabled() && !promptOnly && !inheritPrompts ?
+                      Text2GqlService.validateBaseUrl(baseUrl) : normalized(baseUrl);
         }
-        if (request.getEnabled() && (baseUrl.isEmpty() || model.isEmpty())) {
+        if (request.getEnabled() && !promptOnly && (baseUrl.isEmpty() || model.isEmpty())) {
             throw new ExternalException("text2gql.shared.invalid-settings");
         }
-        String suppliedKey = apiKey(request.getApiKey());
         if (request.isClearApiKey() && !suppliedKey.isEmpty()) {
             throw new ExternalException("text2gql.shared.invalid-settings");
         }
-        Snapshot previous = this.current();
         Map<String, String> suppliedPrompts = request.getPrompts();
         if (suppliedPrompts != null) {
             suppliedPrompts.values().forEach(Text2GqlPrompts::validate);
         }
         boolean sameUrl = baseUrl.equals(normalized(previous.configuration.getBaseUrl()));
-        boolean previousHasKey = this.hasKey(previous);
+        boolean previousHasKey = !inheritPrompts && this.hasKey(previous);
         if (!sameUrl && previousHasKey && suppliedKey.isEmpty() && !request.isClearApiKey()) {
             throw new ExternalException("text2gql.shared.new-key-required");
         }
@@ -149,7 +159,7 @@ public class Text2GqlSettingsService {
         } else if (!request.isClearApiKey() && sameUrl && previousHasKey) {
             if (previous.managed) {
                 encrypted = previous.configuration.getEncryptedApiKey();
-                if (request.getEnabled()) {
+                if (request.getEnabled() && !promptOnly) {
                     this.secrets.decrypt(encrypted);
                 }
             } else {
@@ -166,11 +176,13 @@ public class Text2GqlSettingsService {
                 }
             }
         }
-        if (request.getEnabled() && "openai".equals(type) && encrypted.isEmpty()) {
+        if (request.getEnabled() && !promptOnly && !inheritPrompts &&
+            "openai".equals(type) && encrypted.isEmpty()) {
             throw new ExternalException("text2gql.shared.api-key-required");
         }
         Text2GqlConfiguration updated = new Text2GqlConfiguration();
         updated.setEnabled(request.getEnabled());
+        updated.setUseDeploymentConnection(inheritPrompts);
         updated.setConnectionType(type);
         updated.setBaseUrl(baseUrl);
         updated.setModel(model);
@@ -182,7 +194,7 @@ public class Text2GqlSettingsService {
         } catch (RuntimeException exception) {
             throw new ExternalException(503, "text2gql.shared.settings-unavailable");
         }
-        return this.descriptor(new Snapshot(updated, true));
+        return this.descriptor(new Snapshot(updated, !inheritPrompts));
     }
 
     private Snapshot current() {
@@ -192,7 +204,7 @@ public class Text2GqlSettingsService {
         } catch (RuntimeException exception) {
             throw new ExternalException(503, "text2gql.shared.settings-unavailable");
         }
-        if (managed != null) {
+        if (managed != null && !managed.isUseDeploymentConnection()) {
             return new Snapshot(managed, true);
         }
         Text2GqlConfiguration deployment = new Text2GqlConfiguration();
@@ -200,6 +212,10 @@ public class Text2GqlSettingsService {
         deployment.setConnectionType(this.config.get(HubbleOptions.TEXT2GQL_SHARED_CONNECTION_TYPE));
         deployment.setBaseUrl(this.config.get(HubbleOptions.TEXT2GQL_SHARED_BASE_URL));
         deployment.setModel(this.config.get(HubbleOptions.TEXT2GQL_SHARED_MODEL));
+        if (managed != null) {
+            deployment.setGremlinPrompt(managed.getGremlinPrompt());
+            deployment.setCypherPrompt(managed.getCypherPrompt());
+        }
         return new Snapshot(deployment, false);
     }
 
@@ -213,7 +229,7 @@ public class Text2GqlSettingsService {
                                           configuration.getConnectionType() : "openai");
         descriptor.put("base_url", normalized(configuration.getBaseUrl()));
         descriptor.put("model", configuration.getModel() == null ? "" : configuration.getModel());
-        descriptor.put("has_api_key", this.hasKey(snapshot));
+        descriptor.put("has_api_key", this.hasDescriptorKey(snapshot));
         descriptor.put("source", snapshot.managed ? "managed" : "deployment");
         return descriptor;
     }
@@ -221,6 +237,14 @@ public class Text2GqlSettingsService {
     private static Map<String, String> prompts(Text2GqlConfiguration configuration) {
         return Map.of("gremlin", prompt(configuration, QueryLanguage.GREMLIN),
                       "cypher", prompt(configuration, QueryLanguage.CYPHER));
+    }
+
+    private boolean configured(Snapshot snapshot) {
+        Text2GqlConfiguration configuration = snapshot.configuration;
+        return configuration.isEnabled() && hasText(configuration.getBaseUrl()) &&
+               hasText(configuration.getModel()) &&
+               (!"openai".equals(configuration.getConnectionType()) ||
+                (snapshot.managed ? this.hasKey(snapshot) : hasText(this.deploymentKey())));
     }
 
     private static String prompt(Text2GqlConfiguration configuration, QueryLanguage language) {
@@ -252,6 +276,17 @@ public class Text2GqlSettingsService {
             Path path = Path.of(file);
             return Files.isRegularFile(path) && Files.size(path) > 0;
         } catch (IOException | RuntimeException exception) {
+            return false;
+        }
+    }
+
+    private boolean hasDescriptorKey(Snapshot snapshot) {
+        if (snapshot.managed) {
+            return this.hasKey(snapshot);
+        }
+        try {
+            return hasText(this.deploymentKey());
+        } catch (ExternalException exception) {
             return false;
         }
     }

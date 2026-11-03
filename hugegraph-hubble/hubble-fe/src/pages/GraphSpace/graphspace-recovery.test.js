@@ -295,3 +295,20 @@ test('table view distinguishes a filtered empty result from no GraphSpaces', asy
     expect(await screen.findByText('graphspace.no_matches')).toBeInTheDocument();
     expect(screen.queryByText('graphspace.empty')).not.toBeInTheDocument();
 });
+
+test('shows empty descriptions and omits empty namespace separators in list view', async () => {
+    api.manage.getGraphSpaceList.mockResolvedValue({
+        status: 200,
+        data: {records: [{
+            name: 'space-a', description: null, cpu_limit: 8, memory_limit: 16,
+            compute_cpu_limit: 0, compute_memory_limit: 0, oltp_namespace: null,
+            olap_namespace: '',
+        }], total: 1},
+    });
+    render(<GraphSpace />);
+    await userEvent.click(screen.getByText('common.label.list_mode'));
+    const row = (await screen.findByText('space-a')).closest('tr');
+    expect(within(row).getByText('--')).toBeInTheDocument();
+    expect(row).toHaveTextContent('8graphspace.unit.cpu / 16graphspace.unit.memory');
+    expect(row.textContent).not.toContain(' /  /');
+});

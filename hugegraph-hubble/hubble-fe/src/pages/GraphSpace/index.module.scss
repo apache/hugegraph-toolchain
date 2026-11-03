@@ -56,7 +56,7 @@ div.add_card {
     }
 
     .card_content {
-        height: 144px;
+        min-height: 144px;
         font-size: 12px;
     }
     &:hover {
@@ -145,7 +145,8 @@ span.disable {
     padding: 0;
     margin: 0;
     li {
-        height: 24px;
+        min-height: 24px;
+        overflow-wrap: anywhere;
     }
 }
 
