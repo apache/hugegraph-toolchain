@@ -31,6 +31,7 @@ const mockNodeDrawer = jest.fn();
 const mockCounts = jest.fn();
 const mockSettingsPanel = jest.fn();
 const mockMenuBar = jest.fn();
+const mockOlapPreview = jest.fn();
 jest.mock('../../../component/Graph/useAnalysisGraph', () => ({useAnalysisGraph: () => mockModel}));
 
 jest.mock('../../../component/Graph', () => ({children}) => <div>{children}</div>);
@@ -70,7 +71,7 @@ jest.mock('../RankApiView', () => () => null);
 jest.mock('../JaccView', () => () => null);
 jest.mock('../../../component/GraphStatusView', () => props => <div>{props.message}</div>);
 jest.mock('../../../component/TaskNavigateView', () => () => null);
-jest.mock('../OlapPreview', () => () => <div>olap preview</div>);
+jest.mock('../OlapPreview', () => props => { mockOlapPreview(props); return <div>olap preview</div>; });
 jest.mock('../../../component/Canvas3D', () => ({onExit, children}) => (
     <><button onClick={onExit}>Return to 2D</button>{children}</>
 ));
@@ -513,4 +514,14 @@ test('switching to OLTP removes the read-only preview before showing editing con
     view.rerender(scene('oltp'));
     expect(screen.queryByText('olap preview')).not.toBeInTheDocument();
     expect(screen.getByText('graph menu')).toBeInTheDocument();
+});
+
+test('forwards a concurrent submission warning to the OLAP preview', () => {
+    render(<GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'g',
+        isVermeer: true, vermeerReady: true}}>
+        <GraphResult data={{}} engine='olap' isQueryMode={false} asyncTaskId={-7}
+            queryStatus={GRAPH_STATUS.SUCCESS} queryMessage='sibling failed' panelType={PANEL_TYPE.CLOSED}
+            graphRenderMode={GRAPH_RENDER_MODE.CANVAS2D} updatePanelType={jest.fn()} />
+    </GraphAnalysisContext.Provider>);
+    expect(mockOlapPreview).toHaveBeenLastCalledWith(expect.objectContaining({warning: 'sibling failed'}));
 });

@@ -522,7 +522,7 @@ const GraphResult = props => {
             />}
             <div className={showRecoveryRow ? c.recoveryResult : undefined}>
                 {isOlap && queryStatus === LOADING && queryMessage &&
-                    <Alert type='warning' showIcon message={queryMessage} />}
+                    <Alert type='warning' showIcon title={queryMessage} />}
                 {renderMainContent()}
             </div>
             {!isOlapPreview && <NumberCard
