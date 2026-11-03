@@ -27,6 +27,7 @@ import LogsDetail from '../LogsDetail/Home';
 import GraphAnalysisContext from '../../Context';
 import {GRAPH_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE} from '../../../utils/constants';
 import * as api from '../../../api';
+import {clearOlapTasks} from '../olapTaskRegistry';
 import {toGraphCounts} from '../../../utils/graphStatistics';
 import {USER_CHANGE_EVENT} from '../../../utils/user';
 import _ from 'lodash';
@@ -35,7 +36,7 @@ import c from './index.module.scss';
 const ALGORITHM_MODE = {OLTP: 'oltp', OLAP: 'olap'};
 
 const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
-    const {STANDBY} = GRAPH_STATUS;
+    const {STANDBY, LOADING, SUCCESS, FAILED} = GRAPH_STATUS;
     const {CLOSED} = PANEL_TYPE;
     const {OLTP, OLAP} = ALGORITHM_MODE;
     const {CANVAS2D} = GRAPH_RENDER_MODE;
@@ -54,6 +55,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const [queryResult, setQueryResult] = useState();
     const [asyncTaskResult, setAsyncTaskResult] = useState();
     const asyncTaskOwner = useRef(null);
+    const visibleOlapTask = useRef();
     const [graphOptions, setGraphOptions] = useState();
     const [panelType, setPanelType] = useState(CLOSED);
     const [algorithmOnCanvas, setAlgorithmOnCanvas] = useState();
@@ -127,6 +129,9 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             metaDataRequest.current = null;
             propertyKeysRequest.current = null;
             algorithmRequest.current = null;
+            asyncTaskOwner.current = null;
+            visibleOlapTask.current = undefined;
+            clearOlapTasks();
             setQueryStatus(STANDBY);
             setQueryMessage();
             setQueryResult({});
@@ -161,6 +166,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         previousScope.current = graphNumsScope;
         algorithmRequest.current = null;
         asyncTaskOwner.current = null;
+        visibleOlapTask.current = undefined;
         setAsyncTaskResult();
         setAlgorithmMode();
         setAlgorithmOnCanvas();
@@ -173,6 +179,8 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         previousEngine.current = engine;
         // An OLAP submission belongs to its own view, not the newly selected engine.
         algorithmRequest.current = null;
+        asyncTaskOwner.current = null;
+        visibleOlapTask.current = undefined;
         setAlgorithmMode();
         setAsyncTaskResult();
         setAlgorithmOnCanvas();
@@ -407,16 +415,19 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         setAlgorithmOnCanvas(value);
     }, []);
 
-    const beginSubmission = useCallback(applyResult => {
+    const beginSubmission = useCallback((applyResult, latestOnly = true) => {
         if (graphNumsOwner.current !== graphNumsScope) return () => {};
-        const request = Symbol('algorithm-execution');
-        algorithmRequest.current = request;
+        const submissionEngine = engine;
+        const request = latestOnly ? Symbol('algorithm-execution') : null;
+        if (latestOnly) algorithmRequest.current = request;
         return (...args) => {
-            if (graphNumsOwner.current === graphNumsScope && algorithmRequest.current === request) {
+            const sameContext = graphNumsOwner.current === graphNumsScope &&
+                                previousEngine.current === submissionEngine;
+            if (sameContext && (!latestOnly || algorithmRequest.current === request)) {
                 applyResult(...args);
             }
         };
-    }, [graphNumsScope]);
+    }, [engine, graphNumsScope]);
 
     const handleOltpFormSubmit = useCallback(
         () => beginSubmission((status, data, message, options) => {
@@ -435,20 +446,34 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
 
     const handleOlapFormSubmit = useCallback(
         () => beginSubmission((status, data, message) => {
+            const hasVisibleTask = visibleOlapTask.current !== undefined &&
+                                   asyncTaskOwner.current === graphNumsScope;
+            if (status === LOADING && hasVisibleTask) return;
+            if (status === FAILED && hasVisibleTask) {
+                setQueryMessage(message || '');
+                getExecutionLogsList();
+                return;
+            }
             setPanelType(CLOSED);
             setAlgorithmMode(OLAP);
             setQueryResult({});
             setQueryStatus(status);
             asyncTaskOwner.current = graphNumsScope;
+            if (status === SUCCESS) visibleOlapTask.current = data;
+            if (status === FAILED) visibleOlapTask.current = undefined;
             setAsyncTaskResult(data);
             setQueryMessage(message || '');
-        }),
-        [CLOSED, OLAP, beginSubmission, graphNumsScope]
+            if (status === SUCCESS || status === FAILED) getExecutionLogsList();
+        }, false),
+        [CLOSED, FAILED, LOADING, OLAP, SUCCESS, beginSubmission, getExecutionLogsList, graphNumsScope]
     );
 
     const resetGraphStatus = useCallback(
         (status, message, data) => {
             algorithmRequest.current = null;
+            asyncTaskOwner.current = null;
+            visibleOlapTask.current = undefined;
+            setAsyncTaskResult();
             setPanelType(CLOSED);
             setAlgorithmMode(OLTP);
             setAlgorithmOnCanvas();
