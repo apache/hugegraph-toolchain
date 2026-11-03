@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -247,11 +248,12 @@ public class DirectVermeerService {
         // token in Vermeer task parameters for asynchronous output.
         params.put("output.type", "local");
         params.put("output.need_query", "1");
-        // Native compute is exclusive and LocalWriter truncates its part files.
-        // Reuse one safe basename per graph instead of retaining files per run.
-        String output = Hashing.sha256().hashString(json(List.of(
+        // Vermeer can schedule compute tasks concurrently while LocalWriter
+        // truncates each part file. Isolate every submission under its graph.
+        String graphScope = Hashing.sha256().hashString(json(List.of(
                 client.getGraphSpaceName(), client.getGraphName())), StandardCharsets.UTF_8).toString();
-        params.put("output.file_path", "./data/hubble/" + output);
+        String run = UUID.randomUUID().toString().replace("-", "");
+        params.put("output.file_path", "./data/hubble/" + graphScope + "/" + run);
         return this.submit(client, "compute", params);
     }
 
