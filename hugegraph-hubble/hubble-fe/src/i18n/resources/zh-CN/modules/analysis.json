@@ -744,6 +744,8 @@
         },
         "cluster_coefficient": {
           "desc": "聚集系数，计算每个点局部的聚集系数, 暂时未提供全局聚集系数",
+          "max_step": "最大迭代次数（至少 2），默认为 10",
+          "min_step": "聚集系数至少需要 2 次迭代",
           "minimum_edges_use_superedge_cache": "利用内存减少消息量，如果内存不够，可以从100改成1000，但聚集系数可能计算不完"
         },
         "degree_centrality": {
@@ -823,6 +825,13 @@
           "RESOURCE_ALLOCATION": "Resource Allocation",
           "SAME_NEIGHBORS_BATCH": "Same Neighbors Batch",
           "EGONET": "Egonet",
+          "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
+          "DEPTH": "Depth",
+          "SLPA": "SLPA",
+          "CYCLE_DETECTION_VERMEER": "Cycle Detection",
+          "LOUVAIN_WEIGHTED": "Louvain Weighted",
+          "VERMEER_K_OUT": "K-out (Vermeer)",
+          "VERMEER_JACCARD": "Jaccard (Vermeer)",
           "SSSP": "SSSP（单源最短路径）"
         },
         "legacy_item_alias": {
@@ -845,6 +854,58 @@
         },
         "ring_detection": {
           "desc": "环路检测算法（Rings Detection），用于检测图中的环路，环路的路径由环路中最小id的顶点来记录"
+        },
+        "strongly_connected_component": {
+          "desc": "强连通分量将有向图中互相可达的顶点归为同一分量。达到最大迭代次数时任务可能提前结束，请检查结果是否收敛",
+          "max_step": "最大迭代次数；达到上限时可能尚未收敛"
+        },
+        "depth_vermeer": {
+          "desc": "估计无向连通结构的深度；顶点值为算法选择的端点到该点的距离加一，无法到达时为零。端点可能随运行变化；迭代上限过低可能导致结果未完成",
+          "max_step": "最大迭代步数，达到上限可能未收敛"
+        },
+        "slpa_vermeer": {
+          "desc": "说话者-听众标签传播，可输出每个点的标签和频次",
+          "max_step": "最大迭代步数（1–1000）",
+          "k": "保留的标签数；-1 保留全部",
+          "k_invalid": "请输入 -1 或不小于 1 的整数",
+          "select_method": "选择邻居标签的方法：max 取最高频，random 按频次随机选择"
+        },
+        "vermeer_advanced": {
+          "cycle_desc": "有向环检测，不包含自环。默认 limit 模式限制每个顶点的环数量（Vermeer 原生默认是 all）。all 模式可能产生大量路径",
+          "louvain_desc": "按模块度优化社区划分；达到计算步数上限可能未收敛",
+          "weighted_desc": "按边权优化社区；留空权重属性时使用 1，指定属性须已加载且为数值",
+          "max_step": "计算迭代上限：环检测和 Louvain 至少为 2，加权 Louvain 至少为 3。达到上限可能尚未收敛",
+          "parallel": "并行数",
+          "min_length": "最小环长",
+          "max_length": "最大环长，较大值可能造成高内存和计算开销",
+          "max_cycles": "limit 模式下每个顶点最多返回的环数",
+          "all_warning": "all 模式不限制环数量，可能耗尽内存。请确认图规模并限制环长",
+          "properties_unavailable": "属性过滤和指定边权暂不可用，需先支持核验已加载的属性。运行前请清除之前保存的值",
+          "mode": "all 枚举所有环，limit 限量，boolean 只判断是否有环",
+          "resolution": "社区分辨率",
+          "threshold": "模块度改进阈值",
+          "step": "Louvain 阶段数上限，与计算迭代上限不同",
+          "edge_weight": "可选的已加载边权属性，留空使用 1",
+          "filter_expr": "可选过滤表达式；必须同时提供属性列表并在快照中加载对应属性",
+          "filter_properties": "JSON 字符串数组，例如 [\"age\"]；须与表达式同时提供",
+          "invalid_properties": "请输入非空字符串组成的 JSON 数组，并与过滤表达式同时填写",
+          "nonnegative_integer": "请输入非负整数",
+          "positive_integer": "请输入正整数",
+          "nonnegative_number": "请输入非负数",
+          "invalid_range": "最小环长不能大于最大环长"
+        },
+        "kout_vermeer": {
+          "desc": "计算指定源点沿选定方向在迭代范围内可达的节点。结果值 1 表示源点，2 表示一跳，0 表示未到达",
+          "source": "源点的完整顶点 ID；默认值 1 未必存在于当前快照，请按实际修改",
+          "direction": "沿入边、出边或双向查找",
+          "max_step": "最大传播轮数，范围 1–254；达到上限时不会继续扩展",
+          "max_step_invalid": "请输入 1 到 254 的整数"
+        },
+        "jaccard_vermeer": {
+          "desc": "比较源点与每个顶点的双向邻居集合，返回 Jaccard 相似度。两个邻居集合均为空时结果可能为 NaN",
+          "source": "源点的完整顶点 ID，必须存在于已加载的快照中",
+          "max_step": "最大迭代次数，此算法至少需要 2 次",
+          "max_step_invalid": "请输入不小于 2 的整数"
         },
         "SSSPVermeer": {
           "desc": "单源最短路径算法，求一个点到其他所有点的最短距离"

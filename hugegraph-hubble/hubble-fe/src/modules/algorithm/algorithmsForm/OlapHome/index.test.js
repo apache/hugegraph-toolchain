@@ -41,6 +41,9 @@ jest.mock('../../../../utils/constants', () => ({
         ALGORITHM_NAME: {
             PAGE_RANK: 'PageRank',
             WEAKLY_CONNECTED_COMPONENT: 'WCC',
+            STRONGLY_CONNECTED_COMPONENT: 'SCC',
+            CYCLE_DETECTION_VERMEER: 'Cycle Detection',
+            LOUVAIN_WEIGHTED: 'Louvain Weighted',
             DEGREE_CENTRALIT: 'Degree',
             CLOSENESS_CENTRALITY: 'Closeness',
             TRIANGLE_COUNT: 'Triangle',
@@ -54,7 +57,11 @@ jest.mock('../../../../utils/constants', () => ({
             FILTER_SUBGRAPH_MATCHING: 'Subgraph',
             K_CORE: 'KCore',
             PERSONAL_PAGE_RANK: 'PersonalPageRank',
+            DEPTH: 'Depth',
+            SLPA: 'SLPA',
             SSSP: 'SSSP',
+            VERMEER_K_OUT: 'K-out (Vermeer)',
+            VERMEER_JACCARD: 'Jaccard (Vermeer)',
         },
     }),
 }));
@@ -83,9 +90,17 @@ test.each([false, true])('does not expose either OLAP engine before confirmation
         .not.toBeInTheDocument();
     expect(screen.queryByTestId('olap-item')).not.toBeInTheDocument();
     view.rerender(home({isVermeer: true}));
-    expect(screen.getAllByTestId('olap-item')).toHaveLength(10);
-    expect(screen.queryByText('Louvain')).not.toBeInTheDocument();
+    expect(screen.getAllByTestId('olap-item')).toHaveLength(19);
+    expect(screen.getByText('Louvain')).toBeVisible();
+    expect(screen.getByText('Louvain Weighted')).toBeVisible();
+    expect(screen.getByText('Cycle Detection')).toBeVisible();
     expect(screen.getByText('SSSP')).toBeVisible();
+    expect(screen.getByText('SCC')).toBeVisible();
+    expect(screen.getByText('Cluster')).toBeVisible();
+    expect(screen.getByText('Depth')).toBeVisible();
+    expect(screen.getByText('SLPA')).toBeVisible();
+    expect(screen.getByText('K-out (Vermeer)')).toBeVisible();
+    expect(screen.getByText('Jaccard (Vermeer)')).toBeVisible();
     expect(screen.getByText('PersonalPageRank')).toBeVisible();
     expect(api.analysis.getOlapCapability).not.toHaveBeenCalled();
 });

@@ -27,6 +27,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.hash.Hashing;
 import org.apache.hugegraph.config.HugeConfig;
@@ -168,18 +171,78 @@ public class DirectVermeerService {
                         "compute.algorithm is required");
         String algorithm = options.get("compute.algorithm").toString();
         E.checkArgument(Set.of("pagerank", "wcc", "lpa", "degree", "closeness_centrality",
-                               "betweenness_centrality", "triangle_count", "kcore", "sssp", "ppr")
+                               "betweenness_centrality", "triangle_count", "kcore", "sssp", "ppr",
+                               "scc", "clustering_coefficient", "depth", "slpa",
+                               "cycle_detection", "louvain", "louvain_weighted",
+                               "kout", "jaccard")
                            .contains(algorithm), "Unsupported Vermeer algorithm: %s", algorithm);
+        if ("cycle_detection".equals(algorithm)) {
+            this.validateCycleFilter(options, "vertex");
+            this.validateCycleFilter(options, "edge");
+            E.checkArgument(!hasText(options.get("filter.vertex_expr")) &&
+                            !hasText(options.get("filter.edge_expr")),
+                            "Property filters require verified loaded properties; " +
+                            "the current Vermeer integration cannot verify them");
+        }
+        if ("louvain_weighted".equals(algorithm)) {
+            E.checkArgument(!hasText(options.get("louvain.edge_weight_property")),
+                            "Weighted properties require verified loaded properties; " +
+                            "the current Vermeer integration cannot verify them");
+        }
         Map<String, String> params = new HashMap<>();
         options.forEach((key, value) -> {
             E.checkArgument(key.startsWith("compute.") ||
                             key.startsWith(algorithm + ".") ||
+                            (("louvain_weighted".equals(algorithm) || "louvain".equals(algorithm)) &&
+                             Set.of("louvain.resolution", "louvain.threshold", "louvain.step",
+                                    "louvain.edge_weight_property").contains(key)) ||
+                            ("cycle_detection".equals(algorithm) &&
+                             Set.of("cycle.max_length", "cycle.min_length", "cycle.max_cycles",
+                                    "cycle.mode", "filter.vertex_expr", "filter.edge_expr",
+                                    "filter.vertex_properties", "filter.edge_properties").contains(key)) ||
                             "output.need_statistics".equals(key),
                             "Unsupported Vermeer parameter: %s", key);
             if (value != null) {
                 params.put(key, value.toString());
             }
         });
+        if ("slpa".equals(algorithm) && params.containsKey("slpa.k")) {
+            int k = integerParameter(params.get("slpa.k"), "slpa.k");
+            E.checkArgument(k == -1 || k >= 1, "slpa.k must be -1 or at least 1");
+        }
+        if ("clustering_coefficient".equals(algorithm) && params.containsKey("compute.max_step")) {
+            int steps = integerParameter(params.get("compute.max_step"), "compute.max_step");
+            E.checkArgument(steps >= 2, "clustering_coefficient requires at least 2 steps");
+        }
+        if (("louvain".equals(algorithm) || "louvain_weighted".equals(algorithm)) &&
+            params.containsKey("compute.max_step")) {
+            int steps = integerParameter(params.get("compute.max_step"), "compute.max_step");
+            int minimum = "louvain".equals(algorithm) ? 2 : 3;
+            E.checkArgument(steps >= minimum, "%s requires at least %s steps", algorithm, minimum);
+        }
+        if ("kout".equals(algorithm) || "jaccard".equals(algorithm)) {
+            String source = params.get(algorithm + ".source");
+            // K-out's Vermeer default is "1"; Jaccard has no usable default.
+            E.checkArgument(!"jaccard".equals(algorithm) ||
+                            (source != null && !source.isBlank()),
+                            "jaccard.source is required");
+            E.checkArgument(source == null || !source.isBlank(),
+                            "%s.source must not be blank", algorithm);
+            if ("kout".equals(algorithm) && params.containsKey("kout.direction")) {
+                E.checkArgument(Set.of("in", "out", "both").contains(params.get("kout.direction")),
+                                "Invalid kout.direction");
+            }
+            if (params.containsKey("compute.max_step")) {
+                int steps;
+                try {
+                    steps = Integer.parseInt(params.get("compute.max_step"));
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("compute.max_step must be an integer", e);
+                }
+                E.checkArgument("kout".equals(algorithm) ? steps >= 1 && steps <= 254 : steps >= 2,
+                                "Invalid compute.max_step for %s", algorithm);
+            }
+        }
         // Query results directly. Never persist a HugeGraph password or bearer
         // token in Vermeer task parameters for asynchronous output.
         params.put("output.type", "local");
@@ -190,6 +253,43 @@ public class DirectVermeerService {
                 client.getGraphSpaceName(), client.getGraphName())), StandardCharsets.UTF_8).toString();
         params.put("output.file_path", "./data/hubble/" + output);
         return this.submit(client, "compute", params);
+    }
+
+    private static int integerParameter(String value, String name) {
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(name + " must be an integer", e);
+        }
+    }
+
+    private static boolean hasText(Object value) {
+        return value != null && !value.toString().isBlank();
+    }
+
+    private void validateCycleFilter(Map<String, Object> options, String type) {
+        Object exprValue = options.get("filter." + type + "_expr");
+        Object propsValue = options.get("filter." + type + "_properties");
+        E.checkArgument(exprValue == null || exprValue instanceof String,
+                        "Filter expression must be a string");
+        E.checkArgument(propsValue == null || propsValue instanceof String,
+                        "Filter properties must be a JSON string array");
+        String expr = exprValue == null ? "" : ((String) exprValue).trim();
+        String props = propsValue == null ? "[]" : (String) propsValue;
+        JsonNode parsed;
+        try {
+            parsed = this.mapper.reader().with(DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
+                                .readTree(props);
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Filter properties must be a JSON string array", e);
+        }
+        E.checkArgument(parsed != null && parsed.isArray(), "Filter properties must be a JSON string array");
+        for (JsonNode property : parsed) {
+            E.checkArgument(property.isTextual() && !property.textValue().isBlank(),
+                            "Filter properties must contain nonempty strings");
+        }
+        E.checkArgument(expr.isEmpty() == parsed.isEmpty(),
+                        "Filter expression and properties must be provided together");
     }
 
     private Map<String, Object> submit(HugeClient client, String type,

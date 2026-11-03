@@ -52,6 +52,9 @@ const OlapFormHome = props => {
     const {
         PAGE_RANK,
         WEAKLY_CONNECTED_COMPONENT,
+        STRONGLY_CONNECTED_COMPONENT,
+        CYCLE_DETECTION_VERMEER,
+        LOUVAIN_WEIGHTED,
         DEGREE_CENTRALIT,
         CLOSENESS_CENTRALITY,
         TRIANGLE_COUNT,
@@ -65,7 +68,11 @@ const OlapFormHome = props => {
         FILTER_SUBGRAPH_MATCHING,
         K_CORE,
         PERSONAL_PAGE_RANK,
+        DEPTH,
+        SLPA,
         SSSP,
+        VERMEER_K_OUT,
+        VERMEER_JACCARD,
     } = ALGORITHM_NAME;
 
     const olapComputeList = [
@@ -89,7 +96,11 @@ const OlapFormHome = props => {
     const olapVermeerList = [
         PAGE_RANK,
         PERSONAL_PAGE_RANK,
+        DEPTH,
+        SLPA,
         WEAKLY_CONNECTED_COMPONENT,
+        STRONGLY_CONNECTED_COMPONENT,
+        CLUSTER_COEFFICIENT,
         LABEL_PROPAGATION_ALGORITHM,
         DEGREE_CENTRALIT,
         CLOSENESS_CENTRALITY,
@@ -97,6 +108,11 @@ const OlapFormHome = props => {
         TRIANGLE_COUNT,
         K_CORE,
         SSSP,
+        LOUVAIN,
+        LOUVAIN_WEIGHTED,
+        CYCLE_DETECTION_VERMEER,
+        VERMEER_K_OUT,
+        VERMEER_JACCARD,
     ];
 
 
@@ -123,13 +139,14 @@ const OlapFormHome = props => {
         },
         {
             key: 'communities',
-            items: [WEAKLY_CONNECTED_COMPONENT, LABEL_PROPAGATION_ALGORITHM,
-                LOUVAIN, K_CORE],
+            items: [WEAKLY_CONNECTED_COMPONENT, STRONGLY_CONNECTED_COMPONENT, LABEL_PROPAGATION_ALGORITHM,
+                LOUVAIN, LOUVAIN_WEIGHTED, K_CORE, SLPA],
         },
         {
             key: 'structure',
             items: [TRIANGLE_COUNT, RINGS_DETECTION, FILTERED_RINGS_DETECTION,
-                LINKS, CLUSTER_COEFFICIENT, FILTER_SUBGRAPH_MATCHING, SSSP],
+                LINKS, CLUSTER_COEFFICIENT, FILTER_SUBGRAPH_MATCHING, SSSP, DEPTH,
+                CYCLE_DETECTION_VERMEER, VERMEER_K_OUT, VERMEER_JACCARD],
         },
     ];
 
