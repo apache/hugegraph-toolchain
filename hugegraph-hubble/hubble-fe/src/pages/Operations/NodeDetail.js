@@ -346,6 +346,8 @@ const MetricGroup = ({group, name, values, status = {}, emptyMessage}) => {
     );
     const availability = status.availability ?? 'UNSUPPORTED';
     const notCollected = status.reason === 'metrics_not_collected';
+    const capacity = capacitySummary(values);
+    const hasEmptyBody = visibleEntries.length === 0 && !capacity;
     const emptyState = notCollected ? 'reason_metrics_not_collected'
         : EMPTY_STATE_BY_AVAILABILITY[availability] ?? 'unavailable';
     const showLastSuccess = status.last_success_at != null
@@ -358,7 +360,7 @@ const MetricGroup = ({group, name, values, status = {}, emptyMessage}) => {
         : `operations.availability_${availability.toLowerCase()}`, {
         defaultValue: availability,
     });
-    const reasonLabel = status.reason ? t(`operations.reason_${status.reason}`, {
+    const reasonLabel = status.reason && !(notCollected && hasEmptyBody) ? t(`operations.reason_${status.reason}`, {
         defaultValue: status.reason.replaceAll('_', ' '),
     }) : null;
     const upgradeHelp = status.reason === 'unsupported_version'
@@ -403,8 +405,7 @@ const MetricGroup = ({group, name, values, status = {}, emptyMessage}) => {
             {statusDetails}
         </header>
     );
-    const capacity = capacitySummary(values);
-    if (visibleEntries.length === 0 && !capacity) {
+    if (hasEmptyBody) {
         return (
             <section className='operations-surface operations-metric-group'>
                 {metricHeader}

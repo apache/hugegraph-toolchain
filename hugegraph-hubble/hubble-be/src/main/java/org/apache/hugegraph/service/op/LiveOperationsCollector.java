@@ -32,11 +32,14 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -80,12 +83,14 @@ public class LiveOperationsCollector implements OperationsCollector {
     private final OperationsPayloadParser parser;
     private final Clock clock;
     private final ExecutorService storeExecutor;
+    private final ThreadPoolExecutor pdMetricsExecutor;
     private final ExecutorService readinessExecutor;
     private final ExecutorService lifecycleExecutor;
     private final int storeDeadlineMillis;
     private final Set<String> storeAllowedTargets;
     private final ServerClientProvider serverClients;
-    private String pdPeers = "";
+    // Null disables direct-peer mode; an empty configured list still fails closed.
+    private String pdPeers;
 
     @Autowired
     public LiveOperationsCollector(HugeConfig config, ObjectMapper mapper,
@@ -109,7 +114,7 @@ public class LiveOperationsCollector implements OperationsCollector {
              new java.util.LinkedHashSet<>(config.get(
                      HubbleOptions.OPERATIONS_STORE_ALLOWED_TARGETS)),
              serverClients(clientPool), config.get(HubbleOptions.OPERATIONS_PD_DIRECT_PEERS) ?
-                                        config.get(HubbleOptions.PD_PEERS) : "");
+                                        config.get(HubbleOptions.PD_PEERS) : null);
     }
 
     LiveOperationsCollector(boolean pdEnabled, String pdBase,
@@ -214,15 +219,28 @@ public class LiveOperationsCollector implements OperationsCollector {
                     thread.setDaemon(true);
                     return thread;
                 });
+        // A stalled PD socket must not occupy Store discovery or metric workers.
+        // Bound both workers and queued tasks even when an interrupted DNS or
+        // socket call does not terminate immediately.
+        this.pdMetricsExecutor = new ThreadPoolExecutor(
+                storeThreads, storeThreads, 0L, TimeUnit.MILLISECONDS,
+                new ArrayBlockingQueue<>(32), runnable -> {
+                    Thread thread = new Thread(runnable, "hubble-pd-metrics-" +
+                                                         THREAD_SEQUENCE.incrementAndGet());
+                    thread.setDaemon(true);
+                    return thread;
+                }, new ThreadPoolExecutor.AbortPolicy());
     }
 
     @PreDestroy
     public void close() {
         this.storeExecutor.shutdownNow();
+        this.pdMetricsExecutor.shutdownNow();
         this.readinessExecutor.shutdownNow();
         this.lifecycleExecutor.shutdownNow();
         try {
             this.storeExecutor.awaitTermination(1L, TimeUnit.SECONDS);
+            this.pdMetricsExecutor.awaitTermination(1L, TimeUnit.SECONDS);
             this.readinessExecutor.awaitTermination(1L, TimeUnit.SECONDS);
             this.lifecycleExecutor.awaitTermination(1L, TimeUnit.SECONDS);
         } catch (InterruptedException e) {
@@ -555,7 +573,7 @@ public class LiveOperationsCollector implements OperationsCollector {
 
     private void collectPdReadiness(long now, List<Node> nodes, String cluster) {
         Map<String, URI> trusted = this.parser.trustedPdMetricTargets(cluster, this.pdBase, this.pdPeers);
-        if (this.pdPeers != null && !this.pdPeers.trim().isEmpty()) {
+        if (this.pdPeers != null) {
             this.collectTrustedPdReadiness(now, nodes, trusted);
             return;
         }
@@ -717,7 +735,7 @@ public class LiveOperationsCollector implements OperationsCollector {
     private SourceStatus collectPdMetrics(long now, SourceStatus status,
                                           List<Node> nodes, String cluster) {
         Map<String, URI> trusted = this.parser.trustedPdMetricTargets(cluster, this.pdBase, this.pdPeers);
-        if (!trusted.isEmpty()) {
+        if (this.pdPeers != null) {
             return this.collectTrustedPdMetrics(now, status, nodes, trusted);
         }
         int index = this.pdNodeIndex(nodes, cluster);
@@ -806,6 +824,8 @@ public class LiveOperationsCollector implements OperationsCollector {
     private SourceStatus collectTrustedPdMetrics(long now, SourceStatus status,
                                                   List<Node> nodes, Map<String, URI> trusted) {
         Map<Integer, Future<Node>> futures = new LinkedHashMap<>();
+        Set<Integer> rejected = new java.util.HashSet<>();
+        this.pdMetricsExecutor.purge();
         long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(this.storeDeadlineMillis);
         for (int i = 0; i < nodes.size(); i++) {
             Node node = nodes.get(i);
@@ -813,20 +833,26 @@ public class LiveOperationsCollector implements OperationsCollector {
             if (!"PD".equals(node.getType()) || base == null) {
                 continue;
             }
-            futures.put(i, this.storeExecutor.submit(() -> {
-                Map<String, Object> metrics = new LinkedHashMap<>(node.getMetrics());
-                Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
-                URI target = URI.create(base + "/actuator/prometheus");
-                try {
-                    metrics.put("system", this.parser.parsePdPrometheusMetrics(
-                            this.http.get(target, this.pdUsername, this.pdPassword,
-                                          Set.of(OperationsHttpClient.origin(base)), "text/plain")));
-                    statuses.put("system", availableMetric(now));
-                } catch (RuntimeException e) {
-                    statuses.put("system", metricStatus(e, now, true));
-                }
-                return copyNode(node, metrics, statuses);
-            }));
+            try {
+                futures.put(i, this.pdMetricsExecutor.submit(() -> {
+                    Map<String, Object> metrics = new LinkedHashMap<>(node.getMetrics());
+                    Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
+                    URI target = URI.create(base + "/actuator/prometheus");
+                    try {
+                        metrics.put("system", this.parser.parsePdPrometheusMetrics(
+                                this.http.get(target, this.pdUsername, this.pdPassword,
+                                              Set.of(OperationsHttpClient.origin(base)), "text/plain")));
+                        statuses.put("system", availableMetric(now));
+                    } catch (RuntimeException e) {
+                        Map<String, Object> details = new LinkedHashMap<>(diagnostics(e));
+                        details.putIfAbsent("request_path", "/actuator/prometheus");
+                        statuses.put("system", metricStatus(e, now, true).withDiagnostics(details));
+                    }
+                    return copyNode(node, metrics, statuses);
+                }));
+            } catch (RejectedExecutionException e) {
+                rejected.add(i);
+            }
         }
         boolean partial = false;
         try {
@@ -838,7 +864,13 @@ public class LiveOperationsCollector implements OperationsCollector {
                 Future<Node> future = futures.get(i);
                 if (future == null) {
                     Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
-                    statuses.put("system", unsupportedMetric(now, "metrics_not_collected"));
+                    MetricStatus missing = rejected.contains(i) ?
+                                           unavailableMetric(now, "upstream_unavailable") :
+                                           unsupportedMetric(now, "metrics_not_collected");
+                    if (rejected.contains(i)) {
+                        missing = missing.withDiagnostics(Map.of("request_path", "/actuator/prometheus"));
+                    }
+                    statuses.put("system", missing);
                     nodes.set(i, copyNode(node, node.getMetrics(), statuses));
                     partial = true;
                     continue;
@@ -850,15 +882,23 @@ public class LiveOperationsCollector implements OperationsCollector {
                     if (!"AVAILABLE".equals(updated.getMetricStatuses().get("system").getAvailability())) {
                         partial = true;
                     }
-                } catch (ExecutionException | TimeoutException | CancellationException e) {
+                } catch (TimeoutException | CancellationException e) {
                     Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
-                    statuses.put("system", unavailableMetric(now, "pd_metrics_failed"));
+                    statuses.put("system", unavailableMetric(now, "upstream_timeout")
+                                 .withDiagnostics(Map.of("request_path", "/actuator/prometheus")));
+                    nodes.set(i, copyNode(node, node.getMetrics(), statuses));
+                    partial = true;
+                } catch (ExecutionException e) {
+                    Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
+                    statuses.put("system", unavailableMetric(now, "upstream_unavailable")
+                                 .withDiagnostics(Map.of("request_path", "/actuator/prometheus")));
                     nodes.set(i, copyNode(node, node.getMetrics(), statuses));
                     partial = true;
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
                     Map<String, MetricStatus> statuses = new LinkedHashMap<>(node.getMetricStatuses());
-                    statuses.put("system", unavailableMetric(now, "pd_metrics_failed"));
+                    statuses.put("system", unavailableMetric(now, "upstream_unavailable")
+                                 .withDiagnostics(Map.of("request_path", "/actuator/prometheus")));
                     nodes.set(i, copyNode(node, node.getMetrics(), statuses));
                     partial = true;
                 }

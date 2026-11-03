@@ -357,7 +357,7 @@ test('shows uncollected PD metrics without claiming an unsupported version', asy
     await screen.findByRole('heading', {name: 'PD A'});
     const system = screen.getByRole('heading', {name: 'System'}).closest('section');
     expect(within(system).getByText('Not collected')).toBeVisible();
-    expect(within(system).getAllByText('This metric is not collected from the current node').length).toBeGreaterThan(0);
+    expect(within(system).getByText('This metric is not collected from the current node')).toBeVisible();
     expect(within(system).queryByText('Unsupported by this service version')).not.toBeInTheDocument();
 });
 

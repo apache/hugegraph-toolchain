@@ -31,6 +31,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -661,6 +662,113 @@ public class LiveOperationsCollectorTest {
         Assert.assertFalse(leader.getMetrics().containsKey("system"));
         Assert.assertEquals("UNSUPPORTED", leader.getMetricStatuses().get("system").getAvailability());
         Assert.assertEquals("metrics_not_collected", leader.getMetricStatuses().get("system").getReason());
+    }
+
+    @Test
+    public void testDirectPdPeersWithNoTrustedMatchNeverScrapeService() throws Exception {
+        String members = "{\"status\":0,\"data\":{\"pdList\":[" +
+                         "{\"restUrl\":\"pd-untrusted:8620\",\"state\":\"Up\"}]}}";
+        AtomicInteger prometheusCalls = new AtomicInteger();
+        OperationsHttpClient http = new OperationsHttpClient(1000, 1000, 8192) {
+            @Override
+            public String get(URI uri, String user, String password, Set<String> allowed, String accept) {
+                if ("/actuator/prometheus".equals(uri.getPath())) {
+                    prometheusCalls.incrementAndGet();
+                }
+                return get(uri, user, password, allowed);
+            }
+
+            @Override
+            public String get(URI uri, String user, String password, Set<String> allowed) {
+                return "/v1/members".equals(uri.getPath()) ? members : storesWithoutRestAddress();
+            }
+        };
+        for (String peers : List.of("pd-a:8686", "")) {
+            LiveOperationsCollector collector = new LiveOperationsCollector(
+                    true, "http://pd-service:8620", "", "", "", "", "server-under-test",
+                    http, new OperationsPayloadParser(new ObjectMapper()), CLOCK, 1, 200,
+                    Collections.singleton("http://127.0.0.1:8520"), null, peers);
+            try {
+                Snapshot snapshot = collector.collect(serverClient(), true);
+                OperationsModels.Node node = snapshot.getNodes().stream()
+                        .filter(n -> "PD".equals(n.getType())).findFirst().orElseThrow();
+                Assert.assertEquals(0, prometheusCalls.get());
+                Assert.assertEquals("metrics_not_collected", node.getMetricStatuses().get("system").getReason());
+                Assert.assertFalse(snapshot.getSources().get("pd").getDiagnostics().containsKey("pd_endpoint_metrics"));
+            } finally {
+                collector.close();
+            }
+        }
+    }
+
+    @Test
+    public void testStalledPdMetricsDoNotStarveStoreMetrics() throws Exception {
+        String members = "{\"status\":0,\"data\":{\"pdList\":[" +
+                         "{\"restUrl\":\"pd-a:8620\",\"state\":\"Up\"}]}}";
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        AtomicInteger storeRequests = new AtomicInteger();
+        OperationsHttpClient http = new OperationsHttpClient(1000, 10000, 8192) {
+            @Override
+            public String get(URI uri, String user, String password, Set<String> allowed, String accept) {
+                if ("pd-a".equals(uri.getHost()) && "/actuator/prometheus".equals(uri.getPath())) {
+                    entered.countDown();
+                    boolean done = false;
+                    while (!done) {
+                        try {
+                            done = release.await(5, TimeUnit.SECONDS);
+                        } catch (InterruptedException ignored) {
+                            // Simulate a socket read that ignores interruption.
+                        }
+                    }
+                    return "process_cpu_usage 0.125\n";
+                }
+                return get(uri, user, password, allowed);
+            }
+
+            @Override
+            public String get(URI uri, String user, String password, Set<String> allowed) {
+                switch (uri.getPath()) {
+                    case "/v1/members": return members;
+                    case "/v1/stores": return storesWithRestAddresses(1, 8520);
+                    case "/v1/prom/targets/store": return targets("127.0.0.1:8520");
+                    default:
+                        storeRequests.incrementAndGet();
+                        if (uri.getPath().endsWith("/drive")) {
+                            return "{\"disk\":{\"total_space\":10}}";
+                        }
+                        if (uri.getPath().endsWith("/raft/summary")) {
+                            return "{\"groups\":1,\"enabled_groups\":1}";
+                        }
+                        return "{\"heap\":{\"used\":1}}";
+                }
+            }
+
+            @Override
+            public ProbeResponse probe(URI uri, String user, String password, Set<String> allowed) {
+                throw new UpstreamRequestException("upstream_http_status_404");
+            }
+        };
+        LiveOperationsCollector collector = new LiveOperationsCollector(
+                true, "http://pd-service:8620", "", "", "", "", "server-under-test",
+                http, new OperationsPayloadParser(new ObjectMapper()), CLOCK, 1, 200,
+                Collections.singleton("http://127.0.0.1:8520"), null, "pd-a:8686");
+        try {
+            Snapshot snapshot = collector.collect(serverClient(), true);
+            Assert.assertEquals(0L, entered.getCount());
+            OperationsModels.Node pd = snapshot.getNodes().stream()
+                    .filter(n -> "PD".equals(n.getType())).findFirst().orElseThrow();
+            Assert.assertEquals("upstream_timeout", pd.getMetricStatuses().get("system").getReason());
+            Assert.assertEquals("/actuator/prometheus",
+                                pd.getMetricStatuses().get("system").getDiagnostics().get("request_path"));
+            Assert.assertTrue(storeRequests.get() > 0);
+            OperationsModels.Node store = snapshot.getNodes().stream()
+                    .filter(n -> "STORE".equals(n.getType())).findFirst().orElseThrow();
+            Assert.assertEquals("AVAILABLE", store.getMetricStatuses().get("system").getAvailability());
+        } finally {
+            release.countDown();
+            collector.close();
+        }
     }
 
     @Test
