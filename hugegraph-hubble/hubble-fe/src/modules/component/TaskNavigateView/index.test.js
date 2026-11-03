@@ -78,6 +78,13 @@ it('preserves the actual submission feedback without replacing the stable succes
     expect(screen.getByRole('status')).toHaveTextContent('PageRank task accepted by the server');
 });
 
+it('shows a concurrent submission failure without hiding the accepted task', () => {
+    showTask({warning: 'Degree calculation failed'});
+    expect(screen.getByText('Degree calculation failed')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Task submitted'})).toBeInTheDocument();
+    expect(screen.getByText('Server #1234567890')).toBeInTheDocument();
+});
+
 it.each(['Submitted successfully', 'Task submitted'])(
     'avoids repeating generic submission feedback (%s)', message => {
         showTask({message});
