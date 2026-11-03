@@ -587,7 +587,8 @@ const Overview = () => {
                                     {statsSampleTime != null && statsPollingExhausted
                                         && clusterStatsSource?.reason === 'collecting'
                                         && ` · ${t('operations.cluster_stats_manual_refresh')}`}
-                                    {clusterStatsSource && clusterStatsSource.availability !== 'AVAILABLE'
+                                    {statsSampleTime != null && clusterStatsSource && !clusterStatsSource.stale
+                                        && clusterStatsSource.availability !== 'AVAILABLE'
                                         && clusterStatsSource.reason !== 'collecting'
                                         && ` · ${unavailable}`}
                                 </p>

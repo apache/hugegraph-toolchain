@@ -731,17 +731,22 @@ test('labels PD cluster statistics by their actual meaning and sampling time', a
 test('marks stale PD statistics and reports unavailable without a successful sample', async () => {
     getOverview.mockResolvedValueOnce({
         status: 'UP', nodes: [], sources: {pd_cluster_stats: {
-            availability: 'UNAVAILABLE', observed_at: 2000, last_success_at: 1000, stale: true,
+            availability: 'PARTIAL', reason: 'statistics_stale',
+            observed_at: 2000, last_success_at: 1000, stale: true,
         }}, facts: {graphs: 11},
     });
     const {unmount} = renderOverview();
     const panel = (await screen.findByText('Cluster facts')).closest('aside');
-    expect(within(panel).getByRole('status')).toHaveTextContent(/Stale.*Unavailable/i);
+    expect(within(panel).getByRole('status')).toHaveTextContent('Stale');
+    expect(within(panel).getByRole('status')).not.toHaveTextContent('Unavailable');
     unmount();
-    getOverview.mockResolvedValueOnce({status: 'UP', nodes: [], sources: {}, facts: {}});
+    getOverview.mockResolvedValueOnce({status: 'UP', nodes: [], sources: {
+        pd_cluster_stats: {availability: 'UNAVAILABLE', reason: 'collection_failed', stale: false},
+    }, facts: {}});
     renderOverview();
     const emptyPanel = (await screen.findByText('Cluster facts')).closest('aside');
     expect(within(emptyPanel).getByRole('status')).toHaveTextContent('Unavailable');
+    expect(within(emptyPanel).getByRole('status')).not.toHaveTextContent(/Unavailable.*Unavailable/);
 });
 
 test('polls an initial statistics collection and stops after completion', async () => {
