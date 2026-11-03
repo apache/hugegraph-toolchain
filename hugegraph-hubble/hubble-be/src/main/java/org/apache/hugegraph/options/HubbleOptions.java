@@ -429,6 +429,13 @@ public class HubbleOptions extends OptionHolder {
         }
     }
 
+    public static final ConfigOption<Boolean> OPERATIONS_PD_DIRECT_PEERS =
+            new ConfigOption<>(
+                    "operations.pd.direct_peers",
+                    "Set true only when each configured PD peer host routes directly to one PD member.",
+                    false
+            );
+
     public static final ConfigOption<String> OPERATIONS_PD_USERNAME =
             new ConfigOption<>(
                     "operations.pd.username",

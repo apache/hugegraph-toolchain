@@ -34,6 +34,25 @@ public class OperationsPayloadParserTest {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Test
+    public void testPdMetricsOnlyUseConfiguredPeersAndRestOrigin() throws Exception {
+        OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
+        String payload = MAPPER.writeValueAsString(Map.of("status", 0, "data", Map.of("pdList", List.of(
+                Map.of("restUrl", "pd-a:8620"), Map.of("restUrl", "http://pd-b:8620"),
+                Map.of("restUrl", "http://evil:8620"), Map.of("restUrl", "http://pd-a:9999"),
+                Map.of("restUrl", "http://pd-b:8620/private"),
+                Map.of("restUrl", "http://user@pd-a:8620"),
+                Map.of("restUrl", "http://pd-a:8620?token=secret")))));
+        Map<String, URI> targets = parser.trustedPdMetricTargets(payload, "http://service:8620",
+                                                                 "pd-a:8686,pd-b:8686");
+        Assert.assertEquals(2, targets.size());
+        Assert.assertTrue(targets.containsValue(URI.create("http://pd-a:8620")));
+        Assert.assertTrue(targets.containsValue(URI.create("http://pd-b:8620")));
+        Assert.assertEquals(1, parser.trustedPdMetricTargets(payload, "https://service:8620",
+                                                             "pd-a:8686,pd-b:8686").size());
+        Assert.assertEquals(0, parser.trustedPdMetricTargets(payload, "http://service:8620", "").size());
+    }
+
+    @Test
     public void testCompactRaftSummaryRequiresConsistentIntegralCounters() {
         OperationsPayloadParser parser = new OperationsPayloadParser(MAPPER);
         Assert.assertEquals(Map.of("groups", 12000L, "enabled_groups", 11999L),

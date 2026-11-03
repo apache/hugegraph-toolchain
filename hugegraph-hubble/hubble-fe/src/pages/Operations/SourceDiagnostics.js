@@ -182,7 +182,9 @@ const SourceDiagnostics = ({sources = {}, sourceName, nodes = [], focus = false,
                         ['UNAVAILABLE', 'MALFORMED'].includes(status.availability)
                             || status.stale && status.availability !== 'UNSUPPORTED'
                             || status.availability === 'UNSUPPORTED'
-                                && ['unsupported_version', 'pd_metrics_unmapped'].includes(status.reason)
+                                && (['unsupported_version', 'pd_metrics_unmapped'].includes(status.reason)
+                                    || source.diagnostics?.pd_peer_metrics
+                                        && status.reason === 'metrics_not_collected')
                                 && (source.availability === 'PARTIAL'
                                     || ['DOWN', 'DEGRADED'].includes(source.status))
                     )).map(([group, status]) => ({node, group, status}))
