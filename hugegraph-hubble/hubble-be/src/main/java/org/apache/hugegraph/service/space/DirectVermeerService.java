@@ -241,6 +241,106 @@ public class DirectVermeerService {
         return result;
     }
 
+    /** Bounded result page and adjacency from the currently loaded Vermeer snapshot. */
+    public Map<String, Object> previewEdges(HugeClient client, int id, int cursor, int limit) {
+        authorize(client);
+        E.checkArgument(cursor >= 0 && limit > 0 && limit <= 30 && cursor <= Integer.MAX_VALUE - limit,
+                        "Invalid preview cursor or limit");
+        Map<String, Object> rawTask;
+        try {
+            rawTask = HubbleUtil.uncheckedCast(
+                    this.backend.requestPreview("GET", "task/" + nativeId(id), null).get("task"));
+        } catch (VermeerClient.PreviewTooLargeException e) {
+            return Map.of("result_status", "too_large");
+        }
+        if (rawTask == null || !name(client).equals(rawTask.get("graph_name"))) {
+            throw new ForbiddenException("Task does not belong to this graph");
+        }
+        E.checkState("compute".equals(rawTask.get("task_type")) &&
+                     "complete".equals(rawTask.get("status")),
+                     "Task is not a completed Vermeer compute task");
+        Map<String, Object> values;
+        try {
+            values = this.backend.requestPreview(
+                    "GET", "tasks/value/" + nativeId(id) + "?cursor=" + cursor +
+                    "&limit=" + (limit + 1), null);
+        } catch (VermeerClient.ValuesNotFoundException e) {
+            // Vermeer uses this response for both empty and removed values.
+            return Map.of("result_status", "expired");
+        } catch (VermeerClient.PreviewTooLargeException e) {
+            return Map.of("result_status", "too_large");
+        }
+        Object rawVertices = values.getOrDefault("vertices", List.of());
+        E.checkState(rawVertices instanceof List<?> && ((List<?>) rawVertices).size() <= limit + 1,
+                     "Invalid Vermeer preview result");
+        List<?> all = (List<?>) rawVertices;
+        int count = Math.min(all.size(), limit);
+        List<?> vertices = new ArrayList<>(all.subList(0, count));
+        Map<String, Object> result = new HashMap<>();
+        result.put("result_status", "available");
+        result.put("vertices", vertices);
+        result.put("cursor", cursor + count);
+        result.put("has_more", all.size() > limit);
+        result.put("edges", List.of());
+        result.put("edges_status", "unavailable");
+        result.put("scanned", 0);
+        result.put("truncated", false);
+        List<String> ids = new ArrayList<>();
+        int totalBytes = 0;
+        boolean idsTooLarge = false;
+        for (Object entry : vertices) {
+            E.checkState(entry instanceof Map<?, ?> && ((Map<?, ?>) entry).get("ID") instanceof String,
+                         "Invalid Vermeer preview vertex");
+            String vertex = (String) ((Map<?, ?>) entry).get("ID");
+            E.checkState(!vertex.isEmpty(), "Invalid Vermeer preview vertex ID");
+            int size = vertex.getBytes(StandardCharsets.UTF_8).length;
+            totalBytes += size;
+            // Keep valid computation values available even when an ID cannot
+            // be safely included in the bounded adjacency request.
+            idsTooLarge |= size > 256 || totalBytes > 16384;
+            ids.add(vertex);
+        }
+        if (idsTooLarge) {
+            return result;
+        }
+        if (ids.isEmpty()) {
+            result.put("edges_status", "available");
+            return result;
+        }
+        try {
+            Map<String, Object> response = this.backend.requestPreview("POST", "graphs/" +
+                    URLEncoder.encode(name(client), StandardCharsets.UTF_8).replace("+", "%20") +
+                    "/preview-edges", Map.of("vertices", ids));
+            Object edges = response.getOrDefault("edges", List.of());
+            E.checkState(edges instanceof List<?> && ((List<?>) edges).size() <= 30,
+                         "Invalid Vermeer preview edges");
+            Set<String> allowed = Set.copyOf(ids);
+            List<Map<String, String>> checked = new ArrayList<>();
+            for (Object item : (List<?>) edges) {
+                E.checkState(item instanceof Map<?, ?>, "Invalid Vermeer preview edge");
+                Map<?, ?> edge = (Map<?, ?>) item;
+                E.checkState(edge.get("source") instanceof String && edge.get("target") instanceof String &&
+                             allowed.contains(edge.get("source")) && allowed.contains(edge.get("target")),
+                             "Invalid Vermeer preview edge endpoint");
+                checked.add(Map.of("source", (String) edge.get("source"),
+                                   "target", (String) edge.get("target")));
+            }
+            Object scanned = response.get("scanned");
+            Object truncated = response.get("truncated");
+            E.checkState(scanned instanceof Number && ((Number) scanned).longValue() >= 0 &&
+                         ((Number) scanned).longValue() <= 3000 && truncated instanceof Boolean,
+                         "Invalid Vermeer preview metadata");
+            result.put("edges", checked);
+            result.put("edges_status", "available");
+            result.put("scanned", scanned);
+            result.put("truncated", truncated);
+        } catch (RuntimeException e) {
+            // An old Vermeer or a failed edge query must not hide valid task values.
+            // Neither is evidence that the computation failed or the graph has no edges.
+        }
+        return result;
+    }
+
     public List<Task> tasks(HugeClient client) {
         if (!this.supported() || !this.permitted(client)) {
             return List.of();

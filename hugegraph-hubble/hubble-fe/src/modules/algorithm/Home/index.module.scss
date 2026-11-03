@@ -24,3 +24,11 @@
     margin-top: 10px;
     height: calc(var(--analysis-result-height) + 40px);
 }
+
+@media (max-width: 600px) {
+    .algorithmContent {
+        flex-direction: column;
+        height: auto;
+        min-width: 0;
+    }
+}
