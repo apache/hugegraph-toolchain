@@ -93,7 +93,7 @@ test('accepts every same-scope OLAP completion even when responses arrive in rev
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
 });
 
-test('keeps a successful preview when another concurrent OLAP task fails', async () => {
+test('keeps a successful preview and exposes another concurrent failure as a warning', async () => {
     render(home());
     await waitFor(() => expect(formProps).toHaveBeenCalled());
     let success;
@@ -107,6 +107,43 @@ test('keeps a successful preview when another concurrent OLAP task fails', async
     act(() => failure(GRAPH_STATUS.FAILED, '', 'worker failed'));
     expect(currentResult().asyncTaskId).toBe(-31);
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    expect(currentResult().queryMessage).toBe('worker failed');
+});
+
+test('keeps loading until every concurrent OLAP submission has settled', async () => {
+    render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    let first;
+    let second;
+    act(() => {
+        first = start('Olap');
+        second = start('Olap');
+    });
+    act(() => first(GRAPH_STATUS.FAILED, '', 'first failed'));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING);
+    expect(currentResult().queryMessage).toBe('first failed');
+    expect(currentResult().asyncTaskId).toBeUndefined();
+    act(() => second(GRAPH_STATUS.FAILED, '', 'second failed'));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED);
+    expect(currentResult().queryMessage).toBe('second failed');
+});
+
+test('a new OLAP attempt clears the retained preview warning', async () => {
+    render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    let success;
+    let failure;
+    act(() => {
+        success = start('Olap');
+        failure = start('Olap');
+        success(GRAPH_STATUS.SUCCESS, -35);
+        failure(GRAPH_STATUS.FAILED, '', 'old warning');
+    });
+    expect(currentResult().queryMessage).toBe('old warning');
+    act(() => { start('Olap'); });
+    expect(currentResult().asyncTaskId).toBe(-35);
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    expect(currentResult().queryMessage).toBeUndefined();
 });
 
 test('keeps OLTP latest-only while OLTP and concurrent OLAP invalidate each other', async () => {
