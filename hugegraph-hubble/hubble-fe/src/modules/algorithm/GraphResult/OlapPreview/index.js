@@ -68,7 +68,6 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
     const [activeTaskId, setActiveTaskId] = useState(Number(taskId));
     const [state, setState] = useState({phase: 'waiting'});
     const [mode, setMode] = useState('graph');
-    const [visibleWarning, setVisibleWarning] = useState();
     const [canvasController, setCanvasController] = useState(null);
     const canvasHost = useRef(null);
     const [cursor, setCursor] = useState(null);
@@ -86,12 +85,6 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
 
     useEffect(() => setActiveTaskId(Number(taskId)), [taskId]);
 
-    useEffect(() => {
-        setVisibleWarning(warning);
-        if (!warning) return undefined;
-        const timer = setTimeout(() => setVisibleWarning(undefined), 5000);
-        return () => clearTimeout(timer);
-    }, [warning]);
 
     useEffect(() => {
         accumulated.current = [];
@@ -250,7 +243,7 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
                 </Link>
             </div>
         </div>
-        {visibleWarning && <div className={c.notice} role='status'>{visibleWarning}</div>}
+        {warning && <div className={c.problem} role='status'>{warning}</div>}
         {state.phase === 'waiting' && <div className={c.asyncStatus}>
             <Spin description={t('analysis.algorithm.preview_running')} />
             <p>{t('analysis.algorithm.preview_async_hint')}</p>

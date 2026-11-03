@@ -21,7 +21,7 @@
 .asyncStatus { display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .asyncStatus p { margin: 0; color: #596579; font-size: 13px; text-align: center; }
 .sampleNote { display: flex; flex-wrap: wrap; gap: 4px 12px; color: #596579; font-size: 12px; line-height: 1.5; }
-.notice, .problem { margin: 0; color: #815500; font-size: 13px; }
+.problem { margin: 0; color: #815500; font-size: 13px; }
 .problem { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
 .header { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
 .headerActions { min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 10px; }
