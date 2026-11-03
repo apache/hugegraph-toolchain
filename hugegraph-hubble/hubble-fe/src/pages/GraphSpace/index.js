@@ -46,6 +46,7 @@ import * as api from '../../api/index';
 import {useAuthContext} from '../../auth/AuthContext';
 import {getResourceDisplayName} from '../../utils/displayName';
 import {TopbarPageContextSlot} from '../../components/Topbar/PageContextSlot';
+import {clearOlapTasksForGraphSpace} from '../../modules/algorithm/olapTaskRegistry';
 
 const PAGE_ERROR_CONFIG = {suppressBusinessErrorToast: true};
 
@@ -126,6 +127,7 @@ const GraphSpace = () => {
                     if (res.status !== 200) {
                         throw new Error('GraphSpace deletion failed');
                     }
+                    clearOlapTasksForGraphSpace(graphspace);
                     message.success(t('common.msg.delete_success'));
                     setRefresh(value => !value);
                     close();

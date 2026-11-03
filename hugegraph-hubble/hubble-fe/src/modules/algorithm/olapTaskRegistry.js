@@ -69,6 +69,17 @@ export const clearOlapTasksForGraph = (graphSpace, graph) => {
     notify(key);
 };
 
+// A deleted GraphSpace invalidates every graph in it, including requests that
+// are still in flight. Keep other spaces and their pending submissions intact.
+export const clearOlapTasksForGraphSpace = graphSpace => {
+    const keys = new Set([...tasksByScope.keys(), ...latestByAlgorithm.keys(), ...pendingByScope.keys(),
+        ...failuresByScope.keys(), ...scopeVersions.keys(), ...listenersByScope.keys()]);
+    for (const key of keys) {
+        const [space, graph] = JSON.parse(key);
+        if (space === graphSpace) clearOlapTasksForGraph(space, graph);
+    }
+};
+
 export const getLatestOlapTask = (graphSpace, graph, algorithm) =>
     latestByAlgorithm.get(scopeKey(graphSpace, graph))?.get(algorithm);
 

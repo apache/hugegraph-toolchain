@@ -18,6 +18,9 @@
 
 import {fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import {Modal} from 'antd';
+import {beginPendingOlapTask, clearOlapTasks, finishPendingOlapTask, getLatestOlapTask, recordOlapTask}
+    from '../../modules/algorithm/olapTaskRegistry';
 import GraphSpace from './index';
 import * as api from '../../api';
 import * as user from '../../utils/user';
@@ -46,15 +49,19 @@ jest.mock('react-router-dom', () => ({
     Link: ({children}) => <span>{children}</span>,
 }));
 
-jest.mock('./Card', () => ({item, canUpdate, canDelete}) => (
-    <div>{item.nickname}:{canUpdate && canDelete ? 'manage' : 'view'}</div>
+jest.mock('./Card', () => ({item, canUpdate, canDelete, deleteGraphspace}) => (
+    <div>{item.nickname}:{canUpdate && canDelete ? 'manage' : 'view'}
+        {canDelete && <button onClick={() => deleteGraphspace(item.name)}>delete {item.name}</button>}
+    </div>
 ));
 jest.mock('./EditLayer', () => ({EditLayer: ({visible}) => (
     visible ? <div>graphspace create layer</div> : null
 )}));
 
 beforeEach(() => {
+    jest.restoreAllMocks();
     jest.clearAllMocks();
+    clearOlapTasks();
     user.getUser.mockReturnValue({is_superadmin: true, adminSpaces: []});
     mockAuthContext = {
         context: {
@@ -311,4 +318,60 @@ test('shows empty descriptions and omits empty namespace separators in list view
     expect(within(row).getByText('--')).toBeInTheDocument();
     expect(row).toHaveTextContent('8graphspace.unit.cpu / 16graphspace.unit.memory');
     expect(row.textContent).not.toContain(' /  /');
+});
+
+
+test('invalidates all tasks and pending requests for a deleted GraphSpace only', async () => {
+    api.manage.getGraphSpaceList.mockResolvedValue({status: 200, data: {records: [
+        {name: 'space-a', nickname: 'Space A'}, {name: 'space-b', nickname: 'Space B'},
+    ], total: 2}});
+    api.manage.delGraphSpace.mockResolvedValue({status: 200});
+    recordOlapTask({graphSpace: 'space-a', graph: 'g1', algorithm: 'pagerank', id: -1});
+    recordOlapTask({graphSpace: 'space-a', graph: 'g2', algorithm: 'pagerank', id: -2});
+    recordOlapTask({graphSpace: 'space-b', graph: 'g1', algorithm: 'pagerank', id: -3});
+    const oldRequest = beginPendingOlapTask('space-a', 'g1', 'pagerank');
+    const otherRequest = beginPendingOlapTask('space-b', 'g1', 'pagerank');
+    let onOk;
+    jest.spyOn(Modal, 'confirm').mockImplementation(options => {
+        onOk = options.onOk;
+        return {update: jest.fn()};
+    });
+    render(<GraphSpace />);
+    await userEvent.click(await screen.findByRole('button', {name: 'delete space-a'}, {timeout: 10000}));
+    onOk(jest.fn());
+    await waitFor(() => expect(api.manage.delGraphSpace).toHaveBeenCalledWith('space-a', expect.anything()));
+    await waitFor(() => expect(getLatestOlapTask('space-a', 'g1', 'pagerank')).toBeUndefined());
+    expect(getLatestOlapTask('space-a', 'g2', 'pagerank')).toBeUndefined();
+    expect(getLatestOlapTask('space-b', 'g1', 'pagerank').id).toBe(-3);
+    // A late response from the old space must neither repopulate the same-name
+    // replacement nor cancel a submission made after that replacement was created.
+    const replacementRequest = beginPendingOlapTask('space-a', 'g1', 'pagerank');
+    expect(finishPendingOlapTask(oldRequest, null,
+        {graphSpace: 'space-a', graph: 'g1', algorithm: 'pagerank', id: -4})).toBe(false);
+    expect(getLatestOlapTask('space-a', 'g1', 'pagerank')).toBeUndefined();
+    expect(finishPendingOlapTask(replacementRequest, null,
+        {graphSpace: 'space-a', graph: 'g1', algorithm: 'pagerank', id: -6})).toBe(true);
+    expect(getLatestOlapTask('space-a', 'g1', 'pagerank').id).toBe(-6);
+    expect(finishPendingOlapTask(otherRequest, null,
+        {graphSpace: 'space-b', graph: 'g1', algorithm: 'pagerank', id: -5})).toBe(true);
+    expect(getLatestOlapTask('space-b', 'g1', 'pagerank').id).toBe(-5);
+});
+
+test('keeps cached tasks when GraphSpace deletion fails', async () => {
+    api.manage.getGraphSpaceList.mockResolvedValue({status: 200, data: {records: [
+        {name: 'space-a', nickname: 'Space A'},
+    ], total: 1}});
+    api.manage.delGraphSpace.mockResolvedValue({status: 500});
+    recordOlapTask({graphSpace: 'space-a', graph: 'g1', algorithm: 'pagerank', id: -1});
+    let onOk;
+    jest.spyOn(Modal, 'confirm').mockImplementation(options => {
+        onOk = options.onOk;
+        return {update: jest.fn()};
+    });
+    render(<GraphSpace />);
+    await userEvent.click(await screen.findByRole('button', {name: 'delete space-a'}, {timeout: 10000}));
+    onOk(jest.fn());
+    await waitFor(() => expect(api.manage.delGraphSpace).toHaveBeenCalled());
+    await waitFor(() => expect(screen.getByText('common.msg.operation_failed')).toBeInTheDocument());
+    expect(getLatestOlapTask('space-a', 'g1', 'pagerank').id).toBe(-1);
 });
