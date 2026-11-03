@@ -237,16 +237,20 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
                         value: task.id,
                         label: task.algorithm ? `${task.algorithm} · ${task.id}` : String(task.id),
                     }))} />}
-                <Link to={`/asyncTasks/${encodeURIComponent(graphSpace)}/${encodeURIComponent(graph)}`
+                {state.phase !== 'waiting' && <Link to={`/asyncTasks/${encodeURIComponent(graphSpace)}/${encodeURIComponent(graph)}`
                     + `?taskId=${encodeURIComponent(activeTaskId)}&submitted=1`}>
                     {t('analysis.algorithm.preview_task_detail')}
-                </Link>
+                </Link>}
             </div>
         </div>
         {warning && <div className={c.problem} role='status'>{warning}</div>}
         {state.phase === 'waiting' && <div className={c.asyncStatus}>
             <Spin description={t('analysis.algorithm.preview_running')} />
             <p>{t('analysis.algorithm.preview_async_hint')}</p>
+            <Link to={`/asyncTasks/${encodeURIComponent(graphSpace)}/${encodeURIComponent(graph)}`
+                + `?taskId=${encodeURIComponent(activeTaskId)}&submitted=1`}>
+                {t('analysis.algorithm.preview_task_detail')}
+            </Link>
         </div>}
         {state.phase === 'loading' && <Spin description={t('analysis.algorithm.preview_loading')} />}
         {['status_error', 'not_found'].includes(state.phase) && <div className={c.problem} role='status'>
