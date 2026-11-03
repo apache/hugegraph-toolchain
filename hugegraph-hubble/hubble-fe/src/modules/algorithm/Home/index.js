@@ -59,6 +59,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const [graphOptions, setGraphOptions] = useState();
     const [panelType, setPanelType] = useState(CLOSED);
     const [algorithmOnCanvas, setAlgorithmOnCanvas] = useState();
+    const [olapResultAlgorithm, setOlapResultAlgorithm] = useState();
     const [pageExecute, setExecutePage] = useState(defaultPageParams.page);
     const [pageFavorite, setFavoritePage] = useState(defaultPageParams.page);
     const [pageSize, setPageSize] = useState(defaultPageParams.pageSize);
@@ -468,7 +469,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     );
 
     const handleOlapFormSubmit = useCallback(
-        () => beginSubmission((status, data, message, {pending = 0} = {}) => {
+        algorithm => beginSubmission((status, data, message, {pending = 0} = {}) => {
             const hasVisibleTask = visibleOlapTask.current !== undefined &&
                                    asyncTaskOwner.current === graphNumsScope;
             if (status === LOADING) {
@@ -490,7 +491,10 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             setQueryResult({});
             setQueryStatus(status);
             asyncTaskOwner.current = graphNumsScope;
-            if (status === SUCCESS) visibleOlapTask.current = data;
+            if (status === SUCCESS) {
+                visibleOlapTask.current = data;
+                setOlapResultAlgorithm(algorithm);
+            }
             if (status === FAILED) visibleOlapTask.current = undefined;
             setAsyncTaskResult(data);
             // A sibling may have failed while this submission was pending.
@@ -574,7 +578,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
                     queryStatus={asyncTaskResult && asyncTaskOwner.current !== graphNumsScope ? STANDBY : queryStatus}
                     queryMessage={queryMessage}
                     isQueryMode={algorithmMode === OLTP}
-                    algorithm={algorithmOnCanvas}
+                    algorithm={algorithmMode === OLAP ? olapResultAlgorithm : algorithmOnCanvas}
                     panelType={panelType}
                     graphNums={graphNums}
                     onRefreshGraphNums={getGraphNumsInfo}

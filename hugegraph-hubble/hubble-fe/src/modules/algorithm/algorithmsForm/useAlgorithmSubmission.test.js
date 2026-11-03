@@ -95,6 +95,7 @@ test('records an accepted successful task with its original graph scope', () => 
         beginSubmission, 'DEFAULT', 'hugegraph', 'Degree Centrality', true
     ));
     const finish = result.current(GRAPH_STATUS.LOADING);
+    expect(beginSubmission).toHaveBeenCalledWith('Degree Centrality');
     finish(GRAPH_STATUS.SUCCESS, -8);
     expect(recordOlapTask).toHaveBeenCalledWith({
         graphSpace: 'DEFAULT',

@@ -24,7 +24,7 @@ import {recordOlapTask} from '../olapTaskRegistry';
 export default function useAlgorithmSubmission(beginSubmission, graphSpace, graph,
                                                algorithm, trackOlapTask = false) {
     return useCallback((status, ...args) => {
-        const complete = beginSubmission();
+        const complete = beginSubmission(algorithm);
         complete?.(status, ...args);
         if (!trackOlapTask) return complete;
         return (finalStatus, ...finalArgs) => {

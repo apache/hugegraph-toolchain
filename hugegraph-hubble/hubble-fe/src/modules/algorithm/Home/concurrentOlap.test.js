@@ -51,8 +51,8 @@ jest.mock('../LogsDetail/Home', () => () => null);
 
 const okList = {status: 200, data: {records: [], total: 0}};
 const currentResult = () => resultProps.mock.lastCall[0];
-const start = kind => {
-    const receive = formProps.mock.lastCall[0][`handle${kind}FormSubmit`]();
+const start = (kind, algorithm) => {
+    const receive = formProps.mock.lastCall[0][`handle${kind}FormSubmit`](algorithm);
     receive(GRAPH_STATUS.LOADING);
     return receive;
 };
@@ -82,14 +82,20 @@ test('accepts every same-scope OLAP completion even when responses arrive in rev
     let first;
     let second;
     act(() => {
-        first = start('Olap');
-        second = start('Olap');
+        formProps.mock.lastCall[0].updateCurrentAlgorithm('PageRank');
+        first = start('Olap', 'PageRank');
+        formProps.mock.lastCall[0].updateCurrentAlgorithm('WCC');
+        second = start('Olap', 'WCC');
     });
     act(() => second(GRAPH_STATUS.SUCCESS, -22));
     expect(currentResult().asyncTaskId).toBe(-22);
+    expect(currentResult().algorithm).toBe('WCC');
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    act(() => formProps.mock.lastCall[0].updateCurrentAlgorithm('Triangle Count'));
+    expect(currentResult().algorithm).toBe('WCC');
     act(() => first(GRAPH_STATUS.SUCCESS, -21));
     expect(currentResult().asyncTaskId).toBe(-21);
+    expect(currentResult().algorithm).toBe('PageRank');
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
 });
 
