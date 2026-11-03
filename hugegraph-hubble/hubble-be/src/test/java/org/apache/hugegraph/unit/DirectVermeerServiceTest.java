@@ -334,7 +334,7 @@ public class DirectVermeerServiceTest {
     }
 
     @Test
-    public void testComputeReusesSafeOutputFilesPerGraph() {
+    public void testComputeIsolatesOutputFilesPerSubmission() {
         VermeerClient backend = Mockito.mock(VermeerClient.class);
         Mockito.when(backend.request(Mockito.eq("POST"), Mockito.eq("tasks/create"), Mockito.anyMap()))
                .thenReturn(Map.of("task", Map.of("id", 12)));
@@ -353,10 +353,15 @@ public class DirectVermeerServiceTest {
             Map<?, ?> params = (Map<?, ?>) body.get("params");
             return (String) params.get("output.file_path");
         }).toList();
-        Assert.assertEquals(paths.get(0), paths.get(1));
-        Assert.assertNotEquals(paths.get(0), paths.get(2));
-        Assert.assertNotEquals(paths.get(2), paths.get(3));
-        paths.forEach(path -> Assert.assertTrue(path.matches("\\./data/hubble/[0-9a-f]{64}")));
+        List<String> scopes = paths.stream()
+                                    .map(path -> path.substring(0, path.lastIndexOf('/')))
+                                    .toList();
+        Assert.assertEquals(scopes.get(0), scopes.get(1));
+        Assert.assertNotEquals(scopes.get(0), scopes.get(2));
+        Assert.assertNotEquals(scopes.get(2), scopes.get(3));
+        Assert.assertEquals(4L, paths.stream().distinct().count());
+        paths.forEach(path -> Assert.assertTrue(
+                path.matches("\\./data/hubble/[0-9a-f]{64}/[0-9a-f]{32}")));
     }
 
     @Test
