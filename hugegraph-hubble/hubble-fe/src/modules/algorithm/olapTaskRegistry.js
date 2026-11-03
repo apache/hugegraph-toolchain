@@ -129,7 +129,7 @@ export const consumeOlapFailure = (graphSpace, graph, algorithm) => {
     const failure = failures.get(selected);
     failures.delete(selected);
     if (!failures.size) failuresByScope.delete(key);
-    return failure;
+    return failure ? {...failure, algorithm: selected} : undefined;
 };
 
 export const usePendingOlapTasks = (graphSpace, graph) => {

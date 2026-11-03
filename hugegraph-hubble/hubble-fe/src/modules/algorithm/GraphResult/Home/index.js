@@ -68,6 +68,7 @@ const GraphResult = props => {
         options,
         asyncTaskId,
         restoredOlapTask,
+        onSelectOlapTask,
         queryStatus,
         queryMessage,
         isQueryMode,
@@ -446,7 +447,8 @@ const GraphResult = props => {
                 if (isOlapPreview) {
                     return <OlapPreview key={JSON.stringify([graphSpace, graph, asyncTaskId])}
                         graphSpace={graphSpace} graph={graph} taskId={asyncTaskId}
-                        warning={queryMessage} restoredOlapTask={restoredOlapTask} />;
+                        warning={queryMessage} restoredOlapTask={restoredOlapTask}
+                        onSelectTask={onSelectOlapTask} />;
                 }
                 return (
                     <TaskNavigateView

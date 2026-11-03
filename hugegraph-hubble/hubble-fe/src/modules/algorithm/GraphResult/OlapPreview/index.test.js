@@ -62,7 +62,8 @@ test('displays friendly task numbers while retaining signed IDs for requests and
         status: 200, data: [{id, task_status: 'success'}],
     }));
     api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
-    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} />);
+    const onSelectTask = jest.fn();
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} onSelectTask={onSelectTask} />);
     expect(await screen.findByText('PageRank · 7')).toBeInTheDocument();
     expect(screen.getByText('analysis.algorithm.preview_task_detail').closest('a')).toHaveAttribute(
         'href', '/asyncTasks/s/g?taskId=-7&submitted=1'
@@ -72,6 +73,7 @@ test('displays friendly task numbers while retaining signed IDs for requests and
         'Triangle Count · 8', 'PageRank · 7',
     ]);
     fireEvent.click(screen.getByRole('option', {name: 'Triangle Count · 8'}));
+    expect(onSelectTask).toHaveBeenCalledWith(-8);
     await waitFor(() => expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenCalledWith('s', 'g', -8, 0, 12));
     expect(screen.getByText('analysis.algorithm.preview_task_detail').closest('a')).toHaveAttribute(
         'href', '/asyncTasks/s/g?taskId=-8&submitted=1'
@@ -89,6 +91,21 @@ test('labels a restored result with the option to run again', async () => {
     api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
     render(<OlapPreview graphSpace='s' graph='g' taskId={-7} restoredOlapTask />);
     expect(await screen.findByText('analysis.algorithm.preview_restored_hint')).toBeInTheDocument();
+});
+
+test('hides the restored hint when the user selects a different task', async () => {
+    recordOlapTask({graphSpace: 's', graph: 'g', id: -8, algorithm: 'PageRank'});
+    recordOlapTask({graphSpace: 's', graph: 'g', id: -7, algorithm: 'PageRank'});
+    api.analysis.fetchManageTaskById.mockResolvedValue({status: 200, data: [
+        {id: -7, task_status: 'success'}, {id: -8, task_status: 'success'},
+    ]});
+    api.analysis.fetchOlapPreviewEdges.mockResolvedValue(page([{ID: 'a', Value: 1}], 1, false));
+    render(<OlapPreview graphSpace='s' graph='g' taskId={-7} restoredOlapTask />);
+    expect(await screen.findByText('analysis.algorithm.preview_restored_hint')).toBeInTheDocument();
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(screen.getByRole('option', {name: 'PageRank · 8'}));
+    await waitFor(() => expect(api.analysis.fetchOlapPreviewEdges).toHaveBeenCalledWith('s', 'g', -8, 0, 12));
+    expect(screen.queryByText('analysis.algorithm.preview_restored_hint')).not.toBeInTheDocument();
 });
 
 test('does not display a delayed result after unmount', async () => {

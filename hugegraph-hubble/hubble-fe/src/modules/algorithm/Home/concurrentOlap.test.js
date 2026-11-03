@@ -101,6 +101,27 @@ test('accepts every same-scope OLAP completion even when responses arrive in rev
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
 });
 
+test('preserves a task explicitly selected during concurrent submissions until a new attempt', async () => {
+    render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    let first;
+    let second;
+    act(() => {
+        first = start('Olap', 'PageRank');
+        second = start('Olap', 'WCC');
+        first(GRAPH_STATUS.SUCCESS, -21);
+    });
+    expect(currentResult().asyncTaskId).toBe(-21);
+    act(() => currentResult().onSelectOlapTask(-10));
+    act(() => second(GRAPH_STATUS.SUCCESS, -22));
+    expect(currentResult().asyncTaskId).toBe(-21);
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    let next;
+    act(() => { next = start('Olap', 'Triangle Count'); });
+    act(() => next(GRAPH_STATUS.SUCCESS, -23));
+    expect(currentResult().asyncTaskId).toBe(-23);
+});
+
 test('keeps a successful preview and exposes another concurrent failure as a warning', async () => {
     render(home());
     await waitFor(() => expect(formProps).toHaveBeenCalled());
@@ -315,7 +336,7 @@ test('preserves a detached submission failure alongside the previous result', as
     act(() => { finish(GRAPH_STATUS.FAILED, '', 'submission failed'); });
     render(home());
     await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
-    expect(currentResult().queryMessage).toBe('submission failed');
+    expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: submission failed');
     expect(currentResult().restoredOlapTask).toBe(true);
     act(() => { start('Olap', 'PageRank'); });
     expect(currentResult().queryMessage).toBeUndefined();
@@ -334,7 +355,7 @@ test('reports detached submission failure after return without previous result',
     await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
     act(() => { finish(GRAPH_STATUS.FAILED, '', 'submission failed'); });
     await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
-    expect(currentResult().queryMessage).toBe('submission failed');
+    expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: submission failed');
 });
 
 
@@ -357,7 +378,7 @@ test.each([GRAPH_STATUS.SUCCESS, GRAPH_STATUS.FAILED])(
             expect(currentResult().algorithm).toBe('PageRank');
         } else {
             await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
-            expect(currentResult().queryMessage).toBe('request failed');
+            expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: request failed');
         }
     }
 );
@@ -385,12 +406,12 @@ test.each([GRAPH_STATUS.SUCCESS, GRAPH_STATUS.FAILED])(
         expect(currentResult().algorithm).toBe('PageRank');
     } else {
         await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
-        expect(currentResult().queryMessage).toBe('PageRank failed');
+        expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: PageRank failed');
     }
     act(() => finishB(GRAPH_STATUS.SUCCESS, -102));
     expect(currentResult().asyncTaskId).toBe(terminal === GRAPH_STATUS.SUCCESS ? -101 : undefined);
     if (terminal === GRAPH_STATUS.SUCCESS) expect(currentResult().algorithm).toBe('PageRank');
-    else expect(currentResult().queryMessage).toBe('PageRank failed');
+    else expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: PageRank failed');
 });
 
 test('does not let a formerly selected pending algorithm replace the current selection', async () => {
@@ -428,7 +449,7 @@ test('preserves a selected old result and reports a detached recomputation failu
     act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
     expect(currentResult().asyncTaskId).toBe(-7);
     act(() => finish(GRAPH_STATUS.FAILED, '', 'recompute failed'));
-    await waitFor(() => expect(currentResult().queryMessage).toBe('recompute failed'));
+    await waitFor(() => expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: recompute failed'));
     expect(currentResult().asyncTaskId).toBe(-7);
 });
 
@@ -449,7 +470,7 @@ test('shows a detached failure only when returning to its algorithm', async () =
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.STANDBY);
     act(() => formProps.mock.lastCall[0].onSelectOlapAlgorithm('PageRank'));
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED);
-    expect(currentResult().queryMessage).toBe('PageRank failed');
+    expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: PageRank failed');
 });
 
 const scopedHome = (graph = 'hugegraph', engine = 'olap') => (
@@ -494,7 +515,7 @@ test.each(['engine', 'graph'])(
         expect(currentResult().asyncTaskId).toBeUndefined();
         view.rerender(scopedHome());
         await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
-        expect(currentResult().queryMessage).toBe('submission failed');
+        expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: submission failed');
     }
 );
 
@@ -552,7 +573,7 @@ test.each(['engine', 'graph'])(
         await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
         act(() => finish(GRAPH_STATUS.FAILED, '', 'submission failed'));
         await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.FAILED));
-        expect(currentResult().queryMessage).toBe('submission failed');
+        expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: submission failed');
     }
 );
 
@@ -599,11 +620,11 @@ test('keeps an available result and a failure visible while another submission i
     await waitFor(() => expect(currentResult().asyncTaskId).toBe(-7));
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
     act(() => finishA(GRAPH_STATUS.FAILED, '', 'WCC failed'));
-    await waitFor(() => expect(currentResult().queryMessage).toBe('WCC failed'));
+    await waitFor(() => expect(currentResult().queryMessage).toBe('WCC: WCC failed'));
     expect(currentResult().asyncTaskId).toBe(-7);
     act(() => finishB(GRAPH_STATUS.SUCCESS, -202));
     expect(currentResult().asyncTaskId).toBe(-7);
-    expect(currentResult().queryMessage).toBe('WCC failed');
+    expect(currentResult().queryMessage).toBe('WCC: WCC failed');
 });
 
 test('shows a failed submission while another is still pending without a result', async () => {
@@ -622,9 +643,9 @@ test('shows a failed submission while another is still pending without a result'
     render(home());
     await waitFor(() => expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING));
     act(() => finishA(GRAPH_STATUS.FAILED, '', 'PageRank failed'));
-    await waitFor(() => expect(currentResult().queryMessage).toBe('PageRank failed'));
+    await waitFor(() => expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: PageRank failed'));
     expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING);
     act(() => finishB(GRAPH_STATUS.SUCCESS, -202));
     await waitFor(() => expect(currentResult().asyncTaskId).toBe(-202));
-    expect(currentResult().queryMessage).toBe('PageRank failed');
+    expect(currentResult().queryMessage).toBe('analysis.algorithm.olap.item.PAGE_RANK: PageRank failed');
 });

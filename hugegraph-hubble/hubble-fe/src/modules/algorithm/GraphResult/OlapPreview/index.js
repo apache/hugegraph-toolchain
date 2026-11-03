@@ -63,7 +63,7 @@ export const buildConnectedSample = (vertices = [], edges = [], maxNodes = PATH_
 
 // A result is an ID/value pair, not a graph vertex or an edge. Keep this view
 // read-only and do not feed synthetic elements into the editable graph canvas.
-const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => {
+const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask, onSelectTask}) => {
     const {t} = useTranslation();
     const recentTasks = useOlapTasks(graphSpace, graph);
     const [activeTaskId, setActiveTaskId] = useState(Number(taskId));
@@ -234,7 +234,7 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
             <div className={c.headerActions}>
                 {taskOptions.length > 1 && <Select className={c.runSelect} size='small' virtual={false}
                     aria-label={t('analysis.algorithm.preview_title')} value={activeTaskId}
-                    onChange={setActiveTaskId} options={taskOptions.map(task => ({
+                    onChange={value => { setActiveTaskId(value); onSelectTask?.(value); }} options={taskOptions.map(task => ({
                         value: task.id,
                         label: task.algorithm ? `${task.algorithm} · ${displayTaskId(task.id)}` : displayTaskId(task.id),
                     }))} />}
@@ -304,7 +304,7 @@ const OlapPreview = ({graphSpace, graph, taskId, warning, restoredOlapTask}) => 
                 value, label: t(`analysis.algorithm.preview_${value}`),
             }))} />
             <div className={c.sampleNote}>
-                {restoredOlapTask && <span>{t('analysis.algorithm.preview_restored_hint')}</span>}
+                {restoredOlapTask && activeTaskId === Number(taskId) && <span>{t('analysis.algorithm.preview_restored_hint')}</span>}
                 <span>{t('analysis.algorithm.preview_sample', {count: vertices.length})} · {t('analysis.algorithm.preview_no_edges')}</span>
                 {state.edgeStatus === 'partial' && <span>{t('analysis.algorithm.preview_edges_partial', {count: state.edges.length})}</span>}
                 {state.missingEdgePages ? <span>{t('analysis.algorithm.preview_edges_missing', {pages: state.missingEdgePages})}</span>
