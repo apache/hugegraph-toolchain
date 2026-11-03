@@ -28,10 +28,11 @@ export default function useAlgorithmSubmission(beginSubmission, graphSpace, grap
         complete?.(status, ...args);
         if (!trackOlapTask) return complete;
         return (finalStatus, ...finalArgs) => {
-            if (finalStatus === GRAPH_STATUS.SUCCESS) {
+            const accepted = complete?.(finalStatus, ...finalArgs);
+            if (accepted && finalStatus === GRAPH_STATUS.SUCCESS) {
                 recordOlapTask({graphSpace, graph, algorithm, id: finalArgs[0]});
             }
-            complete?.(finalStatus, ...finalArgs);
+            return accepted;
         };
     }, [algorithm, beginSubmission, graph, graphSpace, trackOlapTask]);
 }
