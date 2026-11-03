@@ -70,6 +70,7 @@ jest.mock('../RankApiView', () => () => null);
 jest.mock('../JaccView', () => () => null);
 jest.mock('../../../component/GraphStatusView', () => props => <div>{props.message}</div>);
 jest.mock('../../../component/TaskNavigateView', () => () => null);
+jest.mock('../OlapPreview', () => () => <div>olap preview</div>);
 jest.mock('../../../component/Canvas3D', () => ({onExit, children}) => (
     <><button onClick={onExit}>Return to 2D</button>{children}</>
 ));
@@ -486,4 +487,21 @@ test.each([
     expect(Boolean(screen.queryByRole('link', {name: 'analysis.algorithm.vermeer_docs'}))).toBe(hasDocs);
     expect(Boolean(screen.queryByRole('link', {name: 'analysis.algorithm.helm_guide'}))).toBe(hasDocs);
     expect(mockCounts.mock.lastCall[0].data.currentGraphNodesNum).toBe(1);
+});
+
+
+test('switching to OLTP removes the read-only preview before showing editing controls', () => {
+    const scene = engine => <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'g',
+        isVermeer: true, vermeerReady: true}}>
+        <GraphResult data={{}} engine={engine} isQueryMode={false} asyncTaskId={-7}
+            queryStatus={GRAPH_STATUS.SUCCESS} panelType={PANEL_TYPE.CLOSED}
+            graphRenderMode={GRAPH_RENDER_MODE.CANVAS2D} updatePanelType={jest.fn()} />
+    </GraphAnalysisContext.Provider>;
+    const view = render(scene('olap'));
+    expect(screen.getByText('olap preview')).toBeInTheDocument();
+    expect(mockCounts).not.toHaveBeenCalled();
+    expect(screen.queryByText('graph menu')).not.toBeInTheDocument();
+    view.rerender(scene('oltp'));
+    expect(screen.queryByText('olap preview')).not.toBeInTheDocument();
+    expect(screen.getByText('graph menu')).toBeInTheDocument();
 });

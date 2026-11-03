@@ -32,6 +32,7 @@ import {supportsQueryLanguage} from '../../../utils/text2gql';
 import c from './index.module.scss';
 import {useAuthContext} from '../../../auth/AuthContext';
 import {sanitizePublicError} from '../../../utils/publicError';
+import {displayTaskIdentity} from '../taskIdentity';
 
 const isUnavailableVermeerResult = (status, type, result) => status === 'success'
     && type === 'vermeer-task:compute'
@@ -142,7 +143,9 @@ const ScopedAsyncTaskResultContent = ({
                     description={(
                         <div>
                             <p>{typeof error === 'string' ? error : t('analysis.async_task.result_error_unknown')}</p>
-                            <p>{t('analysis.async_task.result_request_context', {graphspace, graph, taskId})}</p>
+                            <p>{t('analysis.async_task.result_request_context', {
+                                graphspace, graph, taskId: displayTaskIdentity(taskId),
+                            })}</p>
                             {taskId < 0 && <p>{t('analysis.async_task.vermeer_result_retry_hint')}</p>}
                         </div>
                     )}
@@ -255,7 +258,7 @@ const AsyncTaskResult = () => {
                             {t('analysis.async_task.result_context', {
                                 graphspace,
                                 graph,
-                                taskId,
+                                taskId: displayTaskIdentity(taskId),
                             })}
                         </p>
                     </div>

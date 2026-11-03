@@ -563,6 +563,29 @@
       }
     },
     "algorithm": {
+      "preview_not_found": "Task not found or no longer visible; check task details",
+      "preview_edges_loading": "Loading snapshot edge samples",
+      "preview_edges_unavailable": "Snapshot edge samples are unavailable; node results remain available",
+      "preview_edges_partial": "Showing {{count}} sampled snapshot relationships within each page; results may be truncated. Edges come from the currently loaded snapshot and may differ from the task snapshot. Labels and properties are unavailable",
+      "preview_edges_missing": "Edges for results {{pages}} could not be loaded. Results remain available in task details",
+      "preview_title": "Graph computation preview",
+      "preview_task_detail": "View task details",
+      "preview_id": "Vertex ID",
+      "preview_value": "Result",
+      "preview_running": "Task is running",
+      "preview_loading": "Loading results",
+      "preview_failed": "Task did not succeed; see task details",
+      "preview_expired": "The task succeeded, but its values are empty or no longer available. Check the results or run it again",
+      "preview_too_large": "The result is too large to preview; view it in task details",
+      "preview_error": "Unable to load the preview; retry in task details",
+      "preview_sample": "Showing {{count}} result samples; order does not imply rank",
+      "preview_no_edges": "Nodes are unordered result samples, not the full graph",
+      "preview_graph": "Node preview",
+      "preview_table": "Table",
+      "preview_json": "JSON",
+      "preview_empty": "The result is empty",
+      "preview_more": "Load more results",
+      "preview_limit": "Preview is limited to 300 results. See task details for more",
       "name": "Built-in Graph Algorithms",
       "guide": "Start with interactive exploration for quick results. Use batch analysis for whole-graph computation; results appear in Async Tasks",
       "traverser_docs": "Interactive algorithm parameter docs",
@@ -721,6 +744,8 @@
         },
         "cluster_coefficient": {
           "desc": "Clustering coefficient computes the local clustering coefficient for each vertex. Global clustering coefficient is not available yet",
+          "max_step": "Maximum iterations (at least 2); default 10",
+          "min_step": "Clustering coefficient requires at least 2 iterations",
           "minimum_edges_use_superedge_cache": "Use memory to reduce message volume. If memory is insufficient, change 100 to 1000, but the clustering coefficient job may not complete"
         },
         "degree_centrality": {
@@ -800,6 +825,13 @@
           "RESOURCE_ALLOCATION": "Resource Allocation",
           "SAME_NEIGHBORS_BATCH": "Same Neighbors Batch",
           "EGONET": "Egonet",
+          "STRONGLY_CONNECTED_COMPONENT": "Strongly Connected Component",
+          "DEPTH": "Depth",
+          "SLPA": "SLPA",
+          "CYCLE_DETECTION_VERMEER": "Cycle Detection",
+          "LOUVAIN_WEIGHTED": "Louvain Weighted",
+          "VERMEER_K_OUT": "K-out (Vermeer)",
+          "VERMEER_JACCARD": "Jaccard (Vermeer)",
           "SSSP": "SSSP (Single Source Shortest Path)"
         },
         "legacy_item_alias": {
@@ -822,6 +854,58 @@
         },
         "ring_detection": {
           "desc": "Rings Detection detects rings in the graph. Each ring path is recorded by the vertex with the smallest ID in the ring"
+        },
+        "strongly_connected_component": {
+          "desc": "Strongly connected components group vertices that are mutually reachable in a directed graph. Reaching the iteration limit can stop computation before convergence",
+          "max_step": "Maximum iterations; reaching the limit may leave the result unconverged"
+        },
+        "depth_vermeer": {
+          "desc": "Estimate depth in the undirected connected structure. Each vertex value is its distance from an algorithm-selected endpoint plus one, or zero if unreachable. The endpoint can vary; an insufficient step limit may leave results incomplete",
+          "max_step": "Maximum iterations; reaching the limit may leave the result unconverged"
+        },
+        "slpa_vermeer": {
+          "desc": "Speaker-listener label propagation outputs label frequencies per vertex",
+          "max_step": "Maximum iterations (1–1000)",
+          "k": "Maximum labels retained; -1 keeps all",
+          "k_invalid": "Enter -1 or an integer of at least 1",
+          "select_method": "Neighbor label selection: max chooses the most frequent; random samples by frequency"
+        },
+        "vermeer_advanced": {
+          "cycle_desc": "Detect directed cycles excluding self-loops. Limit mode is selected by default and caps cycles per vertex (Vermeer defaults to all). All mode can enumerate many paths",
+          "louvain_desc": "Optimize modularity for communities; the result may not converge before the compute step limit",
+          "weighted_desc": "Optimize communities by edge weight; an empty property uses weight 1. A specified numeric property must be loaded",
+          "max_step": "Compute iteration limit: at least 2 for cycle and Louvain, or 3 for weighted Louvain. Reaching it may leave the result unconverged",
+          "parallel": "Parallelism",
+          "min_length": "Minimum cycle length",
+          "max_length": "Maximum cycle length; large values may require significant memory and CPU",
+          "max_cycles": "Maximum cycles per vertex in limit mode",
+          "all_warning": "All mode does not limit the number of cycles and can exhaust memory. Check graph size and restrict cycle length",
+          "properties_unavailable": "Property filters and explicit edge weights are unavailable until loaded properties can be verified. Clear any previously saved values before running",
+          "mode": "All enumerates cycles; limit caps them; boolean reports presence only",
+          "resolution": "Community resolution",
+          "threshold": "Modularity improvement threshold",
+          "step": "Maximum Louvain phases; separate from the compute iteration limit",
+          "edge_weight": "Optional loaded edge-weight property; empty uses weight 1",
+          "filter_expr": "Optional filter expression; also provide a property list loaded in the snapshot",
+          "filter_properties": "JSON string array, for example [\"age\"]. Provide together with the expression",
+          "invalid_properties": "Provide a JSON array of nonempty strings together with the filter expression",
+          "nonnegative_integer": "Enter a non-negative integer",
+          "positive_integer": "Enter a positive integer",
+          "nonnegative_number": "Enter a non-negative number",
+          "invalid_range": "Minimum cycle length must not exceed the maximum"
+        },
+        "kout_vermeer": {
+          "desc": "Find vertices reachable from a source in the selected direction within the iteration limit. Result 1 is the source, 2 is one hop, and 0 is unreached",
+          "source": "Full source vertex ID. The default 1 may not exist in this snapshot; change it as needed",
+          "direction": "Follow incoming, outgoing, or both directions",
+          "max_step": "Maximum propagation steps, from 1 to 254. Expansion stops at the limit",
+          "max_step_invalid": "Enter an integer from 1 to 254"
+        },
+        "jaccard_vermeer": {
+          "desc": "Compare the source and each vertex using both incoming and outgoing neighbors. Two empty neighbor sets may produce NaN",
+          "source": "Full source vertex ID; it must exist in the loaded snapshot",
+          "max_step": "Maximum iterations; this algorithm requires at least 2",
+          "max_step_invalid": "Enter an integer of at least 2"
         },
         "SSSPVermeer": {
           "desc": "Single Source Shortest Path computes the shortest distance from one vertex to all other vertices"
@@ -993,7 +1077,7 @@
       "vermeer_unavailable": "Vermeer tasks are unavailable. Server tasks remain visible. Retry after the service recovers",
       "name": "Async Tasks",
       "help_title": "About async tasks",
-      "help_description": "Queries and built-in graph algorithms can run asynchronously. Track progress and results here, or stop and delete tasks. The list refreshes every 5 seconds",
+      "help_description": "Queries and built-in graph algorithms can run asynchronously. Track progress and results here, or stop and delete tasks. The list refreshes <nowrap>every <strong>5 seconds</strong></nowrap>",
       "search_placeholder": "Enter a task ID or name",
       "get_failed": "Failed to get async tasks",
       "retry_list": "Retry tasks",

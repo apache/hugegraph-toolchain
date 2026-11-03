@@ -329,6 +329,26 @@ public class DefaultOperationsDataServiceTest {
 
     @SuppressWarnings("unchecked")
     @Test
+    public void testUnmappedDirectPdPeersAppearInDiagnostics() {
+        MetricStatus uncollected = new MetricStatus("UNSUPPORTED", 2000L, null,
+                false, false, "metrics_not_collected");
+        Node follower = new Node("pd-follower", "PD", "PD follower", "FOLLOWER", "1.8.0", "UP",
+                2000L, Collections.emptyMap(), Map.of("system", uncollected));
+        SourceStatus source = new SourceStatus("PARTIAL", "UP", 2000L, null,
+                false, false, "pd_metrics_partial").withDiagnostics(Map.of("pd_peer_metrics", true));
+        Snapshot snapshot = new Snapshot("DEGRADED", 2000L, false, null,
+                Map.of("pd", source), Collections.singletonList(follower), Collections.emptyMap());
+        Map<String, Object> result = service(snapshot, 5).nodes(client("token-a"),
+                Set.of(OperationsCapabilityService.TOPOLOGY_READ),
+                "STORE", null, null, 1, 20, "name", "asc");
+        java.util.List<Map<String, Object>> diagnostics =
+                (java.util.List<Map<String, Object>>) result.get("diagnostic_nodes");
+        Assert.assertEquals(1, diagnostics.size());
+        Assert.assertEquals("pd-follower", diagnostics.get(0).get("id"));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
     public void testEmptyNodeListRetainsSourceFailureDiagnostics() {
         Map<String, Object> diagnostics = Map.of(
                 "request_path", "/v1/stores", "max_response_bytes", 8192L,

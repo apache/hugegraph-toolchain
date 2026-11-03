@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Log4j2
 @Service
@@ -47,6 +49,8 @@ public class AsyncTaskService {
     private static final String VERMEER_TASK_LOAD = "vermeer-task:load";
     private static final String VERMEER_TASK_COMPUTE = "vermeer-task:compute";
     private static final int MAX_TASK_ID_BATCH_SIZE = 32;
+    private static final Pattern DISPLAY_ID =
+            Pattern.compile("(?i)^(server|vermeer) #([0-9]+)$");
 
     public Task get(HugeClient client, int id) {
         if (id < 0) {
@@ -97,7 +101,11 @@ public class AsyncTaskService {
         }
         List<Task> tasks = new ArrayList<>(client.task().list(status));
         content = content.trim();
-        this.addExactIdTask(client, tasks, content);
+        Matcher displayId = DISPLAY_ID.matcher(content);
+        boolean qualifiedId = displayId.matches();
+        if (!qualifiedId || "server".equalsIgnoreCase(displayId.group(1))) {
+            this.addExactIdTask(client, tasks, qualifiedId ? displayId.group(2) : content);
+        }
         boolean vermeerUnavailable = false;
         if (this.vermeer != null && this.vermeer.configured() && this.vermeer.supported() &&
             (type.isEmpty() || type.startsWith(VERMEER_TASK_TYPE))) {
@@ -124,7 +132,17 @@ public class AsyncTaskService {
             }
             if (!content.isEmpty()) {
                 String taskId = String.valueOf(task.id());
-                if (!content.equals(taskId) &&
+                if (qualifiedId) {
+                    // A displayed identity selects one source and ID, not task names.
+                    boolean vermeerId = taskId.startsWith("-");
+                    String source = vermeerId ? "vermeer" : "server";
+                    String nativeId = vermeerId ? taskId.substring(1) : taskId;
+                    if (!source.equalsIgnoreCase(displayId.group(1)) ||
+                        !nativeId.equals(displayId.group(2))) {
+                        continue;
+                    }
+                } else if (!content.equals(taskId) &&
+                    !(taskId.startsWith("-") && content.equals(taskId.substring(1))) &&
                     (task.name() == null || !task.name().contains(content))) {
                     continue;
                 }

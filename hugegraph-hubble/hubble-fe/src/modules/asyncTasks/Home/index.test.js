@@ -32,6 +32,7 @@ jest.mock('../Detail', () => props => (
     <div>{props.loading ? 'loading tasks' : `tasks ${props.asyncManageTaskData.total || 0}`}</div>
 ));
 jest.mock('react-i18next', () => ({
+    Trans: () => <span>Track asynchronous work and results here. Refreshes every <strong>5 seconds</strong></span>,
     useTranslation: () => ({t: (key, values) => ({
         'analysis.async_task.search_placeholder': 'Search tasks',
         'analysis.async_task.help_title': 'About async tasks',
@@ -50,6 +51,11 @@ jest.mock('react-i18next', () => ({
         'analysis.async_task.submitted_delayed': 'Discovery paused after 30 checks',
     })[key] || key}),
 }));
+
+it('emphasizes the refresh interval in both supported languages', () => {
+    expect(enUS.analysis.async_task.help_description).toContain('<nowrap>every <strong>5 seconds</strong></nowrap>');
+    expect(zhCN.analysis.async_task.help_description).toContain('<nowrap>列表每 <strong>5 秒</strong>自动刷新</nowrap>');
+});
 
 beforeAll(() => {
     window.matchMedia = window.matchMedia || (() => ({
@@ -79,6 +85,7 @@ it('shows list failure instead of an empty success and retries', async () => {
         </GraphAnalysisContext.Provider>
     );
 
+    expect(screen.getByText('5 seconds').tagName).toBe('STRONG');
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not load tasks.');
     fireEvent.click(screen.getByRole('button', {name: 'Retry tasks'}));
     await waitFor(() => expect(api.analysis.fetchManageTaskList).toHaveBeenCalledTimes(2));
@@ -211,8 +218,8 @@ it('filters the submitting graph by the task ID in a scoped URL and follows late
     const view = render(page);
     expect(await screen.findByText('tasks 1')).toBeInTheDocument();
     expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('memory', 'soc_graph',
-        expect.objectContaining({content: '80001', page_no: 1}));
-    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('80001');
+        expect.objectContaining({content: 'Server #80001', page_no: 1}));
+    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('Server #80001');
 
     useSearchParams.mockReturnValue([new URLSearchParams('taskId=90001')]);
     view.rerender(
@@ -221,8 +228,8 @@ it('filters the submitting graph by the task ID in a scoped URL and follows late
         </GraphAnalysisContext.Provider>
     );
     await waitFor(() => expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('memory', 'soc_graph',
-        expect.objectContaining({content: '90001', page_no: 1})));
-    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('90001');
+        expect.objectContaining({content: 'Server #90001', page_no: 1})));
+    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('Server #90001');
 });
 
 it('trims a pasted task ID and still supports legacy task links', async () => {
@@ -235,7 +242,7 @@ it('trims a pasted task ID and still supports legacy task links', async () => {
     );
     await screen.findByText('No matching tasks');
     expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('DEFAULT', 'hugegraph',
-        expect.objectContaining({content: '80001'}));
+        expect.objectContaining({content: 'Server #80001'}));
     fireEvent.change(screen.getByPlaceholderText('Search tasks'), {target: {value: '  90001  '}});
     fireEvent.keyDown(screen.getByPlaceholderText('Search tasks'), {key: 'Enter', code: 'Enter', charCode: 13});
     await waitFor(() => expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('DEFAULT', 'hugegraph',
@@ -252,7 +259,7 @@ it('shows the submitted ID immediately and discovers metadata without waiting fo
             <AsyncTaskHome />
         </GraphAnalysisContext.Provider>
     );
-    expect(screen.getByRole('alert')).toHaveTextContent('Task 80001 submitted; synchronizing status');
+    expect(screen.getByRole('alert')).toHaveTextContent('Task Server #80001 submitted; synchronizing status');
     await act(async () => Promise.resolve());
     expect(screen.queryByText('No matching tasks')).not.toBeInTheDocument();
     expect(api.analysis.fetchManageTaskList).not.toHaveBeenCalled();
@@ -280,7 +287,7 @@ it('bounds missing submitted-task polling and offers explicit retry without inve
     for (let attempt = 1; attempt < 30; attempt++) {
         await act(async () => jest.advanceTimersByTime(1000));
     }
-    expect(screen.getByRole('alert')).toHaveTextContent('Task 0 submitted; synchronizing status');
+    expect(screen.getByRole('alert')).toHaveTextContent('Task Server #0 submitted; synchronizing status');
     expect(screen.getByRole('alert')).toHaveTextContent('Discovery paused after 30 checks');
     await act(async () => jest.advanceTimersByTime(10000));
     expect(api.analysis.fetchManageTaskById).toHaveBeenCalledTimes(30);
@@ -308,7 +315,7 @@ it('ignores delayed submitted-task responses after changing graphs', async () =>
         </GraphAnalysisContext.Provider>
     );
     await act(async () => finishOld({status: 200, data: [{id: 80001}]}));
-    expect(screen.getByRole('alert')).toHaveTextContent('Task 80001 submitted; synchronizing status');
+    expect(screen.getByRole('alert')).toHaveTextContent('Task Server #80001 submitted; synchronizing status');
     expect(screen.queryByText('tasks 1')).not.toBeInTheDocument();
     view.unmount();
 });
@@ -326,10 +333,30 @@ it('supports negative Vermeer IDs and treats disappearance after discovery as a 
     await act(async () => Promise.resolve());
     expect(screen.getByText('tasks 1')).toBeInTheDocument();
     expect(api.analysis.fetchManageTaskById).toHaveBeenCalledWith('memory', 'soc_graph', '-7');
+    expect(screen.getByPlaceholderText('Search tasks')).toHaveValue('Vermeer #7');
+    fireEvent.keyDown(screen.getByPlaceholderText('Search tasks'), {key: 'Enter', code: 'Enter', charCode: 13});
+    expect(api.analysis.fetchManageTaskList).not.toHaveBeenCalled();
     await act(async () => jest.advanceTimersByTime(5000));
     expect(screen.getByText('No matching tasks')).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     view.unmount();
+});
+
+it('keeps a linked Vermeer task source-qualified when submitting the untouched search', async () => {
+    useSearchParams.mockReturnValue([new URLSearchParams('taskId=-7')]);
+    api.analysis.fetchManageTaskList.mockResolvedValue({status: 200, data: {records: [], total: 0}});
+    render(
+        <GraphAnalysisContext.Provider value={{graphSpace: 'memory', graph: 'soc_graph'}}>
+            <AsyncTaskHome />
+        </GraphAnalysisContext.Provider>
+    );
+    await screen.findByText('No matching tasks');
+    const input = screen.getByPlaceholderText('Search tasks');
+    expect(input).toHaveValue('Vermeer #7');
+    expect(api.analysis.fetchManageTaskList).toHaveBeenLastCalledWith('memory', 'soc_graph',
+        expect.objectContaining({content: 'Vermeer #7'}));
+    fireEvent.keyDown(input, {key: 'Enter', code: 'Enter', charCode: 13});
+    expect(api.analysis.fetchManageTaskList).toHaveBeenCalledTimes(1);
 });
 
 it.each([400, 403, 404, 503])('stops discovery on failure %s rather than treating it as a missing task', async status => {

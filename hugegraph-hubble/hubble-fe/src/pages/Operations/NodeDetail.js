@@ -380,17 +380,22 @@ const MetricGroup = ({group, name, values, status = {}, emptyMessage}) => {
         !HIDDEN_METRIC_KEYS[group]?.has(key)
     );
     const availability = status.availability ?? 'UNSUPPORTED';
-    const emptyState = EMPTY_STATE_BY_AVAILABILITY[availability] ?? 'unavailable';
+    const notCollected = status.reason === 'metrics_not_collected';
+    const capacity = capacitySummary(values);
+    const hasEmptyBody = visibleEntries.length === 0 && !capacity;
+    const emptyState = notCollected ? 'reason_metrics_not_collected'
+        : EMPTY_STATE_BY_AVAILABILITY[availability] ?? 'unavailable';
     const showLastSuccess = status.last_success_at != null
         && (status.stale || status.observed_at == null);
     const displayedAt = showLastSuccess ? status.last_success_at : status.observed_at;
     const displayedTime = displayedAt == null ? null : formatObservedAt(
         displayedAt, i18n.language, t('operations.unavailable')
     );
-    const availabilityLabel = t(`operations.availability_${availability.toLowerCase()}`, {
+    const availabilityLabel = t(notCollected ? 'operations.metrics_not_collected'
+        : `operations.availability_${availability.toLowerCase()}`, {
         defaultValue: availability,
     });
-    const reasonLabel = status.reason ? t(`operations.reason_${status.reason}`, {
+    const reasonLabel = status.reason && !(notCollected && hasEmptyBody) ? t(`operations.reason_${status.reason}`, {
         defaultValue: status.reason.replaceAll('_', ' '),
     }) : null;
     const upgradeHelp = status.reason === 'unsupported_version'
@@ -435,8 +440,7 @@ const MetricGroup = ({group, name, values, status = {}, emptyMessage}) => {
             {statusDetails}
         </header>
     );
-    const capacity = capacitySummary(values);
-    if (visibleEntries.length === 0 && !capacity) {
+    if (hasEmptyBody) {
         return (
             <section className='operations-surface operations-metric-group'>
                 {metricHeader}

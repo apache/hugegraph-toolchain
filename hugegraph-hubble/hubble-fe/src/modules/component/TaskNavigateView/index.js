@@ -26,6 +26,7 @@ import {useNavigate} from 'react-router-dom';
 import {Button} from 'antd';
 import {ArrowRightOutlined, CheckCircleFilled} from '@ant-design/icons';
 import GraphAnalysisContext from '../../Context';
+import {displayTaskIdentity} from '../../asyncTasks/taskIdentity';
 import c from './index.module.scss';
 
 const TaskNavigateView = props => {
@@ -62,7 +63,7 @@ const TaskNavigateView = props => {
                 </div>
                 <dl className={c.taskIdentity}>
                     <dt>{t('analysis.canvas.task_navigation.task_id')}</dt>
-                    <dd>{taskId}</dd>
+                    <dd>{displayTaskIdentity(taskId)}</dd>
                 </dl>
                 <Button
                     type='primary'

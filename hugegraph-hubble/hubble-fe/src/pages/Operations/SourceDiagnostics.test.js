@@ -163,6 +163,16 @@ test.each([false, true])('excludes intentionally uncollected PD followers (stale
     expect(screen.queryByText(/PD follower/)).not.toBeInTheDocument();
 });
 
+test('retains uncollected peer details when PD already has a different health reason', () => {
+    render(<SourceDiagnostics sourceName='pd' sources={{pd: {
+        status: 'DEGRADED', availability: 'PARTIAL', reason: 'pd_data_fault',
+        diagnostics: {pd_peer_metrics: true, affected_node_count: 1, failed_metric_groups: ['system']},
+    }}} nodes={[{id: 'pd-a', type: 'PD', name: 'PD A', metric_statuses: {
+        system: {availability: 'UNSUPPORTED', reason: 'metrics_not_collected'},
+    }}]} />);
+    expect(screen.getByText(/PD A · system/)).toBeInTheDocument();
+});
+
 test.each([false, true])('keeps an unmapped PD scrape source-wide instead of failing every member (stale=%s)', stale => {
     render(<SourceDiagnostics sourceName='pd' sources={{pd: {
         status: 'UP', availability: 'PARTIAL', reason: 'pd_metrics_unmapped',

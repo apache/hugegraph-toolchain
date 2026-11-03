@@ -45,6 +45,7 @@ import RankApiView from '../RankApiView';
 import JaccView from '../JaccView';
 import GraphStatusView from '../../../component/GraphStatusView';
 import TaskNavigateView from '../../../component/TaskNavigateView';
+import OlapPreview from '../OlapPreview';
 import Canvas3D from '../../../component/Canvas3D';
 import {
     GRAPH_STATUS, GRAPH_LOAD_STATUS, PANEL_TYPE, GRAPH_RENDER_MODE, ALGORITHM_NAME,
@@ -368,6 +369,8 @@ const GraphResult = props => {
         && graphData.nodes.length + graphData.edges.length === 0;
     const isOlap = engine === 'olap';
     const {graphSpace, graph, isVermeer, vermeerReady, vermeerError, retryVermeer, graphStatus} = graphSpaceInfo;
+    const isOlapPreview = isOlap && !isQueryMode && isVermeer &&
+        Number(asyncTaskId) < 0 && queryStatus === SUCCESS;
     const computeStatusKey = !graphSpace || !graph ? 'olap_select_graph'
         : vermeerError ? 'get_vermeer_failed'
             : vermeerReady !== true ? 'vermeer_unconfirmed'
@@ -439,6 +442,10 @@ const GraphResult = props => {
         }
         if (queryStatus === SUCCESS) {
             if (!isQueryMode) {
+                if (isOlapPreview) {
+                    return <OlapPreview key={JSON.stringify([graphSpace, graph, asyncTaskId])}
+                        graphSpace={graphSpace} graph={graph} taskId={asyncTaskId} />;
+                }
                 return (
                     <TaskNavigateView
                         message={t('analysis.algorithm.task_submit_success', {
@@ -492,7 +499,7 @@ const GraphResult = props => {
                     {t('analysis.algorithm.retry_compute_status')}
                 </Button>}
             </div>}
-            <GraphMenuBar
+            {!isOlapPreview && <GraphMenuBar
                 layout={layoutSettings}
                 defaultLayout={defaultLayout}
                 startId={options?.startId}
@@ -510,11 +517,11 @@ const GraphResult = props => {
                 handleClickNewAddEdge={handleClickNewAddEdge}
                 showCanvasInfo={showCanvasInfo}
                 graphRenderMode={graphRenderMode}
-            />
+            />}
             <div className={showRecoveryRow ? c.recoveryResult : undefined}>
                 {renderMainContent()}
             </div>
-            <NumberCard
+            {!isOlapPreview && <NumberCard
                 hasPadding={panelType !== CLOSED}
                 data={{
                     currentGraphNodesNum: graphData.nodes.length,
@@ -524,7 +531,7 @@ const GraphResult = props => {
                     approximate: graphNums?.approximate,
                     scan_limit: graphNums?.scan_limit,
                 }}
-            />
+            />}
         </div>
     );
 };

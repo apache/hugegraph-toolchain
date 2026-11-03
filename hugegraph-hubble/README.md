@@ -665,6 +665,16 @@ trusted Store scheme, hostname or literal address, and port; discovery cannot
 add origins to this allowlist. HTTPS origins keep their configured hostname for
 TLS SNI and certificate hostname verification.
 
+PD per-member metrics can be enabled with `operations.pd.direct_peers=true` only
+when each hostname in `pd.peers` routes directly to one PD member, not a Service,
+proxy, or load balancer. Hubble accepts discovered member REST addresses only when
+the host is one of those explicitly configured peers and the scheme, REST port and
+base path match `pd.server`. Credentials are sent only to these trusted origins.
+The setting defaults to false because the metrics response does not identify the
+responding member. The same trusted mapping probes `/v1/ready` for each member;
+older members returning 404 remain explicitly unsupported. Partial matches and
+probe failures are reported per node, with bounded concurrent probes and deadlines.
+
 ### Cluster source diagnostics
 
 PD member discovery uses `/v1/members` independently of aggregate statistics.
@@ -726,7 +736,7 @@ health also considers `dataState` (`PState_Warn`, `PState_Offline`, and
 details. A data fault degrades the cluster view without marking the PD process
 down. Older responses without `dataState` retain their existing behavior.
 
-PD JVM metrics are attached to a node only when the configured PD URL matches
+By default, PD JVM metrics are attached to a node only when the configured PD URL matches
 its advertised origin and base path after normalizing scheme, hostname, and
 default port. A scheme-less advertised `host:port` uses the configured protocol.
 Existing node IDs remain unchanged; DNS aliases and ambiguous
@@ -740,8 +750,7 @@ stale states. Store target discovery prefers
 `/v1/prom/targets-all`. Authentication, timeout, malformed-response, and server
 errors remain visible rather than triggering broad discovery.
 
-These checks do not probe PD `/v1/ready` or Store `/-/state`. Registration and
-metrics availability do not prove read/write readiness. Regression tests use
+Registration and metrics availability do not prove read/write readiness. Regression tests use
 mocked clients and local HTTP fixtures; production readiness and cross-version
 live deployment coverage remain separate validation work.
 

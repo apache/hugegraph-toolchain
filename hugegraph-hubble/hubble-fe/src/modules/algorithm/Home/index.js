@@ -53,6 +53,7 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
     const [queryMessage, setQueryMessage] = useState();
     const [queryResult, setQueryResult] = useState();
     const [asyncTaskResult, setAsyncTaskResult] = useState();
+    const asyncTaskOwner = useRef(null);
     const [graphOptions, setGraphOptions] = useState();
     const [panelType, setPanelType] = useState(CLOSED);
     const [algorithmOnCanvas, setAlgorithmOnCanvas] = useState();
@@ -153,6 +154,30 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
         },
         [CLOSED, STANDBY]
     );
+
+    const previousScope = useRef(graphNumsScope);
+    useLayoutEffect(() => {
+        if (previousScope.current === graphNumsScope) return;
+        previousScope.current = graphNumsScope;
+        algorithmRequest.current = null;
+        asyncTaskOwner.current = null;
+        setAsyncTaskResult();
+        setAlgorithmMode();
+        setAlgorithmOnCanvas();
+        initQueryResult();
+    }, [graphNumsScope, initQueryResult]);
+
+    const previousEngine = useRef(engine);
+    useLayoutEffect(() => {
+        if (previousEngine.current === engine) return;
+        previousEngine.current = engine;
+        // An OLAP submission belongs to its own view, not the newly selected engine.
+        algorithmRequest.current = null;
+        setAlgorithmMode();
+        setAsyncTaskResult();
+        setAlgorithmOnCanvas();
+        initQueryResult();
+    }, [engine, initQueryResult]);
 
     const getMetaData = useCallback(
         async () => {
@@ -414,10 +439,11 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             setAlgorithmMode(OLAP);
             setQueryResult({});
             setQueryStatus(status);
+            asyncTaskOwner.current = graphNumsScope;
             setAsyncTaskResult(data);
             setQueryMessage(message || '');
         }),
-        [CLOSED, OLAP, beginSubmission]
+        [CLOSED, OLAP, beginSubmission, graphNumsScope]
     );
 
     const resetGraphStatus = useCallback(
@@ -485,8 +511,8 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
                     data={queryResult}
                     metaData={metaData}
                     options={graphOptions}
-                    asyncTaskId={asyncTaskResult}
-                    queryStatus={queryStatus}
+                    asyncTaskId={asyncTaskOwner.current === graphNumsScope ? asyncTaskResult : undefined}
+                    queryStatus={asyncTaskResult && asyncTaskOwner.current !== graphNumsScope ? STANDBY : queryStatus}
                     queryMessage={queryMessage}
                     isQueryMode={algorithmMode === OLTP}
                     algorithm={algorithmOnCanvas}

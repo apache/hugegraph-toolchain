@@ -59,6 +59,15 @@ public class AsyncTaskController extends BaseController {
         return this.vermeer.results(this.authClient(graphSpace, graph), id, cursor, limit);
     }
 
+    @GetMapping("{id}/preview-edges")
+    public Map<String, Object> previewEdges(@PathVariable("graphspace") String graphSpace,
+                                            @PathVariable("graph") String graph,
+                                            @PathVariable("id") int id,
+                                            @RequestParam(defaultValue = "0") int cursor,
+                                            @RequestParam(defaultValue = "30") int limit) {
+        return this.vermeer.previewEdges(this.authClient(graphSpace, graph), id, cursor, limit);
+    }
+
     @Autowired
     public AsyncTaskController(AsyncTaskService service) {
         this.service = service;

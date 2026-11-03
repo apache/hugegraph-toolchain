@@ -38,7 +38,7 @@
         border-radius: 6px;
         background: #f5f9ff;
 
-        strong {
+        > strong {
             display: block;
             color: #172033;
         }
@@ -46,6 +46,10 @@
         p {
             margin: 4px 0 0;
             color: #536179;
+        }
+
+        .refreshHint {
+            white-space: nowrap;
         }
     }
 

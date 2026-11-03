@@ -36,17 +36,22 @@ import RingsDetection from '../RingsDetection';
 import FilteredRingsDetection from '../FilteredRingsDetection';
 import Links from '../Links';
 import ClusterCoefficient from '../ClusterCoefficient';
+import SimpleVermeerAlgorithm from '../SimpleVermeerAlgorithm';
 import BetweennessCentrality from '../BetweennessCentrality';
 import BetweennessCentralityVermeer from '../BetweennessCentralityVermeer';
 import LabelPropagationAlgorithm from '../LabelPropagationAlgorithm';
 import LabelPropagationAlgorithmVermeer from '../LabelPropagationAlgorithmVermeer';
 import Louvain from '../Louvain';
+import AdvancedVermeer from '../AdvancedVermeer';
 import FilterSubGraphMatching from '../FilterSubGraphMatching';
 import KCore from '../KCore';
 import KCoreVermeer from '../KCoreVermeer';
 import PersonalPageRank from '../PersonalPageRank';
 import PersonalPageRankVermeer from '../PersonalPageRankVermeer';
 import SSSPVermeer from '../SSSPVermeer';
+import DepthSlpaVermeer from '../DepthSlpaVermeer';
+import KoutVermeer from '../KoutVermeer';
+import JaccardVermeer from '../JaccardVermeer';
 import {
     getCanonicalAlgorithmName,
     useTranslatedConstants,
@@ -61,6 +66,9 @@ const OlapItem = props => {
     const {
         PAGE_RANK,
         WEAKLY_CONNECTED_COMPONENT,
+        STRONGLY_CONNECTED_COMPONENT,
+        CYCLE_DETECTION_VERMEER,
+        LOUVAIN_WEIGHTED,
         DEGREE_CENTRALIT,
         CLOSENESS_CENTRALITY,
         TRIANGLE_COUNT,
@@ -74,7 +82,11 @@ const OlapItem = props => {
         FILTER_SUBGRAPH_MATCHING,
         K_CORE,
         PERSONAL_PAGE_RANK,
+        DEPTH,
+        SLPA,
         SSSP,
+        VERMEER_K_OUT,
+        VERMEER_JACCARD,
     } = ALGORITHM_NAME;
 
 
@@ -102,6 +114,8 @@ const OlapItem = props => {
                         ? (<WeaklyConnectedComponentVermeer {...args} />)
                         : (<WeaklyConnectedComponent {...args} />)
                 );
+            case STRONGLY_CONNECTED_COMPONENT:
+                return isVermeer ? <SimpleVermeerAlgorithm {...args} kind="scc" /> : null;
             case DEGREE_CENTRALIT:
                 return (
                     isVermeer
@@ -127,7 +141,8 @@ const OlapItem = props => {
             case LINKS:
                 return <Links {...args} />;
             case CLUSTER_COEFFICIENT:
-                return <ClusterCoefficient {...args} />;
+                return isVermeer ? <SimpleVermeerAlgorithm {...args} kind="clustering_coefficient" />
+                    : <ClusterCoefficient {...args} />;
             case BETWEENNESS_CENTRALITY:
                 return (
                     isVermeer
@@ -141,7 +156,12 @@ const OlapItem = props => {
                         : (<LabelPropagationAlgorithm {...args} />)
                 );
             case LOUVAIN:
-                return <Louvain {...args} canRun={canRunLouvain} />;
+                return isVermeer ? <AdvancedVermeer {...args} kind='louvain' />
+                    : <Louvain {...args} canRun={canRunLouvain} />;
+            case LOUVAIN_WEIGHTED:
+                return isVermeer ? <AdvancedVermeer {...args} kind='louvain_weighted' /> : null;
+            case CYCLE_DETECTION_VERMEER:
+                return isVermeer ? <AdvancedVermeer {...args} kind='cycle_detection' /> : null;
             case FILTER_SUBGRAPH_MATCHING:
                 return <FilterSubGraphMatching {...args} />;
             case K_CORE:
@@ -150,6 +170,14 @@ const OlapItem = props => {
                 );
             case PERSONAL_PAGE_RANK:
                 return isVermeer ? <PersonalPageRankVermeer {...args} /> : <PersonalPageRank {...args} />;
+            case DEPTH:
+                return isVermeer ? <DepthSlpaVermeer {...args} kind='depth' /> : null;
+            case SLPA:
+                return isVermeer ? <DepthSlpaVermeer {...args} kind='slpa' /> : null;
+            case VERMEER_K_OUT:
+                return isVermeer ? <KoutVermeer {...args} name={VERMEER_K_OUT} /> : null;
+            case VERMEER_JACCARD:
+                return isVermeer ? <JaccardVermeer {...args} name={VERMEER_JACCARD} /> : null;
             case SSSP:
                 return <SSSPVermeer {...args} />;
         }

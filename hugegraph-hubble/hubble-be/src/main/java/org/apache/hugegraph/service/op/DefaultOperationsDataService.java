@@ -152,6 +152,10 @@ public class DefaultOperationsDataService implements OperationsDataService {
             node.getMetricStatuses().forEach((group, status) -> {
                 if (metricFailed(status) ||
                     status.isStale() && !"UNSUPPORTED".equals(status.getAvailability()) ||
+                    "PD".equals(node.getType()) && source != null &&
+                    Boolean.TRUE.equals(source.getDiagnostics().get("pd_peer_metrics")) &&
+                    "UNSUPPORTED".equals(status.getAvailability()) &&
+                    "metrics_not_collected".equals(status.getReason()) ||
                     "UNSUPPORTED".equals(status.getAvailability()) &&
                     "unsupported_version".equals(status.getReason()) && source != null &&
                     ("PARTIAL".equals(source.getAvailability()) ||
