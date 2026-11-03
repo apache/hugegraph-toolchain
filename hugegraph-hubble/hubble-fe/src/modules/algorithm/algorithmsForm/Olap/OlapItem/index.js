@@ -96,9 +96,10 @@ const OlapItem = props => {
         ...args
     } = props;
 
-    args.handleFormSubmit = useAlgorithmSubmission(args.handleFormSubmit);
-
-    const {isVermeer} = useContext(GraphAnalysisContext);
+    const {isVermeer, graphSpace, graph} = useContext(GraphAnalysisContext);
+    const canonicalAlgorithmName = getCanonicalAlgorithmName(algorithmName);
+    args.handleFormSubmit = useAlgorithmSubmission(args.handleFormSubmit, graphSpace, graph,
+                                                   canonicalAlgorithmName, isVermeer);
 
     const renderItem = () => {
         switch (algorithmName) {
@@ -184,7 +185,7 @@ const OlapItem = props => {
     };
 
     return (
-        <AlgorithmPersistenceContext.Provider value={getCanonicalAlgorithmName(algorithmName)}>
+        <AlgorithmPersistenceContext.Provider value={canonicalAlgorithmName}>
             {renderItem()}
         </AlgorithmPersistenceContext.Provider>
     );
