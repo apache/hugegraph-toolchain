@@ -493,7 +493,9 @@ const AlgorithmHome = ({engine = 'oltp', onEngineChange}) => {
             if (status === SUCCESS) visibleOlapTask.current = data;
             if (status === FAILED) visibleOlapTask.current = undefined;
             setAsyncTaskResult(data);
-            setQueryMessage(status === SUCCESS ? undefined : message || '');
+            // A sibling may have failed while this submission was pending.
+            // Keep that warning visible until a new submission starts.
+            if (status !== SUCCESS) setQueryMessage(message || '');
             if (status === SUCCESS || status === FAILED) getExecutionLogsList();
         }, false),
         [CLOSED, FAILED, LOADING, OLAP, SUCCESS, beginSubmission, getExecutionLogsList, graphNumsScope]

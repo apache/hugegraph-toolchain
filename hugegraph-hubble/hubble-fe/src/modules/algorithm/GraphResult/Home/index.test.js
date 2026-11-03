@@ -86,6 +86,15 @@ beforeEach(() => {
         styleConfigData: {nodes: {}, edges: {}}};
 });
 
+test('shows a failed OLAP submission while another is loading', () => {
+    render(<GraphResult data={{}} metaData={{edgeMeta: [], vertexMeta: []}}
+        engine='olap' queryStatus={GRAPH_STATUS.LOADING} queryMessage='first failed'
+        panelType={PANEL_TYPE.CLOSED} graphRenderMode={GRAPH_RENDER_MODE.CANVAS2D}
+        updatePanelType={jest.fn()} />);
+    expect(screen.getByRole('alert')).toHaveTextContent('first failed');
+    expect(screen.getByText('analysis.query_result.loading')).toBeInTheDocument();
+});
+
 test('places empty-graph recovery actions in the graph result area', () => {
     render(
         <GraphAnalysisContext.Provider value={{graphSpace: 'DEFAULT', graph: 'hugegraph'}}>

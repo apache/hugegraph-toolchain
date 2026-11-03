@@ -128,6 +128,26 @@ test('keeps loading until every concurrent OLAP submission has settled', async (
     expect(currentResult().queryMessage).toBe('second failed');
 });
 
+test('retains a sibling failure warning when the remaining submission succeeds', async () => {
+    render(home());
+    await waitFor(() => expect(formProps).toHaveBeenCalled());
+    let first;
+    let second;
+    act(() => {
+        first = start('Olap');
+        second = start('Olap');
+    });
+    act(() => first(GRAPH_STATUS.FAILED, '', 'first failed'));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.LOADING);
+    expect(currentResult().queryMessage).toBe('first failed');
+    act(() => second(GRAPH_STATUS.SUCCESS, -33));
+    expect(currentResult().queryStatus).toBe(GRAPH_STATUS.SUCCESS);
+    expect(currentResult().asyncTaskId).toBe(-33);
+    expect(currentResult().queryMessage).toBe('first failed');
+    act(() => { start('Olap'); });
+    expect(currentResult().queryMessage).toBeUndefined();
+});
+
 test('a new OLAP attempt and success clear the retained warning and reject late loading', async () => {
     render(home());
     await waitFor(() => expect(formProps).toHaveBeenCalled());
