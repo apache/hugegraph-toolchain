@@ -19,6 +19,7 @@ package hgtransport
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -281,5 +282,53 @@ func TestGetConfig(t *testing.T) {
 	// Pins current behavior: GetConfig doesn't return the logger
 	if cfg.Logger != nil {
 		t.Errorf("logger = %v, want nil", cfg.Logger)
+	}
+}
+
+func TestPerformLogsUnknownLengthRequestBody(t *testing.T) {
+	const payload = `{"gremlin":"g.V().limit(1)"}`
+	for _, contentLength := range []int64{-1, 0, int64(len(payload))} {
+		for _, enabled := range []bool{false, true} {
+			name := fmt.Sprintf("length=%d/logBody=%t", contentLength, enabled)
+			t.Run(name, func(t *testing.T) {
+				defer func() {
+					if recovered := recover(); recovered != nil {
+						t.Errorf("Perform panicked: %v", recovered)
+					}
+				}()
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					body, err := io.ReadAll(r.Body)
+					if err != nil {
+						t.Error(err)
+					}
+					_, _ = w.Write(append([]byte("echo:"), body...))
+				}))
+				defer server.Close()
+				var log bytes.Buffer
+				logger := &TextLogger{Output: &log, EnableRequestBody: enabled, EnableResponseBody: enabled}
+				client := New(Config{URL: serverURL(t, server, ""), Logger: logger})
+				req := newRequest(t, "POST", "/gremlin", payload)
+				req.ContentLength = contentLength
+				res, err := client.Perform(req)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer res.Body.Close()
+				body, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(body) != "echo:"+payload {
+					t.Errorf("response body = %q", body)
+				}
+				if enabled {
+					for _, want := range []string{"> " + payload, "< echo:" + payload} {
+						if !strings.Contains(log.String(), want) {
+							t.Errorf("log %q doesn't contain %q", log.String(), want)
+						}
+					}
+				}
+			})
+		}
 	}
 }

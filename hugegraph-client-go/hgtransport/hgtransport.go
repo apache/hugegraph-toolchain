@@ -117,7 +117,7 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
     var dupReqBody *bytes.Buffer
     if c.logger != nil && c.logger.RequestBodyEnabled() {
         if req.Body != nil && req.Body != http.NoBody {
-            dupReqBody = bytes.NewBuffer(make([]byte, 0, int(req.ContentLength)))
+            dupReqBody = new(bytes.Buffer)
             dupReqBody.ReadFrom(req.Body)
             req.Body = ioutil.NopCloser(bytes.NewBuffer(dupReqBody.Bytes()))
         }
