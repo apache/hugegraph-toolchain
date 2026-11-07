@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import org.apache.hugegraph.loader.source.file.FileSource;
 import org.apache.hugegraph.loader.source.file.ListFormat;
+import org.apache.hugegraph.loader.source.hdfs.HDFSSource;
 import org.apache.hugegraph.loader.source.jdbc.JDBCSource;
 import org.apache.hugegraph.loader.util.DataTypeUtil;
 import org.apache.hugegraph.structure.constant.Cardinality;
@@ -94,6 +95,8 @@ public class DataTypeUtilTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             convert("maybe", DataType.BOOLEAN, source);
         }, e -> {
+            Assert.assertContains("Failed to convert 'maybe'(key='key') to Boolean",
+                                  e.getMessage());
             Assert.assertContains("the acceptable boolean strings are", e.getMessage());
         });
         Assert.assertThrows(IllegalArgumentException.class, () -> {
@@ -156,6 +159,20 @@ public class DataTypeUtilTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             convert("1970.01.02", DataType.DATE, source);
         });
+    }
+
+    @Test
+    public void testConvertDateWithHDFSSource() {
+        HDFSSource source = new HDFSSource();
+        source.dateFormat("yyyy-MM-dd");
+        source.timeZone("GMT+0");
+
+        Date date = (Date) convert("1970-01-02", DataType.DATE, source);
+        Assert.assertEquals(86400000L, date.getTime());
+
+        source.extraDateFormats(ImmutableList.of("MM/dd/yyyy"));
+        date = (Date) convert("01/02/1970", DataType.DATE, source);
+        Assert.assertEquals(86400000L, date.getTime());
     }
 
     @Test

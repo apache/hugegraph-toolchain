@@ -52,8 +52,7 @@ public class NopEdgeBuilder extends ElementBuilder<Edge> {
     public List<Edge> build(String[] names, Object[] values) {
         List<Edge> result = new ArrayList();
         for (Object value : values) {
-            if (value instanceof Edge) {
-                Edge edge = (Edge) value;
+            if (value instanceof Edge edge) {
                 result.add(edge);
             }
         }

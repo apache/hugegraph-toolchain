@@ -114,8 +114,8 @@ public final class LoadProgress {
                            boolean finish) {
         InputProgress progress = this.inputProgress.get(struct.id());
         Readable readable = null;
-        if (reader instanceof FileReader) {
-            readable = ((FileReader) reader).readable();
+        if (reader instanceof FileReader fileReader) {
+            readable = fileReader.readable();
         }
         E.checkArgumentNotNull(progress, "Invalid mapping '%s'", struct);
         progress.markLoaded(readable, finish);

@@ -51,10 +51,9 @@ public class FileItemProgress extends InputItemProgress {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof FileItemProgress)) {
+        if (!(object instanceof FileItemProgress other)) {
             return false;
         }
-        FileItemProgress other = (FileItemProgress) object;
         return this.name.equals(other.name) &&
                this.timestamp == other.timestamp &&
                this.checkSum.equals(other.checkSum);

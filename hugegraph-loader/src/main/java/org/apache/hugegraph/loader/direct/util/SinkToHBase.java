@@ -129,9 +129,8 @@ public class SinkToHBase implements Serializable {
 
         @Override
         public int getPartition(Object key) {
-            if (key instanceof ImmutableBytesWritable) {
+            if (key instanceof ImmutableBytesWritable immutableBytesWritableKey) {
                 try {
-                    ImmutableBytesWritable immutableBytesWritableKey = (ImmutableBytesWritable) key;
                     if (rangeMap == null || rangeMap.isEmpty()) {
                         rangeMap = getRangeMap(this.tableName);
                     }

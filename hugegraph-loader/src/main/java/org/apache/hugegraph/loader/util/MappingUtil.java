@@ -171,10 +171,9 @@ public final class MappingUtil {
 
         @Override
         public boolean equals(Object object) {
-            if (!(object instanceof FileSourceKey)) {
+            if (!(object instanceof FileSourceKey other)) {
                 return false;
             }
-            FileSourceKey other = (FileSourceKey) object;
             return this.type == other.type && this.path.equals(other.path);
         }
 
