@@ -60,9 +60,8 @@ class HGEdgeWriter(schema: StructType, hgOptions: HGOptions) extends DataWriter[
 
   private def sinkOnce(): Unit = {
     LOG.info(s"Writer once: ${edgesBuffer.toList}")
-    val successfulVertices = HGBuildUtils.saveEdges(context, edgesBuffer.toList)
-    val successIds = successfulVertices.map(v => v.id())
-    cnt += successIds.length
+    val successfulEdges = HGBuildUtils.saveEdges(context, edgesBuffer.toList)
+    cnt += successfulEdges.length
     edgesBuffer.clear()
   }
 
