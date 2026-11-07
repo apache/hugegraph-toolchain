@@ -464,15 +464,6 @@ public class HugeGraphCommand {
         return restore;
     }
 
-    private GraphMode mode() {
-        GraphsManager graphsManager = manager(GraphsManager.class);
-        GraphMode mode = graphsManager.mode(this.graph());
-        E.checkState(mode.maintaining(),
-                     "Invalid mode '%s' of graph '%s' for restore " +
-                     "sub-command", mode, this.graph());
-        return mode;
-    }
-
     public JCommander parseCommand(String[] args) {
         JCommander jCommander = this.jcommander();
         if (args.length == 0) {

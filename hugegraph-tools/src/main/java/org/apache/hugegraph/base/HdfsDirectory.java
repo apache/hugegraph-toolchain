@@ -57,7 +57,7 @@ public class HdfsDirectory extends Directory {
             return FileSystem.get(conf);
         } catch (IOException e) {
             throw new ClientException("Failed to access HDFS with " +
-                                      "configuration %s", this.conf, e);
+                                      "configuration %s", e, this.conf);
         }
     }
 

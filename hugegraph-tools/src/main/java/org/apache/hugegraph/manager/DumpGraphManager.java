@@ -77,8 +77,6 @@ public class DumpGraphManager extends BackupManager {
             for (String table : this.graph.tables()) {
                 this.submit(() -> dump(table, this.graph.table(table).values()));
             }
-        } catch (Throwable e) {
-            throw e;
         } finally {
             this.shutdown(this.type());
         }

@@ -31,8 +31,8 @@ public final class ToolUtil {
     public static void printOrThrow(Throwable e, boolean throwMode) {
         Printer.print("Failed to execute %s", e.getMessage());
         if (throwMode) {
-            if (e instanceof RuntimeException) {
-                throw  (RuntimeException) e;
+            if (e instanceof RuntimeException runtimeException) {
+                throw runtimeException;
             }
             throw new RuntimeException(e);
         }
@@ -42,7 +42,8 @@ public final class ToolUtil {
     public static void printExceptionStackIfNeeded(Throwable e) {
         System.out.println("Type y(yes) to print exception stack[default n]?");
         Scanner scan = new Scanner(System.in);
-        String inputInfomation = scan.nextLine();
+        // No line to read when stdin is closed or empty, keep the default
+        String inputInfomation = scan.hasNextLine() ? scan.nextLine() : "";
 
         if (inputInfomation.equalsIgnoreCase(Constants.INPUT_YES) ||
             inputInfomation.equalsIgnoreCase(Constants.INPUT_Y)) {
