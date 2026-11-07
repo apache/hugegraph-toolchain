@@ -83,10 +83,9 @@ public class VertexLabelEntity implements SchemaLabelEntity, Timefiable {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof VertexLabelEntity)) {
+        if (!(object instanceof VertexLabelEntity other)) {
             return false;
         }
-        VertexLabelEntity other = (VertexLabelEntity) object;
         return this.name.equals(other.name) &&
                this.idStrategy == other.idStrategy &&
                HubbleUtil.equalCollection(this.properties, other.properties) &&

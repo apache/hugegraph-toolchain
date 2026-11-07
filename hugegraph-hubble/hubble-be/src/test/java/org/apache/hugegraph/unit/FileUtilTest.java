@@ -18,8 +18,11 @@
 
 package org.apache.hugegraph.unit;
 
+import java.io.IOException;
+
 import org.junit.Test;
 
+import org.apache.hugegraph.exception.InternalException;
 import org.apache.hugegraph.testutil.Assert;
 import org.apache.hugegraph.util.FileUtil;;
 
@@ -32,5 +35,15 @@ public class FileUtilTest {
 
         lines = FileUtil.countLines("target/test-classes/files/file_without_empty_line");
         Assert.assertEquals(3, lines);
+    }
+
+    @Test
+    public void testCountLinesKeepsCause() {
+        // A directory exists but cannot be opened as a file
+        Assert.assertThrows(InternalException.class, () -> {
+            FileUtil.countLines("target/test-classes/files");
+        }, e -> {
+            Assert.assertTrue(e.getCause() instanceof IOException);
+        });
     }
 }

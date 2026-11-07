@@ -29,6 +29,7 @@ import org.apache.hugegraph.util.HubbleUtil;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 
 @Data
@@ -98,13 +99,13 @@ public class EdgeLabelEntity implements SchemaLabelEntity, Timefiable {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof EdgeLabelEntity)) {
+        if (!(object instanceof EdgeLabelEntity other)) {
             return false;
         }
-        EdgeLabelEntity other = (EdgeLabelEntity) object;
+        // A normal edge label has no parent label
         return this.name.equals(other.name) &&
                this.edgeLabelType.equals(other.edgeLabelType) &&
-               this.parentLabel.equals(other.parentLabel) &&
+               Objects.equals(this.parentLabel, other.parentLabel) &&
                this.sourceLabel.equals(other.sourceLabel) &&
                this.targetLabel.equals(other.targetLabel) &&
                this.linkMultiTimes == other.linkMultiTimes &&

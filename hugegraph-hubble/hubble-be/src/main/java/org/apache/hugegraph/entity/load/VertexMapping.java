@@ -44,10 +44,9 @@ public class VertexMapping extends ElementMapping {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof VertexMapping)) {
+        if (!(object instanceof VertexMapping other)) {
             return false;
         }
-        VertexMapping other = (VertexMapping) object;
         return this.getId().equals(other.getId());
     }
 

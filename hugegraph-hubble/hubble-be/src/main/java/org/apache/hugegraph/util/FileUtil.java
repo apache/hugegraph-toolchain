@@ -61,7 +61,7 @@ public final class FileUtil {
             return number;
         } catch (IOException e) {
             throw new InternalException("Failed to count lines of file %s",
-                                        file);
+                                        e, file);
         }
     }
 }

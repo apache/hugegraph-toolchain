@@ -43,10 +43,9 @@ public class EdgeMapping extends ElementMapping {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof EdgeMapping)) {
+        if (!(object instanceof EdgeMapping other)) {
             return false;
         }
-        EdgeMapping other = (EdgeMapping) object;
         return this.getId().equals(other.getId());
     }
 
