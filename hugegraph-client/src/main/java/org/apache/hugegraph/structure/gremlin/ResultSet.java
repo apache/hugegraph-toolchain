@@ -84,8 +84,8 @@ public class ResultSet {
         try {
             String rawValue = MAPPER.writeValueAsString(object);
             object = MAPPER.readValue(rawValue, clazz);
-            if (object instanceof GraphAttachable) {
-                ((GraphAttachable) object).attachManager(graphManager);
+            if (object instanceof GraphAttachable attachable) {
+                attachable.attachManager(graphManager);
             }
             return new Result(object);
         } catch (Exception e) {

@@ -93,12 +93,6 @@ public class ComputerDisAPI extends API {
     }
 
     public static long parseTaskId(Map<String, Object> task) {
-        E.checkState(task.size() == 1 && task.containsKey(TASK_ID),
-                     "Task must be formatted to {\"%s\" : id}, but got %s",
-                     TASK_ID, task);
-        Object taskId = task.get(TASK_ID);
-        E.checkState(taskId instanceof Number,
-                     "Task id must be number, but got '%s'", taskId);
-        return ((Number) taskId).longValue();
+        return TaskAPI.parseTaskId(task);
     }
 }

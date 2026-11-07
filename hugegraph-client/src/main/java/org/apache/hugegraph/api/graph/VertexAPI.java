@@ -75,11 +75,12 @@ public class VertexAPI extends GraphAPI {
         String path = String.join("/", this.path(), "olap/batch");
         RestResult result = this.client.put(path, null, request, headers);
         Object size = result.readObject(Map.class).get("size");
-        if (!(size instanceof Integer)) {
+        if (!(size instanceof Integer intSize)) {
             throw new InvalidResponseException("The 'size' in response must be int, " +
-                                               "but got: %s(%s)", size, size.getClass());
+                                               "but got: %s(%s)", size,
+                                               size == null ? null : size.getClass());
         }
-        return (int) size;
+        return intSize;
     }
 
     public Vertex update(String vertexid, Vertex vertex) {

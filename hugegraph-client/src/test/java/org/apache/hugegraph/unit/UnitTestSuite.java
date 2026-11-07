@@ -48,7 +48,11 @@ import org.junit.runners.Suite;
         ServerExceptionTest.class,
         HugeClientFakeServerTest.class,
         GraphElementTest.class,
-        JsonUtilTest.class
+        JsonUtilTest.class,
+        EdgeLabelTest.class,
+        VertexAPITest.class,
+        TraverserRequestTest.class,
+        StructureHelperTest.class
 })
 public class UnitTestSuite {
 }

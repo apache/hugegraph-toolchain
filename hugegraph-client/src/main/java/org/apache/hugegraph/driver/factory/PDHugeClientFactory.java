@@ -118,9 +118,6 @@ public class PDHugeClientFactory {
 
         List<String> urls = getAutoURLs(cluster, graphSpace, graph);
 
-        DefaultHugeClientFactory defaultFactory =
-                new DefaultHugeClientFactory(urls.toArray(new String[0]));
-
         int r = (int) Math.floor(Math.random() * urls.size());
         String address = urls.get(r);
         if (!address.startsWith("http")) {
