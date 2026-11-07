@@ -51,7 +51,7 @@ public class CountRequest {
     @Override
     public String toString() {
         return String.format("CountRequest{source=%s,steps=%s," +
-                             "containsTraversed=%s,dedupSize=%s",
+                             "containsTraversed=%s,dedupSize=%s}",
                              this.source, this.steps, this.containsTraversed,
                              this.dedupSize);
     }

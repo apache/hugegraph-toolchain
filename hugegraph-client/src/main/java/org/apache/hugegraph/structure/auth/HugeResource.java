@@ -70,10 +70,9 @@ public class HugeResource {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof HugeResource)) {
+        if (!(object instanceof HugeResource other)) {
             return false;
         }
-        HugeResource other = (HugeResource) object;
         return this.type == other.type &&
                Objects.equals(this.label, other.label) &&
                Objects.equals(this.properties, other.properties);

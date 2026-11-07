@@ -59,7 +59,7 @@ public class KneighborRequest {
 
     @Override
     public String toString() {
-        return String.format("KneighborRequest{source=%s,steps=%s,maxDepth=%s" +
+        return String.format("KneighborRequest{source=%s,steps=%s,maxDepth=%s," +
                              "countOnly=%s,limit=%s,withVertex=%s,withPath=%s,withEdge=%s}",
                              this.source, this.steps, this.maxDepth,
                              this.countOnly, this.limit,

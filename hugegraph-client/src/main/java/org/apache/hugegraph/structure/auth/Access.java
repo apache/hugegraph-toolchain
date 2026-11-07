@@ -79,8 +79,8 @@ public class Access extends AuthElement {
     }
 
     public void group(Object group) {
-        if (group instanceof Group) {
-            group = ((Group) group).id();
+        if (group instanceof Group g) {
+            group = g.id();
         }
         this.group = group;
     }
@@ -90,8 +90,8 @@ public class Access extends AuthElement {
     }
 
     public void target(Object target) {
-        if (target instanceof Target) {
-            target = ((Target) target).id();
+        if (target instanceof Target t) {
+            target = t.id();
         }
         this.target = target;
     }
