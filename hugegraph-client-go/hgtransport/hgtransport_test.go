@@ -19,6 +19,7 @@ package hgtransport
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"math"
@@ -362,4 +363,77 @@ func TestPerformLogsRequestWithLargeContentLength(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer res.Body.Close()
+}
+
+type trackedRequestBody struct {
+	reader io.Reader
+	closed bool
+}
+
+func (b *trackedRequestBody) Read(p []byte) (int, error) {
+	return b.reader.Read(p)
+}
+
+func (b *trackedRequestBody) Close() error {
+	b.closed = true
+	return nil
+}
+
+type failingRequestReader struct {
+	err error
+}
+
+func (r failingRequestReader) Read(p []byte) (int, error) {
+	return copy(p, "partial"), r.err
+}
+
+func TestPerformLoggingRequestBodyRead(t *testing.T) {
+	readErr := errors.New("request body read failed")
+	for _, tc := range []struct {
+		name    string
+		reader  io.Reader
+		wantErr error
+	}{
+		{name: "success", reader: strings.NewReader("payload")},
+		{name: "read error", reader: failingRequestReader{err: readErr}, wantErr: readErr},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			u, err := url.Parse("http://example.test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			called := false
+			transport := bodyTestTransport(func(req *http.Request) (*http.Response, error) {
+				called = true
+				body, err := io.ReadAll(req.Body)
+				if err != nil || string(body) != "payload" {
+					t.Fatalf("body = %q, err = %v", body, err)
+				}
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok")), Header: make(http.Header)}, nil
+			})
+			var log bytes.Buffer
+			client := New(Config{URL: u, Transport: transport, Logger: &TextLogger{Output: &log, EnableRequestBody: true}})
+			req := newRequest(t, "POST", "/", "")
+			originalBody := &trackedRequestBody{reader: tc.reader}
+			req.Body = originalBody
+			req.ContentLength = -1
+
+			res, err := client.Perform(req)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("error = %v, want %v", err, tc.wantErr)
+			}
+			if !originalBody.closed {
+				t.Error("original request body was not closed")
+			}
+			if called != (tc.wantErr == nil) {
+				t.Errorf("transport called = %t, want %t", called, tc.wantErr == nil)
+			}
+			if res != nil {
+				defer res.Body.Close()
+			}
+			if (res == nil) != (tc.wantErr != nil) {
+				t.Errorf("response = %v, want nil = %t", res, tc.wantErr != nil)
+			}
+		})
+	}
 }

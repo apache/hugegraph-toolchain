@@ -128,7 +128,11 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
                 // ReadFrom needs space to check for EOF after reading the body.
                 dupReqBody.Grow(int(size) + bytes.MinRead)
             }
-            dupReqBody.ReadFrom(req.Body)
+            _, err := dupReqBody.ReadFrom(req.Body)
+            req.Body.Close()
+            if err != nil {
+                return nil, err
+            }
             req.Body = ioutil.NopCloser(bytes.NewBuffer(dupReqBody.Bytes()))
         }
     }
