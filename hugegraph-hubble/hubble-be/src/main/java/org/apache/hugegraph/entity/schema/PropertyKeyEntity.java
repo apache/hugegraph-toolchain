@@ -54,10 +54,9 @@ public class PropertyKeyEntity implements SchemaEntity, Timefiable {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof PropertyKeyEntity)) {
+        if (!(object instanceof PropertyKeyEntity other)) {
             return false;
         }
-        PropertyKeyEntity other = (PropertyKeyEntity) object;
         return this.name.equals(other.name) &&
                this.dataType == other.dataType &&
                this.cardinality == other.cardinality;

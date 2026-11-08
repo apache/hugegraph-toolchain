@@ -73,6 +73,7 @@ import org.junit.runners.Suite;
     FileMappingSchemaTest.class,
     org.apache.hugegraph.service.load.FilePreviewReaderTest.class,
     FileUploadControllerTest.class,
+    EdgeLabelEntityTest.class,
     FileUtilTest.class,
     GraphServiceImportTest.class,
     GraphServiceUpdateIdTest.class,
