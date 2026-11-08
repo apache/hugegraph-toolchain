@@ -42,11 +42,12 @@ A Java client contract change can affect every dependent module. Loader and Clie
 
 ```bash
 mvn clean install -DskipTests -Dmaven.javadoc.skip=true -ntp
-mvn install -pl <module> -am -DskipTests -ntp
+# Example: replace hugegraph-client with the concrete target module
+mvn install -pl hugegraph-client -am -DskipTests -ntp
 ./tools/check-license-header.sh
 ```
 
-After a Client change, run the module install command above for each downstream target before its tests. This ensures Loader, Hubble, Tools or Spark resolve the current Client build instead of an older artifact in the local Maven repository.
+Use concrete reactor paths: `hugegraph-loader`, `hugegraph-hubble/hubble-be`, `hugegraph-tools` or `hugegraph-spark-connector`. After a Client change, install each affected downstream target before its tests so it resolves the current Client build. After a Loader change, install `hugegraph-loader` before running Hubble backend tests. When using custom Maven settings or an isolated local repository, keep the same options for the install and test commands.
 
 Common test entry points:
 
