@@ -59,8 +59,8 @@ public abstract class AuthAPI extends API {
     public static String formatEntityId(Object id) {
         if (id == null) {
             return null;
-        } else if (id instanceof AuthElement) {
-            id = ((AuthElement) id).id();
+        } else if (id instanceof AuthElement element) {
+            id = element.id();
         }
         return String.valueOf(id);
     }

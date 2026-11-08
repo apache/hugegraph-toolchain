@@ -56,10 +56,9 @@ public class PropertyIndex implements SchemaEntity {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof PropertyIndex)) {
+        if (!(object instanceof PropertyIndex other)) {
             return false;
         }
-        PropertyIndex other = (PropertyIndex) object;
         return this.owner.equals(other.owner) &&
                this.name.equals(other.name) &&
                this.type == other.type &&

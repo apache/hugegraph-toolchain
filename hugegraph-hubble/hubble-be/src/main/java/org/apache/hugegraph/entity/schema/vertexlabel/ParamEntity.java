@@ -76,10 +76,9 @@ public class ParamEntity implements SchemaLabelEntity, Timefiable {
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof ParamEntity)) {
+        if (!(object instanceof ParamEntity other)) {
             return false;
         }
-        ParamEntity other = (ParamEntity) object;
         return this.name.equals(other.name) &&
                 this.idStrategy == other.idStrategy &&
                 HubbleUtil.equalCollection(this.properties, other.properties) &&

@@ -63,8 +63,8 @@ public final class LoadUtil {
         } else {
             e = t;
         }
-        if (e instanceof RuntimeException) {
-            return (RuntimeException) e;
+        if (e instanceof RuntimeException runtimeException) {
+            return runtimeException;
         }
         return new RuntimeException(e);
     }

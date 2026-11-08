@@ -46,8 +46,8 @@ public class ComputeSign {
         tradeValue2Num = new HashMap<>();
         String fileContent = new String(fileBytes);
         String[] lines = fileContent.split("\n");
-        for (int i = 0; i < lines.length; i++) {
-            String[] cols = lines[i].split("\t");
+        for (String line : lines) {
+            String[] cols = line.split("\t");
             if (cols.length >= 2) {
                 tradeValue2Num.put(cols[0], Integer.valueOf(cols[1]));
             }

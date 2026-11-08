@@ -216,8 +216,7 @@ public abstract class ElementBuilder<GE extends GraphElement> {
         if (pkValue == null) {
             return true;
         }
-        if (pkValue instanceof String) {
-            String pkValueStr = (String) pkValue;
+        if (pkValue instanceof String pkValueStr) {
             return pkValueStr.isEmpty();
         }
         return false;
