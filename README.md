@@ -6,23 +6,14 @@
 [![Hubble CI](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml)
 [![Tools CI](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/org.apache.hugegraph/hugegraph-toolchain)](https://mvnrepository.com/artifact/org.apache.hugegraph/hugegraph-toolchain)
-[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/apache/hugegraph-toolchain)
 
 ## What is HugeGraph Toolchain?
 
 A comprehensive suite of client SDKs, data tools, and management utilities for [Apache HugeGraph](https://github.com/apache/hugegraph) graph database. Build applications, load data, and manage graphs with production-ready tools.
 
-### Hubble Workbench
-
 Hubble brings graph exploration, schema preparation, analysis, and cluster operations into one workspace. See [Server compatibility](hugegraph-hubble/README.md#authentication-connections-and-compatibility) for supported versions and features.
 
-![HugeGraph Hubble workbench](./hugegraph-hubble/docs/images/showcase/home-workbench.jpg)
-
-### Distributed Operations
-
 The cluster overview keeps service topology, node health, source status, and capacity facts in one operational view.
-
-![HugeGraph Hubble cluster overview](./hugegraph-hubble/docs/images/showcase/operations-overview.jpg)
 
 **Quick Navigation**: [Architecture](#architecture-overview) | [Quick Start](#quick-start) | [Modules](#module-overview) | [Build](#build--development) | [Docker](#docker) | [Documentation index](docs/README.md) | [Related Projects](#related-projects)
 
