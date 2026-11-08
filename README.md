@@ -98,7 +98,8 @@ Go / Python / other clients ------------------------------REST--> Server
 |-------------|---------|-------|
 | JDK | 17+ | Build and run the core tools with Java 17 |
 | Maven | 3.6.3+ | For building from source |
-| HugeGraph Server | Current 1.8 or official 1.7.0 | See the migration guide for Server 1.5 scope |
+| HugeGraph Server | Official 1.7.0 | Released binary; see the migration guide for Server 1.5 scope |
+| HugeGraph Server candidate | Source-built 1.8.0 | [Locked candidate](docs/java17-migration.md#build-the-locked-candidate), not an ASF release |
 
 For the Java 17 candidate SDK, upgrade procedure and compatibility boundary, see [the migration guide](docs/java17-migration.md).
 
