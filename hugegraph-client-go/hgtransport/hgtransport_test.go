@@ -19,7 +19,10 @@ package hgtransport
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -281,5 +284,156 @@ func TestGetConfig(t *testing.T) {
 	// Pins current behavior: GetConfig doesn't return the logger
 	if cfg.Logger != nil {
 		t.Errorf("logger = %v, want nil", cfg.Logger)
+	}
+}
+
+func TestPerformLogsUnknownLengthRequestBody(t *testing.T) {
+	const payload = `{"gremlin":"g.V().limit(1)"}`
+	for _, contentLength := range []int64{-1, 0, int64(len(payload))} {
+		for _, enabled := range []bool{false, true} {
+			name := fmt.Sprintf("length=%d/logBody=%t", contentLength, enabled)
+			t.Run(name, func(t *testing.T) {
+				defer func() {
+					if recovered := recover(); recovered != nil {
+						t.Errorf("Perform panicked: %v", recovered)
+					}
+				}()
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					body, err := io.ReadAll(r.Body)
+					if err != nil {
+						t.Error(err)
+					}
+					_, _ = w.Write(append([]byte("echo:"), body...))
+				}))
+				defer server.Close()
+				var log bytes.Buffer
+				logger := &TextLogger{Output: &log, EnableRequestBody: enabled, EnableResponseBody: enabled}
+				client := New(Config{URL: serverURL(t, server, ""), Logger: logger})
+				req := newRequest(t, "POST", "/gremlin", payload)
+				req.ContentLength = contentLength
+				res, err := client.Perform(req)
+				if err != nil {
+					t.Fatal(err)
+				}
+				defer res.Body.Close()
+				body, err := io.ReadAll(res.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				if string(body) != "echo:"+payload {
+					t.Errorf("response body = %q", body)
+				}
+				if enabled {
+					for _, want := range []string{"> " + payload, "< echo:" + payload} {
+						if !strings.Contains(log.String(), want) {
+							t.Errorf("log %q doesn't contain %q", log.String(), want)
+						}
+					}
+				}
+			})
+		}
+	}
+}
+
+type bodyTestTransport func(*http.Request) (*http.Response, error)
+
+func (f bodyTestTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestPerformLogsRequestWithLargeContentLength(t *testing.T) {
+	u, err := url.Parse("http://example.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log bytes.Buffer
+	transport := bodyTestTransport(func(req *http.Request) (*http.Response, error) {
+		body, err := io.ReadAll(req.Body)
+		if err != nil || string(body) != "payload" {
+			t.Fatalf("body = %q, err = %v", body, err)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok")), Header: make(http.Header)}, nil
+	})
+	logger := &TextLogger{Output: &log, EnableRequestBody: true}
+	client := New(Config{URL: u, Transport: transport, Logger: logger})
+	req := newRequest(t, "POST", "/", "payload")
+	req.ContentLength = math.MaxInt64
+	res, err := client.Perform(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
+}
+
+type trackedRequestBody struct {
+	reader io.Reader
+	closed bool
+}
+
+func (b *trackedRequestBody) Read(p []byte) (int, error) {
+	return b.reader.Read(p)
+}
+
+func (b *trackedRequestBody) Close() error {
+	b.closed = true
+	return nil
+}
+
+type failingRequestReader struct {
+	err error
+}
+
+func (r failingRequestReader) Read(p []byte) (int, error) {
+	return copy(p, "partial"), r.err
+}
+
+func TestPerformLoggingRequestBodyRead(t *testing.T) {
+	readErr := errors.New("request body read failed")
+	for _, tc := range []struct {
+		name    string
+		reader  io.Reader
+		wantErr error
+	}{
+		{name: "success", reader: strings.NewReader("payload")},
+		{name: "read error", reader: failingRequestReader{err: readErr}, wantErr: readErr},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			u, err := url.Parse("http://example.test")
+			if err != nil {
+				t.Fatal(err)
+			}
+			called := false
+			transport := bodyTestTransport(func(req *http.Request) (*http.Response, error) {
+				called = true
+				body, err := io.ReadAll(req.Body)
+				if err != nil || string(body) != "payload" {
+					t.Fatalf("body = %q, err = %v", body, err)
+				}
+				return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok")), Header: make(http.Header)}, nil
+			})
+			var log bytes.Buffer
+			client := New(Config{URL: u, Transport: transport, Logger: &TextLogger{Output: &log, EnableRequestBody: true}})
+			req := newRequest(t, "POST", "/", "")
+			originalBody := &trackedRequestBody{reader: tc.reader}
+			req.Body = originalBody
+			req.ContentLength = -1
+
+			res, err := client.Perform(req)
+			if !errors.Is(err, tc.wantErr) {
+				t.Fatalf("error = %v, want %v", err, tc.wantErr)
+			}
+			if !originalBody.closed {
+				t.Error("original request body was not closed")
+			}
+			if called != (tc.wantErr == nil) {
+				t.Errorf("transport called = %t, want %t", called, tc.wantErr == nil)
+			}
+			if res != nil {
+				defer res.Body.Close()
+			}
+			if (res == nil) != (tc.wantErr != nil) {
+				t.Errorf("response = %v, want nil = %t", res, tc.wantErr != nil)
+			}
+		})
 	}
 }

@@ -117,8 +117,22 @@ func (c *Client) Perform(req *http.Request) (*http.Response, error) {
     var dupReqBody *bytes.Buffer
     if c.logger != nil && c.logger.RequestBodyEnabled() {
         if req.Body != nil && req.Body != http.NoBody {
-            dupReqBody = bytes.NewBuffer(make([]byte, 0, int(req.ContentLength)))
-            dupReqBody.ReadFrom(req.Body)
+            dupReqBody = new(bytes.Buffer)
+            // Bound the initial allocation when ContentLength is untrusted.
+            const maxInitialBodyCapacity = 1 << 20
+            if req.ContentLength > 0 {
+                size := req.ContentLength
+                if size > maxInitialBodyCapacity {
+                    size = maxInitialBodyCapacity
+                }
+                // ReadFrom needs space to check for EOF after reading the body.
+                dupReqBody.Grow(int(size) + bytes.MinRead)
+            }
+            _, err := dupReqBody.ReadFrom(req.Body)
+            req.Body.Close()
+            if err != nil {
+                return nil, err
+            }
             req.Body = ioutil.NopCloser(bytes.NewBuffer(dupReqBody.Bytes()))
         }
     }
