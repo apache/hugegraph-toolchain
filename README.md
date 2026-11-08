@@ -113,7 +113,7 @@ HTTP port is bound to host loopback. Configure authentication and network
 restrictions before exposing either service. Pin compatible released versions for
 repeatable deployments.
 
-Run from the repository root with Docker available:
+Run from the repository root with a local Docker context. The bind mount and loopback port belong to the Docker daemon host:
 
 ```bash
 # Create a private network and start Server on it
@@ -136,6 +136,10 @@ docker run -d --name hubble --network hugegraph-demo \
   -v "$HUBBLE_CONFIG_DIR/hugegraph-hubble.properties:/hubble/conf/hugegraph-hubble.properties:ro" \
   hugegraph-hubble:local
 ```
+
+Use Docker Engine 28.0.0 or later for the loopback publish. With an older Engine, configure and verify host or network isolation before running this unauthenticated local example because hosts on the same layer-2 network may still reach localhost-published ports. On an SELinux-enforcing host, change the private generated configuration mount suffix from `:ro` to `:ro,Z`; `Z` relabels that host file for exclusive container use.
+
+This example assumes a local Docker context. With a remote daemon, create the bind-mounted configuration on the daemon host; `127.0.0.1` also refers to that remote host, so access it through an authenticated tunnel or another controlled channel. Do not expose a remote Docker API without TLS.
 
 Open `http://127.0.0.1:8088` after startup; use `docker logs hubble` to diagnose
 startup failures. This disposable example does not persist Hubble data. To connect
@@ -370,6 +374,8 @@ Node 25 and prerelease builds require a separate compatibility upgrade.
 
 For Maven tests, use the same SDK repository settings as for the module builds.
 Some suites require a running Server or other external services.
+
+After a Client change, run the Loader install command above with the same `--settings` and `-Dmaven.repo.local` options before any Loader tests. After a Loader change, install Loader with those same Maven repository settings before Hubble backend tests. This keeps both suites on the current Client and Loader artifacts instead of stale local copies.
 
 | Module | Test Type | Command |
 |--------|-----------|---------|
