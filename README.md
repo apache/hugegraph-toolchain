@@ -47,7 +47,7 @@ Start a HugeGraph Server first, then choose the tool that matches the task.
 docker run -d --name hubble -p 127.0.0.1:8088:8088 hugegraph/hubble
 ```
 
-This starts Hubble only. For current source builds, `server.direct_url` must name a Server address reachable from inside the container; container `127.0.0.1` is Hubble itself, not the host. Edit a copy of `hugegraph-hubble/hubble-dist/assembly/static/conf/hugegraph-hubble.properties` and mount it at `/hubble/conf/hugegraph-hubble.properties`, using `host.docker.internal` or a shared Docker network. See the [Hubble deployment section](hugegraph-hubble/README.md#3-user-docker-image-convenient-for-testdev) for published-image and source-build details.
+This starts Hubble only. For current source builds, `server.direct_url` must name a Server address reachable from inside the container; container `127.0.0.1` is Hubble itself, not the host. When mounting a copy of `hugegraph-hubble/hubble-dist/assembly/static/conf/hugegraph-hubble.properties` at `/hubble/conf/hugegraph-hubble.properties`, set `server.host=0.0.0.0` in the copy so Hubble listens on the container interface. Set `server.direct_url` using `host.docker.internal` or a shared Docker network. The mounted file replaces the image configuration, which already sets `server.host=0.0.0.0`. See the [Hubble deployment section](hugegraph-hubble/README.md#3-user-docker-image-convenient-for-testdev) for published-image and source-build details.
 
 Open `http://127.0.0.1:8088` after Hubble starts.
 
@@ -116,7 +116,7 @@ Build only the affected module and its dependencies when possible:
 ```bash
 mvn install -pl hugegraph-client -am -DskipTests -ntp
 mvn install -pl hugegraph-loader -am -DskipTests -ntp
-mvn install -pl hugegraph-hubble -am -DskipTests -ntp
+mvn install -pl hugegraph-hubble/hubble-dist -am -DskipTests -ntp
 mvn install -pl hugegraph-tools -am -DskipTests -ntp
 ```
 
