@@ -31,7 +31,7 @@ class HGBatchWriterFactory(schema: StructType, hgOptions: HGOptions) extends Dat
   override def createWriter(partitionId: Int, taskId: Long): DataWriter[InternalRow] = {
     val dataType = hgOptions.dataType()
     LOG.info(s"Create a ${dataType} writer, partitionId: ${partitionId}, taskId: ${taskId}")
-    if (dataType == "vertex") {
+    if (DataTypeEnum.isVertex(dataType)) {
       new HGVertexWriter(schema, hgOptions)
     }
     else {

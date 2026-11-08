@@ -61,8 +61,8 @@ public final class DataTypeUtils {
     private static Object parseSingleValue(String key, Object rawValue, DataType dataType) {
         // Trim space if raw value is string
         Object value = rawValue;
-        if (rawValue instanceof String) {
-            value = ((String) rawValue).trim();
+        if (rawValue instanceof String str) {
+            value = str.trim();
         }
         if (dataType.isNumber()) {
             return parseNumber(key, value, dataType);
@@ -87,11 +87,11 @@ public final class DataTypeUtils {
     }
 
     public static long parseNumber(String key, Object rawValue) {
-        if (rawValue instanceof Number) {
-            return ((Number) rawValue).longValue();
-        } else if (rawValue instanceof String) {
+        if (rawValue instanceof Number number) {
+            return number.longValue();
+        } else if (rawValue instanceof String str) {
             // trim() is a little time-consuming
-            return parseLong(((String) rawValue).trim());
+            return parseLong(str.trim());
         }
         throw new IllegalArgumentException(String.format("The value(key='%s') must can be casted" +
                                                          " to Long, but got '%s'(%s)", key,
@@ -99,10 +99,10 @@ public final class DataTypeUtils {
     }
 
     public static UUID parseUUID(String key, Object rawValue) {
-        if (rawValue instanceof UUID) {
-            return (UUID) rawValue;
-        } else if (rawValue instanceof String) {
-            String value = ((String) rawValue).trim();
+        if (rawValue instanceof UUID uuid) {
+            return uuid;
+        } else if (rawValue instanceof String str) {
+            String value = str.trim();
             if (value.contains("-")) {
                 return UUID.fromString(value);
             }
@@ -120,11 +120,11 @@ public final class DataTypeUtils {
     }
 
     private static Boolean parseBoolean(String key, Object rawValue) {
-        if (rawValue instanceof Boolean) {
-            return (Boolean) rawValue;
+        if (rawValue instanceof Boolean bool) {
+            return bool;
         }
-        if (rawValue instanceof String) {
-            String value = ((String) rawValue).toLowerCase();
+        if (rawValue instanceof String str) {
+            String value = str.toLowerCase();
             if (ACCEPTABLE_TRUE.contains(value)) {
                 return true;
             } else if (ACCEPTABLE_FALSE.contains(value)) {
@@ -133,7 +133,7 @@ public final class DataTypeUtils {
                 throw new IllegalArgumentException(String.format(
                         "Failed to convert '%s'(key='%s') to Boolean, " +
                         "the acceptable boolean strings are %s or %s",
-                        key, rawValue, ACCEPTABLE_TRUE, ACCEPTABLE_FALSE));
+                        rawValue, key, ACCEPTABLE_TRUE, ACCEPTABLE_FALSE));
             }
         }
         throw new IllegalArgumentException(String.format("Failed to convert value(key='%s') " +
@@ -180,22 +180,22 @@ public final class DataTypeUtils {
     }
 
     private static Date parseDate(String key, Object value, String dateFormat, String timeZone) {
-        if (value instanceof Date) {
-            return (Date) value;
+        if (value instanceof Date date) {
+            return date;
         }
-        if (value instanceof Number) {
-            return new Date(((Number) value).longValue());
-        } else if (value instanceof String) {
+        if (value instanceof Number number) {
+            return new Date(number.longValue());
+        } else if (value instanceof String str) {
             if (Constants.TIMESTAMP.equals(dateFormat)) {
                 try {
-                    long timestamp = Long.parseLong((String) value);
+                    long timestamp = Long.parseLong(str);
                     return new Date(timestamp);
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException(String.format("Invalid timestamp value " +
                                                                      "'%s'", value));
                 }
             } else {
-                return DateUtils.parse((String) value, dateFormat, timeZone);
+                return DateUtils.parse(str, dateFormat, timeZone);
             }
         }
         throw new IllegalArgumentException(String.format("Failed to convert value(key='%s') " +

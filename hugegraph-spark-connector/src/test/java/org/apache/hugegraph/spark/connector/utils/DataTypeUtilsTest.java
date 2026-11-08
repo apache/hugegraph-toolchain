@@ -120,6 +120,9 @@ public class DataTypeUtilsTest {
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DataTypeUtils.convert("right", booleanPropertyKey);
+        }, e -> {
+            Assert.assertContains("Failed to convert 'right'(key='boolean') to Boolean",
+                                  e.getMessage());
         });
 
         Assert.assertThrows(IllegalArgumentException.class, () -> {

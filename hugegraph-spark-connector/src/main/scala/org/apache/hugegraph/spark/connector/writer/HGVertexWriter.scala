@@ -59,10 +59,8 @@ class HGVertexWriter(schema: StructType, hgOptions: HGOptions) extends DataWrite
   }
 
   private def sinkOnce(): Unit = {
-    verticesBuffer.foreach(e => e.id())
     LOG.info(s"Writer once: ${verticesBuffer.toList}")
     val successfulVertices = HGBuildUtils.saveVertices(context, verticesBuffer.toList)
-    val successIds = successfulVertices.map(_.id()).mkString(",")
     cnt += successfulVertices.length
     verticesBuffer.clear()
   }
