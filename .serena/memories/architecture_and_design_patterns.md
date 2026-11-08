@@ -20,4 +20,6 @@ HugeGraph Java Client
 - CLI command managers: `hugegraph-tools/src/main/java/`
 - Spark DataSource implementation: `hugegraph-spark-connector/src/main/`
 
+For authoritative module documentation, continue from the [repository documentation index](../../docs/README.md).
+
 Follow existing interfaces and factories within the owning module. Do not infer a universal pattern from one component or copy a complete class inventory into this memory; search the current source before designing an extension.

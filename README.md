@@ -44,39 +44,40 @@ Start a HugeGraph Server first, then choose the tool that matches the task.
 ### Hubble
 
 ```bash
-docker run -d --name hubble -p 8088:8088 hugegraph/hugegraph-hubble
+docker run -d --name hubble -p 127.0.0.1:8088:8088 hugegraph/hubble
 ```
 
-Open `http://localhost:8088` and create a connection to the Server. For authentication, GraphSpace and distributed-cluster behavior, follow the [Hubble module documentation](hugegraph-hubble/).
+This starts Hubble only. For current source builds, `server.direct_url` must name a Server address reachable from inside the container; container `127.0.0.1` is Hubble itself, not the host. Edit a copy of `hugegraph-hubble/hubble-dist/assembly/static/conf/hugegraph-hubble.properties` and mount it at `/hubble/conf/hugegraph-hubble.properties`, using `host.docker.internal` or a shared Docker network. See the [Hubble deployment section](hugegraph-hubble/README.md#3-user-docker-image-convenient-for-testdev) for published-image and source-build details.
+
+Open `http://127.0.0.1:8088` after Hubble starts.
 
 ### Loader
 
+First [download or build the Toolchain distribution](hugegraph-loader/README.md#2-quick-start). Run the launcher from the extracted Loader directory so its sibling `lib` and `conf` directories are available:
+
 ```bash
-./hugegraph-loader/bin/hugegraph-loader.sh -f mapping.json -g hugegraph
+cd apache-hugegraph-toolchain-<version>/apache-hugegraph-loader-<version>
+sh bin/hugegraph-loader.sh -f /path/to/mapping.json -g hugegraph
 ```
 
 The mapping file defines input sources, vertex and edge mappings, identifiers and error handling. See the [Loader guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-loader/) for complete examples.
 
 ### Java client
 
-Use the released `org.apache.hugegraph:hugegraph-client` artifact from Maven Central:
-
-```xml
-<dependency>
-    <groupId>org.apache.hugegraph</groupId>
-    <artifactId>hugegraph-client</artifactId>
-    <version>${hugegraph.version}</version>
-</dependency>
-```
+Use the released `org.apache.hugegraph:hugegraph-client` artifact listed in [Maven Central](https://mvnrepository.com/artifact/org.apache.hugegraph/hugegraph-client), and put the selected release version in the application POM. The [Client module](hugegraph-client/) owns coordinate, compatibility and API details.
 
 ```java
-HugeClient client = HugeClient.builder("http://localhost:8080", "hugegraph").build();
-client.schema().propertyKey("name").asText().ifNotExist().create();
-client.schema().vertexLabel("person").properties("name").ifNotExist().create();
-client.graph().addVertex(T.label, "person", "name", "Alice");
+import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.structure.constant.T;
+
+try (HugeClient client = HugeClient.builder("http://localhost:8080", "hugegraph").build()) {
+    client.schema().propertyKey("name").asText().ifNotExist().create();
+    client.schema().vertexLabel("person").properties("name").ifNotExist().create();
+    client.graph().addVertex(T.LABEL, "person", "name", "Alice");
+}
 ```
 
-Select a version compatible with the target Server. Do not copy a repository development version into application documentation; use Maven Central and the relevant migration guide as the source of truth.
+Select a Client version compatible with the target Server rather than copying a repository development version into an application.
 
 ## Modules
 
@@ -120,7 +121,7 @@ mvn install -pl hugegraph-hubble -am -DskipTests -ntp
 mvn install -pl hugegraph-tools -am -DskipTests -ntp
 ```
 
-Run the module tests described in [`AGENTS.md`](AGENTS.md) and [CI policy](docs/ci.md). Client changes require downstream validation; Loader or Client changes also affect Hubble.
+Run the module tests described in [`AGENTS.md`](AGENTS.md) and [CI policy](docs/ci.md). Client changes require downstream validation; Loader or Client changes also affect Hubble. The standalone Go client is validated separately with its module Makefile and Go tooling.
 
 ## Related projects
 

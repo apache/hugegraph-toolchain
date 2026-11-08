@@ -46,6 +46,8 @@ mvn install -pl <module> -am -DskipTests -ntp
 ./tools/check-license-header.sh
 ```
 
+After a Client change, run the module install command above for each downstream target before its tests. This ensures Loader, Hubble, Tools or Spark resolve the current Client build instead of an older artifact in the local Maven repository.
+
 Common test entry points:
 
 ```bash

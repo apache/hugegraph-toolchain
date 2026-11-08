@@ -34,7 +34,7 @@ continuation_indent_size = 8
 ij_continuation_indent_size = 8
 
 [*.md]
-max_line_length = 160
+max_line_length = unset
 ij_visual_guides = 160
 ij_wrap_on_typing = false
 
