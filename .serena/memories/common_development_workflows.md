@@ -6,8 +6,8 @@ Run from the repository root unless a module guide says otherwise.
 # Full Maven reactor compile/package path; the standalone Go client is separate
 mvn clean install -DskipTests -Dmaven.javadoc.skip=true -ntp
 
-# Build one Maven module and required dependencies
-mvn install -pl <module> -am -DskipTests -ntp
+# Build one Maven module and required dependencies; replace hugegraph-client as needed
+mvn install -pl hugegraph-client -am -DskipTests -ntp
 
 # License headers
 ./tools/check-license-header.sh
