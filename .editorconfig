@@ -25,18 +25,18 @@ max_line_length = 120
 ij_wrap_on_typing = true
 ij_visual_guides = 120
 
-
 [*.{java,xml,py}]
 indent_style = space
 indent_size = 4
 
 [*.{java,xml}]
 continuation_indent_size = 8
-# IDEA need their self argument
 ij_continuation_indent_size = 8
 
 [*.md]
-max_line_length = off
+max_line_length = 160
+ij_visual_guides = 160
+ij_wrap_on_typing = false
 
 [*.java]
 ij_java_doc_add_p_tag_on_empty_lines = true
