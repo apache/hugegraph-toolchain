@@ -23,7 +23,7 @@ HugeGraph Toolchain is the client and operations suite for [Apache HugeGraph](ht
 | Use a Go client | [`hugegraph-client-go`](hugegraph-client-go/) | Go package |
 | Use Python | [HugeGraph Python client](https://github.com/apache/hugegraph-ai/tree/main/hugegraph-python-client) | `pyhugegraph` |
 
-The Java client is the shared foundation for Loader, Hubble, Tools and the Spark connector. A client contract change therefore requires validation of the affected downstream modules.
+The Java client is the shared foundation for Loader, the Hubble backend, Tools and the Spark connector. The Hubble frontend communicates with its backend. A client contract change therefore requires validation of the affected downstream modules.
 
 ```text
 HugeGraph Server
@@ -32,7 +32,7 @@ HugeGraph Server
        │
 HugeGraph Java Client
   ├─ Loader
-  ├─ Hubble
+  ├─ Hubble backend ◀─ HTTP ── Hubble frontend
   ├─ Tools
   └─ Spark Connector
 ```
@@ -53,10 +53,9 @@ Open `http://127.0.0.1:8088` after Hubble starts.
 
 ### Loader
 
-First [download or build the Toolchain distribution](hugegraph-loader/README.md#2-quick-start). Run the launcher from the extracted Loader directory so its sibling `lib` and `conf` directories are available:
+First [download or build the Toolchain distribution](hugegraph-loader/README.md#2-quick-start). Change into the extracted `apache-hugegraph-toolchain-<version>/apache-hugegraph-loader-<version>` directory, replacing `<version>` with the distribution version. Run the launcher there so its sibling `lib` and `conf` directories are available:
 
 ```bash
-cd apache-hugegraph-toolchain-<version>/apache-hugegraph-loader-<version>
 sh bin/hugegraph-loader.sh -f /path/to/mapping.json -g hugegraph
 ```
 

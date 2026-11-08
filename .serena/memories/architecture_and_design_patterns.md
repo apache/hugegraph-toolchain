@@ -6,7 +6,7 @@ HugeGraph Server
        │ REST APIs
 HugeGraph Java Client
   ├─ Loader pipeline
-  ├─ Hubble backend and frontend
+  ├─ Hubble backend ◀─ HTTP ── Hubble frontend
   ├─ Tools commands
   └─ Spark connector
 ```
