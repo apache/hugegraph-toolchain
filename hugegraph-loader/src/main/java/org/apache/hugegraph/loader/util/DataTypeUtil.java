@@ -34,7 +34,6 @@ import org.apache.hugegraph.loader.source.AbstractSource;
 import org.apache.hugegraph.loader.source.InputSource;
 import org.apache.hugegraph.loader.source.file.FileSource;
 import org.apache.hugegraph.loader.source.file.ListFormat;
-import org.apache.hugegraph.loader.source.hdfs.HDFSSource;
 import org.apache.hugegraph.loader.source.jdbc.JDBCSource;
 import org.apache.hugegraph.loader.source.kafka.KafkaSource;
 import org.apache.hugegraph.structure.constant.Cardinality;
@@ -95,11 +94,11 @@ public final class DataTypeUtil {
     }
 
     public static long parseNumber(String key, Object rawValue) {
-        if (rawValue instanceof Number) {
-            return ((Number) rawValue).longValue();
-        } else if (rawValue instanceof String) {
+        if (rawValue instanceof Number number) {
+            return number.longValue();
+        } else if (rawValue instanceof String str) {
             // trim() is a little time-consuming
-            return parseLong(((String) rawValue).trim());
+            return parseLong(str.trim());
         }
         throw new IllegalArgumentException(String.format(
                 "The value(key='%s') must can be casted to Long, " +
@@ -108,10 +107,10 @@ public final class DataTypeUtil {
     }
 
     public static UUID parseUUID(String key, Object rawValue) {
-        if (rawValue instanceof UUID) {
-            return (UUID) rawValue;
-        } else if (rawValue instanceof String) {
-            String value = ((String) rawValue).trim();
+        if (rawValue instanceof UUID uuid) {
+            return uuid;
+        } else if (rawValue instanceof String str) {
+            String value = str.trim();
             if (value.contains("-")) {
                 return UUID.fromString(value);
             }
@@ -133,19 +132,19 @@ public final class DataTypeUtil {
                                            InputSource source) {
         // Trim space if raw value is string
         Object value = rawValue;
-        if (rawValue instanceof String) {
-            value = ((String) rawValue).trim();
+        if (rawValue instanceof String str) {
+            value = str.trim();
         }
         if (dataType.isNumber()) {
             return parseNumber(key, value, dataType);
         } else if (dataType.isBoolean()) {
             return parseBoolean(key, value);
         } else if (dataType.isDate()) {
-            if (source instanceof FileSource || source instanceof HDFSSource) {
-                List<String> extraDateFormats =
-                        ((FileSource) source).extraDateFormats();
-                String dateFormat = ((FileSource) source).dateFormat();
-                String timeZone = ((FileSource) source).timeZone();
+            // HDFSSource extends FileSource
+            if (source instanceof FileSource fileSource) {
+                List<String> extraDateFormats = fileSource.extraDateFormats();
+                String dateFormat = fileSource.dateFormat();
+                String timeZone = fileSource.timeZone();
                 if (extraDateFormats == null || extraDateFormats.isEmpty()) {
                     return parseDate(key, value, dateFormat, timeZone);
                 } else {
@@ -190,12 +189,10 @@ public final class DataTypeUtil {
             }
 
             if (source instanceof JDBCSource) {
-                if (value instanceof java.sql.Date) {
-                    return new Date(((java.sql.Date) value).getTime());
-                } else {
-                    if (value instanceof java.sql.Timestamp) {
-                        return new Date(((java.sql.Timestamp) value).getTime());
-                    }
+                if (value instanceof java.sql.Date sqlDate) {
+                    return new Date(sqlDate.getTime());
+                } else if (value instanceof java.sql.Timestamp timestamp) {
+                    return new Date(timestamp.getTime());
                 }
             }
         } else if (dataType.isUUID()) {
@@ -247,11 +244,11 @@ public final class DataTypeUtil {
     }
 
     private static Boolean parseBoolean(String key, Object rawValue) {
-        if (rawValue instanceof Boolean) {
-            return (Boolean) rawValue;
+        if (rawValue instanceof Boolean bool) {
+            return bool;
         }
-        if (rawValue instanceof String) {
-            String value = ((String) rawValue).toLowerCase();
+        if (rawValue instanceof String str) {
+            String value = str.toLowerCase();
             if (ACCEPTABLE_TRUE.contains(value)) {
                 return true;
             } else if (ACCEPTABLE_FALSE.contains(value)) {
@@ -260,7 +257,7 @@ public final class DataTypeUtil {
                 throw new IllegalArgumentException(String.format(
                         "Failed to convert '%s'(key='%s') to Boolean, " +
                         "the acceptable boolean strings are %s or %s",
-                        key, rawValue, ACCEPTABLE_TRUE, ACCEPTABLE_FALSE));
+                        rawValue, key, ACCEPTABLE_TRUE, ACCEPTABLE_FALSE));
             }
         }
         throw new IllegalArgumentException(String.format(
@@ -338,22 +335,22 @@ public final class DataTypeUtil {
 
     private static Date parseDate(String key, Object value,
                                   String dateFormat, String timeZone) {
-        if (value instanceof Date) {
-            return (Date) value;
+        if (value instanceof Date date) {
+            return date;
         }
-        if (value instanceof Number) {
-            return new Date(((Number) value).longValue());
-        } else if (value instanceof String) {
+        if (value instanceof Number number) {
+            return new Date(number.longValue());
+        } else if (value instanceof String str) {
             if (Constants.TIMESTAMP.equals(dateFormat)) {
                 try {
-                    long timestamp = Long.parseLong((String) value);
+                    long timestamp = Long.parseLong(str);
                     return new Date(timestamp);
                 } catch (NumberFormatException e) {
                     throw new IllegalArgumentException(String.format(
                             "Invalid timestamp value '%s'", value));
                 }
             } else {
-                return DateUtil.parse((String) value, dateFormat, timeZone);
+                return DateUtil.parse(str, dateFormat, timeZone);
             }
         }
         throw new IllegalArgumentException(String.format(

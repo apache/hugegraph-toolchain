@@ -269,6 +269,7 @@ public class FileSource extends AbstractSource {
         source.delimiter = this.delimiter;
         source.dateFormat = this.dateFormat;
         source.extraDateFormats = this.extraDateFormats;
+        source.timeZone = this.timeZone;
         source.skippedLine = this.skippedLine;
         source.compression = this.compression;
         source.hasHeader = this.hasHeader;

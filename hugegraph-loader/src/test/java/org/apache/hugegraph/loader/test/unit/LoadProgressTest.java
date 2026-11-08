@@ -20,6 +20,7 @@ package org.apache.hugegraph.loader.test.unit;
 import org.apache.hugegraph.testutil.Assert;
 import org.junit.Test;
 
+import org.apache.hugegraph.loader.progress.InputProgress;
 import org.apache.hugegraph.loader.progress.LoadProgress;
 import org.apache.hugegraph.loader.util.JsonUtil;
 
@@ -83,5 +84,31 @@ public class LoadProgressTest {
         LoadProgress progress = JsonUtil.fromJson(json, LoadProgress.class);
         Assert.assertEquals(16, progress.vertexLoaded());
         Assert.assertEquals(12, progress.edgeLoaded());
+    }
+
+    @Test
+    public void testParseGraphInputProgress() {
+        String json = "{" +
+                      "\"vertex_progress\": 3," +
+                      "\"edge_progress\": 2," +
+                      "\"input_progress\": {" +
+                      "    \"1\":{" +
+                      "        \"type\":\"GRAPH\"," +
+                      "        \"loaded_items\":{}," +
+                      "        \"loading_items\":{}" +
+                      "    }" +
+                      "}}";
+        LoadProgress progress = JsonUtil.fromJson(json, LoadProgress.class);
+        Assert.assertEquals(3, progress.vertexLoaded());
+        Assert.assertEquals(2, progress.edgeLoaded());
+        InputProgress input = progress.get("1");
+        Assert.assertTrue(input.loadedItems().isEmpty());
+        Assert.assertTrue(input.loadingItems().isEmpty());
+
+        // A progress file written for a graph input can be read back
+        String written = JsonUtil.toJson(progress);
+        Assert.assertContains("\"type\":\"GRAPH\"", written);
+        progress = JsonUtil.fromJson(written, LoadProgress.class);
+        Assert.assertTrue(progress.get("1").loadedItems().isEmpty());
     }
 }

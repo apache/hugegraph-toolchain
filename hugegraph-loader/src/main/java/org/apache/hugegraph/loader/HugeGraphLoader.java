@@ -38,7 +38,6 @@ import java.util.stream.Stream;
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.hugegraph.loader.exception.ParseException;
 import org.apache.hugegraph.loader.progress.InputProgress;
 import org.apache.hugegraph.loader.task.GlobalExecutorManager;
 import org.apache.hugegraph.loader.task.ParseTaskBuilder;
@@ -233,8 +232,7 @@ public final class HugeGraphLoader {
         } catch (Throwable t) {
             this.context.failLoading(t);
 
-            if (t instanceof ServerException) {
-                ServerException e = (ServerException) t;
+            if (t instanceof ServerException e) {
                 String logMessage =
                         "Log ServerException: \n" + e.exception() + "\n";
                 if (e.trace() != null) {
@@ -723,21 +721,14 @@ public final class HugeGraphLoader {
                              .join();
         } catch (CompletionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof ParseException) {
-                throw (ParseException) cause;
-            } else if (cause instanceof LoadException) {
-                throw (LoadException) cause;
+            if (cause instanceof RuntimeException runtimeException) {
+                // Also covers ParseException and LoadException
+                throw runtimeException;
             } else if (cause != null) {
-                if (cause instanceof RuntimeException) {
-                    throw (RuntimeException) cause;
-                } else {
-                    throw new RuntimeException(cause);
-                }
+                throw new RuntimeException(cause);
             } else {
                 throw e;
             }
-        } catch (Throwable t) {
-            throw t;
         } finally {
             // Shutdown service
             cleanupEmptyProgress();

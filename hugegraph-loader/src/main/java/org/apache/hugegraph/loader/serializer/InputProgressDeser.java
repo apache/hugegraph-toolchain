@@ -77,6 +77,7 @@ public class InputProgressDeser extends JsonDeserializer<InputProgress> {
             case JDBC:
                 break;
             case KAFKA:
+            case GRAPH:
                 break;
             default:
                 throw new AssertionError(String.format(

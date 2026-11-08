@@ -54,8 +54,7 @@ public class NopVertexBuilder extends ElementBuilder<Vertex> {
         List<Vertex> result = new ArrayList();
 
         for (Object value : values) {
-            if (value instanceof Vertex) {
-                Vertex vertex = (Vertex) value;
+            if (value instanceof Vertex vertex) {
                 VertexLabel label = getVertexLabel(vertex.label());
                 if (label.idStrategy().isPrimaryKey()) {
                     vertex.id(null);

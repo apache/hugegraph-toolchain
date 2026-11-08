@@ -34,6 +34,15 @@ public class RangesTimerTest {
     }
 
     @Test
+    public void testTimeRangeWithStartsFarApart() {
+        // The gap between the starts does not fit in an int
+        RangesTimer timer = new RangesTimer(2);
+        timer.addTimeRange(3_000_000_000L, 3_000_000_001L);
+        timer.addTimeRange(0L, 1L);
+        Assert.assertEquals(2, timer.totalTime());
+    }
+
+    @Test
     public void testTimeRangeWithoutOverlap() {
         RangesTimer timer = new RangesTimer(2);
         timer.addTimeRange(1, 2);

@@ -18,6 +18,7 @@
 package org.apache.hugegraph.loader.metrics;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -74,7 +75,7 @@ public class RangesTimer {
 
     private long calculate() {
         assert !this.ranges.isEmpty();
-        this.ranges.sort((o1, o2) -> (int) (o1.start() - o2.start()));
+        this.ranges.sort(Comparator.comparingLong(TimeRange::start));
         long time = 0L;
         long start = this.lastEnd;
         long end = this.lastEnd;
