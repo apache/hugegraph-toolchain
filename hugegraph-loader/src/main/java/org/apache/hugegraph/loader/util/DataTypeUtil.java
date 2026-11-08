@@ -85,11 +85,12 @@ public final class DataTypeUtil {
                                           InputSource source) {
         E.checkArgument(rawColumnValue != null,
                         "The value to be split can't be null");
-        if (rawColumnValue instanceof List) {
-            return (List<Object>) rawColumnValue;
-        }
         if (rawColumnValue instanceof Collection) {
-            return new ArrayList<>((Collection<?>) rawColumnValue);
+            if (rawColumnValue instanceof List) {
+                return (List<Object>) rawColumnValue;
+            }
+            // Non-List collections (e.g. Set) can't be cast to List directly
+            return new ArrayList<>((Collection<Object>) rawColumnValue);
         }
         // TODO: Seems a bit violent
         String rawValue = rawColumnValue.toString();

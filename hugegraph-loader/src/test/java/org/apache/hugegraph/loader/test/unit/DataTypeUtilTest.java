@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.loader.test.unit;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,6 +25,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 
@@ -330,6 +332,39 @@ public class DataTypeUtilTest {
     public void testSplitFieldWithEmptySet() {
         Assert.assertTrue(DataTypeUtil.splitField("key", Collections.emptySet(),
                                                  new FileSource()).isEmpty());
+    }
+
+    @Test
+    public void testSplitFieldWithNonListCollection() {
+        FileSource source = new FileSource();
+        source.listFormat(new ListFormat("", "", "|"));
+
+        // LinkedHashSet preserves iteration order
+        Set<Object> linkedSet = new LinkedHashSet<>(Arrays.asList("b", "a"));
+        Assert.assertEquals(Arrays.asList("b", "a"),
+                            DataTypeUtil.splitField("key", linkedSet, source));
+
+        // HashSet: order is unspecified, just verify all elements present
+        Set<Object> hashSet = new HashSet<>(Arrays.asList("a", "b"));
+        List<Object> hashSetResult = DataTypeUtil.splitField("key", hashSet,
+                                                             source);
+        Assert.assertEquals(2, hashSetResult.size());
+        Assert.assertTrue(hashSetResult.containsAll(hashSet));
+
+        // Guava ImmutableSet
+        Assert.assertEquals(Arrays.asList("x", "y"),
+                            DataTypeUtil.splitField("key",
+                                                    ImmutableSet.of("x", "y"),
+                                                    source));
+
+        // Other Collection implementations like a plain queue
+        Queue<Object> queue = new ArrayDeque<>(Arrays.asList("p", "q"));
+        Assert.assertEquals(Arrays.asList("p", "q"),
+                            DataTypeUtil.splitField("key", queue, source));
+
+        // List inputs still return the same instance
+        List<Object> list = ImmutableList.of("z");
+        Assert.assertSame(list, DataTypeUtil.splitField("key", list, source));
     }
 
     private static Object convert(Object value, DataType dataType,
