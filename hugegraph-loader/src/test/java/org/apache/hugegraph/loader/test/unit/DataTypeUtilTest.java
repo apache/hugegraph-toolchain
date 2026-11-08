@@ -19,8 +19,12 @@ package org.apache.hugegraph.loader.test.unit;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hugegraph.loader.source.file.FileSource;
@@ -294,6 +298,38 @@ public class DataTypeUtilTest {
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DataTypeUtil.splitField("key", null, source);
         });
+    }
+
+    @Test
+    public void testSplitFieldWithLinkedHashSet() {
+        Set<Object> values = new LinkedHashSet<>(ImmutableList.of("b", "a"));
+
+        Assert.assertEquals(ImmutableList.of("b", "a"),
+                            DataTypeUtil.splitField("key", values, new FileSource()));
+    }
+
+    @Test
+    public void testSplitFieldWithHashSet() {
+        Set<Object> values = new HashSet<>(ImmutableList.of("a", "b"));
+        List<Object> result = DataTypeUtil.splitField("key", values, new FileSource());
+
+        Assert.assertEquals(values.size(), result.size());
+        Assert.assertEquals(values, new HashSet<>(result));
+    }
+
+    @Test
+    public void testSplitFieldWithImmutableSet() {
+        Set<Object> values = ImmutableSet.of("a", "b");
+        List<Object> result = DataTypeUtil.splitField("key", values, new FileSource());
+
+        Assert.assertEquals(values.size(), result.size());
+        Assert.assertEquals(values, ImmutableSet.copyOf(result));
+    }
+
+    @Test
+    public void testSplitFieldWithEmptySet() {
+        Assert.assertTrue(DataTypeUtil.splitField("key", Collections.emptySet(),
+                                                 new FileSource()).isEmpty());
     }
 
     private static Object convert(Object value, DataType dataType,
