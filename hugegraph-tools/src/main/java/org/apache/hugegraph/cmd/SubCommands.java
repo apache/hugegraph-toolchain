@@ -20,7 +20,6 @@ package org.apache.hugegraph.cmd;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -1084,7 +1083,10 @@ public class SubCommands {
             if (types.length == 1 && types[0].equalsIgnoreCase("all")) {
                 return AUTH_ALL_TYPES;
             }
-            List<String> typeList = Arrays.asList(types);
+            List<String> typeList = new ArrayList<>();
+            for (String type : types) {
+                typeList.add(type.toLowerCase());
+            }
             E.checkArgument(!typeList.contains(HugeType.BELONG.toString().toLowerCase()) ||
                             (typeList.contains(HugeType.USER.toString().toLowerCase()) &&
                              typeList.contains(HugeType.GROUP.toString().toLowerCase())),
@@ -1224,7 +1226,8 @@ public class SubCommands {
                            // Or domain name
                            "([0-9a-z_!~*'()-]+\\.)*[0-9a-z_!~*'()-]+)" +
                            // Port
-                           ":([0-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-5]{2}[0-3][0-5])$";
+                           ":([0-9]|[1-9]\\d{1,3}|[1-5]\\d{4}|6[0-4]\\d{3}|65[0-4]\\d{2}|" +
+                           "655[0-2]\\d|6553[0-5])$";
             if (!value.matches(regex)) {
                 throw new ParameterException(String.format(
                           "Invalid url value of args '%s': '%s'", name, value));
@@ -1248,8 +1251,9 @@ public class SubCommands {
 
         @Override
         public void validate(String name, String value) {
-            int retry = Integer.parseInt(value);
-            if (retry <= 0) {
+            // Also validates long options such as --limit and --task-id
+            long number = Long.parseLong(value);
+            if (number <= 0) {
                 throw new ParameterException(
                           "Parameter " + name + " should be positive, " +
                           "but got " + value);

@@ -190,6 +190,40 @@ public class BackupFailureTest {
         Assert.assertTrue(output, output.contains("Limit exceed occurs when backup EDGE"));
     }
 
+    @Test
+    public void testPageFailureWithoutMessageFailsBackup() throws Exception {
+        // The timeout and limit checks must not hide an error that has no message
+        this.shardStatus = 200;
+        this.shardBody = "{\"shards\":[{\"start\":\"\",\"end\":\"\",\"length\":1}]}";
+        this.pageBody = "{\"exception\":\"java.lang.IllegalStateException\"}";
+        SubCommands.Backup command = this.command(1);
+        BackupManager manager = this.manager(command);
+        try {
+            manager.backup(Collections.singletonList(HugeType.VERTEX));
+            Assert.fail("Data page errors must fail backup");
+        } catch (ToolsException e) {
+            Throwable root = e;
+            while (root.getCause() != null) {
+                root = root.getCause();
+            }
+            Assert.assertTrue(root.toString(), root instanceof ServerException);
+            Assert.assertEquals(500, ((ServerException) root).status());
+        } finally {
+            manager.close();
+        }
+        // The first request and one retry
+        Assert.assertEquals(2, this.pageRequests.get());
+        String prefix = HugeType.VERTEX.string();
+        long failedShards = Files.readAllLines(Paths.get(command.logDir(),
+                                                       prefix + "_failed_shards"))
+                                 .stream().filter(line -> line.startsWith("Shard{")).count();
+        Assert.assertEquals(1L, failedShards);
+        // Neither a timeout nor a limit-exceed shard
+        Assert.assertFalse(Files.exists(Paths.get(command.logDir(), prefix + "_timeout_shards")));
+        Assert.assertFalse(Files.exists(Paths.get(command.logDir(),
+                                                  prefix + "_limit_exceed_shards")));
+    }
+
     private String capturePageFailure(HugeType type) throws Exception {
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         PrintStream previous = System.out;

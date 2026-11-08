@@ -32,7 +32,8 @@ import org.junit.runners.Suite;
     HdfsDirectoryTest.class,
     LocalDirectoryTest.class,
     BackupFailureTest.class,
-    JsonGraphTest.class
+    JsonGraphTest.class,
+    ToolsCheckTest.class
 })
 public class FuncTestSuite {
 }

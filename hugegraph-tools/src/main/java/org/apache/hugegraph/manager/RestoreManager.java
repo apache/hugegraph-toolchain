@@ -60,8 +60,6 @@ public class RestoreManager extends BackupRestoreBaseManager {
     public void restore(List<HugeType> types) {
         try {
             this.doRestore(types);
-        } catch (Throwable e) {
-            throw e;
         } finally {
             this.shutdown(this.type());
         }

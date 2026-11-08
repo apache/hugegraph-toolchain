@@ -17,24 +17,20 @@
 
 package org.apache.hugegraph.manager;
 
-import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.Lock;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hugegraph.api.API;
 import org.apache.hugegraph.base.Printer;
 import org.apache.hugegraph.base.ToolClient;
@@ -120,8 +116,6 @@ public class BackupManager extends BackupRestoreBaseManager {
     public void backup(List<HugeType> types) {
         try {
             this.doBackup(types);
-        } catch (Throwable e) {
-            throw e;
         } finally {
             this.shutdown(this.type());
         }
@@ -412,25 +406,6 @@ public class BackupManager extends BackupRestoreBaseManager {
                       type, shardFile);
     }
 
-    private List<Shard> readShards(File file) {
-        E.checkArgument(file.exists() && file.isFile() && file.canRead(),
-                        "Need to specify a readable filter file rather than:" +
-                        " %s", file.toString());
-        List<Shard> shards = new ArrayList<>();
-        try (InputStream is = new FileInputStream(file);
-             InputStreamReader isr = new InputStreamReader(is, API.CHARSET);
-             BufferedReader reader = new BufferedReader(isr)) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                shards.addAll(this.readList("shards", Shard.class, line));
-            }
-        } catch (IOException e) {
-            throw new ToolsException("IOException occur while reading %s",
-                                     e, file.getName());
-        }
-        return shards;
-    }
-
     private void writeShard(String file, Shard shard) {
         this.writeShards(file, ImmutableList.of(shard));
     }
@@ -479,19 +454,19 @@ public class BackupManager extends BackupRestoreBaseManager {
 
     private static boolean isTimeoutException(ToolsException e) {
         return e.getCause() != null && e.getCause().getCause() != null &&
-               e.getCause().getCause().getMessage().contains("Read timed out");
+               StringUtils.contains(e.getCause().getCause().getMessage(),
+                                    "Read timed out");
     }
 
     private static boolean isLimitExceedException(ToolsException e) {
         return e.getCause() != null &&
-               e.getCause().getMessage().contains("Too many records");
+               StringUtils.contains(e.getCause().getMessage(), "Too many records");
     }
 
     private static String exceptionStackTrace(Object e) {
-        if (!(e instanceof Throwable)) {
+        if (!(e instanceof Throwable t)) {
             return e.toString();
         }
-        Throwable t = (Throwable) e;
         StringBuilder sb = new StringBuilder();
         sb.append(t.getMessage()).append("\n");
         if (t.getCause() != null) {
