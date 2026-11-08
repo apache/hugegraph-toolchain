@@ -83,21 +83,20 @@ public class Path implements GraphAttachable {
     @Override
     public void attachManager(GraphManager manager) {
         for (Object object : this.objects) {
-            if (object instanceof GraphAttachable) {
-                ((GraphAttachable) object).attachManager(manager);
+            if (object instanceof GraphAttachable attachable) {
+                attachable.attachManager(manager);
             }
         }
-        if (this.crosspoint instanceof GraphAttachable) {
-            ((GraphAttachable) this.crosspoint).attachManager(manager);
+        if (this.crosspoint instanceof GraphAttachable attachable) {
+            attachable.attachManager(manager);
         }
     }
 
     @Override
     public boolean equals(Object object) {
-        if (!(object instanceof Path)) {
+        if (!(object instanceof Path other)) {
             return false;
         }
-        Path other = (Path) object;
         return Objects.equals(this.labels, other.labels) &&
                Objects.equals(this.objects, other.objects) &&
                Objects.equals(this.crosspoint, other.crosspoint);

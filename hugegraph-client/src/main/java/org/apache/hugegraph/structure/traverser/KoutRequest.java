@@ -70,7 +70,7 @@ public class KoutRequest {
 
     @Override
     public String toString() {
-        return String.format("KoutRequest{source=%s,steps=%s,maxDepth=%s" +
+        return String.format("KoutRequest{source=%s,steps=%s,maxDepth=%s," +
                              "nearest=%s,countOnly=%s,capacity=%s," +
                              "limit=%s,withVertex=%s,withPath=%s," +
                              "withEdge=%s,traverseMode=%s}",
@@ -155,7 +155,7 @@ public class KoutRequest {
             if (this.request.countOnly) {
                 E.checkArgument(!this.request.withVertex &&
                                 !this.request.withPath && !this.request.withEdge,
-                                "Can't return vertex or path or edge" +
+                                "Can't return vertex or path or edge " +
                                 "when count only is true");
             }
             return this.request;

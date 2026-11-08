@@ -85,8 +85,8 @@ public class Belong extends AuthElement {
     }
 
     public void user(Object user) {
-        if (user instanceof User) {
-            user = ((User) user).id();
+        if (user instanceof User u) {
+            user = u.id();
         }
         this.user = user;
     }
@@ -96,8 +96,8 @@ public class Belong extends AuthElement {
     }
 
     public void group(Object group) {
-        if (group instanceof Group) {
-            group = ((Group) group).id();
+        if (group instanceof Group g) {
+            group = g.id();
         }
         this.group = group;
     }
@@ -107,8 +107,8 @@ public class Belong extends AuthElement {
     }
 
     public void role(Object role) {
-        if (role instanceof Role) {
-            role = ((Role) role).id();
+        if (role instanceof Role r) {
+            role = r.id();
         }
         this.role = role;
     }
