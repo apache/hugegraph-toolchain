@@ -21,6 +21,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -331,4 +332,34 @@ func TestPerformLogsUnknownLengthRequestBody(t *testing.T) {
 			})
 		}
 	}
+}
+
+type bodyTestTransport func(*http.Request) (*http.Response, error)
+
+func (f bodyTestTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	return f(req)
+}
+
+func TestPerformLogsRequestWithLargeContentLength(t *testing.T) {
+	u, err := url.Parse("http://example.test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var log bytes.Buffer
+	transport := bodyTestTransport(func(req *http.Request) (*http.Response, error) {
+		body, err := io.ReadAll(req.Body)
+		if err != nil || string(body) != "payload" {
+			t.Fatalf("body = %q, err = %v", body, err)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: io.NopCloser(strings.NewReader("ok")), Header: make(http.Header)}, nil
+	})
+	logger := &TextLogger{Output: &log, EnableRequestBody: true}
+	client := New(Config{URL: u, Transport: transport, Logger: logger})
+	req := newRequest(t, "POST", "/", "payload")
+	req.ContentLength = math.MaxInt64
+	res, err := client.Perform(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer res.Body.Close()
 }
