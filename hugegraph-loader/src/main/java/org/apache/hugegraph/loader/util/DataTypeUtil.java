@@ -85,8 +85,14 @@ public final class DataTypeUtil {
                                           InputSource source) {
         E.checkArgument(rawColumnValue != null,
                         "The value to be split can't be null");
-        if (rawColumnValue instanceof Collection) {
+        if (rawColumnValue instanceof List) {
             return (List<Object>) rawColumnValue;
+        }
+        if (rawColumnValue instanceof Collection) {
+            // Not every Collection is a List; casting a Set here threw
+            // ClassCastException. Copy instead, which also keeps the
+            // iteration order of ordered collections such as LinkedHashSet.
+            return new ArrayList<>((Collection<Object>) rawColumnValue);
         }
         // TODO: Seems a bit violent
         String rawValue = rawColumnValue.toString();

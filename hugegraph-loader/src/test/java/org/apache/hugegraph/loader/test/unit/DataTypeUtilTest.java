@@ -20,7 +20,10 @@ package org.apache.hugegraph.loader.test.unit;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import org.apache.hugegraph.loader.source.file.FileSource;
@@ -291,6 +294,14 @@ public class DataTypeUtilTest {
                             DataTypeUtil.splitField("key", "a|b", source));
         List<Object> list = ImmutableList.of("x");
         Assert.assertSame(list, DataTypeUtil.splitField("key", list, source));
+        // A non-List Collection used to fail with ClassCastException
+        Set<Object> set = new LinkedHashSet<>(Arrays.asList("a", "b"));
+        Assert.assertEquals(Arrays.asList("a", "b"),
+                            DataTypeUtil.splitField("key", set, source));
+        Set<Object> single = new HashSet<>();
+        single.add("x");
+        Assert.assertEquals(Arrays.asList("x"),
+                            DataTypeUtil.splitField("key", single, source));
         Assert.assertThrows(IllegalArgumentException.class, () -> {
             DataTypeUtil.splitField("key", null, source);
         });
