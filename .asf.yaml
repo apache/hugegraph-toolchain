@@ -28,7 +28,13 @@ github:
     projects: true
   description: HugeGraph toolchain - include a series useful graph modules
   homepage: https://hugegraph.apache.org/
-  del_branch_on_merge: true
+  pull_requests:
+    del_branch_on_merge: true
+    creation_cap:
+      enabled: true
+      max_open_pull_requests: 5
+      bypass_users:
+        - bitflicker64
   labels:
     - hugegraph
     - apache
