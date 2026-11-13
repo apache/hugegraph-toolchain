@@ -17,6 +17,7 @@
 
 package org.apache.hugegraph.loader.test.unit;
 
+import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -24,6 +25,7 @@ import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Queue;
 import java.util.Set;
 import java.util.UUID;
 
@@ -330,6 +332,18 @@ public class DataTypeUtilTest {
     public void testSplitFieldWithEmptySet() {
         Assert.assertTrue(DataTypeUtil.splitField("key", Collections.emptySet(),
                                                  new FileSource()).isEmpty());
+    }
+
+    @Test
+    public void testSplitFieldWithArrayDeque() {
+        // ArrayDeque is a Collection but not a List, so it must be
+        // converted instead of cast directly (same as the Set cases
+        // covered in testSplitFieldWithLinkedHashSet/HashSet/...)
+        Queue<Object> deque = new ArrayDeque<>(ImmutableList.of("p", "q"));
+
+        Assert.assertEquals(ImmutableList.of("p", "q"),
+                            DataTypeUtil.splitField("key", deque,
+                                                    new FileSource()));
     }
 
     private static Object convert(Object value, DataType dataType,
