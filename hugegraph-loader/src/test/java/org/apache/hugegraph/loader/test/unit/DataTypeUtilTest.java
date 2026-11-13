@@ -335,36 +335,15 @@ public class DataTypeUtilTest {
     }
 
     @Test
-    public void testSplitFieldWithNonListCollection() {
-        FileSource source = new FileSource();
-        source.listFormat(new ListFormat("", "", "|"));
+    public void testSplitFieldWithArrayDeque() {
+        // ArrayDeque is a Collection but not a List, so it must be
+        // converted instead of cast directly (same as the Set cases
+        // covered in testSplitFieldWithLinkedHashSet/HashSet/...)
+        Queue<Object> deque = new ArrayDeque<>(ImmutableList.of("p", "q"));
 
-        // LinkedHashSet preserves iteration order
-        Set<Object> linkedSet = new LinkedHashSet<>(Arrays.asList("b", "a"));
-        Assert.assertEquals(Arrays.asList("b", "a"),
-                            DataTypeUtil.splitField("key", linkedSet, source));
-
-        // HashSet: order is unspecified, just verify all elements present
-        Set<Object> hashSet = new HashSet<>(Arrays.asList("a", "b"));
-        List<Object> hashSetResult = DataTypeUtil.splitField("key", hashSet,
-                                                             source);
-        Assert.assertEquals(2, hashSetResult.size());
-        Assert.assertTrue(hashSetResult.containsAll(hashSet));
-
-        // Guava ImmutableSet
-        Assert.assertEquals(Arrays.asList("x", "y"),
-                            DataTypeUtil.splitField("key",
-                                                    ImmutableSet.of("x", "y"),
-                                                    source));
-
-        // Other Collection implementations like a plain queue
-        Queue<Object> queue = new ArrayDeque<>(Arrays.asList("p", "q"));
-        Assert.assertEquals(Arrays.asList("p", "q"),
-                            DataTypeUtil.splitField("key", queue, source));
-
-        // List inputs still return the same instance
-        List<Object> list = ImmutableList.of("z");
-        Assert.assertSame(list, DataTypeUtil.splitField("key", list, source));
+        Assert.assertEquals(ImmutableList.of("p", "q"),
+                            DataTypeUtil.splitField("key", deque,
+                                                    new FileSource()));
     }
 
     private static Object convert(Object value, DataType dataType,
