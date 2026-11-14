@@ -1,143 +1,69 @@
 # AGENTS.md
 
-This file provides guidance to AI coding assistants (Claude Code, Cursor, GitHub Copilot, etc.) when working with code in this repository.
+Repository guidance for coding agents. Read the nearest module README or local guidance before editing implementation details.
 
-## Project Overview
+## Module relationships
 
-Apache HugeGraph Toolchain - a multi-module Maven project providing utilities for the HugeGraph graph database. It relies on the Java Client to power loaders, CLI tools, and the modernized Hubble platform.
+```text
+Loader, Hubble, Tools and Spark Connector
+                    │
+                    ▼
+             Java Client
+                    │
+                    ▼
+          HugeGraph Server APIs
+```
 
-## Build Commands
+A Java client contract change can affect every dependent module. Loader and Client changes commonly require Hubble validation because Hubble reuses their behavior.
 
-### Full Build
+## Load on demand
+
+| Task | Read first |
+|---|---|
+| Documentation ownership | [docs/README.md](docs/README.md) |
+| Java client | [`hugegraph-client/`](hugegraph-client/) |
+| Data import | [`hugegraph-loader/`](hugegraph-loader/) |
+| Hubble backend or frontend | [`hugegraph-hubble/`](hugegraph-hubble/) |
+| Backup, restore or migration CLI | [`hugegraph-tools/`](hugegraph-tools/) |
+| Spark integration | [`hugegraph-spark-connector/`](hugegraph-spark-connector/) |
+| Go client | [`hugegraph-client-go/`](hugegraph-client-go/) |
+| CI selection | [docs/ci.md](docs/ci.md) |
+| Java baseline and compatibility | [docs/java17-migration.md](docs/java17-migration.md) |
+
+## Repository constraints
+
+- Keep a change inside the module that owns the behavior and avoid opportunistic refactors in dependent modules.
+- Update dependent callers deliberately when a shared client contract changes; do not rely on a successful Client-only build.
+- Keep root and module READMEs as entry points. Move long procedures to focused documents and link them from `docs/README.md` or a module-local index.
+- Treat `.serena/` as a compact navigation cache. It must not contain copied release versions, timestamps, PR links, commit hashes or exhaustive command inventories.
+- Document the current contract and compatibility boundary rather than the history of how it was implemented. Keep prose paragraphs as logical lines and wrap near 160 characters only when needed.
+
+## Build and test
+
 ```bash
 mvn clean install -DskipTests -Dmaven.javadoc.skip=true -ntp
+# Example: replace hugegraph-client with the concrete target module
+mvn install -pl hugegraph-client -am -DskipTests -ntp
+./tools/check-license-header.sh
 ```
 
-### Module-Specific Builds
+Use concrete reactor paths: `hugegraph-loader`, `hugegraph-hubble/hubble-be`, `hugegraph-tools` or `hugegraph-spark-connector`. After a Client change, install each affected downstream target before its tests so it resolves the current Client build. After a Loader change, install `hugegraph-loader` before running Hubble backend tests. When using custom Maven settings or an isolated local repository, keep the same options for the install and test commands.
 
-**Java Client:**
-```bash
-mvn -e compile -pl hugegraph-client -Dmaven.javadoc.skip=true -ntp
-```
-
-**Loader (requires client):**
-```bash
-mvn install -pl hugegraph-client,hugegraph-loader -am -DskipTests -ntp
-```
-
-**Hubble (requires client + loader):**
-```bash
-mvn install -pl hugegraph-client,hugegraph-loader -am -DskipTests -ntp
-cd hugegraph-hubble && mvn package -DskipTests -ntp
-```
-
-**Tools:**
-```bash
-mvn install -pl hugegraph-client,hugegraph-tools -am -DskipTests -ntp
-```
-
-**Spark Connector:**
-```bash
-mvn install -pl hugegraph-client,hugegraph-spark-connector -am -DskipTests -ntp
-```
-
-**Go Client:**
-```bash
-cd hugegraph-client-go && make all
-```
-
-## Testing
-
-### Client Tests
-```bash
-cd hugegraph-client
-mvn test -Dtest=UnitTestSuite      # Unit tests (no server required)
-mvn test -Dtest=ApiTestSuite       # API tests (requires HugeGraph server)
-mvn test -Dtest=FuncTestSuite      # Functional tests (requires HugeGraph server)
-```
-
-### Loader Tests (profiles)
-```bash
-cd hugegraph-loader
-mvn test -P unit     # Unit tests
-mvn test -P file     # File source tests
-mvn test -P hdfs     # HDFS tests (requires Hadoop)
-mvn test -P jdbc     # JDBC tests (requires MySQL)
-mvn test -P kafka    # Kafka tests
-```
-
-### Hubble Tests
-```bash
-mvn test -P unit-test -pl hugegraph-hubble/hubble-be -ntp
-```
-
-### Tools Tests
-```bash
-mvn test -Dtest=FuncTestSuite -pl hugegraph-tools -ntp
-```
-
-## Code Style
-
-Checkstyle enforced via `tools/checkstyle.xml`:
-- Max line length: 120 characters
-- 4-space indentation (no tabs)
-- No star imports
-- No `System.out.println`
-
-Run checkstyle:
-```bash
-mvn checkstyle:check
-```
-
-## Architecture
-
-### Module Dependencies
-```
-hugegraph-loader, hugegraph-tools, hugegraph-hubble, hugegraph-spark-connector
-                            ↓
-                    hugegraph-client
-                            ↓
-                hugegraph-common (external)
-```
-
-### Key Patterns
-
-**hugegraph-client** - Manager/Facade pattern:
-- `HugeClient` is the entry point providing access to specialized managers
-- `SchemaManager`, `GraphManager`, `GremlinManager`, `TraverserManager`, etc.
-- Builder pattern for fluent schema creation
-
-**hugegraph-loader** - Pipeline with Factory pattern:
-- `InputSource` interface with implementations: `FileSource`, `HDFSSource`, `JDBCSource`, `KafkaSource`, `GraphSource`
-- `InputReader.create()` factory method creates appropriate reader for source type
-
-**hugegraph-hubble** - Spring Boot MVC:
-- Backend: `controller/` → `service/` → `mapper/` layers
-- Frontend: React + TypeScript + MobX + Ant Design
-- H2 database for metadata storage
-
-**hugegraph-tools** - Command pattern:
-- Manager classes for operations: `BackupManager`, `RestoreManager`, `GraphsManager`
-
-### Key Directories
-
-| Module | Main Code | Package |
-|--------|-----------|---------|
-| client | `hugegraph-client/src/main/java` | `org.apache.hugegraph` |
-| loader | `hugegraph-loader/src/main/java` | `org.apache.hugegraph.loader` |
-| hubble-be | `hugegraph-hubble/hubble-be/src/main/java` | `org.apache.hugegraph` |
-| hubble-fe | `hugegraph-hubble/hubble-fe/src` | React/TypeScript |
-| tools | `hugegraph-tools/src/main/java` | `org.apache.hugegraph` |
-| spark | `hugegraph-spark-connector/src/main/scala` | `org.apache.hugegraph.spark` |
-
-## Docker
-
-Run from the Toolchain repository root; the Dockerfiles copy shared SDK helpers.
+Common test entry points:
 
 ```bash
-# Loader
-docker build -f hugegraph-loader/Dockerfile -t hugegraph/hugegraph-loader:latest .
-
-# Hubble
-docker build -f hugegraph-hubble/Dockerfile -t hugegraph/hugegraph-hubble:latest .
+mvn test -pl hugegraph-client -Dtest=UnitTestSuite -ntp
+mvn test -pl hugegraph-loader -Punit -ntp
+mvn test -pl hugegraph-hubble/hubble-be -Punit-test -ntp
+mvn test -pl hugegraph-tools -Dtest=FuncTestSuite -ntp
 ```
+
+Use the profile matching the changed Loader source and run integration/functional suites only with their required external services. Hubble frontend changes require its package-level test, type and build checks. Go changes use the module Makefile and Go tooling.
+
+## Quality boundaries
+
+- Java style is enforced through `.editorconfig`, `tools/checkstyle.xml` and Maven configuration. Do not use star imports or `System.out.println`.
+- New source and test files require the complete configured Apache license header; run `tools/check-license-header.sh`.
+- Distribution or dependency changes require packaging and license-metadata validation, not only compilation.
+- Documentation-only changes require rendered-heading and relative-link review plus `git diff --check`.
+- Read exact versions and package membership from POMs and package configuration instead of copying them into agent notes.

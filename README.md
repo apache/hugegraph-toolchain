@@ -1,32 +1,21 @@
-# hugegraph-toolchain
+# Apache HugeGraph Toolchain
 
 [![License](https://img.shields.io/badge/license-Apache%202-0E78BA.svg)](https://www.apache.org/licenses/LICENSE-2.0.html)
-[![Build Status](https://github.com/apache/hugegraph-toolchain/actions/workflows/client-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/client-ci.yml)
-[![Build Status](https://github.com/apache/hugegraph-toolchain/actions/workflows/loader-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/loader-ci.yml)
-[![Build Status](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml)
-[![Build Status](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml)
+[![Client CI](https://github.com/apache/hugegraph-toolchain/actions/workflows/client-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/client-ci.yml)
+[![Loader CI](https://github.com/apache/hugegraph-toolchain/actions/workflows/loader-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/loader-ci.yml)
+[![Hubble CI](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/hubble-ci.yml)
+[![Tools CI](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml/badge.svg)](https://github.com/apache/hugegraph-toolchain/actions/workflows/tools-ci.yml)
 [![Maven Central](https://img.shields.io/maven-central/v/org.apache.hugegraph/hugegraph-toolchain)](https://mvnrepository.com/artifact/org.apache.hugegraph/hugegraph-toolchain)
-[![Ask DeepWiki](https://img.shields.io/badge/Ask-DeepWiki-blue)](https://deepwiki.com/apache/hugegraph-toolchain)
 
 ## What is HugeGraph Toolchain?
 
 A comprehensive suite of client SDKs, data tools, and management utilities for [Apache HugeGraph](https://github.com/apache/hugegraph) graph database. Build applications, load data, and manage graphs with production-ready tools.
 
-Hubble's primary authentication and connection design targets HugeGraph `1.8/master`: PD discovery supplies the server address, anonymous mode uses a real unauthenticated client, and account/GraphSpace permissions are reduced to four readable presets. A thin adapter keeps 1.7 usable and limits 1.5 to its standalone core graph workflow; version checks are centralized rather than spread across UI pages.
-
-### Hubble Workbench
-
-Hubble brings graph exploration, schema preparation, asynchronous analysis, and distributed cluster operations into one workspace.
-
-![HugeGraph Hubble workbench](./hugegraph-hubble/docs/images/showcase/home-workbench.jpg)
-
-### Distributed Operations
+Hubble brings graph exploration, schema preparation, analysis, and cluster operations into one workspace. See [Server compatibility](hugegraph-hubble/README.md#authentication-connections-and-compatibility) for supported versions and features.
 
 The cluster overview keeps service topology, node health, source status, and capacity facts in one operational view.
 
-![HugeGraph Hubble cluster overview](./hugegraph-hubble/docs/images/showcase/operations-overview.jpg)
-
-**Quick Navigation**: [Architecture](#architecture-overview) | [Quick Start](#quick-start) | [Modules](#module-overview) | [Build](#build--development) | [Docker](#docker) | [Related Projects](#related-projects)
+**Quick Navigation**: [Architecture](#architecture-overview) | [Quick Start](#quick-start) | [Modules](#module-overview) | [Build](#build--development) | [Docker](#docker) | [Documentation index](docs/README.md) | [Related Projects](#related-projects)
 
 ## Related Projects
 
@@ -34,83 +23,61 @@ The cluster overview keeps service topology, node health, source status, and cap
 1. [hugegraph](https://github.com/apache/hugegraph) - Core graph database (**[pd](https://github.com/apache/hugegraph/tree/master/hugegraph-pd)** / **[store](https://github.com/apache/hugegraph/tree/master/hugegraph-store)** / **[server](https://github.com/apache/hugegraph/tree/master/hugegraph-server)** / **[commons](https://github.com/apache/hugegraph/tree/master/hugegraph-commons)**)
 2. [hugegraph-computer](https://github.com/apache/hugegraph-computer) - Distributed graph computing system
 3. [hugegraph-ai](https://github.com/apache/hugegraph-ai) - Graph AI/LLM/Knowledge Graph integration
-4. [hugegraph-website](https://github.com/apache/hugegraph-doc) - Documentation and website
+4. [hugegraph-doc](https://github.com/apache/hugegraph-doc) - Documentation and website
 
 ## Architecture Overview
 
 ```mermaid
 graph TB
-    subgraph server ["HugeGraph Server"]
-        SERVER[("Graph Database")]
+    subgraph clients ["Applications and client SDKs"]
+        CLIENT["hugegraph-client<br/>(Java)"]
+        OTHER["Other clients<br/>(Go / Python / REST)"]
     end
-
-    subgraph distributed ["Distributed Mode (Optional)"]
+    subgraph data ["Data tools"]
+        LOADER["hugegraph-loader<br/>(Batch import)"]
+        SPARK["hugegraph-spark-connector<br/>(Spark import)"]
+    end
+    subgraph management ["Management tools"]
+        FE["Hubble frontend<br/>(Web UI)"]
+        BE["Hubble backend"]
+        TOOLS["hugegraph-tools<br/>(CLI)"]
+    end
+    SERVER[("HugeGraph Server")]
+    subgraph distributed ["Distributed mode (optional)"]
         PD["hugegraph-pd<br/>(Placement Driver)"]
         STORE["hugegraph-store<br/>(Storage Nodes)"]
     end
-
-    subgraph clients ["Client SDKs"]
-        CLIENT["hugegraph-client<br/>(Java)"]
-    end
-
-    subgraph data ["Data Tools"]
-        LOADER["hugegraph-loader<br/>(Batch Import)"]
-        SPARK["hugegraph-spark-connector<br/>(Spark I/O)"]
-    end
-
-    subgraph mgmt ["Management Tools"]
-        HUBBLE["hugegraph-hubble<br/>(Web UI)"]
-        TOOLS["hugegraph-tools<br/>(CLI)"]
-    end
-
-    SERVER <-->|REST API| CLIENT
+    LOADER --> CLIENT
+    SPARK --> CLIENT
+    TOOLS --> CLIENT
+    FE -->|HTTP| BE
+    BE --> CLIENT
+    CLIENT -->|REST API| SERVER
+    OTHER -->|REST API| SERVER
+    SERVER -.->|metadata and placement| PD
+    SERVER -.->|graph data| STORE
     PD -.->|coordinates| STORE
-    SERVER -.->|distributed backend| PD
-
-    CLIENT --> LOADER
-    CLIENT --> HUBBLE
-    CLIENT --> TOOLS
-    CLIENT --> SPARK
-    HUBBLE -.->|PD discovery UI| PD
-
-    LOADER -.->|Sources| SRC["CSV | JSON | HDFS<br/>MySQL | Kafka"]
-    SPARK -.->|I/O| SPK["Spark DataFrames"]
-
+    BE -.->|optional discovery| PD
+    LOADER -.-> SRC["CSV | JSON | HDFS<br/>MySQL | Kafka"]
+    SPARK -.-> SPK["Spark DataFrames"]
     style distributed stroke-dasharray: 5 5
 ```
+
+The Java client is shared by Loader, the Hubble backend, Tools and the Spark
+connector. Hubble's frontend communicates with its backend. In distributed mode,
+Server obtains placement information from PD and sends data requests directly to
+Store nodes.
 
 <details>
 <summary>ASCII diagram (for terminals/editors)</summary>
 
-```
-                    ┌─────────────────────────┐
-                    │   HugeGraph Server      │
-                    │   (Graph Database)      │
-                    └───────────┬─────────────┘
-                                │ REST API
-        ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┼ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐
-          Distributed (Optional)│
-        │   ┌───────────┐       │       ┌───────────┐   │
-            │hugegraph- │◄──────┴──────►│hugegraph- │
-        │   │    pd     │               │   store   │   │
-            └───────────┘               └───────────┘
-        └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘
-                                │
-          ┌─────────────────────┼─────────────────────┐
-          │                     │                     │
-          ▼                     ▼                     ▼
- ┌────────────────┐    ┌────────────────┐    ┌────────────────┐
- │ hugegraph-     │    │ Other Client   │    │  Other REST    │
- │ client (Java)  │    │ SDKs (Go/Py)   │    │  Clients       │
- └───────┬────────┘    └────────────────┘    └────────────────┘
-         │ depends on
- ┌───────┼───────────┬───────────────────┐
- │       │           │                   │
- ▼       ▼           ▼                   ▼
-┌────────┐ ┌────────┐ ┌──────────┐ ┌───────────────────┐
-│ loader │ │ hubble │ │  tools   │ │ spark-connector   │
-│ (ETL)  │ │ (Web)  │ │  (CLI)   │ │ (Spark I/O)       │
-└────────┘ └────────┘ └──────────┘ └───────────────────┘
+```text
+Hubble frontend --HTTP--> Hubble backend --+
+Loader / Tools / Spark -------------------+--> Java Client --REST--> Server
+Go / Python / other clients ------------------------------REST--> Server
+                                                            |  |
+                                        metadata/placement -> PD
+                                        graph data ---------> Store
 ```
 </details>
 
@@ -122,41 +89,83 @@ graph TB
 |-------------|---------|-------|
 | JDK | 17+ | Build and run the core tools with Java 17 |
 | Maven | 3.6.3+ | For building from source |
-| HugeGraph Server | Current 1.8 or official 1.7.0 | See the migration guide for Server 1.5 scope |
+| HugeGraph Server | Official 1.7.0 | Released binary; see the migration guide for Server 1.5 scope |
+| HugeGraph Server candidate | Source-built 1.8.0 | [Locked candidate](docs/java17-migration.md#build-the-locked-candidate), not an ASF release |
 
 For the Java 17 candidate SDK, upgrade procedure and compatibility boundary, see [the migration guide](docs/java17-migration.md).
 
 ### Choose Your Path
 
-| I want to... | Use This | Get Started |
+| I want to... | Use this | Get started |
 |--------------|----------|-------------|
-| Visualize graphs via Web UI | Hubble | Docker: `docker run -p 8088:8088 hugegraph/hugegraph-hubble` |
-| Load CSV/JSON data into graph | Loader | CLI with JSON mapping config ([docs](https://hugegraph.apache.org/docs/quickstart/hugegraph-loader/)) |
-| Build a Java app with HugeGraph | Client | Maven dependency ([example](#hugegraph-client)) |
-| Backup/restore graphs | Tools | CLI commands ([docs](https://hugegraph.apache.org/docs/quickstart/hugegraph-tools/)) |
-| Process graphs with Spark | Spark Connector | DataFrame API ([module](#hugegraph-spark-connector)) |
+| Visualize graphs in a browser | Hubble | [Hubble quick start](#hubble-docker-quick-start) |
+| Load CSV/JSON data into a graph | Loader | [Loader guide](hugegraph-loader/README.md#2-quick-start) |
+| Build a Java app with HugeGraph | Client | [Java example](#hugegraph-client) |
+| Back up or restore graphs | Tools | [Tools guide](hugegraph-tools/README.md) |
+| Write graph data from Spark | Spark Connector | [Spark Connector](#hugegraph-spark-connector) |
 
-### Docker Quick Start
+### Hubble Docker Quick Start
+
+This example builds Hubble from the current checkout and connects it to a
+standalone Server on a private Docker network. It is for local evaluation: the
+Server is unauthenticated, its port is not published to the host, and Hubble's
+HTTP port is bound to host loopback. Configure authentication and network
+restrictions before exposing either service. Pin compatible released versions for
+repeatable deployments.
+
+Run from the repository root with a local Docker context. The bind mount and loopback port belong to the Docker daemon host:
 
 ```bash
-# Hubble Web UI (port 8088)
-docker run -d -p 8088:8088 --name hubble hugegraph/hugegraph-hubble
+# Create a private network and start Server on it
+docker network create hugegraph-demo
+docker run -d --name hugegraph-server --network hugegraph-demo hugegraph/hugegraph:1.7.0
 
-# Loader (batch data import)
-docker run --rm hugegraph/hugegraph-loader ./bin/hugegraph-loader.sh -f example.json
+# Build Hubble from this checkout
+docker build -f hugegraph-hubble/Dockerfile -t hugegraph-hubble:local .
+
+# Create a fresh config file for this source-built image
+HUBBLE_CONFIG_DIR=$(mktemp -d)
+sed -e 's|^server.host=.*|server.host=0.0.0.0|' \
+    -e 's|^server.direct_url=.*|server.direct_url=http://hugegraph-server:8080|' \
+    -e 's|^dashboard.address=.*|dashboard.address=|' \
+    hugegraph-hubble/hubble-dist/assembly/static/conf/hugegraph-hubble.properties \
+    > "$HUBBLE_CONFIG_DIR/hugegraph-hubble.properties"
+
+docker run -d --name hubble --network hugegraph-demo \
+  -p 127.0.0.1:8088:8088 \
+  -v "$HUBBLE_CONFIG_DIR/hugegraph-hubble.properties:/hubble/conf/hugegraph-hubble.properties:ro" \
+  hugegraph-hubble:local
 ```
+
+Use Docker Engine 28.0.0 or later for the loopback publish. With an older Engine, configure and verify host or network isolation before running this unauthenticated local example because hosts on the same layer-2 network may still reach localhost-published ports. On an SELinux-enforcing host, change the private generated configuration mount suffix from `:ro` to `:ro,Z`; `Z` relabels that host file for exclusive container use.
+
+This example assumes a local Docker context. With a remote daemon, create the bind-mounted configuration on the daemon host; `127.0.0.1` also refers to that remote host, so access it through an authenticated tunnel or another controlled channel. Do not expose a remote Docker API without TLS.
+
+Open `http://127.0.0.1:8088` after startup; use `docker logs hubble` to diagnose
+startup failures. This disposable example does not persist Hubble data. To connect
+to a Server running on the host instead, Docker Desktop supplies
+`host.docker.internal`; Linux Docker Engine may need
+`--add-host host.docker.internal:host-gateway` on `docker run`. The Server must
+listen on an address reachable from the container: a host-loopback-only port may
+not be reachable from a bridged container. Protect externally reachable services.
+For released images, compatibility, persistent storage and additional deployment
+options, see the [Hubble guide](hugegraph-hubble/README.md#3-user-docker-image-convenient-for-testdev).
+
+### Loader Quick Start
+
+[Download or build the Toolchain distribution](hugegraph-loader/README.md#2-quick-start),
+then change into its `apache-hugegraph-loader-<version>` directory, replacing
+`<version>` with the distribution version. Run the launcher there so its sibling
+`lib` and `conf` directories are available:
+
+```bash
+sh bin/hugegraph-loader.sh -f /path/to/mapping.json -g hugegraph
+```
+
+See the [Loader guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-loader/)
+for a complete mapping and input example.
 
 ## Module Overview
-
-Before committing a new source or test file, run the same license-header check
-used by CI (`license-eye` from `apache/skywalking-eyes` is required):
-
-```bash
-./tools/check-license-header.sh
-```
-
-Do not use shortened Apache headers: the complete header configured in
-`.licenserc.yaml` is required.
 
 ### hugegraph-client
 
@@ -173,17 +182,15 @@ Do not use shortened Apache headers: the complete header configured in
 
 **Quick Example**:
 ```java
-HugeClient client = HugeClient.builder("http://localhost:8080", "hugegraph").build();
+import org.apache.hugegraph.driver.HugeClient;
+import org.apache.hugegraph.structure.constant.T;
 
-// Schema management
-client.schema().propertyKey("name").asText().ifNotExist().create();
-client.schema().vertexLabel("person")
-    .properties("name")
-    .ifNotExist()
-    .create();
-
-// Graph operations
-Vertex vertex = client.graph().addVertex(T.label, "person", "name", "Alice");
+try (HugeClient client = HugeClient.builder("http://localhost:8080", "hugegraph").build()) {
+    client.schema().propertyKey("name").asText().ifNotExist().create();
+    client.schema().vertexLabel("person").properties("name").primaryKeys("name")
+          .ifNotExist().create();
+    client.graph().addVertex(T.LABEL, "person", "name", "Alice");
+}
 ```
 
 📖 [Documentation](https://hugegraph.apache.org/docs/quickstart/hugegraph-client/) | 📁 [Source](./hugegraph-client)
@@ -205,13 +212,13 @@ Vertex vertex = client.graph().addVertex(T.label, "person", "name", "Alice");
 
 **Entry Point**: `github.com/apache/hugegraph-toolchain/hugegraph-client-go`
 
-**Quick Example**:
-```go
-import "github.com/apache/hugegraph-toolchain/hugegraph-client-go"
-
-client := hugegraph.NewClient("http://localhost:8080", "hugegraph")
-// Schema and graph operations
+**Quick Start**:
+```bash
+go get github.com/apache/hugegraph-toolchain/hugegraph-client-go
 ```
+
+See the [module README](hugegraph-client-go/README.md) for client initialization
+and response handling.
 
 📁 [Source](./hugegraph-client-go)
 
@@ -235,21 +242,10 @@ client := hugegraph.NewClient("http://localhost:8080", "hugegraph")
 **Entry Point**: `bin/hugegraph-loader.sh`
 
 **Quick Example**:
-```bash
-# Load data from CSV
-./bin/hugegraph-loader.sh -f mapping.json -g hugegraph
 
-# Example mapping.json structure
-{
-  "vertices": [
-    {
-      "label": "person",
-      "input": { "type": "file", "path": "persons.csv" },
-      "mapping": { "name": "name", "age": "age" }
-    }
-  ]
-}
-```
+Run the launcher from the extracted Loader distribution as shown in the
+[Loader Quick Start](#loader-quick-start). A complete file-source mapping and
+input example is included under [`assembly/static/example/file`](hugegraph-loader/assembly/static/example/file/).
 
 📖 [Documentation](https://hugegraph.apache.org/docs/quickstart/hugegraph-loader/) | 📁 [Source](./hugegraph-loader)
 
@@ -260,7 +256,7 @@ client := hugegraph.NewClient("http://localhost:8080", "hugegraph")
 **Purpose**: Web-based graph management and visualization platform
 
 **Key Features**:
-- Multi-graph workspace & connection management
+- GraphSpace and graph navigation within the configured deployment
 - Interactive schema management with graphical editor
 - Comprehensive data loading dashboard
 - Dynamic graph visualization with path and topology canvas
@@ -271,13 +267,9 @@ client := hugegraph.NewClient("http://localhost:8080", "hugegraph")
 
 **Entry Point**: `bin/start-hubble.sh` (default port: 8088)
 
-**Quick Start**:
-```bash
-cd hugegraph-hubble/apache-hugegraph-hubble-*/bin
-./start-hubble.sh      # Background mode
-./start-hubble.sh -f   # Foreground mode
-./stop-hubble.sh       # Stop server
-```
+**Quick Start**: use the [Docker example](#hubble-docker-quick-start) above,
+or follow the [Hubble deployment guide](hugegraph-hubble/README.md#quick-start) for
+binary and source-based startup.
 
 📖 [Documentation](https://hugegraph.apache.org/docs/quickstart/hugegraph-hubble/) | 📁 [Source](./hugegraph-hubble)
 
@@ -296,14 +288,8 @@ cd hugegraph-hubble/apache-hugegraph-hubble-*/bin
 
 **Entry Point**: `bin/hugegraph` CLI commands
 
-**Quick Example**:
-```bash
-# Backup graph
-bin/hugegraph backup -t all -d ./backup
-
-# Restore graph
-bin/hugegraph restore -t all -d ./backup
-```
+**Quick Start**: see the [Tools guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-tools/)
+for backup, restore and migration commands and their required connection options.
 
 📁 [Source](./hugegraph-tools)
 
@@ -311,56 +297,38 @@ bin/hugegraph restore -t all -d ./backup
 
 ### hugegraph-spark-connector
 
-**Purpose**: Spark integration for reading and writing HugeGraph data
+**Purpose**: Write Spark DataFrames to HugeGraph
 
 **Key Features**:
-- Read HugeGraph vertices/edges as Spark DataFrames
-- Write DataFrames to HugeGraph
-- Spark SQL support
+- Write vertex and edge DataFrames to HugeGraph
+- Spark DataSource integration
 - Distributed graph processing
 
 **Entry Point**: Scala API with Spark DataSource v2
 
 **Quick Example**:
-```scala
-// Read vertices as DataFrame
-val vertices = spark.read
-  .format("hugegraph")
-  .option("host", "localhost:8080")
-  .option("graph", "hugegraph")
-  .option("type", "vertex")
-  .load()
 
-// Write DataFrame to HugeGraph
-df.write
-  .format("hugegraph")
-  .option("host", "localhost:8080")
-  .option("graph", "hugegraph")
-  .save()
-```
+The [Spark Connector README](hugegraph-spark-connector/README.md#how-to-use)
+contains complete vertex and edge DataFrame examples, including the schema and
+connection options required by the connector.
 
 📁 [Source](./hugegraph-spark-connector)
 
 ## Maven Dependencies
 
-```xml
-<!-- Note: Use the latest release version in Maven Central -->
-<dependency>
-    <groupId>org.apache.hugegraph</groupId>
-    <artifactId>hugegraph-client</artifactId>
-    <version>1.7.0</version>
-</dependency>
-
-<dependency>
-    <groupId>org.apache.hugegraph</groupId>
-    <artifactId>hugegraph-loader</artifactId>
-    <version>1.7.0</version>
-</dependency>
-```
-
-Check [Maven Central](https://mvnrepository.com/artifact/org.apache.hugegraph) for the latest versions.
+The Java client is published as `org.apache.hugegraph:hugegraph-client`. Select a
+released version compatible with your Server from [Maven Central](https://mvnrepository.com/artifact/org.apache.hugegraph/hugegraph-client)
+and set that version in your application's POM. See the [Client module](hugegraph-client/)
+for API and compatibility details.
 
 ## Build & Development
+
+For build prerequisites, SDK selection, and release instructions, see the
+[Java 17 migration guide](docs/java17-migration.md). The commands below cover
+local builds and tests for contributors.
+
+<details>
+<summary>Build and test commands</summary>
 
 ### Full Build
 
@@ -390,7 +358,7 @@ Until the 1.8.0 SDK is available in Maven Central, apply the same `--settings "$
 |--------|---------------|
 | Client | `mvn -e compile -pl hugegraph-client -Dmaven.javadoc.skip=true -ntp` |
 | Loader | `mvn install -pl hugegraph-client,hugegraph-loader -am -DskipTests -ntp` |
-| Hubble | `mvn install -pl hugegraph-client,hugegraph-loader -am -DskipTests -ntp && cd hugegraph-hubble && mvn package -DskipTests -ntp` |
+| Hubble | `mvn install -pl hugegraph-hubble/hubble-dist -am -DskipTests -ntp` |
 | Tools | `mvn install -pl hugegraph-client,hugegraph-tools -am -DskipTests -ntp` |
 | Spark | `mvn install -pl hugegraph-client,hugegraph-spark-connector -am -DskipTests -ntp` |
 | Go Client | `cd hugegraph-client-go && make all` |
@@ -403,6 +371,11 @@ Node distribution does not include it, then run `corepack enable` and `pnpm --ve
 Node 25 and prerelease builds require a separate compatibility upgrade.
 
 ### Running Tests
+
+For Maven tests, use the same SDK repository settings as for the module builds.
+Some suites require a running Server or other external services.
+
+After a Client change, run the Loader install command above with the same `--settings` and `-Dmaven.repo.local` options before any Loader tests. After a Loader change, install Loader with those same Maven repository settings before Hubble backend tests. This keeps both suites on the current Client and Loader artifacts instead of stale local copies.
 
 | Module | Test Type | Command |
 |--------|-----------|---------|
@@ -430,27 +403,14 @@ Run checkstyle:
 mvn checkstyle:check
 ```
 
+</details>
+
 ## Docker
 
-Official Docker images are available on Docker Hub:
-
-| Image | Purpose | Port |
-|-------|---------|------|
-| `hugegraph/hugegraph-hubble` | Web UI | 8088 |
-| `hugegraph/hugegraph-loader` | Data loader | - |
-
-**Examples**:
-```bash
-# Hubble
-docker run -d -p 8088:8088 --name hubble hugegraph/hugegraph-hubble
-
-# Loader (mount config and data)
-docker run --rm \
-  -v /path/to/config:/config \
-  -v /path/to/data:/data \
-  hugegraph/hugegraph-loader \
-  ./bin/hugegraph-loader.sh -f /config/mapping.json
-```
+The [Hubble Docker quick start](#hubble-docker-quick-start) shows how to build
+and configure a Hubble container from this checkout. For published Hubble and
+Loader image usage, consult the corresponding [Hubble](hugegraph-hubble/README.md#quick-start)
+and [Loader](hugegraph-loader/README.md#2-quick-start) module guides.
 
 Build images from the Toolchain repository root so the context contains the shared SDK bootstrap and verifier:
 ```bash
@@ -462,6 +422,9 @@ docker build -f hugegraph-loader/Dockerfile \
 docker build -f hugegraph-hubble/Dockerfile \
   -t hugegraph/hugegraph-hubble:latest .
 ```
+
+<details>
+<summary>Multi-platform build details</summary>
 
 Multi-platform builds use BuildKit's automatic platform arguments. The Maven
 and Node build stages run on `$BUILDPLATFORM`, while the final JRE stage uses
@@ -477,6 +440,8 @@ Snappy, LZ4, Commons Crypto, and gRPC tcnative. Some optional legacy HBase and
 Jansi natives remain x86-only, so their fallback paths require target-runtime
 validation when those optional features are used.
 
+</details>
+
 ## Documentation
 
 - [HugeGraph Toolchain Overview](https://hugegraph.apache.org/docs/quickstart/)
@@ -484,10 +449,21 @@ validation when those optional features are used.
 - [hugegraph-loader Guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-loader/)
 - [hugegraph-hubble Guide](https://hugegraph.apache.org/docs/quickstart/hugegraph-hubble/)
 - [API Reference](https://hugegraph.apache.org/docs/)
+- [CI behavior](docs/ci.md)
 
 ## Contributing
 
 Welcome to contribute to HugeGraph! Please see [How to Contribute](https://hugegraph.apache.org/docs/contribution-guidelines/contribute/) for more information.
+
+Before committing a new source or test file, run the same license-header check
+used by CI (`license-eye` from `apache/skywalking-eyes` is required):
+
+```bash
+./tools/check-license-header.sh
+```
+
+Do not use shortened Apache headers: the complete header configured in
+`.licenserc.yaml` is required.
 
 **Note**: It's recommended to use [GitHub Desktop](https://desktop.github.com/) to simplify the PR and commit process.
 
@@ -507,5 +483,3 @@ Thank you to all the people who already contributed to HugeGraph!
 ## License
 
 hugegraph-toolchain is licensed under [Apache 2.0 License](https://github.com/apache/hugegraph-toolchain/blob/master/LICENSE).
-
-See [CI behavior](docs/ci.md) for affected-module tests, shared fixtures and retry rules.
