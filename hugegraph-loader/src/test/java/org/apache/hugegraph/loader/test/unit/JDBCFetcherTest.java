@@ -26,7 +26,10 @@ import java.sql.ResultSetMetaData;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiFunction;
 
@@ -71,17 +74,37 @@ public class JDBCFetcherTest {
                     return null;
             }
         });
+        List<String> calls = new ArrayList<>();
+        AtomicBoolean autoCommit = new AtomicBoolean(true);
         Statement statement = proxy(Statement.class, (method, args) -> {
-            if (method.equals("isClosed")) {
-                return false;
+            switch (method) {
+                case "isClosed":
+                    return false;
+                case "setFetchSize":
+                    calls.add("setFetchSize(" + args[0] + ")");
+                    return null;
+                case "executeQuery":
+                    calls.add("executeQuery(autoCommit=" + autoCommit.get() + ")");
+                    return result;
+                default:
+                    return null;
             }
-            return method.equals("executeQuery") ? result : null;
         });
         Connection connection = proxy(Connection.class, (method, args) -> {
-            if (method.equals("isClosed")) {
-                return false;
+            switch (method) {
+                case "isClosed":
+                    return false;
+                case "getAutoCommit":
+                    return autoCommit.get();
+                case "setAutoCommit":
+                    calls.add("setAutoCommit(" + args[0] + ")");
+                    autoCommit.set((Boolean) args[0]);
+                    return null;
+                case "createStatement":
+                    return statement;
+                default:
+                    return null;
             }
-            return method.equals("createStatement") ? statement : null;
         });
         Driver driver = proxy(Driver.class, (method, args) -> {
             if (method.equals("connect")) {
@@ -130,6 +153,12 @@ public class JDBCFetcherTest {
             Assert.assertEquals(Constants.NULL_STR, values[3]);
             Assert.assertEquals(42, values[4]);
             Assert.assertEquals(1, timestampReads.get());
+            // Cursor-based streaming (e.g. PostgreSQL) needs auto-commit off and
+            // the fetch size set on the statement before the query runs
+            Assert.assertEquals(Arrays.asList("setAutoCommit(false)",
+                                              "setFetchSize(" + source.batchSize() + ")",
+                                              "executeQuery(autoCommit=false)"),
+                                calls);
             fetcher.close();
         } finally {
             DriverManager.deregisterDriver(driver);
