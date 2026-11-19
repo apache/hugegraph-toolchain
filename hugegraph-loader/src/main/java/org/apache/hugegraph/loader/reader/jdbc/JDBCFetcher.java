@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.apache.hugegraph.loader.constant.Constants;
 import org.apache.hugegraph.loader.reader.line.Line;
 import org.apache.hugegraph.loader.source.jdbc.JDBCSource;
+import org.apache.hugegraph.loader.source.jdbc.JDBCVendor;
 
 public class JDBCFetcher extends Fetcher {
     private static final Logger LOG = Log.logger(JDBCFetcher.class);
@@ -85,10 +86,14 @@ public class JDBCFetcher extends Fetcher {
     @Override
     public  List<Line> nextBatch() throws SQLException {
         if (!start) {
-            // Some drivers (e.g. PostgreSQL) only stream rows through a cursor when
-            // auto-commit is off and the fetch size is set before the query runs;
-            // otherwise the whole result set is buffered in memory.
-            disableAutoCommit();
+            // pgjdbc only streams rows through a cursor when auto-commit is off and
+            // the fetch size is set before the query runs; otherwise the whole result
+            // set is buffered in memory. Other vendors keep auto-commit on so the
+            // SELECT does not hold a transaction open for the whole load (e.g. MySQL
+            // buffers the result anyway, and an open InnoDB read view delays purge).
+            if (source.vendor() == JDBCVendor.POSTGRESQL) {
+                disableAutoCommit();
+            }
             stmt = this.conn.createStatement(java.sql.ResultSet.TYPE_FORWARD_ONLY,
                                              java.sql.ResultSet.CONCUR_READ_ONLY);
             stmt.setFetchSize(source.batchSize());

@@ -153,11 +153,9 @@ public class JDBCFetcherTest {
             Assert.assertEquals(Constants.NULL_STR, values[3]);
             Assert.assertEquals(42, values[4]);
             Assert.assertEquals(1, timestampReads.get());
-            // Cursor-based streaming (e.g. PostgreSQL) needs auto-commit off and
-            // the fetch size set on the statement before the query runs
-            Assert.assertEquals(Arrays.asList("setAutoCommit(false)",
-                                              "setFetchSize(" + source.batchSize() + ")",
-                                              "executeQuery(autoCommit=false)"),
+            // MySQL keeps auto-commit on so the SELECT does not hold a transaction open
+            Assert.assertEquals(Arrays.asList("setFetchSize(" + source.batchSize() + ")",
+                                              "executeQuery(autoCommit=true)"),
                                 calls);
             fetcher.close();
         } finally {
@@ -166,11 +164,40 @@ public class JDBCFetcherTest {
     }
 
     @Test
+    public void testPostgresqlDisablesAutoCommitBeforeQuery() throws Exception {
+        List<String> calls = new ArrayList<>();
+        Connection connection = connection(calls, true, false);
+
+        fetchFirstBatch(connection, JDBCVendor.POSTGRESQL);
+
+        // pgjdbc only streams rows through a cursor when auto-commit is off and
+        // the fetch size is set on the statement before the query runs
+        Assert.assertEquals(Arrays.asList("setAutoCommit(false)", "setFetchSize(500)",
+                                          "executeQuery(autoCommit=false)"),
+                            calls);
+    }
+
+    @Test
+    public void testOtherVendorsKeepAutoCommit() throws Exception {
+        for (JDBCVendor vendor : new JDBCVendor[]{JDBCVendor.MYSQL, JDBCVendor.ORACLE,
+                                                  JDBCVendor.SQLSERVER}) {
+            List<String> calls = new ArrayList<>();
+            Connection connection = connection(calls, true, false);
+
+            fetchFirstBatch(connection, vendor);
+
+            Assert.assertEquals(vendor.name(),
+                                Arrays.asList("setFetchSize(500)", "executeQuery(autoCommit=true)"),
+                                calls);
+        }
+    }
+
+    @Test
     public void testAutoCommitAlreadyOffIsLeftUnchanged() throws Exception {
         List<String> calls = new ArrayList<>();
         Connection connection = connection(calls, false, false);
 
-        fetchFirstBatch(connection);
+        fetchFirstBatch(connection, JDBCVendor.POSTGRESQL);
 
         Assert.assertEquals(Arrays.asList("setFetchSize(500)", "executeQuery(autoCommit=false)"),
                             calls);
@@ -181,7 +208,7 @@ public class JDBCFetcherTest {
         List<String> calls = new ArrayList<>();
         Connection connection = connection(calls, true, true);
 
-        fetchFirstBatch(connection);
+        fetchFirstBatch(connection, JDBCVendor.POSTGRESQL);
 
         // The failure is only logged; rows are still read with the fetch size set first
         Assert.assertEquals(Arrays.asList("setAutoCommit(false) failed", "setFetchSize(500)",
@@ -240,7 +267,8 @@ public class JDBCFetcherTest {
         });
     }
 
-    private static void fetchFirstBatch(Connection connection) throws Exception {
+    private static void fetchFirstBatch(Connection connection, JDBCVendor vendor)
+                                        throws Exception {
         Driver driver = proxy(Driver.class, (method, args) -> {
             if (method.equals("connect")) {
                 return ((String) args[0]).startsWith("jdbc:loader-test:") ? connection : null;
@@ -255,7 +283,7 @@ public class JDBCFetcherTest {
             JDBCSource source = new JDBCSource() {
                 @Override
                 public JDBCVendor vendor() {
-                    return JDBCVendor.POSTGRESQL;
+                    return vendor;
                 }
 
                 @Override
