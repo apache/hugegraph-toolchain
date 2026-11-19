@@ -23,12 +23,15 @@ import java.sql.Driver;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiFunction;
 
 import org.apache.hugegraph.loader.constant.Constants;
 import org.apache.hugegraph.loader.reader.jdbc.JDBCFetcher;
@@ -71,17 +74,37 @@ public class JDBCFetcherTest {
                     return null;
             }
         });
+        List<String> calls = new ArrayList<>();
+        AtomicBoolean autoCommit = new AtomicBoolean(true);
         Statement statement = proxy(Statement.class, (method, args) -> {
-            if (method.equals("isClosed")) {
-                return false;
+            switch (method) {
+                case "isClosed":
+                    return false;
+                case "setFetchSize":
+                    calls.add("setFetchSize(" + args[0] + ")");
+                    return null;
+                case "executeQuery":
+                    calls.add("executeQuery(autoCommit=" + autoCommit.get() + ")");
+                    return result;
+                default:
+                    return null;
             }
-            return method.equals("executeQuery") ? result : null;
         });
         Connection connection = proxy(Connection.class, (method, args) -> {
-            if (method.equals("isClosed")) {
-                return false;
+            switch (method) {
+                case "isClosed":
+                    return false;
+                case "getAutoCommit":
+                    return autoCommit.get();
+                case "setAutoCommit":
+                    calls.add("setAutoCommit(" + args[0] + ")");
+                    autoCommit.set((Boolean) args[0]);
+                    return null;
+                case "createStatement":
+                    return statement;
+                default:
+                    return null;
             }
-            return method.equals("createStatement") ? statement : null;
         });
         Driver driver = proxy(Driver.class, (method, args) -> {
             if (method.equals("connect")) {
@@ -130,6 +153,162 @@ public class JDBCFetcherTest {
             Assert.assertEquals(Constants.NULL_STR, values[3]);
             Assert.assertEquals(42, values[4]);
             Assert.assertEquals(1, timestampReads.get());
+            // MySQL keeps auto-commit on so the SELECT does not hold a transaction open
+            Assert.assertEquals(Arrays.asList("setFetchSize(" + source.batchSize() + ")",
+                                              "executeQuery(autoCommit=true)"),
+                                calls);
+            fetcher.close();
+        } finally {
+            DriverManager.deregisterDriver(driver);
+        }
+    }
+
+    @Test
+    public void testPostgresqlDisablesAutoCommitBeforeQuery() throws Exception {
+        List<String> calls = new ArrayList<>();
+        Connection connection = connection(calls, true, false);
+
+        fetchFirstBatch(connection, JDBCVendor.POSTGRESQL);
+
+        // pgjdbc only streams rows through a cursor when auto-commit is off and
+        // the fetch size is set on the statement before the query runs
+        Assert.assertEquals(Arrays.asList("setAutoCommit(false)", "setFetchSize(500)",
+                                          "executeQuery(autoCommit=false)"),
+                            calls);
+    }
+
+    @Test
+    public void testOtherVendorsKeepAutoCommit() throws Exception {
+        for (JDBCVendor vendor : new JDBCVendor[]{JDBCVendor.MYSQL, JDBCVendor.ORACLE,
+                                                  JDBCVendor.SQLSERVER}) {
+            List<String> calls = new ArrayList<>();
+            Connection connection = connection(calls, true, false);
+
+            fetchFirstBatch(connection, vendor);
+
+            Assert.assertEquals(vendor.name(),
+                                Arrays.asList("setFetchSize(500)", "executeQuery(autoCommit=true)"),
+                                calls);
+        }
+    }
+
+    @Test
+    public void testAutoCommitAlreadyOffIsLeftUnchanged() throws Exception {
+        List<String> calls = new ArrayList<>();
+        Connection connection = connection(calls, false, false);
+
+        fetchFirstBatch(connection, JDBCVendor.POSTGRESQL);
+
+        Assert.assertEquals(Arrays.asList("setFetchSize(500)", "executeQuery(autoCommit=false)"),
+                            calls);
+    }
+
+    @Test
+    public void testAutoCommitNotSupportedKeepsDriverDefault() throws Exception {
+        List<String> calls = new ArrayList<>();
+        Connection connection = connection(calls, true, true);
+
+        fetchFirstBatch(connection, JDBCVendor.POSTGRESQL);
+
+        // The failure is only logged; rows are still read with the fetch size set first
+        Assert.assertEquals(Arrays.asList("setAutoCommit(false) failed", "setFetchSize(500)",
+                                          "executeQuery(autoCommit=true)"),
+                            calls);
+    }
+
+    private static Connection connection(List<String> calls, boolean initialAutoCommit,
+                                         boolean rejectAutoCommit) {
+        AtomicBoolean autoCommit = new AtomicBoolean(initialAutoCommit);
+        ResultSetMetaData metadata = proxy(ResultSetMetaData.class, (method, args) -> 0);
+        ResultSet result = proxy(ResultSet.class, (method, args) -> {
+            switch (method) {
+                case "next":
+                case "isClosed":
+                    return false;
+                case "getMetaData":
+                    return metadata;
+                default:
+                    return null;
+            }
+        });
+        Statement statement = proxy(Statement.class, (method, args) -> {
+            switch (method) {
+                case "isClosed":
+                    return false;
+                case "setFetchSize":
+                    calls.add("setFetchSize(" + args[0] + ")");
+                    return null;
+                case "executeQuery":
+                    calls.add("executeQuery(autoCommit=" + autoCommit.get() + ")");
+                    return result;
+                default:
+                    return null;
+            }
+        });
+        return proxy(Connection.class, (method, args) -> {
+            switch (method) {
+                case "isClosed":
+                    return false;
+                case "getAutoCommit":
+                    return autoCommit.get();
+                case "setAutoCommit":
+                    if (rejectAutoCommit) {
+                        calls.add("setAutoCommit(" + args[0] + ") failed");
+                        throw new SQLException("auto-commit is not supported");
+                    }
+                    calls.add("setAutoCommit(" + args[0] + ")");
+                    autoCommit.set((Boolean) args[0]);
+                    return null;
+                case "createStatement":
+                    return statement;
+                default:
+                    return null;
+            }
+        });
+    }
+
+    private static void fetchFirstBatch(Connection connection, JDBCVendor vendor)
+                                        throws Exception {
+        Driver driver = proxy(Driver.class, (method, args) -> {
+            if (method.equals("connect")) {
+                return ((String) args[0]).startsWith("jdbc:loader-test:") ? connection : null;
+            }
+            if (method.equals("toString")) {
+                return "auto-commit fixture driver";
+            }
+            throw new UnsupportedOperationException(method);
+        });
+        DriverManager.registerDriver(driver);
+        try {
+            JDBCSource source = new JDBCSource() {
+                @Override
+                public JDBCVendor vendor() {
+                    return vendor;
+                }
+
+                @Override
+                public String driver() {
+                    return Driver.class.getName();
+                }
+
+                @Override
+                public String url() {
+                    return "jdbc:loader-test://localhost";
+                }
+
+                @Override
+                public String database() {
+                    return "fixture";
+                }
+
+                @Override
+                public String table() {
+                    return "rows";
+                }
+            };
+            Assert.assertEquals(500, source.batchSize());
+            JDBCFetcher fetcher = new JDBCFetcher(source);
+            Assert.assertTrue(fetcher.nextBatch().isEmpty());
             fetcher.close();
         } finally {
             DriverManager.deregisterDriver(driver);
@@ -137,8 +316,14 @@ public class JDBCFetcherTest {
     }
 
     @SuppressWarnings("unchecked")
-    private static <T> T proxy(Class<T> type, BiFunction<String, Object[], Object> handler) {
+    private static <T> T proxy(Class<T> type, Handler handler) {
         return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type},
                 (proxy, method, args) -> handler.apply(method.getName(), args));
+    }
+
+    @FunctionalInterface
+    private interface Handler {
+
+        Object apply(String method, Object[] args) throws Throwable;
     }
 }
